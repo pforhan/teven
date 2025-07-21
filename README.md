@@ -13,7 +13,7 @@ This repository contains the core documentation for the Teven project. As the pr
   See [the PRD](PRD.md) for details
 * Backend Engineering Design Specifications:  
   This document details the proposed backend architecture for Teven, including technology choices (Ktor, Exposed, Kotlin Coroutines), modular structure, and API design principles.  
-  See [the backend Eng Design](BACKEND-DESIGN.md) for more.
+  See [the backend Eng Design](BACKEND-DESIGN.md) and [API specification](API.md) for more.
 * **Future Documents:**  
   * Frontend Design Specifications  
   * Database Schema  
