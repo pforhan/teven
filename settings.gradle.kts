@@ -1,9 +1,9 @@
 rootProject.name = "teven"
 
-include("teven-backend")
-include("teven-backend:app")
-include("teven-backend:core")
-include("teven-backend:data")
-include("teven-backend:service")
-include("teven-backend:api")
-include("teven-backend:auth")
+include("backend")
+include("backend:app")
+include("backend:core")
+include("backend:data")
+include("backend:service")
+include("backend:api")
+include("backend:auth")

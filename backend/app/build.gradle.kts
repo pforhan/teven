@@ -9,9 +9,9 @@ application {
 }
 
 dependencies {
-    implementation(project(":teven-backend:service"))
-    implementation(project(":teven-backend:api"))
-    implementation(project(":teven-backend:data"))
+    implementation(project(":backend:service"))
+    implementation(project(":backend:api"))
+    implementation(project(":backend:data"))
     implementation(libs.ktor.server.core.jvm)
     implementation(libs.ktor.server.netty.jvm)
     implementation(libs.ktor.server.content.negotiation.jvm)

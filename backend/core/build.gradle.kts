@@ -3,6 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":teven-backend:api"))
+    implementation(project(":backend:api"))
     implementation("org.mindrot:jbcrypt:0.4")
 }

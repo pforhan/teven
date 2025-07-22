@@ -3,8 +3,8 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":teven-backend:core"))
-    implementation(project(":teven-backend:api"))
+    implementation(project(":backend:core"))
+    implementation(project(":backend:api"))
     implementation(libs.exposed.core)
     implementation(libs.exposed.dao)
     implementation(libs.exposed.jdbc)
