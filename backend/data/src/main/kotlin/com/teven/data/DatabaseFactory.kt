@@ -20,9 +20,9 @@ import org.jetbrains.exposed.sql.transactions.transaction
 object DatabaseFactory {
     fun init() {
         val driverClassName = "org.postgresql.Driver"
-        val jdbcUrl = "jdbc:postgresql://localhost:5432/teven_db"
-        val user = "teven_user"
-        val password = "teven_password"
+        val jdbcUrl = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/teven_db"
+        val user = System.getenv("DB_USER") ?: "teven_user"
+        val password = System.getenv("DB_PASSWORD") ?: "teven_password"
 
         Database.connect(jdbcUrl, driverClassName, user, password)
 

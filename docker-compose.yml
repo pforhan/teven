@@ -1,0 +1,32 @@
+
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: teven_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${TEVEN_POSTGRES_DB:-teven_db}
+      POSTGRES_USER: ${TEVEN_POSTGRES_USER:-teven_user}
+      POSTGRES_PASSWORD: ${TEVEN_POSTGRES_PASSWORD:-teven_password}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: teven_backend
+    ports:
+      - "${TEVEN_BACKEND_PORT:-2022}:8080"
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${TEVEN_POSTGRES_DB:-teven_db}
+      DB_USER: ${TEVEN_POSTGRES_USER:-teven_user}
+      DB_PASSWORD: ${TEVEN_POSTGRES_PASSWORD:-teven_password}
+    depends_on:
+      - db
+
+volumes:
+  db_data:
