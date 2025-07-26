@@ -7,5 +7,6 @@ import kotlinx.serialization.Serializable
 data class StaffHoursReportResponse(
     val userId: Int,
     val username: String,
+    val displayName: String,
     val totalHoursWorked: Int
 )

@@ -18,6 +18,7 @@ class ReportDao {
         return StaffHoursReportResponse(
             userId = row[StaffHours.userId].value,
             username = row[Users.username],
+            displayName = row[Users.displayName],
             totalHoursWorked = row[StaffHours.hoursWorked]
         )
     }

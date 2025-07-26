@@ -19,6 +19,10 @@ class RoleService(private val roleDao: RoleDao) {
         return roleDao.getRoleById(roleId)
     }
 
+    fun getRoleByName(roleName: String): RoleResponse? {
+        return roleDao.getRoleByName(roleName)
+    }
+
     fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): Boolean {
         return roleDao.updateRole(roleId, updateRoleRequest)
     }

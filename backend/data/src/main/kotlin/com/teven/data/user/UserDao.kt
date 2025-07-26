@@ -17,6 +17,7 @@ class UserDao {
             val id = Users.insert {
                 it[username] = registerRequest.username
                 it[email] = registerRequest.email
+                it[displayName] = registerRequest.displayName
                 it[passwordHash] = PasswordHasher.hashPassword(registerRequest.password)
                 it[role] = registerRequest.role
             } get Users.id
@@ -25,6 +26,7 @@ class UserDao {
                 userId = id.value,
                 username = registerRequest.username,
                 email = registerRequest.email,
+                displayName = registerRequest.displayName,
                 role = registerRequest.role,
                 passwordHash = PasswordHasher.hashPassword(registerRequest.password)
             )
@@ -51,6 +53,37 @@ class UserDao {
                         userId = row[Users.id].value,
                         username = row[Users.username],
                         email = row[Users.email],
+                        displayName = row[Users.displayName],
+                        role = row[Users.role],
+                        passwordHash = row[Users.passwordHash],
+                        staffDetails = staffDetails
+                    )
+                }
+                .singleOrNull()
+        }
+    }
+
+    fun findByEmail(email: String): UserResponse? {
+        return transaction {
+            Users.select { Users.email eq email }
+                .mapNotNull { row ->
+                    val staffDetailsRow = StaffDetails.select { StaffDetails.userId eq row[Users.id].value }.singleOrNull()
+                    val staffDetails = if (staffDetailsRow != null) {
+                        ApiStaffDetails(
+                            contactInformation = staffDetailsRow[StaffDetails.contactInformation],
+                            skills = staffDetailsRow[StaffDetails.skills].split(","),
+                            hoursWorked = staffDetailsRow[StaffDetails.hoursWorked],
+                            phoneNumber = staffDetailsRow[StaffDetails.phoneNumber],
+                            dateOfBirth = staffDetailsRow[StaffDetails.dateOfBirth]
+                        )
+                    } else {
+                        null
+                    }
+                    UserResponse(
+                        userId = row[Users.id].value,
+                        username = row[Users.username],
+                        email = row[Users.email],
+                        displayName = row[Users.displayName],
                         role = row[Users.role],
                         passwordHash = row[Users.passwordHash],
                         staffDetails = staffDetails
@@ -80,6 +113,7 @@ class UserDao {
                         userId = row[Users.id].value,
                         username = row[Users.username],
                         email = row[Users.email],
+                        displayName = row[Users.displayName],
                         role = row[Users.role],
                         passwordHash = row[Users.passwordHash],
                         staffDetails = staffDetails
@@ -93,6 +127,7 @@ class UserDao {
         return transaction {
             val userUpdated = Users.update({ Users.id eq userId }) {
                 updateUserRequest.email?.let { email -> it[Users.email] = email }
+                updateUserRequest.displayName?.let { displayName -> it[Users.displayName] = displayName }
             } > 0
 
             updateUserRequest.staffDetails?.let { staffDetailsRequest ->

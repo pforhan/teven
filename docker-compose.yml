@@ -17,7 +17,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: docker/backend/Dockerfile
+      dockerfile: Dockerfile
     container_name: teven_backend
     ports:
       - "${TEVEN_BACKEND_PORT:-2022}:8080"
@@ -25,6 +25,8 @@ services:
       DB_URL: jdbc:postgresql://db:5432/${TEVEN_POSTGRES_DB:-teven_db}
       DB_USER: ${TEVEN_POSTGRES_USER:-teven_user}
       DB_PASSWORD: ${TEVEN_POSTGRES_PASSWORD:-teven_password}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
     depends_on:
       - db
 

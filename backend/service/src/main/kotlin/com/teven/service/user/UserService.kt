@@ -1,4 +1,3 @@
-
 package com.teven.service.user
 
 import com.teven.api.model.auth.LoginRequest
@@ -12,15 +11,16 @@ import com.teven.data.user.UserDao
 
 class UserService(private val userDao: UserDao) {
     fun registerUser(registerRequest: RegisterRequest): UserResponse {
-        // TODO: Add business logic, e.g., password hashing, validation
-        return userDao.createUser(registerRequest)
+        val hashedPassword = PasswordHasher.hashPassword(registerRequest.password)
+        val requestWithHashedPassword = registerRequest.copy(password = hashedPassword)
+        return userDao.createUser(requestWithHashedPassword)
     }
 
     fun loginUser(loginRequest: LoginRequest): LoginResponse? {
         val user = userDao.findByUsername(loginRequest.username)
         return if (user != null && PasswordHasher.checkPassword(loginRequest.password, user.passwordHash)) {
             // TODO: Generate JWT token
-            LoginResponse("dummy_token", user.userId, user.username, user.role)
+            LoginResponse("dummy_token", user.userId, user.username, user.displayName, user.role)
         } else {
             null
         }
@@ -28,6 +28,10 @@ class UserService(private val userDao: UserDao) {
 
     fun getUserById(userId: Int): UserResponse? {
         return userDao.findById(userId)
+    }
+
+    fun getUserByEmail(email: String): UserResponse? {
+        return userDao.findByEmail(email)
     }
 
     fun updateUser(userId: Int, updateUserRequest: com.teven.api.model.auth.UpdateUserRequest): Boolean {

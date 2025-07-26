@@ -52,6 +52,14 @@ class RoleDao {
         }
     }
 
+    fun getRoleByName(roleName: String): RoleResponse? {
+        return transaction {
+            Roles.select { Roles.roleName eq roleName }
+                .mapNotNull { toRoleResponse(it) }
+                .singleOrNull()
+        }
+    }
+
     fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): Boolean {
         return transaction {
             Roles.update({ Roles.id eq roleId }) {
