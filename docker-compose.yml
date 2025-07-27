@@ -32,6 +32,9 @@ services:
       DB_PASSWORD: ${TEVEN_POSTGRES_PASSWORD:-teven_password}
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE}
     depends_on:
       db:
         condition: service_healthy

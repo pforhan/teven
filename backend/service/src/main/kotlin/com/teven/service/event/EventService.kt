@@ -7,7 +7,10 @@ import com.teven.data.event.EventDao
 
 class EventService(private val eventDao: EventDao) {
     fun createEvent(createEventRequest: CreateEventRequest): EventResponse {
-        // TODO: Add business logic, e.g., validation
+        if (createEventRequest.title.isBlank()) {
+            throw IllegalArgumentException("Event title cannot be empty")
+        }
+        // TODO: Add more business logic and validation here
         return eventDao.createEvent(createEventRequest)
     }
 

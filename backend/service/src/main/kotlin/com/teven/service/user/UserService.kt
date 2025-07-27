@@ -1,15 +1,18 @@
 package com.teven.service.user
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm.HMAC256
 import com.teven.api.model.auth.LoginRequest
 import com.teven.api.model.auth.LoginResponse
 import com.teven.api.model.auth.RegisterRequest
 import com.teven.api.model.auth.UserContextResponse
 import com.teven.api.model.auth.UserResponse
 import com.teven.api.model.organization.OrganizationDetails
+import com.teven.core.config.JwtConfig
 import com.teven.core.security.PasswordHasher
 import com.teven.data.user.UserDao
 
-class UserService(private val userDao: UserDao) {
+class UserService(private val userDao: UserDao, private val jwtConfig: JwtConfig) {
     fun registerUser(registerRequest: RegisterRequest): UserResponse {
         val hashedPassword = PasswordHasher.hashPassword(registerRequest.password)
         val requestWithHashedPassword = registerRequest.copy(password = hashedPassword)
@@ -22,8 +25,14 @@ class UserService(private val userDao: UserDao) {
                 password = loginRequest.password,
                 hashed = user.passwordHash
             )) {
-            // TODO: Generate JWT token
-            LoginResponse("dummy_token", user.userId, user.username, user.displayName, user.role)
+            val token = JWT.create()
+                .withAudience(jwtConfig.audience)
+                .withIssuer(jwtConfig.issuer)
+                .withClaim("userId", user.userId)
+                .withClaim("username", user.username)
+                .withClaim("role", user.role)
+                .sign(HMAC256(jwtConfig.secret))
+            LoginResponse(token, user.userId, user.username, user.displayName, user.role)
         } else {
             null
         }

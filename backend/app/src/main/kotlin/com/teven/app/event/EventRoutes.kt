@@ -13,6 +13,9 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.JWTPrincipal
+
 fun Route.eventRoutes() {
     val eventService by inject<EventService>()
 
@@ -28,7 +31,7 @@ fun Route.eventRoutes() {
             call.respond(HttpStatusCode.OK, events)
         }
 
-        get("/{event_id}") {
+        get("{event_id}") {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             if (eventId == null) {
                 call.respondText("Invalid event ID", status = HttpStatusCode.BadRequest)
@@ -42,7 +45,7 @@ fun Route.eventRoutes() {
             }
         }
 
-        put("/{event_id}") {
+        put("{event_id}") {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             if (eventId == null) {
                 call.respondText("Invalid event ID", status = HttpStatusCode.BadRequest)
@@ -56,7 +59,7 @@ fun Route.eventRoutes() {
             }
         }
 
-        delete("/{event_id}") {
+        delete("{event_id}") {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             if (eventId == null) {
                 call.respondText("Invalid event ID", status = HttpStatusCode.BadRequest)
@@ -69,7 +72,7 @@ fun Route.eventRoutes() {
             }
         }
 
-        post("/{event_id}/staff/{user_id}") {
+        post("{event_id}/staff/{user_id}") {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             val userId = call.parameters["user_id"]?.toIntOrNull()
             if (eventId == null || userId == null) {
@@ -83,7 +86,7 @@ fun Route.eventRoutes() {
             }
         }
 
-        delete("/{event_id}/staff/{user_id}") {
+        delete("{event_id}/staff/{user_id}") {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             val userId = call.parameters["user_id"]?.toIntOrNull()
             if (eventId == null || userId == null) {
@@ -97,18 +100,27 @@ fun Route.eventRoutes() {
             }
         }
 
-        post("/{event_id}/rsvp") {
-            val eventId = call.parameters["event_id"]?.toIntOrNull()
-            if (eventId == null) {
-                call.respondText("Invalid event ID", status = HttpStatusCode.BadRequest)
-                return@post
-            }
-            val rsvpRequest = call.receive<RsvpRequest>()
-            val userId = 1 // TODO: Get user ID from session
-            if (eventService.rsvpToEvent(eventId, userId, rsvpRequest.availability)) {
-                call.respond(HttpStatusCode.OK, StatusResponse("OK"))
-            } else {
-                call.respond(HttpStatusCode.InternalServerError, StatusResponse("Failed to RSVP"))
+        authenticate("auth-jwt") {
+            post("{event_id}/rsvp") {
+                val eventId = call.parameters["event_id"]?.toIntOrNull()
+                if (eventId == null) {
+                    call.respondText("Invalid event ID", status = HttpStatusCode.BadRequest)
+                    return@post
+                }
+                val rsvpRequest = call.receive<RsvpRequest>()
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "User ID not found in token")
+                    return@post
+                }
+
+                if (eventService.rsvpToEvent(eventId, userId, rsvpRequest.availability)) {
+                    call.respond(HttpStatusCode.OK, StatusResponse("OK"))
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, StatusResponse("Failed to RSVP"))
+                }
             }
         }
     }
