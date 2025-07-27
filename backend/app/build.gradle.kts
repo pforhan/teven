@@ -8,38 +8,6 @@ application {
     mainClass.set("com.teven.ApplicationKt")
 }
 
-val webappDir = file("../../frontend")
-
-tasks.register("npmInstall", Exec::class) {
-    workingDir = webappDir
-    // Detect OS and set command accordingly
-    val isWindows = System.getProperty("os.name").lowercase().contains("windows")
-    commandLine = if (isWindows) {
-        listOf("cmd", "/c", "npm", "install")
-    } else {
-        listOf("npm", "install")
-    }
-}
-
-tasks.register("npmBuild", Exec::class) {
-    dependsOn("npmInstall")
-    workingDir = webappDir
-    // Detect OS and set command accordingly
-    val isWindows = System.getProperty("os.name").lowercase().contains("windows")
-    commandLine = if (isWindows) {
-        listOf("cmd", "/c", "npm", "run", "build")
-    } else {
-        listOf("npm", "run", "build")
-    }
-}
-
-tasks.named<Copy>("processResources") {
-    dependsOn("npmBuild")
-    from("$webappDir/dist") {
-        into("static")
-    }
-}
-
 dependencies {
     implementation(project(":backend:service"))
     implementation(project(":backend:api"))

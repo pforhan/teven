@@ -33,11 +33,10 @@ COPY backend ./backend
 # Copy the built frontend assets from the frontend-builder stage
 COPY --from=frontend-builder /app/frontend/dist /app/backend/app/src/main/resources/static
 
-# Grant execute permission to the gradlew script
-RUN chmod +x ./gradlew
+
 
 # Build the application
-RUN --mount=type=cache,target=/root/.gradle ./gradlew :backend:app:assemble --no-daemon
+RUN ./gradlew :backend:app:assemble --no-daemon
 
 # Expose the port the application runs on
 EXPOSE 8080
