@@ -13,6 +13,11 @@ services:
       POSTGRES_PASSWORD: ${TEVEN_POSTGRES_PASSWORD:-teven_password}
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TEVEN_POSTGRES_USER:-teven_user} -d ${TEVEN_POSTGRES_DB:-teven_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -28,7 +33,8 @@ services:
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   db_data:

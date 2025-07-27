@@ -23,17 +23,22 @@ FROM cimg/openjdk:19.0-node
 
 WORKDIR /app
 
-# Copy the Gradle wrapper and root build files
-COPY gradlew settings.gradle.kts build.gradle.kts ./
-COPY gradle ./gradle
+# Switch to the 'circleci' user
+USER circleci
 
-# Copy the entire backend source code
-COPY backend ./backend
+# Copy the Gradle wrapper and root build files with correct ownership
+COPY --chown=circleci:circleci gradlew ./
+COPY --chown=circleci:circleci settings.gradle.kts build.gradle.kts ./
+COPY --chown=circleci:circleci gradle ./gradle
 
-# Copy the built frontend assets from the frontend-builder stage
-COPY --from=frontend-builder /app/frontend/dist /app/backend/app/src/main/resources/static
+# trigger a download of the gradle wrapper
+RUN ./gradlew --status
 
+# Copy the entire backend source code with correct ownership
+COPY --chown=circleci:circleci backend ./backend
 
+# Copy the built frontend assets from the frontend-builder stage with correct ownership
+COPY --chown=circleci:circleci --from=frontend-builder /app/frontend/dist /app/backend/app/src/main/resources/static
 
 # Build the application
 RUN ./gradlew :backend:app:assemble --no-daemon

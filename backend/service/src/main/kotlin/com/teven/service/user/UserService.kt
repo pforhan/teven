@@ -18,7 +18,10 @@ class UserService(private val userDao: UserDao) {
 
     fun loginUser(loginRequest: LoginRequest): LoginResponse? {
         val user = userDao.findByUsername(loginRequest.username)
-        return if (user != null && PasswordHasher.checkPassword(loginRequest.password, user.passwordHash)) {
+        return if (user != null && PasswordHasher.checkPassword(
+                password = loginRequest.password,
+                hashed = user.passwordHash
+            )) {
             // TODO: Generate JWT token
             LoginResponse("dummy_token", user.userId, user.username, user.displayName, user.role)
         } else {

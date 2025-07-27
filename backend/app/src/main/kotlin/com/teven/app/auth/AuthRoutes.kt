@@ -4,6 +4,7 @@ package com.teven.app.auth
 import com.teven.api.model.auth.LoginRequest
 import com.teven.api.model.auth.RegisterRequest
 import com.teven.service.user.UserService
+import com.teven.api.model.common.StatusResponse
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -16,7 +17,7 @@ fun Route.authRoutes() {
 
     route("/api/users") {
         post("/register") {
-            val registerRequest = call.receive<RegisterRequest>()
+            val registerRequest = call.receive<RegisterRequest>().copy(role = "")
             val newUser = userService.registerUser(registerRequest)
             call.respond(HttpStatusCode.Created, newUser)
         }
@@ -27,7 +28,7 @@ fun Route.authRoutes() {
             if (loginResponse != null) {
                 call.respond(HttpStatusCode.OK, loginResponse)
             } else {
-                call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
+                call.respond(HttpStatusCode.Unauthorized, StatusResponse("Invalid credentials"))
             }
         }
 

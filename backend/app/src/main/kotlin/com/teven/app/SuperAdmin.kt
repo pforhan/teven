@@ -13,6 +13,7 @@ fun setupSuperAdmin(userService: UserService, roleService: RoleService) {
     }
 
     val existingUser = userService.getUserByEmail(superAdminEmail)
+    println("Super admin: ${existingUser?.username}")
     if (existingUser == null) {
         println("Super admin user not found, creating one...")
         val superAdmin = userService.registerUser(
