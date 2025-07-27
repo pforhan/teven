@@ -32,7 +32,13 @@ COPY --chown=circleci:circleci settings.gradle.kts build.gradle.kts ./
 COPY --chown=circleci:circleci gradle ./gradle
 
 # trigger a download of the gradle wrapper
-RUN ./gradlew --status
+RUN ./gradlew --status --no-daemon
+
+# Create backend directory and copy build.gradle.kts files for caching
+RUN mkdir -p backend && find backend -name "build.gradle.kts" -exec cp --parents {} . \;
+
+# Download dependencies for caching
+RUN ./gradlew dependencies --no-daemon
 
 # Copy the entire backend source code with correct ownership
 COPY --chown=circleci:circleci backend ./backend
