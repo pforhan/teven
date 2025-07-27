@@ -15,6 +15,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         val username: String,
         val password: String,
         val email: String,
+        val displayName: String,
         val role: String // e.g., "organizer", "staff"
     )
     ```
@@ -24,6 +25,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         val userId: Int,
         val username: String,
         val email: String,
+        val displayName: String,
         val role: String
     )
     ```
@@ -43,6 +45,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         val token: String,
         val userId: Int,
         val username: String,
+        val displayName: String,
         val role: String
     )
     ```
@@ -55,6 +58,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         val userId: Int,
         val username: String,
         val email: String,
+        val displayName: String,
         val role: String,
         val staffDetails: StaffDetails? // Nullable if user is not staff
     )

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { LoginRequest, RegisterRequest, LoginResponse, UserResponse } from '../types/auth';
 
 interface AuthProps {
-  onLogin: (token: string, userId: number, username: string, displayName: string, role: string) => void;
+  onLogin: (response: LoginResponse) => void;
 }
 
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
@@ -18,9 +19,22 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     setError(null);
 
     const url = isRegistering ? '/api/users/register' : '/api/users/login';
-    const body = isRegistering
-      ? JSON.stringify({ username, password, email, displayName, role })
-      : JSON.stringify({ username, password });
+    let body: LoginRequest | RegisterRequest;
+
+    if (isRegistering) {
+      body = {
+        username,
+        password,
+        email,
+        displayName,
+        role,
+      };
+    } else {
+      body = {
+        username,
+        password,
+      };
+    }
 
     try {
       const response = await fetch(url, {
@@ -28,7 +42,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body,
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -36,8 +50,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         throw new Error(errorData.message || 'Authentication failed');
       }
 
-      const data = await response.json();
-      onLogin(data.token, data.userId, data.username, data.displayName, data.role);
+      const data: LoginResponse | UserResponse = await response.json();
+      // Assuming onLogin expects LoginResponse, which contains all necessary info for the app state
+      onLogin(data as LoginResponse);
     } catch (err: any) {
       setError(err.message);
     }

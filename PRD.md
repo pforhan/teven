@@ -162,7 +162,7 @@
 
     * Settings for notifications and preferences
 
-      * Staff details (e.g., contact information, roles, hours worked, skills, **phone number, date of birth**)
+      * Staff details (e.g., contact information, roles, hours worked, skills, **phone number, date of birth**, **display name**)
 
   * Customer Management:
 
