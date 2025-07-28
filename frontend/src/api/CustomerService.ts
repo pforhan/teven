@@ -2,23 +2,21 @@
 
 import type { CustomerResponse, CreateCustomerRequest, UpdateCustomerRequest } from '../types/customers';
 import type { StatusResponse } from '../types/common';
+import { AuthService } from './AuthService';
 
 export class CustomerService {
-  private static getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      throw new Error('Authentication token not found');
+  static async getAllCustomers(nameFilter?: string, sortByName?: 'asc' | 'desc'): Promise<CustomerResponse[]> {
+    const url = new URL('/api/customers', window.location.origin);
+    if (nameFilter) {
+      url.searchParams.append('name', nameFilter);
     }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  }
+    if (sortByName) {
+      url.searchParams.append('sortByName', sortByName);
+    }
 
-  static async getAllCustomers(): Promise<CustomerResponse[]> {
-    const response = await fetch('/api/customers', {
+    const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: CustomerService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -30,7 +28,7 @@ export class CustomerService {
   static async getCustomer(customerId: number): Promise<CustomerResponse> {
     const response = await fetch(`/api/customers/${customerId}`, {
       method: 'GET',
-      headers: CustomerService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -42,7 +40,10 @@ export class CustomerService {
   static async createCustomer(request: CreateCustomerRequest): Promise<CustomerResponse> {
     const response = await fetch('/api/customers', {
       method: 'POST',
-      headers: CustomerService.getAuthHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
       body: JSON.stringify(request),
     });
     if (!response.ok) {
@@ -55,7 +56,10 @@ export class CustomerService {
   static async updateCustomer(customerId: number, request: UpdateCustomerRequest): Promise<CustomerResponse> {
     const response = await fetch(`/api/customers/${customerId}`, {
       method: 'PUT',
-      headers: CustomerService.getAuthHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
       body: JSON.stringify(request),
     });
     if (!response.ok) {
@@ -68,7 +72,7 @@ export class CustomerService {
   static async deleteCustomer(customerId: number): Promise<StatusResponse> {
     const response = await fetch(`/api/customers/${customerId}`, {
       method: 'DELETE',
-      headers: CustomerService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();

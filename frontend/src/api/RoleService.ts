@@ -2,23 +2,16 @@
 
 import type { CreateRoleRequest, RoleResponse, UpdateRoleRequest } from '../types/roles';
 import type { StatusResponse } from '../types/common';
+import { AuthService } from './AuthService';
 
 export class RoleService {
-  private static getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      throw new Error('Authentication token not found');
-    }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  }
-
   static async createRole(request: CreateRoleRequest): Promise<RoleResponse> {
     const response = await fetch('/api/roles', {
       method: 'POST',
-      headers: RoleService.getAuthHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
       body: JSON.stringify(request),
     });
     if (!response.ok) {
@@ -31,7 +24,7 @@ export class RoleService {
   static async getAllRoles(): Promise<RoleResponse[]> {
     const response = await fetch('/api/roles', {
       method: 'GET',
-      headers: RoleService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -43,7 +36,7 @@ export class RoleService {
   static async getRole(roleId: number): Promise<RoleResponse> {
     const response = await fetch(`/api/roles/${roleId}`, {
       method: 'GET',
-      headers: RoleService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -55,7 +48,10 @@ export class RoleService {
   static async updateRole(roleId: number, request: UpdateRoleRequest): Promise<RoleResponse> {
     const response = await fetch(`/api/roles/${roleId}`, {
       method: 'PUT',
-      headers: RoleService.getAuthHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
       body: JSON.stringify(request),
     });
     if (!response.ok) {
@@ -68,7 +64,7 @@ export class RoleService {
   static async deleteRole(roleId: number): Promise<StatusResponse> {
     const response = await fetch(`/api/roles/${roleId}`, {
       method: 'DELETE',
-      headers: RoleService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -80,7 +76,7 @@ export class RoleService {
   static async assignRoleToUser(userId: number, roleId: number): Promise<StatusResponse> {
     const response = await fetch(`/api/users/${userId}/roles/${roleId}`, {
       method: 'POST',
-      headers: RoleService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -92,7 +88,7 @@ export class RoleService {
   static async removeRoleFromUser(userId: number, roleId: number): Promise<StatusResponse> {
     const response = await fetch(`/api/users/${userId}/roles/${roleId}`, {
       method: 'DELETE',
-      headers: RoleService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();

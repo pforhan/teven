@@ -1,83 +1,60 @@
-import { useState } from 'react'
-import type { LoginResponse } from './types/auth';
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthService } from './api/AuthService';
 
-import './App.css'
-import Auth from './Auth'
+import './App.css';
+import Auth from './Auth';
+import MainLayout from './layouts/MainLayout';
+import EventList from './components/events/EventList';
+import CustomerList from './components/customers/CustomerList';
+import InventoryList from './components/inventory/InventoryList';
+import ReportList from './components/reports/ReportList';
+import Profile from './components/profile/Profile';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<LoginResponse | null>(null);
 
-  const handleLogin = (response: LoginResponse) => {
+  useEffect(() => {
+    const token = AuthService.getToken();
+    if (token) {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLogin = () => {
     setIsLoggedIn(true);
-    setUser(response);
-    // Optionally store token in localStorage or sessionStorage
-    localStorage.setItem('authToken', response.token);
   };
 
   const handleLogout = () => {
+    AuthService.logout();
     setIsLoggedIn(false);
-    setUser(null);
-    localStorage.removeItem('authToken');
   };
 
-  if (!isLoggedIn) {
-    return <Auth onLogin={handleLogin} />;
-  }
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Teven Scheduling App</h1>
-        <nav>
-          <ul>
-            <li><a href="#events">Events</a></li>
-            <li><a href="#customers">Customers</a></li>
-            <li><a href="#inventory">Inventory</a></li>
-            <li><a href="#reports">Reports</a></li>
-            <li><a href="#profile">Profile</a></li>
-            <li><button onClick={handleLogout}>Logout</button></li>
-          </ul>
-        </nav>
-      </header>
-      <main>
-        <section id="events">
-          <h2>Events</h2>
-          <p>Event listing and management will go here.</p>
-        </section>
-        <section id="customers">
-          <h2>Customers</h2>
-          <p>Customer management will go here.</p>
-        </section>
-        <section id="inventory">
-          <h2>Inventory</h2>
-          <p>Inventory management will go here.</p>
-        </section>
-        <section id="reports">
-          <h2>Reports</h2>
-          <p>Reporting features will go here.</p>
-        </section>
-        <section id="profile">
-          <h2>Profile</h2>
-          <p>User profile management will go here.</p>
-          {user && (
-            <div>
-              <p>Welcome, {user.displayName} ({user.username})!</p>
-              <p>Role: {user.role}</p>
-            </div>
-          )}
-        </section>
-      </main>
-      <div className="card">
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </div>
-  )
+    <Router>
+      <Routes>
+        {!isLoggedIn ? (
+          <Route path="/login" element={<Auth onLogin={handleLogin} />} />
+        ) : (
+          <Route path="/" element={<MainLayout onLogout={handleLogout} />}>
+            <Route index element={<Navigate to="/events" />} />
+            <Route path="events" element={<EventList />} />
+            <Route path="events/create" element={<CreateEventForm />} />
+            <Route path="events/edit/:eventId" element={<EditEventForm />} />
+            <Route path="customers" element={<CustomerList />} />
+            <Route path="customers/create" element={<CreateCustomerForm />} />
+            <Route path="customers/edit/:customerId" element={<EditCustomerForm />} />
+            <Route path="inventory" element={<InventoryList />} />
+            <Route path="inventory/create" element={<CreateInventoryForm />} />
+            <Route path="inventory/edit/:inventoryId" element={<EditInventoryForm />} />
+            <Route path="reports" element={<ReportList />} />
+            <Route path="profile" element={<Profile />} />
+          </Route>
+        )}
+        <Route path="*" element={<Navigate to={isLoggedIn ? "/" : "/login"} />} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;

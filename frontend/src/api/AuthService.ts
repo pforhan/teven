@@ -2,34 +2,89 @@
 
 import type { LoginRequest, LoginResponse, RegisterRequest, UserResponse, UserDetailsResponse, UpdateUserRequest, UserContextResponse } from '../types/auth';
 
+export const TOKEN_KEY = 'teven-auth-token';
+
 export class AuthService {
-  // TODO: Implement register user
   static async register(request: RegisterRequest): Promise<UserResponse> {
-    console.log('Registering user:', request);
-    throw new Error('Not implemented');
+    const response = await fetch('/api/users/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      throw new Error('Registration failed');
+    }
+    return response.json();
   }
 
-  // TODO: Implement login user
   static async login(request: LoginRequest): Promise<LoginResponse> {
-    console.log('Logging in user:', request);
-    throw new Error('Not implemented');
+    const response = await fetch('/api/users/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      throw new Error('Login failed');
+    }
+    const data = await response.json();
+    if (data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+    }
+    return data;
   }
 
-  // TODO: Implement get user details
+  static logout() {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+
+  static getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY);
+  }
+
+  static getAuthHeader(): { [key: string]: string } {
+    const token = this.getToken();
+    if (token) {
+      return { 'Authorization': `Bearer ${token}` };
+    }
+    return {};
+  }
+
   static async getUserDetails(userId: number): Promise<UserDetailsResponse> {
-    console.log('Getting user details for:', userId);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/users/${userId}`, {
+      headers: this.getAuthHeader(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get user details');
+    }
+    return response.json();
   }
 
-  // TODO: Implement update user details
   static async updateUserDetails(userId: number, request: UpdateUserRequest): Promise<UserResponse> {
-    console.log('Updating user details for:', userId, request);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeader(),
+      },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update user details');
+    }
+    return response.json();
   }
 
-  // TODO: Implement get user context
   static async getUserContext(): Promise<UserContextResponse> {
-    console.log('Getting user context');
-    throw new Error('Not implemented');
+    const response = await fetch('/api/context', {
+      headers: this.getAuthHeader(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get user context');
+    }
+    return response.json();
   }
 }

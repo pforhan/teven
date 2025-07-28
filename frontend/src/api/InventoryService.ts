@@ -2,23 +2,21 @@
 
 import type { InventoryItemResponse, CreateInventoryItemRequest, UpdateInventoryItemRequest, TrackInventoryUsageRequest } from '../types/inventory';
 import type { StatusResponse } from '../types/common';
+import { AuthService } from './AuthService';
 
 export class InventoryService {
-  private static getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      throw new Error('Authentication token not found');
+  static async getAllInventoryItems(nameFilter?: string, sortByName?: 'asc' | 'desc'): Promise<InventoryItemResponse[]> {
+    const url = new URL('/api/inventory', window.location.origin);
+    if (nameFilter) {
+      url.searchParams.append('name', nameFilter);
     }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  }
+    if (sortByName) {
+      url.searchParams.append('sortByName', sortByName);
+    }
 
-  static async getAllInventoryItems(): Promise<InventoryItemResponse[]> {
-    const response = await fetch('/api/inventory', {
+    const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: InventoryService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -30,7 +28,7 @@ export class InventoryService {
   static async getInventoryItem(inventoryId: number): Promise<InventoryItemResponse> {
     const response = await fetch(`/api/inventory/${inventoryId}`, {
       method: 'GET',
-      headers: InventoryService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -42,7 +40,10 @@ export class InventoryService {
   static async createInventoryItem(request: CreateInventoryItemRequest): Promise<InventoryItemResponse> {
     const response = await fetch('/api/inventory', {
       method: 'POST',
-      headers: InventoryService.getAuthHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
       body: JSON.stringify(request),
     });
     if (!response.ok) {
@@ -55,7 +56,10 @@ export class InventoryService {
   static async updateInventoryItem(inventoryId: number, request: UpdateInventoryItemRequest): Promise<InventoryItemResponse> {
     const response = await fetch(`/api/inventory/${inventoryId}`, {
       method: 'PUT',
-      headers: InventoryService.getAuthHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
       body: JSON.stringify(request),
     });
     if (!response.ok) {
@@ -68,7 +72,7 @@ export class InventoryService {
   static async deleteInventoryItem(inventoryId: number): Promise<StatusResponse> {
     const response = await fetch(`/api/inventory/${inventoryId}`, {
       method: 'DELETE',
-      headers: InventoryService.getAuthHeaders(),
+      headers: AuthService.getAuthHeader(),
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -80,7 +84,10 @@ export class InventoryService {
   static async trackInventoryUsage(inventoryId: number, request: TrackInventoryUsageRequest): Promise<StatusResponse> {
     const response = await fetch(`/api/inventory/${inventoryId}/usage`, {
       method: 'POST',
-      headers: InventoryService.getAuthHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
       body: JSON.stringify(request),
     });
     if (!response.ok) {

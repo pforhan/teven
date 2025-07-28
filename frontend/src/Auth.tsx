@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { LoginRequest, RegisterRequest, LoginResponse, UserResponse } from './types/auth';
 import { AuthService } from './api/AuthService';
+import ErrorDisplay from './components/common/ErrorDisplay';
 
 interface AuthProps {
   onLogin: (response: LoginResponse) => void;
@@ -29,9 +30,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           role,
         };
         const data: UserResponse = await AuthService.register(registerRequest);
-        // For registration, we don't get a token directly, so we might need to log in after registering
-        // For now, we'll just assume success and let the user log in manually or handle it differently.
-        // This part might need adjustment based on desired UX after registration.
         console.log('Registration successful:', data);
         setIsRegistering(false); // Switch to login form after successful registration
       } else {
@@ -42,15 +40,19 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         const data: LoginResponse = await AuthService.login(loginRequest);
         onLogin(data);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
     }
   };
 
   return (
     <div className="auth-container">
       <h2>{isRegistering ? 'Register' : 'Login'}</h2>
-      {error && <p className="error-message">{error}</p>}
+      <ErrorDisplay message={error} />
       <form onSubmit={handleSubmit}>
         <div>
           <label htmlFor="username">Username:</label>
