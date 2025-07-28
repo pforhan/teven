@@ -25,14 +25,14 @@ fun Route.inventoryRoutes() {
         get("/{inventory_id}") {
             val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
             if (inventoryId == null) {
-                call.respondText("Invalid inventory ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid inventory ID"))
                 return@get
             }
             val inventoryItem = inventoryService.getInventoryItemById(inventoryId)
             if (inventoryItem != null) {
                 call.respond(HttpStatusCode.OK, inventoryItem)
             } else {
-                call.respond(HttpStatusCode.NotFound, "Inventory item not found")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Inventory item not found"))
             }
         }
 
@@ -45,34 +45,34 @@ fun Route.inventoryRoutes() {
         put("/{inventory_id}") {
             val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
             if (inventoryId == null) {
-                call.respondText("Invalid inventory ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid inventory ID"))
                 return@put
             }
             val updateInventoryItemRequest = call.receive<UpdateInventoryItemRequest>()
             if (inventoryService.updateInventoryItem(inventoryId, updateInventoryItemRequest)) {
                 call.respond(HttpStatusCode.OK, "Inventory item with ID $inventoryId updated")
             } else {
-                call.respond(HttpStatusCode.NotFound, "Inventory item not found or no changes applied")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Inventory item not found or no changes applied"))
             }
         }
 
         delete("/{inventory_id}") {
             val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
             if (inventoryId == null) {
-                call.respondText("Invalid inventory ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid inventory ID"))
                 return@delete
             }
             if (inventoryService.deleteInventoryItem(inventoryId)) {
                 call.respond(HttpStatusCode.NoContent)
             } else {
-                call.respond(HttpStatusCode.NotFound, "Inventory item not found")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Inventory item not found"))
             }
         }
 
         post("/{inventory_id}/usage") {
             val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
             if (inventoryId == null) {
-                call.respondText("Invalid inventory ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid inventory ID"))
                 return@post
             }
             val trackInventoryUsageRequest = call.receive<TrackInventoryUsageRequest>()

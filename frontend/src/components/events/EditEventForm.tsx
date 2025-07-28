@@ -34,8 +34,9 @@ const EditEventForm: React.FC = () => {
         setDescription(fetchedEvent.description);
         setInventoryIds(fetchedEvent.inventoryIds.join(','));
         setCustomerId(fetchedEvent.customerId.toString());
-        setOpenInvitation(fetchedEvent.staffInvites?.openInvitation || false);
-        setNumberOfStaffNeeded(fetchedEvent.staffInvites?.numberOfStaffNeeded || 0);
+        // staffInvites are part of the request, not the response, so initialize with defaults
+        setOpenInvitation(false);
+        setNumberOfStaffNeeded(0);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);

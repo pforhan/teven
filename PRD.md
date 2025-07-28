@@ -182,6 +182,16 @@
 
     * Control access to features based on user roles.
 
+  * Organization Management (SuperAdmin Only):
+
+    * Allow SuperAdmins to list all organizations.
+
+    * Allow SuperAdmins to create new organizations.
+
+    * Allow SuperAdmins to edit existing organizations.
+
+    * Allow SuperAdmins to delete organizations.
+
   * Reporting
 
     * Allow users with the appropriate role to generate reports, such as:

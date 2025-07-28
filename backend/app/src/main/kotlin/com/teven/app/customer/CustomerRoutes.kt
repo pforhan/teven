@@ -24,14 +24,14 @@ fun Route.customerRoutes() {
         get("/{customer_id}") {
             val customerId = call.parameters["customer_id"]?.toIntOrNull()
             if (customerId == null) {
-                call.respondText("Invalid customer ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid customer ID"))
                 return@get
             }
             val customer = customerService.getCustomerById(customerId)
             if (customer != null) {
                 call.respond(HttpStatusCode.OK, customer)
             } else {
-                call.respond(HttpStatusCode.NotFound, "Customer not found")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Customer not found"))
             }
         }
 
@@ -44,27 +44,27 @@ fun Route.customerRoutes() {
         put("/{customer_id}") {
             val customerId = call.parameters["customer_id"]?.toIntOrNull()
             if (customerId == null) {
-                call.respondText("Invalid customer ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid customer ID"))
                 return@put
             }
             val updateCustomerRequest = call.receive<UpdateCustomerRequest>()
             if (customerService.updateCustomer(customerId, updateCustomerRequest)) {
                 call.respond(HttpStatusCode.OK, "Customer with ID $customerId updated")
             } else {
-                call.respond(HttpStatusCode.NotFound, "Customer not found or no changes applied")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Customer not found or no changes applied"))
             }
         }
 
         delete("/{customer_id}") {
             val customerId = call.parameters["customer_id"]?.toIntOrNull()
             if (customerId == null) {
-                call.respondText("Invalid customer ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid customer ID"))
                 return@delete
             }
                         if (customerService.deleteCustomer(customerId)) {
                 call.respond(HttpStatusCode.NoContent)
             } else {
-                call.respond(HttpStatusCode.NotFound, "Customer not found")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Customer not found"))
             }
         }
     }

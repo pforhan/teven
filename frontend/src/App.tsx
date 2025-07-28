@@ -5,11 +5,20 @@ import { AuthService } from './api/AuthService';
 import './App.css';
 import Auth from './Auth';
 import MainLayout from './layouts/MainLayout';
+import CreateEventForm from './components/events/CreateEventForm';
+import EditEventForm from './components/events/EditEventForm';
+import CreateCustomerForm from './components/customers/CreateCustomerForm';
+import EditCustomerForm from './components/customers/EditCustomerForm';
+import CreateInventoryForm from './components/inventory/CreateInventoryForm';
+import EditInventoryForm from './components/inventory/EditInventoryForm';
 import EventList from './components/events/EventList';
 import CustomerList from './components/customers/CustomerList';
 import InventoryList from './components/inventory/InventoryList';
 import ReportList from './components/reports/ReportList';
 import Profile from './components/profile/Profile';
+import OrganizationList from './components/organizations/OrganizationList';
+import CreateOrganizationForm from './components/organizations/CreateOrganizationForm';
+import EditOrganizationForm from './components/organizations/EditOrganizationForm';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -49,6 +58,9 @@ function App() {
             <Route path="inventory/edit/:inventoryId" element={<EditInventoryForm />} />
             <Route path="reports" element={<ReportList />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="organizations" element={<OrganizationList />} />
+            <Route path="organizations/create" element={<CreateOrganizationForm />} />
+            <Route path="organizations/edit/:organizationId" element={<EditOrganizationForm />} />
           </Route>
         )}
         <Route path="*" element={<Navigate to={isLoggedIn ? "/" : "/login"} />} />

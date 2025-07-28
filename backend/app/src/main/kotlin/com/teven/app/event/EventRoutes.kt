@@ -34,41 +34,41 @@ fun Route.eventRoutes() {
         get("{event_id}") {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             if (eventId == null) {
-                call.respondText("Invalid event ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid event ID"))
                 return@get
             }
             val event = eventService.getEventById(eventId)
             if (event != null) {
                 call.respond(HttpStatusCode.OK, event)
             } else {
-                call.respond(HttpStatusCode.NotFound, "Event not found")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Event not found"))
             }
         }
 
         put("{event_id}") {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             if (eventId == null) {
-                call.respondText("Invalid event ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid event ID"))
                 return@put
             }
             val updateEventRequest = call.receive<UpdateEventRequest>()
             if (eventService.updateEvent(eventId, updateEventRequest)) {
                 call.respond(HttpStatusCode.OK, "Event with ID $eventId updated")
             } else {
-                call.respond(HttpStatusCode.NotFound, "Event not found or no changes applied")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Event not found or no changes applied"))
             }
         }
 
         delete("{event_id}") {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             if (eventId == null) {
-                call.respondText("Invalid event ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid event ID"))
                 return@delete
             }
                         if (eventService.deleteEvent(eventId)) {
                 call.respond(HttpStatusCode.NoContent)
             } else {
-                call.respond(HttpStatusCode.NotFound, "Event not found")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Event not found"))
             }
         }
 
@@ -76,7 +76,7 @@ fun Route.eventRoutes() {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             val userId = call.parameters["user_id"]?.toIntOrNull()
             if (eventId == null || userId == null) {
-                call.respondText("Invalid event ID or user ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid event ID or user ID"))
                 return@post
             }
             if (eventService.assignStaffToEvent(eventId, userId)) {
@@ -90,7 +90,7 @@ fun Route.eventRoutes() {
             val eventId = call.parameters["event_id"]?.toIntOrNull()
             val userId = call.parameters["user_id"]?.toIntOrNull()
             if (eventId == null || userId == null) {
-                call.respondText("Invalid event ID or user ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid event ID or user ID"))
                 return@delete
             }
             if (eventService.removeStaffFromEvent(eventId, userId)) {
@@ -104,7 +104,7 @@ fun Route.eventRoutes() {
             post("{event_id}/rsvp") {
                 val eventId = call.parameters["event_id"]?.toIntOrNull()
                 if (eventId == null) {
-                    call.respondText("Invalid event ID", status = HttpStatusCode.BadRequest)
+                    call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid event ID"))
                     return@post
                 }
                 val rsvpRequest = call.receive<RsvpRequest>()
@@ -112,7 +112,7 @@ fun Route.eventRoutes() {
                 val userId = principal?.payload?.getClaim("userId")?.asInt()
 
                 if (userId == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "User ID not found in token")
+                    call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
                     return@post
                 }
 

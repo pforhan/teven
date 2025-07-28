@@ -400,6 +400,51 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ---
 
+### VII. Organization Management API (SuperAdmin Only)
+
+* `POST /api/organizations`: Create a new organization.
+    * Authentication: Required (SuperAdmin).
+    * Request:
+    ```kotlin
+    data class CreateOrganizationRequest(
+        val name: String,
+        val contactInformation: String
+    )
+    ```
+    * Response:
+    ```kotlin
+    data class OrganizationResponse(
+        val organizationId: Int,
+        val name: String,
+        val contactInformation: String
+    )
+    ```
+
+* `GET /api/organizations`: Retrieve all organizations.
+    * Authentication: Required (SuperAdmin).
+    * Response: `List<OrganizationResponse>`
+
+* `GET /api/organizations/{organization_id}`: Retrieve a specific organization.
+    * Authentication: Required (SuperAdmin).
+    * Response: `OrganizationResponse`
+
+* `PUT /api/organizations/{organization_id}`: Update an organization.
+    * Authentication: Required (SuperAdmin).
+    * Request:
+    ```kotlin
+    data class UpdateOrganizationRequest(
+        val name: String? = null,
+        val contactInformation: String? = null
+    )
+    ```
+    * Response: `OrganizationResponse`
+
+* `DELETE /api/organizations/{organization_id}`: Delete an organization.
+    * Authentication: Required (SuperAdmin).
+    * Response: `StatusResponse`
+
+---
+
 **Notes:**
 
 * This is a preliminary design and is subject to change.

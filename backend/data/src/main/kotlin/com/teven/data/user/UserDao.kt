@@ -12,25 +12,23 @@ import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.and
 
 class UserDao {
-    fun createUser(registerRequest: RegisterRequest): UserResponse {
-        return transaction {
-            val id = Users.insert {
-                it[username] = registerRequest.username
-                it[email] = registerRequest.email
-                it[displayName] = registerRequest.displayName
-                it[passwordHash] = PasswordHasher.hashPassword(registerRequest.password)
-                it[role] = registerRequest.role
-            } get Users.id
+    fun createUser(registerRequest: RegisterRequest): UserResponse = transaction {
+        val id = Users.insert {
+            it[username] = registerRequest.username
+            it[email] = registerRequest.email
+            it[displayName] = registerRequest.displayName
+            it[passwordHash] = PasswordHasher.hashPassword(registerRequest.password)
+            it[role] = registerRequest.role
+        } get Users.id
 
-            UserResponse(
-                userId = id.value,
-                username = registerRequest.username,
-                email = registerRequest.email,
-                displayName = registerRequest.displayName,
-                role = registerRequest.role,
-                passwordHash = PasswordHasher.hashPassword(registerRequest.password)
-            )
-        }
+        UserResponse(
+            userId = id.value,
+            username = registerRequest.username,
+            email = registerRequest.email,
+            displayName = registerRequest.displayName,
+            role = registerRequest.role,
+            passwordHash = PasswordHasher.hashPassword(registerRequest.password)
+        )
     }
 
     fun findByUsername(username: String): UserResponse? {

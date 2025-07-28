@@ -30,41 +30,41 @@ fun Route.roleRoutes() {
         get("/{role_id}") {
             val roleId = call.parameters["role_id"]?.toIntOrNull()
             if (roleId == null) {
-                call.respondText("Invalid role ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid role ID"))
                 return@get
             }
             val role = roleService.getRoleById(roleId)
             if (role != null) {
                 call.respond(HttpStatusCode.OK, role)
             } else {
-                call.respond(HttpStatusCode.NotFound, "Role not found")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Role not found"))
             }
         }
 
         put("/{role_id}") {
             val roleId = call.parameters["role_id"]?.toIntOrNull()
             if (roleId == null) {
-                call.respondText("Invalid role ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid role ID"))
                 return@put
             }
             val updateRoleRequest = call.receive<UpdateRoleRequest>()
             if (roleService.updateRole(roleId, updateRoleRequest)) {
                 call.respond(HttpStatusCode.OK, "Role with ID $roleId updated")
             } else {
-                call.respond(HttpStatusCode.NotFound, "Role not found or no changes applied")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Role not found or no changes applied"))
             }
         }
 
         delete("/{role_id}") {
             val roleId = call.parameters["role_id"]?.toIntOrNull()
             if (roleId == null) {
-                call.respondText("Invalid role ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid role ID"))
                 return@delete
             }
             if (roleService.deleteRole(roleId)) {
                 call.respond(HttpStatusCode.NoContent)
             } else {
-                call.respond(HttpStatusCode.NotFound, "Role not found")
+                call.respond(HttpStatusCode.NotFound, StatusResponse("Role not found"))
             }
         }
     }
@@ -74,7 +74,7 @@ fun Route.roleRoutes() {
             val userId = call.parameters["user_id"]?.toIntOrNull()
             val roleId = call.parameters["role_id"]?.toIntOrNull()
             if (userId == null || roleId == null) {
-                call.respondText("Invalid user ID or role ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid user ID or role ID"))
                 return@post
             }
             if (roleService.assignRoleToUser(userId, roleId)) {
@@ -88,7 +88,7 @@ fun Route.roleRoutes() {
             val userId = call.parameters["user_id"]?.toIntOrNull()
             val roleId = call.parameters["role_id"]?.toIntOrNull()
             if (userId == null || roleId == null) {
-                call.respondText("Invalid user ID or role ID", status = HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid user ID or role ID"))
                 return@delete
             }
             if (roleService.removeRoleFromUser(userId, roleId)) {

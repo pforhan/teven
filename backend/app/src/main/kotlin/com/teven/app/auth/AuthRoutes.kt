@@ -47,7 +47,7 @@ fun Route.authRoutes() {
                 val requestedUserId = call.parameters["user_id"]?.toIntOrNull()
 
                 if (authenticatedUserId == null || requestedUserId == null || authenticatedUserId != requestedUserId) {
-                    call.respond(HttpStatusCode.Forbidden, "Access denied")
+                    call.respond(HttpStatusCode.Forbidden, StatusResponse("Access denied"))
                     return@get
                 }
 
@@ -55,7 +55,7 @@ fun Route.authRoutes() {
                 if (user != null) {
                     call.respond(HttpStatusCode.OK, user)
                 } else {
-                    call.respond(HttpStatusCode.NotFound, "User not found")
+                    call.respond(HttpStatusCode.NotFound, StatusResponse("User not found"))
                 }
             }
 
@@ -66,15 +66,15 @@ fun Route.authRoutes() {
                 val requestedUserId = call.parameters["user_id"]?.toIntOrNull()
 
                 if (authenticatedUserId == null || requestedUserId == null || authenticatedUserId != requestedUserId) {
-                    call.respond(HttpStatusCode.Forbidden, "Access denied")
+                    call.respond(HttpStatusCode.Forbidden, StatusResponse("Access denied"))
                     return@put
                 }
 
                 val updateUserRequest = call.receive<com.teven.api.model.auth.UpdateUserRequest>()
                 if (userService.updateUser(authenticatedUserId, updateUserRequest)) {
-                    call.respond(HttpStatusCode.OK, "User with ID $authenticatedUserId updated")
+                    call.respond(HttpStatusCode.OK, StatusResponse("User with ID $authenticatedUserId updated"))
                 } else {
-                    call.respond(HttpStatusCode.NotFound, "User not found or no changes applied")
+                    call.respond(HttpStatusCode.NotFound, StatusResponse("User not found or no changes applied"))
                 }
             }
 
@@ -83,7 +83,7 @@ fun Route.authRoutes() {
                 val userId = principal?.payload?.getClaim("userId")?.asInt()
 
                 if (userId == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "User ID not found in token")
+                    call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
                     return@get
                 }
 
@@ -91,7 +91,7 @@ fun Route.authRoutes() {
                 if (userContext != null) {
                     call.respond(HttpStatusCode.OK, userContext)
                 } else {
-                    call.respond(HttpStatusCode.NotFound, "User context not found")
+                    call.respond(HttpStatusCode.NotFound, StatusResponse("User context not found"))
                 }
             }
         }
