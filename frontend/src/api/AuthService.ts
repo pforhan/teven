@@ -1,7 +1,6 @@
 // frontend/src/api/AuthService.ts
 
-import { LoginRequest, LoginResponse, RegisterRequest, UserResponse, UserDetailsResponse, UpdateUserRequest, UserContextResponse } from '../types/auth';
-import { StatusResponse } from '../types/common';
+import type { LoginRequest, LoginResponse, RegisterRequest, UserResponse, UserDetailsResponse, UpdateUserRequest, UserContextResponse } from '../types/auth';
 
 export class AuthService {
   // TODO: Implement register user

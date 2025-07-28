@@ -1,54 +1,116 @@
 // frontend/src/api/EventService.ts
 
-import { CreateEventRequest, EventResponse, UpdateEventRequest, RsvpRequest } from '../types/events';
-import { StatusResponse } from '../types/common';
+import type { CreateEventRequest, EventResponse, UpdateEventRequest, RsvpRequest } from '../types/events';
+import type { StatusResponse } from '../types/common';
 
 export class EventService {
-  // TODO: Implement create event
+  private static getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('Authentication token not found');
+    }
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  }
+
   static async createEvent(request: CreateEventRequest): Promise<EventResponse> {
-    console.log('Creating event:', request);
-    throw new Error('Not implemented');
+    const response = await fetch('/api/events', {
+      method: 'POST',
+      headers: EventService.getAuthHeaders(),
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create event');
+    }
+    return response.json();
   }
 
-  // TODO: Implement get all events
   static async getAllEvents(): Promise<EventResponse[]> {
-    console.log('Getting all events');
-    throw new Error('Not implemented');
+    const response = await fetch('/api/events', {
+      method: 'GET',
+      headers: EventService.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch events');
+    }
+    return response.json();
   }
 
-  // TODO: Implement get specific event
   static async getEvent(eventId: number): Promise<EventResponse> {
-    console.log('Getting event:', eventId);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/events/${eventId}`, {
+      method: 'GET',
+      headers: EventService.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch event');
+    }
+    return response.json();
   }
 
-  // TODO: Implement update event
   static async updateEvent(eventId: number, request: UpdateEventRequest): Promise<EventResponse> {
-    console.log('Updating event:', eventId, request);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/events/${eventId}`, {
+      method: 'PUT',
+      headers: EventService.getAuthHeaders(),
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update event');
+    }
+    return response.json();
   }
 
-  // TODO: Implement delete event
   static async deleteEvent(eventId: number): Promise<StatusResponse> {
-    console.log('Deleting event:', eventId);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/events/${eventId}`, {
+      method: 'DELETE',
+      headers: EventService.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to delete event');
+    }
+    return response.json();
   }
 
-  // TODO: Implement assign staff to event
   static async assignStaffToEvent(eventId: number, userId: number): Promise<StatusResponse> {
-    console.log('Assigning staff:', userId, 'to event:', eventId);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/events/${eventId}/staff/${userId}`, {
+      method: 'POST',
+      headers: EventService.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to assign staff');
+    }
+    return response.json();
   }
 
-  // TODO: Implement remove staff from event
   static async removeStaffFromEvent(eventId: number, userId: number): Promise<StatusResponse> {
-    console.log('Removing staff:', userId, 'from event:', eventId);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/events/${eventId}/staff/${userId}`, {
+      method: 'DELETE',
+      headers: EventService.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to remove staff');
+    }
+    return response.json();
   }
 
-  // TODO: Implement RSVP to event
   static async rsvpToEvent(eventId: number, request: RsvpRequest): Promise<StatusResponse> {
-    console.log('RSVPing to event:', eventId, request);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/events/${eventId}/rsvp`, {
+      method: 'POST',
+      headers: EventService.getAuthHeaders(),
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to RSVP to event');
+    }
+    return response.json();
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { LoginRequest, RegisterRequest, LoginResponse, UserResponse } from '../types/auth';
+import type { LoginRequest, RegisterRequest, LoginResponse, UserResponse } from './types/auth';
+import { AuthService } from './api/AuthService';
 
 interface AuthProps {
   onLogin: (response: LoginResponse) => void;
@@ -18,41 +19,29 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     event.preventDefault();
     setError(null);
 
-    const url = isRegistering ? '/api/users/register' : '/api/users/login';
-    let body: LoginRequest | RegisterRequest;
-
-    if (isRegistering) {
-      body = {
-        username,
-        password,
-        email,
-        displayName,
-        role,
-      };
-    } else {
-      body = {
-        username,
-        password,
-      };
-    }
-
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Authentication failed');
+      if (isRegistering) {
+        const registerRequest: RegisterRequest = {
+          username,
+          password,
+          email,
+          displayName,
+          role,
+        };
+        const data: UserResponse = await AuthService.register(registerRequest);
+        // For registration, we don't get a token directly, so we might need to log in after registering
+        // For now, we'll just assume success and let the user log in manually or handle it differently.
+        // This part might need adjustment based on desired UX after registration.
+        console.log('Registration successful:', data);
+        setIsRegistering(false); // Switch to login form after successful registration
+      } else {
+        const loginRequest: LoginRequest = {
+          username,
+          password,
+        };
+        const data: LoginResponse = await AuthService.login(loginRequest);
+        onLogin(data);
       }
-
-      const data: LoginResponse | UserResponse = await response.json();
-      // Assuming onLogin expects LoginResponse, which contains all necessary info for the app state
-      onLogin(data as LoginResponse);
     } catch (err: any) {
       setError(err.message);
     }

@@ -1,17 +1,18 @@
 import { useState } from 'react'
+import type { LoginResponse } from './types/auth';
 
 import './App.css'
 import Auth from './Auth'
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<LoginResponse | null>(null);
 
-  const handleLogin = (token: string, userId: number, username: string, displayName: string, role: string) => {
+  const handleLogin = (response: LoginResponse) => {
     setIsLoggedIn(true);
-    setUser({ token, userId, username, displayName, role });
+    setUser(response);
     // Optionally store token in localStorage or sessionStorage
-    localStorage.setItem('authToken', token);
+    localStorage.setItem('authToken', response.token);
   };
 
   const handleLogout = () => {

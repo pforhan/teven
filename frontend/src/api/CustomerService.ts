@@ -1,36 +1,79 @@
 // frontend/src/api/CustomerService.ts
 
-import { CustomerResponse, CreateCustomerRequest, UpdateCustomerRequest } from '../types/customers';
-import { StatusResponse } from '../types/common';
+import type { CustomerResponse, CreateCustomerRequest, UpdateCustomerRequest } from '../types/customers';
+import type { StatusResponse } from '../types/common';
 
 export class CustomerService {
-  // TODO: Implement get all customers
+  private static getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('Authentication token not found');
+    }
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  }
+
   static async getAllCustomers(): Promise<CustomerResponse[]> {
-    console.log('Getting all customers');
-    throw new Error('Not implemented');
+    const response = await fetch('/api/customers', {
+      method: 'GET',
+      headers: CustomerService.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch customers');
+    }
+    return response.json();
   }
 
-  // TODO: Implement get specific customer
   static async getCustomer(customerId: number): Promise<CustomerResponse> {
-    console.log('Getting customer:', customerId);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/customers/${customerId}`, {
+      method: 'GET',
+      headers: CustomerService.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch customer');
+    }
+    return response.json();
   }
 
-  // TODO: Implement create customer
   static async createCustomer(request: CreateCustomerRequest): Promise<CustomerResponse> {
-    console.log('Creating customer:', request);
-    throw new Error('Not implemented');
+    const response = await fetch('/api/customers', {
+      method: 'POST',
+      headers: CustomerService.getAuthHeaders(),
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create customer');
+    }
+    return response.json();
   }
 
-  // TODO: Implement update customer
   static async updateCustomer(customerId: number, request: UpdateCustomerRequest): Promise<CustomerResponse> {
-    console.log('Updating customer:', customerId, request);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/customers/${customerId}`, {
+      method: 'PUT',
+      headers: CustomerService.getAuthHeaders(),
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update customer');
+    }
+    return response.json();
   }
 
-  // TODO: Implement delete customer
   static async deleteCustomer(customerId: number): Promise<StatusResponse> {
-    console.log('Deleting customer:', customerId);
-    throw new Error('Not implemented');
+    const response = await fetch(`/api/customers/${customerId}`, {
+      method: 'DELETE',
+      headers: CustomerService.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to delete customer');
+    }
+    return response.json();
   }
 }
