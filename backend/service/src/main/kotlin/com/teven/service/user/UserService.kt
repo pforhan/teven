@@ -13,13 +13,13 @@ import com.teven.core.security.PasswordHasher
 import com.teven.data.user.UserDao
 
 class UserService(private val userDao: UserDao, private val jwtConfig: JwtConfig) {
-    fun registerUser(registerRequest: RegisterRequest): UserResponse {
+    suspend fun registerUser(registerRequest: RegisterRequest): UserResponse {
         val hashedPassword = PasswordHasher.hashPassword(registerRequest.password)
         val requestWithHashedPassword = registerRequest.copy(password = hashedPassword)
         return userDao.createUser(requestWithHashedPassword)
     }
 
-    fun loginUser(loginRequest: LoginRequest): LoginResponse? {
+    suspend fun loginUser(loginRequest: LoginRequest): LoginResponse? {
         val user = userDao.findByUsername(loginRequest.username)
         return if (user != null && PasswordHasher.checkPassword(
                 password = loginRequest.password,
@@ -38,19 +38,19 @@ class UserService(private val userDao: UserDao, private val jwtConfig: JwtConfig
         }
     }
 
-    fun getUserById(userId: Int): UserResponse? {
+    suspend fun getUserById(userId: Int): UserResponse? {
         return userDao.findById(userId)
     }
 
-    fun getUserByEmail(email: String): UserResponse? {
+    suspend fun getUserByEmail(email: String): UserResponse? {
         return userDao.findByEmail(email)
     }
 
-    fun updateUser(userId: Int, updateUserRequest: com.teven.api.model.auth.UpdateUserRequest): Boolean {
+    suspend fun updateUser(userId: Int, updateUserRequest: com.teven.api.model.auth.UpdateUserRequest): Boolean {
         return userDao.updateUser(userId, updateUserRequest)
     }
 
-    fun getUserContext(userId: Int): UserContextResponse? {
+    suspend fun getUserContext(userId: Int): UserContextResponse? {
         val user = userDao.findById(userId)
         return if (user != null) {
             UserContextResponse(

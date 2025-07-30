@@ -4,7 +4,7 @@ import com.teven.api.model.auth.RegisterRequest
 import com.teven.service.user.UserService
 import com.teven.service.role.RoleService
 
-fun setupSuperAdmin(userService: UserService, roleService: RoleService) {
+suspend fun setupSuperAdmin(userService: UserService, roleService: RoleService) {
     val superAdminEmail = System.getenv("SUPERADMIN_EMAIL")
     val superAdminPassword = System.getenv("SUPERADMIN_PASSWORD")
 

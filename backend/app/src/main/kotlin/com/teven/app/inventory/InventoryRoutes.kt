@@ -50,7 +50,7 @@ fun Route.inventoryRoutes() {
             }
             val updateInventoryItemRequest = call.receive<UpdateInventoryItemRequest>()
             if (inventoryService.updateInventoryItem(inventoryId, updateInventoryItemRequest)) {
-                call.respond(HttpStatusCode.OK, "Inventory item with ID $inventoryId updated")
+                call.respond(HttpStatusCode.OK, StatusResponse("Inventory item with ID $inventoryId updated"))
             } else {
                 call.respond(HttpStatusCode.NotFound, StatusResponse("Inventory item not found or no changes applied"))
             }

@@ -6,7 +6,7 @@ import com.teven.api.model.event.EventResponse
 import com.teven.data.event.EventDao
 
 class EventService(private val eventDao: EventDao) {
-    fun createEvent(createEventRequest: CreateEventRequest): EventResponse {
+    suspend fun createEvent(createEventRequest: CreateEventRequest): EventResponse {
         if (createEventRequest.title.isBlank()) {
             throw IllegalArgumentException("Event title cannot be empty")
         }
@@ -14,31 +14,31 @@ class EventService(private val eventDao: EventDao) {
         return eventDao.createEvent(createEventRequest)
     }
 
-    fun getAllEvents(): List<EventResponse> {
+    suspend fun getAllEvents(): List<EventResponse> {
         return eventDao.getAllEvents()
     }
 
-    fun getEventById(eventId: Int): EventResponse? {
+    suspend fun getEventById(eventId: Int): EventResponse? {
         return eventDao.getEventById(eventId)
     }
 
-    fun updateEvent(eventId: Int, updateEventRequest: com.teven.api.model.event.UpdateEventRequest): Boolean {
+    suspend fun updateEvent(eventId: Int, updateEventRequest: com.teven.api.model.event.UpdateEventRequest): Boolean {
         return eventDao.updateEvent(eventId, updateEventRequest)
     }
 
-    fun deleteEvent(eventId: Int): Boolean {
+    suspend fun deleteEvent(eventId: Int): Boolean {
         return eventDao.deleteEvent(eventId)
     }
 
-    fun assignStaffToEvent(eventId: Int, userId: Int): Boolean {
+    suspend fun assignStaffToEvent(eventId: Int, userId: Int): Boolean {
         return eventDao.assignStaffToEvent(eventId, userId)
     }
 
-    fun removeStaffFromEvent(eventId: Int, userId: Int): Boolean {
+    suspend fun removeStaffFromEvent(eventId: Int, userId: Int): Boolean {
         return eventDao.removeStaffFromEvent(eventId, userId)
     }
 
-    fun rsvpToEvent(eventId: Int, userId: Int, availability: String): Boolean {
+    suspend fun rsvpToEvent(eventId: Int, userId: Int, availability: String): Boolean {
         return eventDao.rsvpToEvent(eventId, userId, availability)
     }
 }

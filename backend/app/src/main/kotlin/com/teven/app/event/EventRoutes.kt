@@ -53,7 +53,7 @@ fun Route.eventRoutes() {
             }
             val updateEventRequest = call.receive<UpdateEventRequest>()
             if (eventService.updateEvent(eventId, updateEventRequest)) {
-                call.respond(HttpStatusCode.OK, "Event with ID $eventId updated")
+                call.respond(HttpStatusCode.OK, StatusResponse("Event with ID $eventId updated"))
             } else {
                 call.respond(HttpStatusCode.NotFound, StatusResponse("Event not found or no changes applied"))
             }

@@ -8,27 +8,27 @@ import com.teven.api.model.inventory.UpdateInventoryItemRequest
 import com.teven.data.inventory.InventoryDao
 
 class InventoryService(private val inventoryDao: InventoryDao) {
-    fun getAllInventoryItems(): List<InventoryItemResponse> {
+    suspend fun getAllInventoryItems(): List<InventoryItemResponse> {
         return inventoryDao.getAllInventoryItems()
     }
 
-    fun getInventoryItemById(inventoryId: Int): InventoryItemResponse? {
+    suspend fun getInventoryItemById(inventoryId: Int): InventoryItemResponse? {
         return inventoryDao.getInventoryItemById(inventoryId)
     }
 
-    fun createInventoryItem(createInventoryItemRequest: CreateInventoryItemRequest): InventoryItemResponse {
+    suspend fun createInventoryItem(createInventoryItemRequest: CreateInventoryItemRequest): InventoryItemResponse {
         return inventoryDao.createInventoryItem(createInventoryItemRequest)
     }
 
-    fun updateInventoryItem(inventoryId: Int, updateInventoryItemRequest: UpdateInventoryItemRequest): Boolean {
+    suspend fun updateInventoryItem(inventoryId: Int, updateInventoryItemRequest: UpdateInventoryItemRequest): Boolean {
         return inventoryDao.updateInventoryItem(inventoryId, updateInventoryItemRequest)
     }
 
-    fun deleteInventoryItem(inventoryId: Int): Boolean {
+    suspend fun deleteInventoryItem(inventoryId: Int): Boolean {
         return inventoryDao.deleteInventoryItem(inventoryId)
     }
 
-    fun trackInventoryUsage(inventoryId: Int, trackInventoryUsageRequest: TrackInventoryUsageRequest): Boolean {
+    suspend fun trackInventoryUsage(inventoryId: Int, trackInventoryUsageRequest: TrackInventoryUsageRequest): Boolean {
         return inventoryDao.trackInventoryUsage(inventoryId, trackInventoryUsageRequest)
     }
 }

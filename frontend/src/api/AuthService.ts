@@ -79,12 +79,26 @@ export class AuthService {
   }
 
   static async getUserContext(): Promise<UserContextResponse> {
-    const response = await fetch('/api/context', {
-      headers: this.getAuthHeader(),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to get user context');
+    try {
+      const response = await fetch('/api/users/context', {
+        headers: this.getAuthHeader(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AuthService: Failed to get user context. Server response:', errorText);
+        throw new Error(`Failed to get user context: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error('AuthService: Error in getUserContext:', err.message);
+        throw err;
+      } else {
+        console.error('AuthService: An unknown error occurred in getUserContext');
+        throw new Error('An unknown error occurred');
+      }
     }
-    return response.json();
   }
 }

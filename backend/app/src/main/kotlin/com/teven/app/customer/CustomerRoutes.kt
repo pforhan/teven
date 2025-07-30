@@ -49,7 +49,7 @@ fun Route.customerRoutes() {
             }
             val updateCustomerRequest = call.receive<UpdateCustomerRequest>()
             if (customerService.updateCustomer(customerId, updateCustomerRequest)) {
-                call.respond(HttpStatusCode.OK, "Customer with ID $customerId updated")
+                call.respond(HttpStatusCode.OK, StatusResponse("Customer with ID $customerId updated"))
             } else {
                 call.respond(HttpStatusCode.NotFound, StatusResponse("Customer not found or no changes applied"))
             }

@@ -26,6 +26,8 @@ import com.teven.core.config.JwtConfig
 import io.ktor.http.HttpStatusCode.Companion.Unauthorized
 import io.ktor.server.response.respond
 
+import kotlinx.coroutines.runBlocking
+
 fun main() {
   embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
     .start(wait = true)
@@ -42,7 +44,10 @@ fun Application.module() {
 
   val userService by inject<UserService>()
   val roleService by inject<RoleService>()
-  setupSuperAdmin(userService, roleService)
+
+  runBlocking {
+    setupSuperAdmin(userService, roleService)
+  }
 
   val jwtConfig = JwtConfig(
     secret = System.getenv("JWT_SECRET")

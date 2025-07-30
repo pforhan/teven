@@ -49,7 +49,7 @@ fun Route.roleRoutes() {
             }
             val updateRoleRequest = call.receive<UpdateRoleRequest>()
             if (roleService.updateRole(roleId, updateRoleRequest)) {
-                call.respond(HttpStatusCode.OK, "Role with ID $roleId updated")
+                call.respond(HttpStatusCode.OK, StatusResponse("Role with ID $roleId updated"))
             } else {
                 call.respond(HttpStatusCode.NotFound, StatusResponse("Role not found or no changes applied"))
             }
