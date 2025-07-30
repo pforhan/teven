@@ -1,4 +1,3 @@
-
 package com.teven.app
 
 import com.teven.api.model.common.StatusResponse
@@ -22,34 +21,34 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
-    routing {
-        authRoutes()
-        eventRoutes()
-        customerRoutes()
-        inventoryRoutes()
-        reportRoutes()
-        roleRoutes()
-        organizationRoutes()
+  routing {
+    authRoutes()
+    eventRoutes()
+    customerRoutes()
+    inventoryRoutes()
+    reportRoutes()
+    roleRoutes()
+    organizationRoutes()
 
-        // Catch-all for unmatched API routes
-        route("/api") {
-            get("/{...}") {
-                call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
-            }
-            post("/{...}") {
-                call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
-            }
-            put("/{...}") {
-                call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
-            }
-            delete("/{...}") {
-                call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
-            }
-        }
-
-        // Serve static content last, so API routes are matched first
-        staticResources("/", "static") {
-            default("index.html")
-        }
+    // Catch-all for unmatched API routes
+    route("/api") {
+      get("/{...}") {
+        call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
+      }
+      post("/{...}") {
+        call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
+      }
+      put("/{...}") {
+        call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
+      }
+      delete("/{...}") {
+        call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
+      }
     }
+
+    // Serve static content last, so API routes are matched first
+    staticResources("/", "static") {
+      default("index.html")
+    }
+  }
 }

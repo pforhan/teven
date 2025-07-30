@@ -1,4 +1,3 @@
-
 package com.teven.api.model.common
 
 import kotlinx.serialization.Serializable

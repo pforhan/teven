@@ -1,4 +1,3 @@
-
 package com.teven.data
 
 import com.teven.data.customer.Customers
@@ -22,19 +21,33 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseFactory {
-    fun init() {
-        val driverClassName = "org.postgresql.Driver"
-        val jdbcUrl = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/teven_db"
-        val user = System.getenv("DB_USER") ?: "teven_user"
-        val password = System.getenv("DB_PASSWORD") ?: "teven_password"
+  fun init() {
+    val driverClassName = "org.postgresql.Driver"
+    val jdbcUrl = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/teven_db"
+    val user = System.getenv("DB_USER") ?: "teven_user"
+    val password = System.getenv("DB_PASSWORD") ?: "teven_password"
 
-        Database.connect(jdbcUrl, driverClassName, user, password)
+    Database.connect(jdbcUrl, driverClassName, user, password)
 
-        transaction {
-            SchemaUtils.create(Users, StaffDetails, Events, EventStaff, Rsvps, Customers, InventoryItems, StaffHours, Roles, EventInventory, InventoryUsage, UserRoles, Organizations)
-        }
+    transaction {
+      SchemaUtils.create(
+        Users,
+        StaffDetails,
+        Events,
+        EventStaff,
+        Rsvps,
+        Customers,
+        InventoryItems,
+        StaffHours,
+        Roles,
+        EventInventory,
+        InventoryUsage,
+        UserRoles,
+        Organizations
+      )
     }
+  }
 }
 
 suspend fun <T> dbQuery(block: suspend Transaction.() -> T): T =
-    newSuspendedTransaction(Dispatchers.IO) { block() }
+  newSuspendedTransaction(Dispatchers.IO) { block() }

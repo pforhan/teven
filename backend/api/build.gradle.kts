@@ -1,15 +1,14 @@
-
 plugins {
-    kotlin("jvm")
-    
-    kotlin("plugin.serialization")
+  kotlin("jvm")
+
+  kotlin("plugin.serialization")
 }
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+  implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+  implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 }

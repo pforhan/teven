@@ -12,6 +12,9 @@ This document outlines the conventions and best practices to follow when using t
 ## Backend (Kotlin/Ktor)
 
 - **Import Wildcards:** Always expand import wildcards (`.*`) for clarity and to avoid potential conflicts.
+- **Trailing Commas:** Always use trailing commas where possible, for parameters, enums, etc.
+- **Named Parameters:** Any time there's more than one parameter or there's any chance for confusion, use named parameters in method calls.
+- **Expression Bodies:** For simple methods consisting only of a return statement, write the method instead as an expression body. 
 - **Ktor and Exposed:** The backend uses Ktor for the web framework and Exposed for database access. All generated code should be compatible with these technologies.
 - **Coroutines for Asynchronicity:** Use Kotlin Coroutines for all asynchronous operations to maintain a non-blocking architecture.
 - **Dependency Injection:** Use Koin for dependency injection to manage component lifecycles and dependencies.

@@ -1,32 +1,29 @@
 package com.teven
 
-import com.teven.app.configureRouting
-import com.teven.app.di.appModule
-import com.teven.app.setupSuperAdmin
-import com.teven.data.DatabaseFactory
-import com.teven.service.role.RoleService
-import com.teven.service.user.UserService
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.Application
-import io.ktor.server.application.install
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import org.koin.ktor.ext.inject
-import org.koin.ktor.plugin.Koin
-
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.jwt.jwt
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.teven.api.model.common.StatusResponse
-
+import com.teven.app.configureRouting
+import com.teven.app.di.appModule
+import com.teven.app.setupSuperAdmin
 import com.teven.core.config.JwtConfig
+import com.teven.data.DatabaseFactory
+import com.teven.service.role.RoleService
+import com.teven.service.user.UserService
 import io.ktor.http.HttpStatusCode.Companion.Unauthorized
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
-
 import kotlinx.coroutines.runBlocking
+import org.koin.ktor.ext.inject
+import org.koin.ktor.plugin.Koin
 
 fun main() {
   embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)

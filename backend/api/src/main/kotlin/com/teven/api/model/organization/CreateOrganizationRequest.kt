@@ -4,6 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CreateOrganizationRequest(
-    val name: String,
-    val contactInformation: String
+  val name: String,
+  val contactInformation: String,
 )

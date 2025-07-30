@@ -1,28 +1,30 @@
-
 package com.teven.app.report
 
 import com.teven.api.model.report.StaffHoursReportRequest
 import com.teven.service.report.ReportService
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.call
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 fun Route.reportRoutes() {
-    val reportService by inject<ReportService>()
+  val reportService by inject<ReportService>()
 
-    route("/api/reports") {
-        post("/staff_hours") {
-            val staffHoursReportRequest = call.receive<StaffHoursReportRequest>()
-            val report = reportService.getStaffHoursReport(staffHoursReportRequest)
-            call.respond(HttpStatusCode.OK, report)
-        }
-
-        get("/inventory_usage") {
-            val report = reportService.getInventoryUsageReport()
-            call.respond(HttpStatusCode.OK, report)
-        }
+  route("/api/reports") {
+    post("/staff_hours") {
+      val staffHoursReportRequest = call.receive<StaffHoursReportRequest>()
+      val report = reportService.getStaffHoursReport(staffHoursReportRequest)
+      call.respond(HttpStatusCode.OK, report)
     }
+
+    get("/inventory_usage") {
+      val report = reportService.getInventoryUsageReport()
+      call.respond(HttpStatusCode.OK, report)
+    }
+  }
 }
