@@ -1,6 +1,7 @@
 package com.teven.api.model.auth
 
 import com.teven.api.model.organization.OrganizationDetails
+import com.teven.api.model.user.UserResponse
 import kotlinx.serialization.Serializable
 
 @Serializable

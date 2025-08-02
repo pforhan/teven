@@ -11,7 +11,7 @@ import com.teven.data.organization.Organizations
 import com.teven.data.report.StaffHours
 import com.teven.data.role.Roles
 import com.teven.data.role.UserRoles
-import com.teven.data.user.StaffDetails
+import com.teven.data.user.UserOrganizations
 import com.teven.data.user.Users
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
@@ -31,19 +31,19 @@ object DatabaseFactory {
 
     transaction {
       SchemaUtils.create(
-        Users,
-        StaffDetails,
+        Customers,
         Events,
+        EventInventory,
         EventStaff,
         Rsvps,
-        Customers,
         InventoryItems,
+        InventoryUsage,
+        Organizations,
         StaffHours,
         Roles,
-        EventInventory,
-        InventoryUsage,
         UserRoles,
-        Organizations
+        Users,
+        UserOrganizations,
       )
     }
   }

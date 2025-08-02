@@ -1,10 +1,10 @@
 package com.teven.data.role
 
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.ReferenceOption
+import com.teven.data.user.Users
+import org.jetbrains.exposed.sql.Table
 
-object UserRoles : IntIdTable() {
-  val userId =
-    reference("user_id", com.teven.data.user.Users.id, onDelete = ReferenceOption.CASCADE)
-  val roleId = reference("role_id", Roles.id, onDelete = ReferenceOption.CASCADE)
+object UserRoles : Table() {
+  val userId = integer("user_id").references(Users.id)
+  val roleId = integer("role_id").references(Roles.id)
+  override val primaryKey = PrimaryKey(userId, roleId)
 }

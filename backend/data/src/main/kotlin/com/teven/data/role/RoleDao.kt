@@ -3,6 +3,7 @@ package com.teven.data.role
 import com.teven.api.model.role.CreateRoleRequest
 import com.teven.api.model.role.RoleResponse
 import com.teven.api.model.role.UpdateRoleRequest
+import com.teven.core.security.Permission
 import com.teven.data.dbQuery
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -18,14 +19,17 @@ class RoleDao {
     return RoleResponse(
       roleId = row[Roles.id].value,
       roleName = row[Roles.roleName],
-      permissions = row[Roles.permissions].split(",")
+      permissions = row[Roles.permissions].split(",").map { it.trim() }
+        .map { Permission.valueOf(it).name }
     )
   }
 
   suspend fun createRole(createRoleRequest: CreateRoleRequest): RoleResponse = dbQuery {
     val id = Roles.insert {
       it[roleName] = createRoleRequest.roleName
-      it[permissions] = createRoleRequest.permissions.joinToString(",")
+      it[permissions] = createRoleRequest.permissions.joinToString(",") { permission ->
+        Permission.valueOf(permission).name
+      }
     } get Roles.id
 
     RoleResponse(
@@ -55,7 +59,8 @@ class RoleDao {
     Roles.update({ Roles.id eq roleId }) {
       updateRoleRequest.roleName?.let { roleName -> it[Roles.roleName] = roleName }
       updateRoleRequest.permissions?.let { permissions ->
-        it[Roles.permissions] = permissions.joinToString(",")
+        it[Roles.permissions] =
+          permissions.joinToString(",") { permission -> Permission.valueOf(permission).name }
       }
     } > 0
   }
@@ -74,5 +79,12 @@ class RoleDao {
 
   suspend fun removeRoleFromUser(userId: Int, roleId: Int): Boolean = dbQuery {
     UserRoles.deleteWhere { (UserRoles.userId eq userId) and (UserRoles.roleId eq roleId) } > 0
+  }
+
+  suspend fun getRolesForUser(userId: Int): List<RoleResponse> = dbQuery {
+    (UserRoles innerJoin Roles)
+      .slice(Roles.columns)
+      .select { UserRoles.userId eq userId }
+      .map { toRoleResponse(it) }
   }
 }

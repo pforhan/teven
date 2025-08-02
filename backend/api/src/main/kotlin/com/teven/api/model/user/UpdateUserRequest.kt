@@ -1,4 +1,4 @@
-package com.teven.api.model.auth
+package com.teven.api.model.user
 
 import kotlinx.serialization.Serializable
 

@@ -37,4 +37,8 @@ class RoleService(private val roleDao: RoleDao) {
   suspend fun removeRoleFromUser(userId: Int, roleId: Int): Boolean {
     return roleDao.removeRoleFromUser(userId, roleId)
   }
+
+  suspend fun getRolesForUser(userId: Int): List<RoleResponse> {
+    return roleDao.getRolesForUser(userId)
+  }
 }

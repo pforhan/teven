@@ -15,7 +15,7 @@ import org.jetbrains.exposed.sql.update
 
 class EventDao {
   private fun toEventResponse(row: ResultRow): EventResponse {
-    val eventId = row[Events.id].value
+    val eventId = row[Events.id]
 
     val inventoryIds = EventInventory.select { EventInventory.eventId eq eventId }
       .map { it[EventInventory.inventoryId].value }
@@ -53,7 +53,7 @@ class EventDao {
     } get Events.id
 
     EventResponse(
-      eventId = id.value,
+      eventId = id,
       title = createEventRequest.title,
       date = createEventRequest.date,
       time = createEventRequest.time,

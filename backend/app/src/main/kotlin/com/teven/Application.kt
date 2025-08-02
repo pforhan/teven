@@ -3,14 +3,16 @@ package com.teven
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.teven.api.model.common.StatusResponse
+import com.teven.app.auth.AuthorizationException
+import com.teven.app.auth.createAuthorizationPlugin
 import com.teven.app.configureRouting
 import com.teven.app.di.appModule
-import com.teven.app.setupSuperAdmin
+import com.teven.app.seedInitialData
 import com.teven.core.config.JwtConfig
 import com.teven.data.DatabaseFactory
 import com.teven.service.role.RoleService
 import com.teven.service.user.UserService
-import io.ktor.http.HttpStatusCode.Companion.Unauthorized
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -20,6 +22,7 @@ import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import kotlinx.coroutines.runBlocking
 import org.koin.ktor.ext.inject
@@ -43,7 +46,7 @@ fun Application.module() {
   val roleService by inject<RoleService>()
 
   runBlocking {
-    setupSuperAdmin(userService, roleService)
+    seedInitialData(userService, roleService)
   }
 
   val jwtConfig = JwtConfig(
@@ -72,13 +75,25 @@ fun Application.module() {
         }
       }
       challenge { _, _ ->
-        call.respond(Unauthorized, StatusResponse("Token is not valid or has expired"))
+        call.respond(
+          HttpStatusCode.Unauthorized,
+          StatusResponse("Token is not valid or has expired")
+        )
       }
+    }
+  }
+
+  install(createAuthorizationPlugin(roleService))
+
+  install(StatusPages) {
+    exception<AuthorizationException> { call, cause ->
+      call.respond(cause.code, StatusResponse(cause.message ?: ""))
     }
   }
 
   configureRouting()
 }
+
 
 
 

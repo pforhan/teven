@@ -1,8 +1,9 @@
 package com.teven.app.auth
 
 import com.teven.api.model.auth.LoginRequest
-import com.teven.api.model.auth.RegisterRequest
 import com.teven.api.model.common.StatusResponse
+import com.teven.api.model.user.CreateUserRequest
+import com.teven.api.model.user.UpdateUserRequest
 import com.teven.service.user.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -23,8 +24,8 @@ fun Route.authRoutes() {
 
   route("/api/users") {
     post("/register") {
-      val registerRequest = call.receive<RegisterRequest>().copy(role = "")
-      val newUser = userService.registerUser(registerRequest)
+      val createUserRequest = call.receive<CreateUserRequest>()
+      val newUser = userService.createUser(createUserRequest)
       call.respond(HttpStatusCode.Created, newUser)
     }
 
@@ -69,8 +70,8 @@ fun Route.authRoutes() {
           return@put
         }
 
-        val updateUserRequest = call.receive<com.teven.api.model.auth.UpdateUserRequest>()
-        if (userService.updateUser(authenticatedUserId, updateUserRequest)) {
+        val updateUserRequest = call.receive<UpdateUserRequest>()
+        if (userService.updateUser(authenticatedUserId, updateUserRequest) != null) {
           call.respond(
             HttpStatusCode.OK,
             StatusResponse("User with ID $authenticatedUserId updated")

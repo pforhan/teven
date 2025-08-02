@@ -1,5 +1,6 @@
-package com.teven.api.model.auth
+package com.teven.api.model.user
 
+import com.teven.api.model.auth.StaffDetails
 import kotlinx.serialization.Serializable
 
 @Serializable

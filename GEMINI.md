@@ -5,12 +5,14 @@ This document outlines the conventions and best practices to follow when using t
 
 ## General Principles
 
+- **Project For detai
 - **Follow Existing Conventions:** Before generating or modifying code, always analyze the surrounding files to understand and adopt the existing coding style, formatting, and architectural patterns.
 - **Modular Architecture:** The backend is designed with a modular structure. Ensure that new code is placed in the appropriate module (`app`, `core`, `data`, `service`, `api`, `auth`).
 - **2-Space Indentation:** Use 2 spaces for indentation in all code files.
 
 ## Backend (Kotlin/Ktor)
 
+- **Building:** Build and test backend with `gradlew :backend:app:assemble`
 - **Import Wildcards:** Always expand import wildcards (`.*`) for clarity and to avoid potential conflicts.
 - **Trailing Commas:** Always use trailing commas where possible, for parameters, enums, etc.
 - **Named Parameters:** Any time there's more than one parameter or there's any chance for confusion, use named parameters in method calls.
@@ -24,6 +26,7 @@ This document outlines the conventions and best practices to follow when using t
 
 ## Frontend (React/TypeScript)
 
+- **Building:** Build and test frontend with `npm run build`
 - **Component-Based Architecture:** Follow a component-based architecture, creating reusable components where possible.
 - **TypeScript:** Use TypeScript for all frontend code to ensure type safety.
 - **State Management:** Use a consistent state management library (e.g., Redux, MobX) if one is established in the project.

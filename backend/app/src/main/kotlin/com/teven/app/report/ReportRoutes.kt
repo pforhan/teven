@@ -1,9 +1,12 @@
 package com.teven.app.report
 
 import com.teven.api.model.report.StaffHoursReportRequest
+import com.teven.app.auth.withPermission
+import com.teven.core.security.Permission
 import com.teven.service.report.ReportService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
+import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -15,16 +18,20 @@ import org.koin.ktor.ext.inject
 fun Route.reportRoutes() {
   val reportService by inject<ReportService>()
 
-  route("/api/reports") {
-    post("/staff_hours") {
-      val staffHoursReportRequest = call.receive<StaffHoursReportRequest>()
-      val report = reportService.getStaffHoursReport(staffHoursReportRequest)
-      call.respond(HttpStatusCode.OK, report)
-    }
+  authenticate("auth-jwt") {
+    route("/api/reports") {
+      withPermission(Permission.VIEW_REPORTS_ORGANIZATION) {
+        post("/staff_hours") {
+          val staffHoursReportRequest = call.receive<StaffHoursReportRequest>()
+          val report = reportService.getStaffHoursReport(staffHoursReportRequest)
+          call.respond(HttpStatusCode.OK, report)
+        }
 
-    get("/inventory_usage") {
-      val report = reportService.getInventoryUsageReport()
-      call.respond(HttpStatusCode.OK, report)
+        get("/inventory_usage") {
+          val report = reportService.getInventoryUsageReport()
+          call.respond(HttpStatusCode.OK, report)
+        }
+      }
     }
   }
 }

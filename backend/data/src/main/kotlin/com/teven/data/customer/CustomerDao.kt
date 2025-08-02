@@ -15,7 +15,7 @@ import org.jetbrains.exposed.sql.update
 class CustomerDao {
   private fun toCustomerResponse(row: ResultRow): CustomerResponse {
     return CustomerResponse(
-      customerId = row[Customers.id].value,
+      customerId = row[Customers.id],
       name = row[Customers.name],
       contactInformation = row[Customers.contactInformation]
     )
@@ -39,7 +39,7 @@ class CustomerDao {
       } get Customers.id
 
       CustomerResponse(
-        customerId = id.value,
+        customerId = id,
         name = createCustomerRequest.name,
         contactInformation = createCustomerRequest.contactInformation
       )

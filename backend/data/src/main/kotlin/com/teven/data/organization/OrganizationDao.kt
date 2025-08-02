@@ -5,30 +5,14 @@ import com.teven.api.model.organization.OrganizationResponse
 import com.teven.api.model.organization.UpdateOrganizationRequest
 import com.teven.data.dbQuery
 import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 
-object Organizations : Table() {
-  val organizationId = integer("organization_id").autoIncrement()
-  val name = varchar("name", 255).uniqueIndex()
-  val contactInformation = varchar("contact_information", 255)
-
-  override val primaryKey = PrimaryKey(organizationId)
-}
-
 class OrganizationDao {
-  init {
-    transaction {
-      SchemaUtils.create(Organizations)
-    }
-  }
 
   suspend fun createOrganization(request: CreateOrganizationRequest): OrganizationResponse =
     dbQuery {
@@ -45,14 +29,14 @@ class OrganizationDao {
   }
 
   suspend fun getOrganizationById(organizationId: Int): OrganizationResponse? = dbQuery {
-    Organizations.select { Organizations.organizationId eq organizationId }
+    Organizations.select { Organizations.id eq organizationId }
       .map { toOrganizationResponse(it) }
       .singleOrNull()
   }
 
   suspend fun updateOrganization(organizationId: Int, request: UpdateOrganizationRequest): Boolean =
     dbQuery {
-      Organizations.update({ Organizations.organizationId eq organizationId }) {
+      Organizations.update({ Organizations.id eq organizationId }) {
         request.name?.let { name -> it[Organizations.name] = name }
         request.contactInformation?.let { contactInformation ->
           it[Organizations.contactInformation] = contactInformation
@@ -61,12 +45,12 @@ class OrganizationDao {
     }
 
   suspend fun deleteOrganization(organizationId: Int): Boolean = dbQuery {
-    Organizations.deleteWhere { Organizations.organizationId eq organizationId } > 0
+    Organizations.deleteWhere { Organizations.id eq organizationId } > 0
   }
 
   private fun toOrganizationResponse(row: ResultRow): OrganizationResponse {
     return OrganizationResponse(
-      organizationId = row[Organizations.organizationId],
+      organizationId = row[Organizations.id].value,
       name = row[Organizations.name],
       contactInformation = row[Organizations.contactInformation]
     )
