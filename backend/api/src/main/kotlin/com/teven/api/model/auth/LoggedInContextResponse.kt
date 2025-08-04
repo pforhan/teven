@@ -5,7 +5,7 @@ import com.teven.api.model.user.UserResponse
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class UserContextResponse(
+data class LoggedInContextResponse(
   val user: UserResponse,
   val organization: OrganizationDetails?, // Nullable if user not part of org
   val permissions: List<String>, // List of permissions for the user in current context

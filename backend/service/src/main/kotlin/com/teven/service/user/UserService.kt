@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm.HMAC256
 import com.teven.api.model.auth.LoginRequest
 import com.teven.api.model.auth.LoginResponse
-import com.teven.api.model.auth.UserContextResponse
+import com.teven.api.model.auth.LoggedInContextResponse
 import com.teven.api.model.organization.OrganizationDetails
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.api.model.user.UpdateUserRequest
@@ -64,10 +64,10 @@ class UserService(
     return userDao.areInSameOrganization(userId1, userId2)
   }
 
-  suspend fun getUserContext(userId: Int): UserContextResponse? {
+  suspend fun getUserContext(userId: Int): LoggedInContextResponse? {
     val user = userDao.getUserById(userId)
     return if (user != null) {
-      UserContextResponse(
+      LoggedInContextResponse(
         user = user,
         // TODO fetch organization details
         organization = OrganizationDetails(1, "Teven Inc.", "contact@teven.com"), // Dummy data
