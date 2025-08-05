@@ -9,104 +9,41 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/users/register`: Register a new user.
     * Authentication: Not required.
-    * Request:
+    * Request: <!-- DATA_MODEL_RegisterRequest -->
+    * Response: 
     ```kotlin
-    data class RegisterRequest(
-        val username: String,
-        val password: String,
-        val email: String,
-        val displayName: String,
-        val role: String // e.g., "organizer", "staff"
-    )
-    ```
-    * Response:
-    ```kotlin
-    data class UserResponse(
-        val userId: Int,
-        val username: String,
-        val email: String,
-        val displayName: String,
-        val role: String
-    )
+    data class UserResponse(val userId: Int, val username: String, val email: String, val displayName: String, val role: String, val passwordHash: String, val staffDetails: StaffDetails? = null)
     ```
 
 * `POST /api/users/login`: Authenticate a user and return a token.
     * Authentication: Not required.
-    * Request:
-    ```kotlin
-    data class LoginRequest(
-        val username: String,
-        val password: String
-    )
-    ```
-    * Response:
-    ```kotlin
-    data class LoginResponse(
-        val token: String,
-        val userId: Int,
-        val username: String,
-        val displayName: String,
-        val role: String
-    )
-    ```
+    * Request: ```kotlin
+data class LoginRequest(val username: String, val password: String)
+```
+    * Response: ```kotlin
+data class LoginResponse(val token: String, val userId: Int, val username: String, val displayName: String, val role: String)
+```
 
 * `GET /api/users/{user_id}`: Retrieve user details.
     * Authentication: Required.
-    * Response:
-    ```kotlin
-    data class UserDetailsResponse(
-        val userId: Int,
-        val username: String,
-        val email: String,
-        val displayName: String,
-        val role: String,
-        val staffDetails: StaffDetails? // Nullable if user is not staff
-    )
-
-    data class StaffDetails(
-        val contactInformation: String,
-        val skills: List<String>,
-        val hoursWorked: Int,
-        val phoneNumber: String,
-        val dateOfBirth: String // ISO 8601 date string
-    )
-    ```
+    * Response: ```kotlin
+data class UserResponse(val userId: Int, val username: String, val email: String, val displayName: String, val role: String, val passwordHash: String, val staffDetails: StaffDetails? = null)
+```
 
 * `PUT /api/users/{user_id}`: Update user details.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class UpdateUserRequest(
-        val email: String? = null,
-        val staffDetails: UpdateStaffDetails? = null
-    )
+    * Request: ```kotlin
+data class UpdateUserRequest(val email: String? = null, val displayName: String? = null, val staffDetails: UpdateStaffDetails? = null)
+```
+    * Response: ```kotlin
+data class UserResponse(val userId: Int, val username: String, val email: String, val displayName: String, val role: String, val passwordHash: String, val staffDetails: StaffDetails? = null)
+```
 
-    data class UpdateStaffDetails(
-        val contactInformation: String? = null,
-        val skills: List<String>? = null,
-        val phoneNumber: String? = null,
-        val dateOfBirth: String? = null // ISO 8601 date string
-    )
-    ```
-    * Response: `UserResponse` (as defined in `GET /api/users/{user_id}`)
-
-* `GET /api/context`: Retrieve context data for the logged-in user.
+* `GET /api/users/context`: Retrieve context data for the logged-in user.
     * Authentication: Required.
-    * Response:
-    ```kotlin
-    data class UserContextResponse(
-        val user: UserResponse,
-        val organization: OrganizationDetails?, // Nullable if user not part of org
-        val permissions: List<String> // List of permissions for the user in current context
-    )
-
-    data class OrganizationDetails(
-        val organizationId: Int,
-        val name: String,
-        val contactInformation: String
-        // Add other relevant organization details as needed
-    )
-    ```
+    * Response: ```kotlin
+data class LoggedInContextResponse(val user: UserResponse, val organization: OrganizationDetails?, val permissions: List&lt;String&gt;)
+```
 
 ---
 
@@ -114,95 +51,52 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/events`: Create a new event.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class CreateEventRequest(
-        val title: String,
-        val date: String, // ISO 8601 date string (e.g., "YYYY-MM-DD")
-        val time: String, // ISO 8601 time string (e.g., "HH:MM:SS")
-        val location: String,
-        val description: String,
-        val inventoryIds: List<Int>,
-        val customerId: Int, // Single customer ID
-        val staffInvites: StaffInviteDetails // Details for staff invitation
-    )
-
-    data class StaffInviteDetails(
-        val specificStaffIds: List<Int>? = null, // Optional: list of specific staff to invite
-        val openInvitation: Boolean = false, // True if invitation is open to any staff
-        val numberOfStaffNeeded: Int // Required: number of staff slots for the event
-    )
-    ```
-    * Response:
-    ```kotlin
-    data class EventResponse(
-        val eventId: Int,
-        val title: String,
-        val date: String,
-        val time: String,
-        val location: String,
-        val description: String,
-        val inventoryIds: List<Int>,
-        val customerId: Int,
-        val assignedStaffIds: List<Int>,
-        val rsvps: List<RsvpStatus>
-    )
-
-    data class RsvpStatus(
-        val userId: Int,
-        val availability: String // "available" or "unavailable"
-    )
-    ```
+    * Request: ```kotlin
+data class CreateEventRequest(val title: String, val date: String, val time: String, val location: String, val description: String, val inventoryIds: List&lt;Int&gt;, val customerId: Int, val staffInvites: StaffInviteDetails)
+```
+    * Response: ```kotlin
+data class EventResponse(val eventId: Int, val title: String, val date: String, val time: String, val location: String, val description: String, val inventoryIds: List&lt;Int&gt;, val customerId: Int, val assignedStaffIds: List&lt;Int&gt;, val rsvps: List&lt;RsvpStatus&gt;)
+```
 
 * `GET /api/events`: Retrieve all events.
     * Authentication: Required.
     * Response: `List<EventResponse>`
 
-* `GET /api/events/{event_id}`: Retrieve a specific event.
+* `GET /api/events/{eventId}`: Retrieve a specific event.
     * Authentication: Required.
-    * Response: `EventResponse`
+    * Response: ```kotlin
+data class EventResponse(val eventId: Int, val title: String, val date: String, val time: String, val location: String, val description: String, val inventoryIds: List&lt;Int&gt;, val customerId: Int, val assignedStaffIds: List&lt;Int&gt;, val rsvps: List&lt;RsvpStatus&gt;)
+```
 
-* `PUT /api/events/{event_id}`: Update an event.
+* `PUT /api/events/{eventId}`: Update an event.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class UpdateEventRequest(
-        val title: String? = null,
-        val date: String? = null,
-        val time: String? = null,
-        val location: String? = null,
-        val description: String? = null,
-        val inventoryIds: List<Int>? = null,
-        val customerId: Int? = null,
-        val staffInvites: StaffInviteDetails? = null
-    )
-    ```
-    * Response: `EventResponse`
+    * Request: ```kotlin
+data class UpdateEventRequest(val title: String? = null, val date: String? = null, val time: String? = null, val location: String? = null, val description: String? = null, val inventoryIds: List&lt;Int&gt;? = null, val customerId: Int? = null, val staffInvites: StaffInviteDetails? = null)
+```
+    * Response: ```kotlin
+data class EventResponse(val eventId: Int, val title: String, val date: String, val time: String, val location: String, val description: String, val inventoryIds: List&lt;Int&gt;, val customerId: Int, val assignedStaffIds: List&lt;Int&gt;, val rsvps: List&lt;RsvpStatus&gt;)
+```
 
-* `DELETE /api/events/{event_id}`: Delete an event.
-    * Authentication: Required.
-    * Response:
-    ```kotlin
-    data class StatusResponse(val status: String) // "OK" on success
-    ```
-
-* `POST /api/events/{event_id}/staff/{user_id}`: Assign staff to an event.
+* `DELETE /api/events/{eventId}`: Delete an event.
     * Authentication: Required.
     * Response: `StatusResponse`
 
-* `DELETE /api/events/{event_id}/staff/{user_id}`: Remove staff from an event.
+* `POST /api/events/{eventId}/staff/{userId}`: Assign staff to an event.
     * Authentication: Required.
     * Response: `StatusResponse`
 
-* `POST /api/events/{event_id}/rsvp`: RSVP to an event.
+* `DELETE /api/events/{eventId}/staff/{userId}`: Remove staff from an event.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class RsvpRequest(
-        val availability: String // "available" or "unavailable"
-    )
-    ```
     * Response: `StatusResponse`
+
+* `POST /api/events/{eventId}/rsvp`: RSVP to an event.
+    * Authentication: Required.
+    * Request: ```kotlin
+data class RsvpRequest(val availability: String)
+```
+    * Response: ```kotlin
+data class StatusResponse(val status: String)
+```
 
 ---
 
@@ -210,43 +104,33 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/customers`: Retrieve all customers.
     * Authentication: Required.
-    * Response:
-    ```kotlin
-    data class CustomerResponse(
-        val customerId: Int,
-        val name: String,
-        val contactInformation: String
-    )
-    // List<CustomerResponse>
-    ```
+    * Response: `List<CustomerResponse>`
 
-* `GET /api/customers/{customer_id}`: Retrieve a specific customer.
+* `GET /api/customers/{customerId}`: Retrieve a specific customer.
     * Authentication: Required.
-    * Response: `CustomerResponse`
+    * Response: ```kotlin
+data class CustomerResponse(val customerId: Int, val name: String, val contactInformation: String)
+```
 
 * `POST /api/customers`: Create a new customer.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class CreateCustomerRequest(
-        val name: String,
-        val contactInformation: String
-    )
-    ```
-    * Response: `CustomerResponse`
+    * Request: ```kotlin
+data class CreateCustomerRequest(val name: String, val contactInformation: String)
+```
+    * Response: ```kotlin
+data class CustomerResponse(val customerId: Int, val name: String, val contactInformation: String)
+```
 
-* `PUT /api/customers/{customer_id}`: Update a customer.
+* `PUT /api/customers/{customerId}`: Update a customer.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class UpdateCustomerRequest(
-        val name: String? = null,
-        val contactInformation: String? = null
-    )
-    ```
-    * Response: `CustomerResponse`
+    * Request: ```kotlin
+data class UpdateCustomerRequest(val name: String? = null, val contactInformation: String? = null)
+```
+    * Response: ```kotlin
+data class CustomerResponse(val customerId: Int, val name: String, val contactInformation: String)
+```
 
-* `DELETE /api/customers/{customer_id}`: Delete a customer.
+* `DELETE /api/customers/{customerId}`: Delete a customer.
     * Authentication: Required.
     * Response: `StatusResponse`
 
@@ -256,59 +140,44 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/inventory`: Retrieve all inventory items.
     * Authentication: Required.
-    * Response:
-    ```kotlin
-    data class InventoryItemResponse(
-        val inventoryId: Int,
-        val name: String,
-        val description: String,
-        val quantity: Int
-    )
-    // List<InventoryItemResponse>
-    ```
+    * Response: `List<InventoryItemResponse>`
 
-* `GET /api/inventory/{inventory_id}`: Retrieve a specific inventory item.
+* `GET /api/inventory/{inventoryId}`: Retrieve a specific inventory item.
     * Authentication: Required.
-    * Response: `InventoryItemResponse`
+    * Response: ```kotlin
+data class InventoryItemResponse(val inventoryId: Int, val name: String, val description: String, val quantity: Int)
+```
 
 * `POST /api/inventory`: Create a new inventory item.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class CreateInventoryItemRequest(
-        val name: String,
-        val description: String,
-        val quantity: Int
-    )
-    ```
-    * Response: `InventoryItemResponse`
+    * Request: ```kotlin
+data class CreateInventoryItemRequest(val name: String, val description: String, val quantity: Int)
+```
+    * Response: ```kotlin
+data class InventoryItemResponse(val inventoryId: Int, val name: String, val description: String, val quantity: Int)
+```
 
-* `PUT /api/inventory/{inventory_id}`: Update an inventory item.
+* `PUT /api/inventory/{inventoryId}`: Update an inventory item.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class UpdateInventoryItemRequest(
-        val name: String? = null,
-        val description: String? = null,
-        val quantity: Int? = null
-    )
-    ```
-    * Response: `InventoryItemResponse`
+    * Request: ```kotlin
+data class UpdateInventoryItemRequest(val name: String? = null, val description: String? = null, val quantity: Int? = null)
+```
+    * Response: ```kotlin
+data class InventoryItemResponse(val inventoryId: Int, val name: String, val description: String, val quantity: Int)
+```
 
-* `DELETE /api/inventory/{inventory_id}`: Delete an inventory item.
+* `DELETE /api/inventory/{inventoryId}`: Delete an inventory item.
     * Authentication: Required.
     * Response: `StatusResponse`
 
-* `POST /api/inventory/{inventory_id}/usage`: Track inventory item usage.
+* `POST /api/inventory/{inventoryId}/usage`: Track inventory item usage.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class TrackInventoryUsageRequest(
-        val eventId: Int,
-        val quantity: Int
-    )
-    ```
-    * Response: `StatusResponse`
+    * Request: ```kotlin
+data class TrackInventoryUsageRequest(val eventId: Int, val quantity: Int)
+```
+    * Response: ```kotlin
+data class StatusResponse(val status: String)
+```
 
 ---
 
@@ -316,34 +185,14 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/reports/staff_hours`: Generate a report of staff hours worked within a date range.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class StaffHoursReportRequest(
-        val startDate: String, // ISO 8601 date string
-        val endDate: String  // ISO 8601 date string
-    )
-    ```
-    * Response:
-    ```kotlin
-    data class StaffHoursReportResponse(
-        val userId: Int,
-        val username: String,
-        val totalHoursWorked: Int
-    )
-    // List<StaffHoursReportResponse>
-    ```
+    * Request: ```kotlin
+data class StaffHoursReportRequest(val startDate: String, val endDate: String)
+```
+    * Response: `List<StaffHoursReportResponse>`
 
 * `GET /api/reports/inventory_usage`: Generate a report of inventory usage frequency.
     * Authentication: Required.
-    * Response:
-    ```kotlin
-    data class InventoryUsageReportResponse(
-        val inventoryId: Int,
-        val name: String,
-        val usageCount: Int
-    )
-    // List<InventoryUsageReportResponse>
-    ```
+    * Response: `List<InventoryUsageReportResponse>`
 
 ---
 
@@ -351,50 +200,44 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/roles`: Create a new role.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class CreateRoleRequest(
-        val roleName: String,
-        val permissions: List<String>
-    )
-    ```
-    * Response:
-    ```kotlin
-    data class RoleResponse(
-        val roleId: Int,
-        val roleName: String,
-        val permissions: List<String>
-    )
-    ```
+    * Request: ```kotlin
+data class CreateRoleRequest(val roleName: String, val permissions: List&lt;String&gt;)
+```
+    * Response: ```kotlin
+data class RoleResponse(val roleId: Int, val roleName: String, val permissions: List&lt;String&gt;)
+```
 
 * `GET /api/roles`: Retrieve all roles.
     * Authentication: Required.
     * Response: `List<RoleResponse>`
 
-* `GET /api/roles/{role_id}`: Get a role by ID.
+* `GET /api/roles/{roleId}`: Get a role by ID.
     * Authentication: Required.
-    * Response: `RoleResponse`
+    * Response: ```kotlin
+data class RoleResponse(val roleId: Int, val roleName: String, val permissions: List&lt;String&gt;)
+```
 
-* `PUT /api/roles/{role_id}`: Update a role.
+* `PUT /api/roles/{roleId}`: Update a role.
     * Authentication: Required.
-    * Request:
-    ```kotlin
-    data class UpdateRoleRequest(
-        val roleName: String? = null,
-        val permissions: List<String>? = null
-    )
-    ```
-    * Response: `RoleResponse`
+    * Request: ```kotlin
+data class UpdateRoleRequest(val roleName: String? = null, val permissions: List&lt;String&gt;? = null)
+```
+    * Response: ```kotlin
+data class RoleResponse(val roleId: Int, val roleName: String, val permissions: List&lt;String&gt;)
+```
 
-* `DELETE /api/roles/{role_id}`: Delete a role.
-    * Authentication: Required.
-    * Response: `StatusResponse`
-
-* `POST /api/users/{user_id}/roles/{role_id}`: Assign a role to a user.
+* `DELETE /api/roles/{roleId}`: Delete a role.
     * Authentication: Required.
     * Response: `StatusResponse`
 
-* `DELETE /api/users/{user_id}/roles/{role_id}`: Remove a role from a user.
+* `POST /api/users/{userId}/roles`: Assign a role to a user.
+    * Authentication: Required.
+    * Request: <!-- DATA_MODEL_AssignRoleRequest -->
+    * Response: ```kotlin
+data class StatusResponse(val status: String)
+```
+
+* `DELETE /api/users/{userId}/roles/{roleId}`: Remove a role from a user.
     * Authentication: Required.
     * Response: `StatusResponse`
 
@@ -404,46 +247,105 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/organizations`: Create a new organization.
     * Authentication: Required (SuperAdmin).
-    * Request:
-    ```kotlin
-    data class CreateOrganizationRequest(
-        val name: String,
-        val contactInformation: String
-    )
-    ```
-    * Response:
-    ```kotlin
-    data class OrganizationResponse(
-        val organizationId: Int,
-        val name: String,
-        val contactInformation: String
-    )
-    ```
+    * Request: ```kotlin
+data class CreateOrganizationRequest(val name: String, val contactInformation: String)
+```
+    * Response: ```kotlin
+data class OrganizationResponse(val organizationId: Int, val name: String, val contactInformation: String)
+```
 
 * `GET /api/organizations`: Retrieve all organizations.
     * Authentication: Required (SuperAdmin).
     * Response: `List<OrganizationResponse>`
 
-* `GET /api/organizations/{organization_id}`: Retrieve a specific organization.
-    * Authentication: Required (SuperAdmin).
-    * Response: `OrganizationResponse`
+* `GET /api/organizations/{organizationId}`: Retrieve a specific organization.
+    * Authentication: Required.
+    * Response: ```kotlin
+data class OrganizationResponse(val organizationId: Int, val name: String, val contactInformation: String)
+```
 
-* `PUT /api/organizations/{organization_id}`: Update an organization.
+* `PUT /api/organizations/{organizationId}`: Update an organization.
     * Authentication: Required (SuperAdmin).
-    * Request:
-    ```kotlin
-    data class UpdateOrganizationRequest(
-        val name: String? = null,
-        val contactInformation: String? = null
-    )
-    ```
-    * Response: `OrganizationResponse`
+    * Request: ```kotlin
+data class UpdateOrganizationRequest(val name: String? = null, val contactInformation: String? = null)
+```
+    * Response: ```kotlin
+data class OrganizationResponse(val organizationId: Int, val name: String, val contactInformation: String)
+```
 
-* `DELETE /api/organizations/{organization_id}`: Delete an organization.
+* `DELETE /api/organizations/{organizationId}`: Delete an organization.
     * Authentication: Required (SuperAdmin).
     * Response: `StatusResponse`
 
 ---
+
+### Data Models
+
+```kotlin
+data class LoggedInContextResponse(val user: UserResponse, val organization: OrganizationDetails?, val permissions: List&lt;String&gt;)
+
+data class LoginRequest(val username: String, val password: String)
+
+data class LoginResponse(val token: String, val userId: Int, val username: String, val displayName: String, val role: String)
+
+data class StaffDetails(val contactInformation: String, val skills: List&lt;String&gt;, val hoursWorked: Int, val phoneNumber: String, val dateOfBirth: String)
+
+data class StatusResponse(val status: String)
+
+data class CreateCustomerRequest(val name: String, val contactInformation: String)
+
+data class CustomerResponse(val customerId: Int, val name: String, val contactInformation: String)
+
+data class UpdateCustomerRequest(val name: String? = null, val contactInformation: String? = null)
+
+data class CreateEventRequest(val title: String, val date: String, val time: String, val location: String, val description: String, val inventoryIds: List&lt;Int&gt;, val customerId: Int, val staffInvites: StaffInviteDetails)
+
+data class EventResponse(val eventId: Int, val title: String, val date: String, val time: String, val location: String, val description: String, val inventoryIds: List&lt;Int&gt;, val customerId: Int, val assignedStaffIds: List&lt;Int&gt;, val rsvps: List&lt;RsvpStatus&gt;)
+
+data class RsvpRequest(val availability: String)
+
+data class RsvpStatus(val userId: Int, val availability: String)
+
+data class StaffInviteDetails(val specificStaffIds: List&lt;Int&gt;? = null, val openInvitation: Boolean = false, val numberOfStaffNeeded: Int)
+
+data class UpdateEventRequest(val title: String? = null, val date: String? = null, val time: String? = null, val location: String? = null, val description: String? = null, val inventoryIds: List&lt;Int&gt;? = null, val customerId: Int? = null, val staffInvites: StaffInviteDetails? = null)
+
+data class CreateInventoryItemRequest(val name: String, val description: String, val quantity: Int)
+
+data class InventoryItemResponse(val inventoryId: Int, val name: String, val description: String, val quantity: Int)
+
+data class TrackInventoryUsageRequest(val eventId: Int, val quantity: Int)
+
+data class UpdateInventoryItemRequest(val name: String? = null, val description: String? = null, val quantity: Int? = null)
+
+data class CreateOrganizationRequest(val name: String, val contactInformation: String)
+
+data class OrganizationDetails(val organizationId: Int, val name: String, val contactInformation: String)
+
+data class OrganizationResponse(val organizationId: Int, val name: String, val contactInformation: String)
+
+data class UpdateOrganizationRequest(val name: String? = null, val contactInformation: String? = null)
+
+data class InventoryUsageReportResponse(val inventoryId: Int, val name: String, val usageCount: Int)
+
+data class StaffHoursReportRequest(val startDate: String, val endDate: String)
+
+data class StaffHoursReportResponse(val userId: Int, val username: String, val displayName: String, val totalHoursWorked: Int)
+
+data class CreateRoleRequest(val roleName: String, val permissions: List&lt;String&gt;)
+
+data class RoleResponse(val roleId: Int, val roleName: String, val permissions: List&lt;String&gt;)
+
+data class UpdateRoleRequest(val roleName: String? = null, val permissions: List&lt;String&gt;? = null)
+
+data class CreateUserRequest(val username: String, val password: String, val email: String, val displayName: String)
+
+data class UpdateStaffDetails(val contactInformation: String? = null, val skills: List&lt;String&gt;? = null, val phoneNumber: String? = null, val dateOfBirth: String? = null)
+
+data class UpdateUserRequest(val email: String? = null, val displayName: String? = null, val staffDetails: UpdateStaffDetails? = null)
+
+data class UserResponse(val userId: Int, val username: String, val email: String, val displayName: String, val role: String, val passwordHash: String, val staffDetails: StaffDetails? = null)
+```
 
 **Notes:**
 
