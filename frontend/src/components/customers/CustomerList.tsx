@@ -1,17 +1,15 @@
-// frontend/src/components/customers/CustomerList.tsx
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CustomerService } from '../../api/CustomerService';
 import type { CustomerResponse } from '../../types/customers';
-import { AuthService } from '../../api/AuthService';
+import { usePermissions } from '../../AuthContext';
 import ErrorDisplay from '../common/ErrorDisplay';
 
 const CustomerList: React.FC = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<CustomerResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { hasPermission } = usePermissions();
   const [nameFilter, setNameFilter] = useState('');
   const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
 
@@ -31,18 +29,6 @@ const CustomerList: React.FC = () => {
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const context = await AuthService.getUserContext();
-        setUserRole(context.user.role);
-      } catch (err) {
-        console.error('Failed to get user context', err);
-      }
-    };
-    fetchUserRole();
-  }, []);
 
   const handleDelete = async (customerId: number) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
@@ -82,14 +68,14 @@ const CustomerList: React.FC = () => {
         </select>
       </div>
 
-      {userRole === 'organizer' && (
+      {hasPermission('MANAGE_CUSTOMERS_ORGANIZATION') && (
         <button onClick={() => navigate('/customers/create')}>Create Customer</button>
       )}
       <ul>
         {customers.map(customer => (
           <li key={customer.customerId}>
             <strong>{customer.name}</strong> - {customer.contactInformation}
-            {userRole === 'organizer' && (
+            {hasPermission('MANAGE_CUSTOMERS_ORGANIZATION') && (
               <>
                 <button onClick={() => navigate(`/customers/edit/${customer.customerId}`)}>Edit</button>
                 <button onClick={() => handleDelete(customer.customerId)}>Delete</button>

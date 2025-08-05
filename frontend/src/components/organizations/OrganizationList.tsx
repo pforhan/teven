@@ -1,17 +1,15 @@
-// frontend/src/components/organizations/OrganizationList.tsx
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OrganizationService } from '../../api/OrganizationService';
 import type { OrganizationResponse } from '../../types/organizations';
-import { AuthService } from '../../api/AuthService';
+import { usePermissions } from '../../AuthContext';
 import ErrorDisplay from '../common/ErrorDisplay';
 
 const OrganizationList: React.FC = () => {
   const navigate = useNavigate();
   const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { hasPermission } = usePermissions();
 
   const fetchOrganizations = useCallback(async () => {
     try {
@@ -27,20 +25,10 @@ const OrganizationList: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchOrganizations();
-  }, [fetchOrganizations]);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const context = await AuthService.getUserContext();
-        setUserRole(context.user.role);
-      } catch (err) {
-        console.error('Failed to get user context', err);
-      }
-    };
-    fetchUserRole();
-  }, []);
+    if (hasPermission('VIEW_ORGANIZATIONS_GLOBAL')) {
+      fetchOrganizations();
+    }
+  }, [fetchOrganizations, hasPermission]);
 
   const handleDelete = async (organizationId: number) => {
     if (window.confirm('Are you sure you want to delete this organization?')) {
@@ -57,8 +45,8 @@ const OrganizationList: React.FC = () => {
     }
   };
 
-  if (userRole !== 'superadmin') {
-    return <ErrorDisplay message="Access denied: SuperAdmin role required to view organizations." />;
+  if (!hasPermission('VIEW_ORGANIZATIONS_GLOBAL')) {
+    return <ErrorDisplay message="Access denied: You do not have permission to view organizations." />;
   }
 
   return (
@@ -66,14 +54,14 @@ const OrganizationList: React.FC = () => {
       <h2>Organizations</h2>
       <ErrorDisplay message={error} />
 
-      {userRole === 'superadmin' && (
+      {hasPermission('MANAGE_ORGANIZATIONS_GLOBAL') && (
         <button onClick={() => navigate('/organizations/create')}>Create Organization</button>
       )}
       <ul>
         {organizations.map(org => (
           <li key={org.organizationId}>
             <strong>{org.name}</strong> - {org.contactInformation}
-            {userRole === 'superadmin' && (
+            {hasPermission('MANAGE_ORGANIZATIONS_GLOBAL') && (
               <>
                 <button onClick={() => navigate(`/organizations/edit/${org.organizationId}`)}>Edit</button>
                 <button onClick={() => handleDelete(org.organizationId)}>Delete</button>

@@ -1,17 +1,15 @@
-// frontend/src/components/inventory/InventoryList.tsx
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { InventoryService } from '../../api/InventoryService';
 import type { InventoryItemResponse } from '../../types/inventory';
-import { AuthService } from '../../api/AuthService';
+import { usePermissions } from '../../AuthContext';
 import ErrorDisplay from '../common/ErrorDisplay';
 
 const InventoryList: React.FC = () => {
   const navigate = useNavigate();
   const [inventoryItems, setInventoryItems] = useState<InventoryItemResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { hasPermission } = usePermissions();
   const [nameFilter, setNameFilter] = useState('');
   const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
 
@@ -31,18 +29,6 @@ const InventoryList: React.FC = () => {
   useEffect(() => {
     fetchInventoryItems();
   }, [fetchInventoryItems]);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const context = await AuthService.getUserContext();
-        setUserRole(context.user.role);
-      } catch (err) {
-        console.error('Failed to get user context', err);
-      }
-    };
-    fetchUserRole();
-  }, []);
 
   const handleDelete = async (inventoryId: number) => {
     if (window.confirm('Are you sure you want to delete this inventory item?')) {
@@ -82,14 +68,14 @@ const InventoryList: React.FC = () => {
         </select>
       </div>
 
-      {userRole === 'organizer' && (
+      {hasPermission('MANAGE_INVENTORY_ORGANIZATION') && (
         <button onClick={() => navigate('/inventory/create')}>Create Item</button>
       )}
       <ul>
         {inventoryItems.map(item => (
           <li key={item.inventoryId}>
             <strong>{item.name}</strong> (Quantity: {item.quantity})
-            {userRole === 'organizer' && (
+            {hasPermission('MANAGE_INVENTORY_ORGANIZATION') && (
               <>
                 <button onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}>Edit</button>
                 <button onClick={() => handleDelete(item.inventoryId)}>Delete</button>

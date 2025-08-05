@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import type { EventResponse } from '../../types/events';
-import { AuthService } from '../../api/AuthService';
+import { usePermissions } from '../../AuthContext';
 import ErrorDisplay from '../common/ErrorDisplay';
 
 const EventList: React.FC = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { hasPermission } = usePermissions();
   const [titleFilter, setTitleFilter] = useState('');
   const [sortByDate, setSortByDate] = useState<'asc' | 'desc' | ''>('');
 
@@ -29,18 +29,6 @@ const EventList: React.FC = () => {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const context = await AuthService.getUserContext();
-        setUserRole(context.user.role);
-      } catch (err) {
-        console.error('Failed to get user context', err);
-      }
-    };
-    fetchUserRole();
-  }, []);
 
   const handleDelete = async (eventId: number) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
@@ -80,14 +68,14 @@ const EventList: React.FC = () => {
         </select>
       </div>
 
-      {userRole === 'organizer' && (
+      {hasPermission('MANAGE_EVENTS_ORGANIZATION') && (
         <button onClick={() => navigate('/events/create')}>Create Event</button>
       )}
       <ul>
         {events.map(event => (
           <li key={event.eventId}>
             <strong>{event.title}</strong> - {event.date} at {event.time}
-            {userRole === 'organizer' && (
+            {hasPermission('MANAGE_EVENTS_ORGANIZATION') && (
               <>
                 <button onClick={() => navigate(`/events/edit/${event.eventId}`)}>Edit</button>
                 <button onClick={() => handleDelete(event.eventId)}>Delete</button>
