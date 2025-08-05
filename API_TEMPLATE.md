@@ -9,26 +9,34 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/users/register`: Register a new user.
     * Authentication: Not required.
-    * Request: <!-- DATA_MODEL_RegisterRequest -->
-    * Response: <!-- DATA_MODEL_UserResponse -->
+    * Request:
+        <!-- DATA_MODEL_CreateUserRequest -->
+    * Response:
+        <!-- DATA_MODEL_UserResponse -->
 
 * `POST /api/users/login`: Authenticate a user and return a token.
     * Authentication: Not required.
-    * Request: <!-- DATA_MODEL_LoginRequest -->
-    * Response: <!-- DATA_MODEL_LoginResponse -->
+    * Request:
+        <!-- DATA_MODEL_LoginRequest -->
+    * Response:
+        <!-- DATA_MODEL_LoginResponse -->
 
 * `GET /api/users/{user_id}`: Retrieve user details.
     * Authentication: Required.
-    * Response: <!-- DATA_MODEL_UserResponse -->
+    * Response:
+        <!-- DATA_MODEL_UserResponse -->
 
 * `PUT /api/users/{user_id}`: Update user details.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_UpdateUserRequest -->
-    * Response: <!-- DATA_MODEL_UserResponse -->
+    * Request:
+        <!-- DATA_MODEL_UpdateUserRequest -->
+    * Response:
+        <!-- DATA_MODEL_UserResponse -->
 
 * `GET /api/users/context`: Retrieve context data for the logged-in user.
     * Authentication: Required.
-    * Response: <!-- DATA_MODEL_LoggedInContextResponse -->
+    * Response:
+        <!-- DATA_MODEL_LoggedInContextResponse -->
 
 ---
 
@@ -36,8 +44,10 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/events`: Create a new event.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_CreateEventRequest -->
-    * Response: <!-- DATA_MODEL_EventResponse -->
+    * Request:
+        <!-- DATA_MODEL_CreateEventRequest -->
+    * Response:
+        <!-- DATA_MODEL_EventResponse -->
 
 * `GET /api/events`: Retrieve all events.
     * Authentication: Required.
@@ -45,12 +55,15 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/events/{eventId}`: Retrieve a specific event.
     * Authentication: Required.
-    * Response: <!-- DATA_MODEL_EventResponse -->
+    * Response:
+        <!-- DATA_MODEL_EventResponse -->
 
 * `PUT /api/events/{eventId}`: Update an event.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_UpdateEventRequest -->
-    * Response: <!-- DATA_MODEL_EventResponse -->
+    * Request:
+        <!-- DATA_MODEL_UpdateEventRequest -->
+    * Response:
+        <!-- DATA_MODEL_EventResponse -->
 
 * `DELETE /api/events/{eventId}`: Delete an event.
     * Authentication: Required.
@@ -66,8 +79,10 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/events/{eventId}/rsvp`: RSVP to an event.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_RsvpRequest -->
-    * Response: <!-- DATA_MODEL_StatusResponse -->
+    * Request:
+        <!-- DATA_MODEL_RsvpRequest -->
+    * Response:
+        <!-- DATA_MODEL_StatusResponse -->
 
 ---
 
@@ -79,17 +94,22 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/customers/{customerId}`: Retrieve a specific customer.
     * Authentication: Required.
-    * Response: <!-- DATA_MODEL_CustomerResponse -->
+    * Response:
+        <!-- DATA_MODEL_CustomerResponse -->
 
 * `POST /api/customers`: Create a new customer.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_CreateCustomerRequest -->
-    * Response: <!-- DATA_MODEL_CustomerResponse -->
+    * Request:
+        <!-- DATA_MODEL_CreateCustomerRequest -->
+    * Response:
+        <!-- DATA_MODEL_CustomerResponse -->
 
 * `PUT /api/customers/{customerId}`: Update a customer.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_UpdateCustomerRequest -->
-    * Response: <!-- DATA_MODEL_CustomerResponse -->
+    * Request:
+        <!-- DATA_MODEL_UpdateCustomerRequest -->
+    * Response:
+        <!-- DATA_MODEL_CustomerResponse -->
 
 * `DELETE /api/customers/{customerId}`: Delete a customer.
     * Authentication: Required.
@@ -105,17 +125,22 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/inventory/{inventoryId}`: Retrieve a specific inventory item.
     * Authentication: Required.
-    * Response: <!-- DATA_MODEL_InventoryItemResponse -->
+    * Response:
+        <!-- DATA_MODEL_InventoryItemResponse -->
 
 * `POST /api/inventory`: Create a new inventory item.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_CreateInventoryItemRequest -->
-    * Response: <!-- DATA_MODEL_InventoryItemResponse -->
+    * Request:
+        <!-- DATA_MODEL_CreateInventoryItemRequest -->
+    * Response:
+        <!-- DATA_MODEL_InventoryItemResponse -->
 
 * `PUT /api/inventory/{inventoryId}`: Update an inventory item.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_UpdateInventoryItemRequest -->
-    * Response: <!-- DATA_MODEL_InventoryItemResponse -->
+    * Request:
+        <!-- DATA_MODEL_UpdateInventoryItemRequest -->
+    * Response:
+        <!-- DATA_MODEL_InventoryItemResponse -->
 
 * `DELETE /api/inventory/{inventoryId}`: Delete an inventory item.
     * Authentication: Required.
@@ -123,8 +148,10 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/inventory/{inventoryId}/usage`: Track inventory item usage.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_TrackInventoryUsageRequest -->
-    * Response: <!-- DATA_MODEL_StatusResponse -->
+    * Request:
+        <!-- DATA_MODEL_TrackInventoryUsageRequest -->
+    * Response:
+        <!-- DATA_MODEL_StatusResponse -->
 
 ---
 
@@ -132,7 +159,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/reports/staff_hours`: Generate a report of staff hours worked within a date range.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_StaffHoursReportRequest -->
+    * Request:
+        <!-- DATA_MODEL_StaffHoursReportRequest -->
     * Response: `List<StaffHoursReportResponse>`
 
 * `GET /api/reports/inventory_usage`: Generate a report of inventory usage frequency.
@@ -145,8 +173,10 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/roles`: Create a new role.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_CreateRoleRequest -->
-    * Response: <!-- DATA_MODEL_RoleResponse -->
+    * Request:
+        <!-- DATA_MODEL_CreateRoleRequest -->
+    * Response:
+        <!-- DATA_MODEL_RoleResponse -->
 
 * `GET /api/roles`: Retrieve all roles.
     * Authentication: Required.
@@ -154,12 +184,15 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/roles/{roleId}`: Get a role by ID.
     * Authentication: Required.
-    * Response: <!-- DATA_MODEL_RoleResponse -->
+    * Response:
+        <!-- DATA_MODEL_RoleResponse -->
 
 * `PUT /api/roles/{roleId}`: Update a role.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_UpdateRoleRequest -->
-    * Response: <!-- DATA_MODEL_RoleResponse -->
+    * Request:
+        <!-- DATA_MODEL_UpdateRoleRequest -->
+    * Response:
+        <!-- DATA_MODEL_RoleResponse -->
 
 * `DELETE /api/roles/{roleId}`: Delete a role.
     * Authentication: Required.
@@ -167,8 +200,10 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/users/{userId}/roles`: Assign a role to a user.
     * Authentication: Required.
-    * Request: <!-- DATA_MODEL_AssignRoleRequest -->
-    * Response: <!-- DATA_MODEL_StatusResponse -->
+    * Request:
+        <!-- DATA_MODEL_AssignRoleRequest -->
+    * Response:
+        <!-- DATA_MODEL_StatusResponse -->
 
 * `DELETE /api/users/{userId}/roles/{roleId}`: Remove a role from a user.
     * Authentication: Required.
@@ -180,8 +215,10 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/organizations`: Create a new organization.
     * Authentication: Required (SuperAdmin).
-    * Request: <!-- DATA_MODEL_CreateOrganizationRequest -->
-    * Response: <!-- DATA_MODEL_OrganizationResponse -->
+    * Request:
+        <!-- DATA_MODEL_CreateOrganizationRequest -->
+    * Response:
+        <!-- DATA_MODEL_OrganizationResponse -->
 
 * `GET /api/organizations`: Retrieve all organizations.
     * Authentication: Required (SuperAdmin).
@@ -189,12 +226,15 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/organizations/{organizationId}`: Retrieve a specific organization.
     * Authentication: Required.
-    * Response: <!-- DATA_MODEL_OrganizationResponse -->
+    * Response:
+        <!-- DATA_MODEL_OrganizationResponse -->
 
 * `PUT /api/organizations/{organizationId}`: Update an organization.
     * Authentication: Required (SuperAdmin).
-    * Request: <!-- DATA_MODEL_UpdateOrganizationRequest -->
-    * Response: <!-- DATA_MODEL_OrganizationResponse -->
+    * Request:
+        <!-- DATA_MODEL_UpdateOrganizationRequest -->
+    * Response:
+        <!-- DATA_MODEL_OrganizationResponse -->
 
 * `DELETE /api/organizations/{organizationId}`: Delete an organization.
     * Authentication: Required (SuperAdmin).

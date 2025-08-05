@@ -46,7 +46,14 @@ tasks.register("generateApiDocs") {
                     val classNameMatch = Regex("(data|enum) class (\\w+)").find(cleanedLine)
                     val className = classNameMatch?.groupValues?.get(2)
                     if (className != null) {
-                        className to cleanedLine
+                        // link to class name and split each var into a new line
+                        val formattedClass = cleanedLine
+                            .replace("val", "\n          val")
+                            .replace(" = null", "")
+                            .replace("&lt;","<")
+                            .replace("&gt;",">")
+                            .replace(")", "\n        )")
+                        className to formattedClass
                     } else {
                         null
                     }
@@ -55,16 +62,18 @@ tasks.register("generateApiDocs") {
                 }
             }
             .associate { it }
+            .toSortedMap()
 
         var templateContent = apiTemplate.readText()
 
         // Perform inline replacements
         dataModelMap.forEach { (modelName, modelDefinition) ->
-            templateContent = templateContent.replace("<!-- DATA_MODEL_${modelName} -->", "```kotlin\n${modelDefinition}\n```")
+            templateContent = templateContent.replace("<!-- DATA_MODEL_${modelName} -->", "```kotlin\n        ${modelDefinition}\n        ```")
         }
 
-        // Inject all models at the end
-        val allModelsContent = dataModelMap.values.joinToString(separator = "\n\n") { it }
+        // Inject all models at the end, removing their extra indentation.
+        val allModelsContent =
+            dataModelMap.values.joinToString(separator = "\n\n") { it }.replace("        ", "")
         val finalContent = templateContent.replace(
             "<!-- INJECT_API_MODELS_HERE -->",
             "### Data Models\n\n```kotlin\n" + allModelsContent + "\n```"
