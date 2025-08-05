@@ -38,22 +38,5 @@ fun Route.authRoutes() {
         call.respond(HttpStatusCode.Unauthorized, StatusResponse("Invalid credentials"))
       }
     }
-
-    get("/context") {
-      val principal = call.principal<JWTPrincipal>()
-      val userId = principal?.payload?.getClaim("userId")?.asInt()
-
-      if (userId == null) {
-        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
-        return@get
-      }
-
-      val userContext = userService.getUserContext(userId)
-      if (userContext != null) {
-        call.respond(HttpStatusCode.OK, userContext)
-      } else {
-        call.respond(HttpStatusCode.NotFound, StatusResponse("User context not found"))
-      }
-    }
   }
 }

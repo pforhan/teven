@@ -21,10 +21,13 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 
+import com.teven.app.user.userRoutes
+
 fun Application.configureRouting() {
   routing {
     authRoutes()
     authenticate("auth-jwt") {
+        userRoutes()
         eventRoutes()
         customerRoutes()
         inventoryRoutes()
