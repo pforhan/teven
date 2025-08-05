@@ -8,12 +8,6 @@ import org.koin.ktor.ext.inject
 
 fun Route.withPermission(permission: Permission, build: Route.() -> Unit): Route {
   val routeWithPermission = createChild(PermissionRouteSelector(permission))
-  val roleService: RoleService by inject()
-
-  routeWithPermission.install(createAuthorizationPlugin(roleService)) {
-    requiredPermission = permission
-  }
-
   routeWithPermission.build()
   return routeWithPermission
 }

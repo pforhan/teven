@@ -11,6 +11,7 @@ import com.teven.app.role.roleRoutes
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
+import io.ktor.server.auth.authenticate
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.response.respond
 import io.ktor.server.routing.delete
@@ -23,12 +24,14 @@ import io.ktor.server.routing.routing
 fun Application.configureRouting() {
   routing {
     authRoutes()
-    eventRoutes()
-    customerRoutes()
-    inventoryRoutes()
-    reportRoutes()
-    roleRoutes()
-    organizationRoutes()
+    authenticate("auth-jwt") {
+        eventRoutes()
+        customerRoutes()
+        inventoryRoutes()
+        reportRoutes()
+        roleRoutes()
+        organizationRoutes()
+    }
 
     // Catch-all for unmatched API routes
     route("/api") {

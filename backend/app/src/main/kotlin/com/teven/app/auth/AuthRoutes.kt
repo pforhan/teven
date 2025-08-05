@@ -39,66 +39,20 @@ fun Route.authRoutes() {
       }
     }
 
-    authenticate("auth-jwt") {
-      get("{user_id}") {
-        val principal = call.principal<JWTPrincipal>()
-        val authenticatedUserId = principal?.payload?.getClaim("userId")?.asInt()
+    get("/context") {
+      val principal = call.principal<JWTPrincipal>()
+      val userId = principal?.payload?.getClaim("userId")?.asInt()
 
-        val requestedUserId = call.parameters["user_id"]?.toIntOrNull()
-
-        if (authenticatedUserId == null || requestedUserId == null || authenticatedUserId != requestedUserId) {
-          call.respond(HttpStatusCode.Forbidden, StatusResponse("Access denied"))
-          return@get
-        }
-
-        val user = userService.getUserById(authenticatedUserId)
-        if (user != null) {
-          call.respond(HttpStatusCode.OK, user)
-        } else {
-          call.respond(HttpStatusCode.NotFound, StatusResponse("User not found"))
-        }
+      if (userId == null) {
+        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
+        return@get
       }
 
-      put("{user_id}") {
-        val principal = call.principal<JWTPrincipal>()
-        val authenticatedUserId = principal?.payload?.getClaim("userId")?.asInt()
-
-        val requestedUserId = call.parameters["user_id"]?.toIntOrNull()
-
-        if (authenticatedUserId == null || requestedUserId == null || authenticatedUserId != requestedUserId) {
-          call.respond(HttpStatusCode.Forbidden, StatusResponse("Access denied"))
-          return@put
-        }
-
-        val updateUserRequest = call.receive<UpdateUserRequest>()
-        if (userService.updateUser(authenticatedUserId, updateUserRequest) != null) {
-          call.respond(
-            HttpStatusCode.OK,
-            StatusResponse("User with ID $authenticatedUserId updated")
-          )
-        } else {
-          call.respond(
-            HttpStatusCode.NotFound,
-            StatusResponse("User not found or no changes applied")
-          )
-        }
-      }
-
-      get("/context") {
-        val principal = call.principal<JWTPrincipal>()
-        val userId = principal?.payload?.getClaim("userId")?.asInt()
-
-        if (userId == null) {
-          call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
-          return@get
-        }
-
-        val userContext = userService.getUserContext(userId)
-        if (userContext != null) {
-          call.respond(HttpStatusCode.OK, userContext)
-        } else {
-          call.respond(HttpStatusCode.NotFound, StatusResponse("User context not found"))
-        }
+      val userContext = userService.getUserContext(userId)
+      if (userContext != null) {
+        call.respond(HttpStatusCode.OK, userContext)
+      } else {
+        call.respond(HttpStatusCode.NotFound, StatusResponse("User context not found"))
       }
     }
   }

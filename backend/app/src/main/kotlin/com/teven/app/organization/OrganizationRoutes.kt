@@ -22,67 +22,65 @@ import org.koin.ktor.ext.inject
 fun Route.organizationRoutes() {
   val organizationService by inject<OrganizationService>()
 
-  authenticate("auth-jwt") {
-    route("/api/organizations") {
-      withPermission(Permission.MANAGE_ORGANIZATIONS_GLOBAL) {
-        post {
-          val createOrganizationRequest = call.receive<CreateOrganizationRequest>()
-          val newOrganization = organizationService.createOrganization(createOrganizationRequest)
-          call.respond(HttpStatusCode.Created, newOrganization)
-        }
+  route("/api/organizations") {
+    withPermission(Permission.MANAGE_ORGANIZATIONS_GLOBAL) {
+      post {
+        val createOrganizationRequest = call.receive<CreateOrganizationRequest>()
+        val newOrganization = organizationService.createOrganization(createOrganizationRequest)
+        call.respond(HttpStatusCode.Created, newOrganization)
+      }
 
-        put("/{organization_id}") {
-          val organizationId = call.parameters["organization_id"]?.toIntOrNull()
-          if (organizationId == null) {
-            call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid organization ID"))
-            return@put
-          }
-          val updateOrganizationRequest = call.receive<UpdateOrganizationRequest>()
-          if (organizationService.updateOrganization(organizationId, updateOrganizationRequest)) {
-            call.respond(
-              HttpStatusCode.OK,
-              StatusResponse("Organization with ID $organizationId updated")
-            )
-          } else {
-            call.respond(
-              HttpStatusCode.NotFound,
-              StatusResponse("Organization not found or no changes applied")
-            )
-          }
+      put("/{organization_id}") {
+        val organizationId = call.parameters["organization_id"]?.toIntOrNull()
+        if (organizationId == null) {
+          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid organization ID"))
+          return@put
         }
-
-        delete("/{organization_id}") {
-          val organizationId = call.parameters["organization_id"]?.toIntOrNull()
-          if (organizationId == null) {
-            call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid organization ID"))
-            return@delete
-          }
-          if (organizationService.deleteOrganization(organizationId)) {
-            call.respond(HttpStatusCode.NoContent)
-          } else {
-            call.respond(HttpStatusCode.NotFound, StatusResponse("Organization not found"))
-          }
+        val updateOrganizationRequest = call.receive<UpdateOrganizationRequest>()
+        if (organizationService.updateOrganization(organizationId, updateOrganizationRequest)) {
+          call.respond(
+            HttpStatusCode.OK,
+            StatusResponse("Organization with ID $organizationId updated")
+          )
+        } else {
+          call.respond(
+            HttpStatusCode.NotFound,
+            StatusResponse("Organization not found or no changes applied")
+          )
         }
       }
 
-      withPermission(Permission.VIEW_ORGANIZATIONS_GLOBAL) {
-        get {
-          val organizations = organizationService.getAllOrganizations()
-          call.respond(HttpStatusCode.OK, organizations)
+      delete("/{organization_id}") {
+        val organizationId = call.parameters["organization_id"]?.toIntOrNull()
+        if (organizationId == null) {
+          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid organization ID"))
+          return@delete
         }
+        if (organizationService.deleteOrganization(organizationId)) {
+          call.respond(HttpStatusCode.NoContent)
+        } else {
+          call.respond(HttpStatusCode.NotFound, StatusResponse("Organization not found"))
+        }
+      }
+    }
 
-        get("/{organization_id}") {
-          val organizationId = call.parameters["organization_id"]?.toIntOrNull()
-          if (organizationId == null) {
-            call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid organization ID"))
-            return@get
-          }
-          val organization = organizationService.getOrganizationById(organizationId)
-          if (organization != null) {
-            call.respond(HttpStatusCode.OK, organization)
-          } else {
-            call.respond(HttpStatusCode.NotFound, StatusResponse("Organization not found"))
-          }
+    withPermission(Permission.VIEW_ORGANIZATIONS_GLOBAL) {
+      get {
+        val organizations = organizationService.getAllOrganizations()
+        call.respond(HttpStatusCode.OK, organizations)
+      }
+
+      get("/{organization_id}") {
+        val organizationId = call.parameters["organization_id"]?.toIntOrNull()
+        if (organizationId == null) {
+          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid organization ID"))
+          return@get
+        }
+        val organization = organizationService.getOrganizationById(organizationId)
+        if (organization != null) {
+          call.respond(HttpStatusCode.OK, organization)
+        } else {
+          call.respond(HttpStatusCode.NotFound, StatusResponse("Organization not found"))
         }
       }
     }
