@@ -53,6 +53,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/users/{user_id}`: Retrieve user details.
     * Authentication: Required.
+    * Permissions: `MANAGE_USERS_SELF` to view your own profile, `VIEW_USERS_ORGANIZATION` to view others in your org, or `VIEW_USERS_GLOBAL` to view anyone.
     * Response:
         ```kotlin
         data class UserResponse(
@@ -68,6 +69,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `PUT /api/users/{user_id}`: Update user details.
     * Authentication: Required.
+    * Permissions: `MANAGE_USERS_SELF` to edit your own profile, `MANAGE_USERS_ORGANIZATION` to edit others in your org, or `MANAGE_USERS_GLOBAL` to edit anyone.
     * Request:
         ```kotlin
         data class UpdateUserRequest(
@@ -106,6 +108,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/events`: Create a new event.
     * Authentication: Required.
+    * Permissions: `MANAGE_EVENTS_ORGANIZATION`
     * Request:
         ```kotlin
         data class CreateEventRequest(
@@ -137,10 +140,12 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/events`: Retrieve all events.
     * Authentication: Required.
+    * Permissions: `VIEW_EVENTS_ORGANIZATION`
     * Response: `List<EventResponse>`
 
 * `GET /api/events/{eventId}`: Retrieve a specific event.
     * Authentication: Required.
+    * Permissions: `VIEW_EVENTS_ORGANIZATION`
     * Response:
         ```kotlin
         data class EventResponse(
@@ -159,6 +164,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `PUT /api/events/{eventId}`: Update an event.
     * Authentication: Required.
+    * Permissions: `MANAGE_EVENTS_ORGANIZATION`
     * Request:
         ```kotlin
         data class UpdateEventRequest(
@@ -190,14 +196,17 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `DELETE /api/events/{eventId}`: Delete an event.
     * Authentication: Required.
+    * Permissions: `MANAGE_EVENTS_ORGANIZATION`
     * Response: `StatusResponse`
 
 * `POST /api/events/{eventId}/staff/{userId}`: Assign staff to an event.
     * Authentication: Required.
+    * Permissions: `ASSIGN_STAFF_TO_EVENTS_ORGANIZATION`
     * Response: `StatusResponse`
 
 * `DELETE /api/events/{eventId}/staff/{userId}`: Remove staff from an event.
     * Authentication: Required.
+    * Permissions: `ASSIGN_STAFF_TO_EVENTS_ORGANIZATION`
     * Response: `StatusResponse`
 
 * `POST /api/events/{eventId}/rsvp`: RSVP to an event.
@@ -221,10 +230,12 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/customers`: Retrieve all customers.
     * Authentication: Required.
+    * Permissions: `VIEW_CUSTOMERS_ORGANIZATION`
     * Response: `List<CustomerResponse>`
 
 * `GET /api/customers/{customerId}`: Retrieve a specific customer.
     * Authentication: Required.
+    * Permissions: `VIEW_CUSTOMERS_ORGANIZATION`
     * Response:
         ```kotlin
         data class CustomerResponse(
@@ -236,6 +247,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/customers`: Create a new customer.
     * Authentication: Required.
+    * Permissions: `MANAGE_CUSTOMERS_ORGANIZATION`
     * Request:
         ```kotlin
         data class CreateCustomerRequest(
@@ -254,6 +266,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `PUT /api/customers/{customerId}`: Update a customer.
     * Authentication: Required.
+    * Permissions: `MANAGE_CUSTOMERS_ORGANIZATION`
     * Request:
         ```kotlin
         data class UpdateCustomerRequest(
@@ -272,6 +285,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `DELETE /api/customers/{customerId}`: Delete a customer.
     * Authentication: Required.
+    * Permissions: `MANAGE_CUSTOMERS_ORGANIZATION`
     * Response: `StatusResponse`
 
 ---
@@ -280,10 +294,12 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/inventory`: Retrieve all inventory items.
     * Authentication: Required.
+    * Permissions: `VIEW_INVENTORY_ORGANIZATION`
     * Response: `List<InventoryItemResponse>`
 
 * `GET /api/inventory/{inventoryId}`: Retrieve a specific inventory item.
     * Authentication: Required.
+    * Permissions: `VIEW_INVENTORY_ORGANIZATION`
     * Response:
         ```kotlin
         data class InventoryItemResponse(
@@ -296,6 +312,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/inventory`: Create a new inventory item.
     * Authentication: Required.
+    * Permissions: `MANAGE_INVENTORY_ORGANIZATION`
     * Request:
         ```kotlin
         data class CreateInventoryItemRequest(
@@ -316,6 +333,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `PUT /api/inventory/{inventoryId}`: Update an inventory item.
     * Authentication: Required.
+    * Permissions: `MANAGE_INVENTORY_ORGANIZATION`
     * Request:
         ```kotlin
         data class UpdateInventoryItemRequest(
@@ -336,10 +354,12 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `DELETE /api/inventory/{inventoryId}`: Delete an inventory item.
     * Authentication: Required.
+    * Permissions: `MANAGE_INVENTORY_ORGANIZATION`
     * Response: `StatusResponse`
 
 * `POST /api/inventory/{inventoryId}/usage`: Track inventory item usage.
     * Authentication: Required.
+    * Permissions: `MANAGE_INVENTORY_ORGANIZATION`
     * Request:
         ```kotlin
         data class TrackInventoryUsageRequest(
@@ -358,8 +378,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ### V. Report API
 
-* `GET /api/reports/staff_hours`: Generate a report of staff hours worked within a date range.
+* `POST /api/reports/staff_hours`: Generate a report of staff hours worked within a date range.
     * Authentication: Required.
+    * Permissions: `VIEW_REPORTS_ORGANIZATION`
     * Request:
         ```kotlin
         data class StaffHoursReportRequest(
@@ -371,6 +392,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/reports/inventory_usage`: Generate a report of inventory usage frequency.
     * Authentication: Required.
+    * Permissions: `VIEW_REPORTS_ORGANIZATION`
     * Response: `List<InventoryUsageReportResponse>`
 
 ---
@@ -379,6 +401,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `POST /api/roles`: Create a new role.
     * Authentication: Required.
+    * Permissions: `MANAGE_ROLES_GLOBAL`
     * Request:
         ```kotlin
         data class CreateRoleRequest(
@@ -397,10 +420,12 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/roles`: Retrieve all roles.
     * Authentication: Required.
+    * Permissions: `VIEW_ROLES_ORGANIZATION` or `VIEW_ROLES_GLOBAL`
     * Response: `List<RoleResponse>`
 
 * `GET /api/roles/{roleId}`: Get a role by ID.
     * Authentication: Required.
+    * Permissions: `VIEW_ROLES_ORGANIZATION` or `VIEW_ROLES_GLOBAL`
     * Response:
         ```kotlin
         data class RoleResponse(
@@ -412,6 +437,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `PUT /api/roles/{roleId}`: Update a role.
     * Authentication: Required.
+    * Permissions: `MANAGE_ROLES_GLOBAL`
     * Request:
         ```kotlin
         data class UpdateRoleRequest(
@@ -430,10 +456,12 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `DELETE /api/roles/{roleId}`: Delete a role.
     * Authentication: Required.
+    * Permissions: `MANAGE_ROLES_GLOBAL`
     * Response: `StatusResponse`
 
 * `POST /api/users/{userId}/roles`: Assign a role to a user.
     * Authentication: Required.
+    * Permissions: `ASSIGN_ROLES_ORGANIZATION` or `ASSIGN_ROLES_GLOBAL`
     * Request:
         <!-- DATA_MODEL_AssignRoleRequest -->
     * Response:
@@ -445,6 +473,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `DELETE /api/users/{userId}/roles/{roleId}`: Remove a role from a user.
     * Authentication: Required.
+    * Permissions: `ASSIGN_ROLES_ORGANIZATION` or `ASSIGN_ROLES_GLOBAL`
     * Response: `StatusResponse`
 
 ---
@@ -452,7 +481,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 ### VII. Organization Management API (SuperAdmin Only)
 
 * `POST /api/organizations`: Create a new organization.
-    * Authentication: Required (SuperAdmin).
+    * Authentication: Required.
+    * Permissions: `MANAGE_ORGANIZATIONS_GLOBAL`
     * Request:
         ```kotlin
         data class CreateOrganizationRequest(
@@ -470,11 +500,13 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         ```
 
 * `GET /api/organizations`: Retrieve all organizations.
-    * Authentication: Required (SuperAdmin).
+    * Authentication: Required.
+    * Permissions: `VIEW_ORGANIZATIONS_GLOBAL`
     * Response: `List<OrganizationResponse>`
 
 * `GET /api/organizations/{organizationId}`: Retrieve a specific organization.
     * Authentication: Required.
+    * Permissions: `VIEW_ORGANIZATIONS_GLOBAL`
     * Response:
         ```kotlin
         data class OrganizationResponse(
@@ -485,7 +517,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         ```
 
 * `PUT /api/organizations/{organizationId}`: Update an organization.
-    * Authentication: Required (SuperAdmin).
+    * Authentication: Required.
+    * Permissions: `MANAGE_ORGANIZATIONS_GLOBAL`
     * Request:
         ```kotlin
         data class UpdateOrganizationRequest(
@@ -503,7 +536,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         ```
 
 * `DELETE /api/organizations/{organizationId}`: Delete an organization.
-    * Authentication: Required (SuperAdmin).
+    * Authentication: Required.
+    * Permissions: `MANAGE_ORGANIZATIONS_GLOBAL`
     * Response: `StatusResponse`
 
 ---
@@ -719,6 +753,7 @@ data class UserResponse(
 )
 ```
 
+---
 **Notes:**
 
 * This is a preliminary design and is subject to change.
