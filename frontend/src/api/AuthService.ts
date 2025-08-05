@@ -1,48 +1,37 @@
-// frontend/src/api/AuthService.ts
-
 import type { LoginRequest, LoginResponse, RegisterRequest, UserResponse, UserDetailsResponse, UpdateUserRequest, UserContextResponse } from '../types/auth';
+import { apiClient } from './apiClient';
 
 export const TOKEN_KEY = 'teven-auth-token';
 
 export class AuthService {
   static async register(request: RegisterRequest): Promise<UserResponse> {
-    const response = await fetch('/api/users/register', {
+    return apiClient('/api/users/register', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(request),
     });
-    if (!response.ok) {
-      throw new Error('Registration failed');
-    }
-    return response.json();
   }
 
   static async login(request: LoginRequest): Promise<LoginResponse> {
-    const response = await fetch('/api/users/login', {
+    const data = await apiClient('/api/users/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(request),
     });
-    if (!response.ok) {
-      throw new Error('Login failed');
-    }
-    const data = await response.json();
     if (data.token) {
+      console.log('AuthService: Setting token in localStorage.');
       localStorage.setItem(TOKEN_KEY, data.token);
     }
     return data;
   }
 
   static logout() {
+    console.log('AuthService: Removing token from localStorage.');
     localStorage.removeItem(TOKEN_KEY);
   }
 
   static getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
+    console.log('AuthService: Getting token from localStorage. Token present:', !!token);
+    return token;
   }
 
   static getAuthHeader(): { [key: string]: string } {
@@ -54,51 +43,17 @@ export class AuthService {
   }
 
   static async getUserDetails(userId: number): Promise<UserDetailsResponse> {
-    const response = await fetch(`/api/users/${userId}`, {
-      headers: this.getAuthHeader(),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to get user details');
-    }
-    return response.json();
+    return apiClient(`/api/users/${userId}`);
   }
 
   static async updateUserDetails(userId: number, request: UpdateUserRequest): Promise<UserResponse> {
-    const response = await fetch(`/api/users/${userId}`, {
+    return apiClient(`/api/users/${userId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.getAuthHeader(),
-      },
       body: JSON.stringify(request),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update user details');
-    }
-    return response.json();
   }
 
   static async getUserContext(): Promise<UserContextResponse> {
-    try {
-      const response = await fetch('/api/users/context', {
-        headers: this.getAuthHeader(),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('AuthService: Failed to get user context. Server response:', errorText);
-        throw new Error(`Failed to get user context: ${response.status} ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (err) {
-      if (err instanceof Error) {
-        console.error('AuthService: Error in getUserContext:', err.message);
-        throw err;
-      } else {
-        console.error('AuthService: An unknown error occurred in getUserContext');
-        throw new Error('An unknown error occurred');
-      }
-    }
+    return apiClient('/api/users/context');
   }
 }

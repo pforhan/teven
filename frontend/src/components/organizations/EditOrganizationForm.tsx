@@ -18,7 +18,7 @@ const EditOrganizationForm: React.FC = () => {
     const fetchOrganization = async () => {
       if (!organizationId) return;
       try {
-        const fetchedOrganization = await OrganizationService.getOrganizationById(parseInt(organizationId));
+        const fetchedOrganization = await OrganizationService.getOrganization(parseInt(organizationId));
         setOrganization(fetchedOrganization);
         setName(fetchedOrganization.name);
         setContactInformation(fetchedOrganization.contactInformation);
