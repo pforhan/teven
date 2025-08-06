@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isRedirecting = true;
             console.log('AuthContext: Redirecting to login due to UnauthorizedError.');
             AuthService.logout();
-            console.log('AuthContext: Calling navigate('/login').');
+            console.log('AuthContext: Calling navigate("/login").');
             navigate('/login');
           } else {
             console.log('AuthContext: Already redirecting, skipping further action.');
