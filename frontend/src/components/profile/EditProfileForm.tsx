@@ -54,7 +54,7 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({ user, onSave, onCance
           <label htmlFor="email">Email:</label>
           <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
-        {user.role === 'staff' && (
+        {user.staffDetails && (
           <>
             <div>
               <label htmlFor="contactInformation">Contact Information:</label>

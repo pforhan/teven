@@ -4,6 +4,7 @@ import com.teven.api.model.organization.CreateOrganizationRequest
 import com.teven.api.model.organization.OrganizationResponse
 import com.teven.api.model.organization.UpdateOrganizationRequest
 import com.teven.data.dbQuery
+import com.teven.data.user.UserOrganizations
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
@@ -46,6 +47,13 @@ class OrganizationDao {
 
   suspend fun deleteOrganization(organizationId: Int): Boolean = dbQuery {
     Organizations.deleteWhere { Organizations.id eq organizationId } > 0
+  }
+
+  suspend fun assignUserToOrganization(userId: Int, organizationId: Int): Boolean = dbQuery {
+    UserOrganizations.insert {
+      it[UserOrganizations.userId] = userId
+      it[UserOrganizations.organizationId] = organizationId
+    }.insertedCount > 0
   }
 
   private fun toOrganizationResponse(row: ResultRow): OrganizationResponse {

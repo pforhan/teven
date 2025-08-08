@@ -23,10 +23,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
-  userId: number;
-  username: string;
-  displayName: string;
-  role: string;
+  user: UserResponse;
 }
 
 export interface StaffDetails {
@@ -42,7 +39,7 @@ export interface UserDetailsResponse {
   username: string;
   email: string;
   displayName: string;
-  role: string;
+  roles: string[];
   staffDetails?: StaffDetails; // Nullable if user is not staff
 }
 

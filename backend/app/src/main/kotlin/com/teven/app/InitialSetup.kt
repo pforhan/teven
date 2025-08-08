@@ -1,12 +1,14 @@
 package com.teven.app
 
+import com.teven.api.model.organization.CreateOrganizationRequest
 import com.teven.api.model.role.CreateRoleRequest
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.core.security.Permission
+import com.teven.service.organization.OrganizationService
 import com.teven.service.role.RoleService
 import com.teven.service.user.UserService
 
-suspend fun seedInitialData(userService: UserService, roleService: RoleService) {
+suspend fun seedInitialData(userService: UserService, roleService: RoleService, organizationService: OrganizationService) {
   // 1. Seed the SuperAdmin Role and User
   if (roleService.getRoleByName("SuperAdmin") == null) {
     roleService.createRole(
@@ -29,9 +31,15 @@ suspend fun seedInitialData(userService: UserService, roleService: RoleService) 
           email = superAdminEmail,
           password = superAdminPassword,
           displayName = "Super Admin"
+        ), 0
+      )
+      val tevenOrganization = organizationService.createOrganization(
+        CreateOrganizationRequest(
+          name = "Teven",
+          contactInformation = "admin@teven.com"
         )
       )
-      // TODO we should set up a "teven" organization for the super admin user but no other users should be in it.
+      organizationService.assignUserToOrganization(superAdmin.userId, tevenOrganization.organizationId, 0)
       val superAdminRole = roleService.getRoleByName("SuperAdmin")!!
       roleService.assignRoleToUser(superAdmin.userId, superAdminRole.roleId)
     }

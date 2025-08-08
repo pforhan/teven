@@ -12,6 +12,7 @@ dokka = "1.9.20"
 kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 
+ktor-http-jvm = { module = "io.ktor:ktor-http-jvm", version.ref = "ktor" }
 ktor-server-core-jvm = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
 ktor-server-netty-jvm = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }

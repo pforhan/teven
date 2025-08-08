@@ -9,7 +9,6 @@ data class UserResponse(
   val username: String,
   val email: String,
   val displayName: String,
-  val role: String,
-  val passwordHash: String,
+  val roles: List<String>,
   val staffDetails: StaffDetails? = null,
 )

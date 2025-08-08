@@ -29,7 +29,7 @@ val appModule = module {
         ?: throw IllegalArgumentException("JWT_AUDIENCE environment variable not set")
     )
   }
-  single { UserService(get(), get()) }
+  single { UserService(get(), get(), get(), get()) }
   single { EventDao() }
   single { EventService(get()) }
   single { CustomerDao() }
@@ -41,5 +41,5 @@ val appModule = module {
   single { RoleDao() }
   single { RoleService(get()) }
   single { OrganizationDao() }
-  single { OrganizationService(get()) }
+  single { OrganizationService(get(), get()) }
 }

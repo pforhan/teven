@@ -25,7 +25,7 @@ fun Route.authRoutes() {
   route("/api/users") {
     post("/register") {
       val createUserRequest = call.receive<CreateUserRequest>()
-      val newUser = userService.createUser(createUserRequest)
+      val newUser = userService.createUser(createUserRequest, 0)
       call.respond(HttpStatusCode.Created, newUser)
     }
 

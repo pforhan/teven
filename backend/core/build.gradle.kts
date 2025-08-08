@@ -5,4 +5,5 @@ plugins {
 dependencies {
   implementation(project(":backend:api"))
   implementation("org.mindrot:jbcrypt:0.4")
+  implementation(libs.ktor.http.jvm)
 }

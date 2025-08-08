@@ -9,4 +9,5 @@ data class CreateUserRequest(
   val password: String,
   val email: String,
   val displayName: String,
+  val roles: List<String> = emptyList(),
 )

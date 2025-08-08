@@ -54,7 +54,7 @@ const Profile: React.FC = () => {
             <p><strong>Username:</strong> {userContext.user.username}</p>
             <p><strong>Display Name:</strong> {userContext.user.displayName}</p>
             <p><strong>Email:</strong> {userContext.user.email}</p>
-            <p><strong>Role:</strong> {userContext.user.role}</p>
+            <p><strong>Roles:</strong> {userContext.user.roles.join(', ')}</p>
             <p><strong>Organization:</strong> {userContext.organization?.name || 'N/A'}</p>
             {userDetails.staffDetails && (
               <>
