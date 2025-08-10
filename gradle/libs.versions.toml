@@ -7,8 +7,10 @@ postgresql = "42.6.0"
 logback = "1.4.14"
 kotlinxSerializationJson = "1.6.0"
 dokka = "1.9.20"
+jbcrypt = "0.4"
 
 [libraries]
+jbcrypt = { module = "org.mindrot:jbcrypt", version.ref = "jbcrypt" }
 kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 
