@@ -3,8 +3,8 @@ package com.teven.data.user
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.api.model.user.UpdateUserRequest
 import com.teven.core.security.PasswordHasher
+import com.teven.core.user.User
 import com.teven.data.dbQuery
-import com.teven.data.user.User
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select

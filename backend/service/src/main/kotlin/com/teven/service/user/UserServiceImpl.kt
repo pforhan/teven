@@ -1,30 +1,24 @@
 package com.teven.service.user
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm.HMAC256
 import com.teven.api.model.auth.LoggedInContextResponse
-import com.teven.api.model.auth.LoginRequest
-import com.teven.api.model.auth.LoginResponse
 import com.teven.api.model.organization.OrganizationDetails
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.api.model.user.UpdateUserRequest
 import com.teven.api.model.user.UserResponse
-import com.teven.core.config.JwtConfig
 import com.teven.core.security.AuthorizationException
-import com.teven.core.security.PasswordHasher
+import com.teven.core.service.RoleService
+import com.teven.core.service.UserService
+import com.teven.core.user.User
 import com.teven.data.organization.OrganizationDao
-import com.teven.data.user.User
 import com.teven.data.user.UserDao
-import com.teven.service.role.RoleService
 import io.ktor.http.HttpStatusCode
 
-class UserService(
+class UserServiceImpl(
   private val userDao: UserDao,
-  private val jwtConfig: JwtConfig,
   private val organizationDao: OrganizationDao,
   private val roleService: RoleService,
-) {
-  private suspend fun toUserResponse(user: User): UserResponse {
+) : UserService {
+  override suspend fun toUserResponse(user: User): UserResponse {
     val roles = roleService.getRolesForUser(user.userId)
     return UserResponse(
       userId = user.userId,
@@ -35,7 +29,7 @@ class UserService(
     )
   }
 
-  suspend fun createUser(createUserRequest: CreateUserRequest, callerId: Int): UserResponse {
+  override suspend fun createUser(createUserRequest: CreateUserRequest, callerId: Int): UserResponse {
     val callerRoles = roleService.getRolesForUser(callerId).map { it.roleName }
     val requestedRoles = createUserRequest.roles
 
@@ -55,55 +49,34 @@ class UserService(
     return toUserResponse(user)
   }
 
-  suspend fun loginUser(loginRequest: LoginRequest): LoginResponse? {
-    val user = userDao.getUserByUsername(loginRequest.username)
-    return if (user != null && PasswordHasher.checkPassword(
-        password = loginRequest.password,
-        hashed = user.passwordHash
-      )
-    ) {
-      val userResponse = toUserResponse(user)
-      val token = JWT.create()
-        .withAudience(jwtConfig.audience)
-        .withIssuer(jwtConfig.issuer)
-        .withClaim("userId", user.userId)
-        .withClaim("username", user.username)
-        .withClaim("roles", userResponse.roles)
-        .sign(HMAC256(jwtConfig.secret))
-      LoginResponse(token, userResponse)
-    } else {
-      null
-    }
-  }
-
-  suspend fun getAllUsers(): List<UserResponse> {
+  override suspend fun getAllUsers(): List<UserResponse> {
     val users = userDao.getAllUsers()
     return users.map { toUserResponse(it) }
   }
 
-  suspend fun getUserById(userId: Int): UserResponse? {
+  override suspend fun getUserById(userId: Int): UserResponse? {
     val user = userDao.getUserById(userId)
     return user?.let { toUserResponse(it) }
   }
 
-  suspend fun getUserByUsername(username: String): UserResponse? {
+  override suspend fun getUserByUsername(username: String): UserResponse? {
     val user = userDao.getUserByUsername(username)
     return user?.let { toUserResponse(it) }
   }
 
-  suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest): UserResponse? {
+  override suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest): UserResponse? {
     val user = userDao.updateUser(userId, updateUserRequest)
     return user?.let { toUserResponse(it) }
   }
 
-  suspend fun areInSameOrganization(userId1: Int?, userId2: Int?): Boolean {
+  override suspend fun areInSameOrganization(userId1: Int?, userId2: Int?): Boolean {
     if (userId1 == null || userId2 == null) {
       return false
     }
     return userDao.areInSameOrganization(userId1, userId2)
   }
 
-  suspend fun getUserContext(userId: Int): LoggedInContextResponse? {
+  override suspend fun getUserContext(userId: Int): LoggedInContextResponse? {
     val user = userDao.getUserById(userId)
 
     return if (user != null) {

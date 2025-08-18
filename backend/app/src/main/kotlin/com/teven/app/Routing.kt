@@ -1,7 +1,7 @@
 package com.teven.app
 
 import com.teven.api.model.common.StatusResponse
-import com.teven.app.auth.authRoutes
+import com.teven.app.authRoutes
 import com.teven.app.customer.customerRoutes
 import com.teven.app.event.eventRoutes
 import com.teven.app.inventory.inventoryRoutes

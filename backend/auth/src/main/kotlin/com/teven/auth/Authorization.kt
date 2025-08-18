@@ -1,15 +1,17 @@
-package com.teven.app.auth
+package com.teven.auth
 
 import com.teven.core.security.AuthorizationException
 import com.teven.core.security.Permission
-import com.teven.service.role.RoleService
+import com.teven.core.service.RoleService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.AuthenticationChecked
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 
-fun createAuthorizationPlugin(roleService: RoleService) = createRouteScopedPlugin(
+fun createAuthorizationPlugin(
+  roleService: RoleService
+) = createRouteScopedPlugin(
   name = "AuthorizationPlugin",
   createConfiguration = ::PluginConfiguration
 ) {

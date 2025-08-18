@@ -3,12 +3,11 @@ package com.teven.app.organization
 import com.teven.api.model.common.StatusResponse
 import com.teven.api.model.organization.CreateOrganizationRequest
 import com.teven.api.model.organization.UpdateOrganizationRequest
-import com.teven.app.auth.withPermission
+import com.teven.auth.withPermission
 import com.teven.core.security.Permission
 import com.teven.service.organization.OrganizationService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
-import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route

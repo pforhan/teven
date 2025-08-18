@@ -3,12 +3,11 @@ package com.teven.app.role
 import com.teven.api.model.common.StatusResponse
 import com.teven.api.model.role.CreateRoleRequest
 import com.teven.api.model.role.UpdateRoleRequest
-import com.teven.app.auth.withPermission
+import com.teven.auth.withPermission
 import com.teven.core.security.Permission
-import com.teven.service.role.RoleService
+import com.teven.core.service.RoleService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
-import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route

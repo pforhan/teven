@@ -1,4 +1,4 @@
-package com.teven.app.auth
+package com.teven.auth
 
 import io.ktor.server.auth.Principal
 

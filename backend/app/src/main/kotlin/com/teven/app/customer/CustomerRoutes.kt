@@ -3,12 +3,11 @@ package com.teven.app.customer
 import com.teven.api.model.common.StatusResponse
 import com.teven.api.model.customer.CreateCustomerRequest
 import com.teven.api.model.customer.UpdateCustomerRequest
-import com.teven.app.auth.withPermission
+import com.teven.auth.withPermission
 import com.teven.core.security.Permission
 import com.teven.service.customer.CustomerService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
-import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route

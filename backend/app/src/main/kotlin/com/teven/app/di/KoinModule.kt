@@ -1,6 +1,9 @@
 package com.teven.app.di
 
-import com.teven.core.config.JwtConfig
+import com.teven.auth.AuthServiceImpl
+import com.teven.core.service.AuthService
+import com.teven.core.service.RoleService
+import com.teven.core.service.UserService
 import com.teven.data.customer.CustomerDao
 import com.teven.data.event.EventDao
 import com.teven.data.inventory.InventoryDao
@@ -13,23 +16,16 @@ import com.teven.service.event.EventService
 import com.teven.service.inventory.InventoryService
 import com.teven.service.organization.OrganizationService
 import com.teven.service.report.ReportService
-import com.teven.service.role.RoleService
-import com.teven.service.user.UserService
+import com.teven.service.role.RoleServiceImpl
+import com.teven.service.user.UserServiceImpl
 import org.koin.dsl.module
 
 val appModule = module {
   single { UserDao() }
-  single {
-    JwtConfig(
-      secret = System.getenv("JWT_SECRET")
-        ?: throw IllegalArgumentException("JWT_SECRET environment variable not set"),
-      issuer = System.getenv("JWT_ISSUER")
-        ?: throw IllegalArgumentException("JWT_ISSUER environment variable not set"),
-      audience = System.getenv("JWT_AUDIENCE")
-        ?: throw IllegalArgumentException("JWT_AUDIENCE environment variable not set")
-    )
-  }
-  single { UserService(get(), get(), get(), get()) }
+  
+  single<UserService> { UserServiceImpl(get(), get(), get()) }
+  single<AuthService> { AuthServiceImpl(get(), get()) }
+  single<RoleService> { RoleServiceImpl(get()) }
   single { EventDao() }
   single { EventService(get()) }
   single { CustomerDao() }
@@ -39,7 +35,6 @@ val appModule = module {
   single { ReportDao() }
   single { ReportService(get()) }
   single { RoleDao() }
-  single { RoleService(get()) }
   single { OrganizationDao() }
   single { OrganizationService(get(), get()) }
 }

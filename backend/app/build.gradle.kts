@@ -13,6 +13,7 @@ dependencies {
   implementation(project(":backend:core"))
   implementation(project(":backend:data"))
   implementation(project(":backend:service"))
+  implementation(project(":backend:auth"))
   implementation(libs.ktor.server.auth.jwt.jvm)
   implementation(libs.ktor.server.core.jvm)
   implementation(libs.ktor.server.netty.jvm)

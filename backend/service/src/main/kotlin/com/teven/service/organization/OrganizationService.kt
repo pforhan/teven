@@ -5,8 +5,8 @@ import com.teven.api.model.organization.OrganizationResponse
 import com.teven.api.model.organization.UpdateOrganizationRequest
 import com.teven.core.security.AuthorizationException
 import com.teven.core.security.Permission
+import com.teven.core.service.UserService
 import com.teven.data.organization.OrganizationDao
-import com.teven.service.user.UserService
 import io.ktor.http.HttpStatusCode
 
 class OrganizationService(

@@ -4,9 +4,9 @@ import com.teven.api.model.organization.CreateOrganizationRequest
 import com.teven.api.model.role.CreateRoleRequest
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.core.security.Permission
+import com.teven.core.service.RoleService
+import com.teven.core.service.UserService
 import com.teven.service.organization.OrganizationService
-import com.teven.service.role.RoleService
-import com.teven.service.user.UserService
 
 suspend fun seedInitialData(userService: UserService, roleService: RoleService, organizationService: OrganizationService) {
   // 1. Seed the SuperAdmin Role and User

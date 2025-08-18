@@ -4,12 +4,11 @@ import com.teven.api.model.common.StatusResponse
 import com.teven.api.model.event.CreateEventRequest
 import com.teven.api.model.event.RsvpRequest
 import com.teven.api.model.event.UpdateEventRequest
-import com.teven.app.auth.withPermission
+import com.teven.auth.withPermission
 import com.teven.core.security.Permission
 import com.teven.service.event.EventService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
-import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive

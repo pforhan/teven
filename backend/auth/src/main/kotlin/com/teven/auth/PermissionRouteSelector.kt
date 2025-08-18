@@ -1,4 +1,4 @@
-package com.teven.app.auth
+package com.teven.auth
 
 import com.teven.core.security.Permission
 import io.ktor.server.routing.RouteSelector

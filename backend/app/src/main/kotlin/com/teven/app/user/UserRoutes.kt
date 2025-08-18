@@ -2,7 +2,7 @@ package com.teven.app.user
 
 import com.teven.api.model.common.StatusResponse
 import com.teven.api.model.user.CreateUserRequest
-import com.teven.service.user.UserService
+import com.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
