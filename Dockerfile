@@ -1,4 +1,22 @@
-# Stage 1: Build the frontend
+# Stage 1: Gradle setup
+FROM cimg/openjdk:19.0-node as gradle-setup
+
+WORKDIR /app
+
+# Switch to the 'circleci' user
+USER circleci
+
+# Copy the Gradle wrapper and root build files with correct ownership
+COPY --chown=circleci:circleci gradlew ./
+COPY --chown=circleci:circleci settings.gradle.kts build.gradle.kts ./
+COPY --chown=circleci:circleci gradle ./gradle
+
+# trigger a download of the gradle wrapper
+RUN ./gradlew --status --no-daemon
+
+CMD ["/bin/bash", "-c", "ls -la /app"]
+
+# Stage 2: Build the frontend
 FROM node:20-slim as frontend-builder
 
 WORKDIR /app/frontend
@@ -18,21 +36,17 @@ COPY frontend/public ./public
 RUN npm install
 RUN npm run build
 
-# Stage 2: Build the backend and create the final image
-FROM cimg/openjdk:19.0-node
+# Stage 3: Build the backend and create the final image
+FROM cimg/openjdk:19.0-node as final
 
 WORKDIR /app
 
 # Switch to the 'circleci' user
 USER circleci
 
-# Copy the Gradle wrapper and root build files with correct ownership
-COPY --chown=circleci:circleci gradlew ./
-COPY --chown=circleci:circleci settings.gradle.kts build.gradle.kts ./
-COPY --chown=circleci:circleci gradle ./gradle
-
-# trigger a download of the gradle wrapper
-RUN ./gradlew --status --no-daemon
+# Copy the Gradle files from the gradle-setup stage
+COPY --chown=circleci:circleci --from=gradle-setup /app/ /app/
+COPY --chown=circleci:circleci --from=gradle-setup /home/circleci/.gradle/ /home/circleci/.gradle/
 
 # Create backend directory and copy build.gradle.kts files for caching
 RUN mkdir -p backend && find backend -name "build.gradle.kts" -exec cp --parents {} . \;
