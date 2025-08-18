@@ -5,7 +5,6 @@ import com.teven.api.model.user.CreateUserRequest
 import com.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
-import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
@@ -20,22 +19,20 @@ fun Route.userRoutes() {
   val userService by inject<UserService>()
 
   route("/api/users") {
-    authenticate {
-      post {
-        val principal = call.principal<JWTPrincipal>()
-        val callerId = principal?.payload?.getClaim("userId")?.asInt()
-        if (callerId == null) {
-          call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
-          return@post
-        }
+    post {
+      val principal = call.principal<JWTPrincipal>()
+      val callerId = principal?.payload?.getClaim("userId")?.asInt()
+      if (callerId == null) {
+        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
+        return@post
+      }
 
-        val createUserRequest = call.receive<CreateUserRequest>()
-        try {
-          val newUser = userService.createUser(createUserRequest, callerId)
-          call.respond(HttpStatusCode.Created, newUser)
-        } catch (e: SecurityException) {
-          call.respond(HttpStatusCode.Forbidden, StatusResponse(e.message ?: "Permission denied"))
-        }
+      val createUserRequest = call.receive<CreateUserRequest>()
+      try {
+        val newUser = userService.createUser(createUserRequest, callerId)
+        call.respond(HttpStatusCode.Created, newUser)
+      } catch (e: SecurityException) {
+        call.respond(HttpStatusCode.Forbidden, StatusResponse(e.message ?: "Permission denied"))
       }
     }
 

@@ -5,10 +5,11 @@ This document outlines the conventions and best practices to follow when using t
 
 ## General Principles
 
-- **Project For detai
 - **Follow Existing Conventions:** Before generating or modifying code, always analyze the surrounding files to understand and adopt the existing coding style, formatting, and architectural patterns.
 - **Modular Architecture:** The backend is designed with a modular structure. Ensure that new code is placed in the appropriate module (`app`, `core`, `data`, `service`, `api`, `auth`).
 - **2-Space Indentation:** Use 2 spaces for indentation in all code files.
+- **Confirmation of changes:** Always run the build and tests to confirm any changes.
+- **Do not check in code:** Unless specifically instructed to do so, don't set up any git commands.
 
 ## Backend (Kotlin/Ktor)
 
