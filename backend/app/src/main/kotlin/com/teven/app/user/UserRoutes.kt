@@ -52,5 +52,31 @@ fun Route.userRoutes() {
         call.respond(HttpStatusCode.NotFound, StatusResponse("User context not found"))
       }
     }
+
+    get("/{userId}") {
+      val principal = call.principal<JWTPrincipal>()
+      val callerId = principal?.payload?.getClaim("userId")?.asInt()
+      if (callerId == null) {
+        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
+        return@get
+      }
+
+      val userId = call.parameters["userId"]?.toIntOrNull()
+      if (userId == null) {
+        call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid user ID"))
+        return@get
+      }
+
+      try {
+        val user = userService.getUserById(userId)
+        if (user != null) {
+          call.respond(HttpStatusCode.OK, user)
+        } else {
+          call.respond(HttpStatusCode.NotFound, StatusResponse("User not found"))
+        }
+      } catch (e: SecurityException) {
+        call.respond(HttpStatusCode.Forbidden, StatusResponse(e.message ?: "Permission denied"))
+      }
+    }
   }
 }

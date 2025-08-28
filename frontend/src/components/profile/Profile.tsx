@@ -2,22 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthService } from '../../api/AuthService';
-import type { UserContextResponse, UserDetailsResponse } from '../../types/auth';
+import type { UserDetailsResponse } from '../../types/auth';
+import { useAuth } from '../../AuthContext';
 import EditProfileForm from './EditProfileForm';
 
 import ErrorDisplay from '../common/ErrorDisplay';
 
 const Profile: React.FC = () => {
-  const [userContext, setUserContext] = useState<UserContextResponse | null>(null);
+  const { userContext } = useAuth();
   const [userDetails, setUserDetails] = useState<UserDetailsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const fetchUserDetails = async () => {
+    if (!userContext) return;
     try {
-      const context = await AuthService.getUserContext();
-      setUserContext(context);
-      const details = await AuthService.getUserDetails(context.user.userId);
+      const details = await AuthService.getUserDetails(userContext.user.userId);
       setUserDetails(details);
       setError(null);
     } catch (err) {
@@ -31,7 +31,7 @@ const Profile: React.FC = () => {
 
   useEffect(() => {
     fetchUserDetails();
-  }, []);
+  }, [userContext]);
 
   const handleSave = () => {
     setIsEditing(false);
