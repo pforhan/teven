@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import type { LoginRequest, RegisterRequest, LoginResponse, UserResponse } from './types/auth';
+import type { LoginRequest, RegisterRequest, UserResponse } from './types/auth';
 import { AuthService } from './api/AuthService';
 import ErrorDisplay from './components/common/ErrorDisplay';
+import { useAuth } from './AuthContext';
 
-interface AuthProps {
-  onLogin: (response: LoginResponse) => void;
-}
-
-const Auth: React.FC<AuthProps> = ({ onLogin }) => {
+const Auth: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,6 +12,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState('staff'); // Default role
   const [error, setError] = useState<string | null>(null);
+  const { refetchUserContext } = useAuth();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -37,8 +35,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           username,
           password,
         };
-        const data: LoginResponse = await AuthService.login(loginRequest);
-        onLogin(data);
+        await AuthService.login(loginRequest);
+        await refetchUserContext();
       }
     } catch (err: unknown) {
       if (err instanceof Error) {

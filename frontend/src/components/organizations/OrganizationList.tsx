@@ -10,6 +10,7 @@ const OrganizationList: React.FC = () => {
   const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
+  const canViewOrganizations = hasPermission('VIEW_ORGANIZATIONS_GLOBAL');
 
   const fetchOrganizations = useCallback(async () => {
     try {
@@ -25,10 +26,10 @@ const OrganizationList: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (hasPermission('VIEW_ORGANIZATIONS_GLOBAL')) {
+    if (canViewOrganizations) {
       fetchOrganizations();
     }
-  }, [fetchOrganizations, hasPermission]);
+  }, [fetchOrganizations, canViewOrganizations]);
 
   const handleDelete = async (organizationId: number) => {
     if (window.confirm('Are you sure you want to delete this organization?')) {
