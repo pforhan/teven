@@ -80,4 +80,10 @@ class UserDao {
     UserOrganizations.select { UserOrganizations.userId eq userId }
       .map { it[UserOrganizations.organizationId] }.singleOrNull()
   }
+
+  suspend fun getUsersByOrganization(organizationId: Int): List<User> = dbQuery {
+    val userIds = UserOrganizations.select { UserOrganizations.organizationId eq organizationId }
+      .map { it[UserOrganizations.userId] }
+    Users.select { Users.id inList userIds }.map { toUser(it) }
+  }
 }

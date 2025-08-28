@@ -20,12 +20,14 @@ class UserServiceImpl(
 ) : UserService {
   override suspend fun toUserResponse(user: User): UserResponse {
     val roles = roleService.getRolesForUser(user.userId)
+    val organization = userDao.getOrganizationForUser(user.userId)?.let { organizationDao.getOrganizationById(it) }
     return UserResponse(
       userId = user.userId,
       username = user.username,
       email = user.email,
       displayName = user.displayName,
       roles = roles.map { it.roleName },
+      organization = organization?.let { com.teven.api.model.organization.Organization(it.name) }
     )
   }
 
@@ -49,8 +51,22 @@ class UserServiceImpl(
     return toUserResponse(user)
   }
 
-  override suspend fun getAllUsers(): List<UserResponse> {
-    val users = userDao.getAllUsers()
+  override suspend fun getAllUsers(callerId: Int): List<UserResponse> {
+    val callerRoles = roleService.getRolesForUser(callerId)
+    val callerPermissions = callerRoles.flatMap { it.permissions }.distinct()
+
+    val users = when {
+      callerPermissions.contains("VIEW_USERS_GLOBAL") -> userDao.getAllUsers()
+      callerPermissions.contains("VIEW_USERS_ORGANIZATION") -> {
+        val organizationId = userDao.getOrganizationForUser(callerId)
+        if (organizationId != null) {
+          userDao.getUsersByOrganization(organizationId)
+        } else {
+          emptyList()
+        }
+      }
+      else -> throw SecurityException("User does not have permission to view users.")
+    }
     return users.map { toUserResponse(it) }
   }
 

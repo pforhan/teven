@@ -13,7 +13,8 @@ export interface UserResponse {
   username: string;
   email: string;
   displayName: string;
-  role: string;
+  roles: string[];
+  organization?: { name: string };
 }
 
 export interface LoginRequest {

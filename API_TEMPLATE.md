@@ -27,6 +27,11 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Response:
         <!-- DATA_MODEL_UserResponse -->
 
+* `GET /api/users`: Retrieve all users.
+    * Authentication: Required.
+    * Permissions: `VIEW_USERS_ORGANIZATION` to view users in your org, or `VIEW_USERS_GLOBAL` to view all users.
+    * Response: `List<UserResponse>`
+
 * `PUT /api/users/{user_id}`: Update user details.
     * Authentication: Required.
     * Permissions: `MANAGE_USERS_SELF` to edit your own profile, `MANAGE_USERS_ORGANIZATION` to edit others in your org, or `MANAGE_USERS_GLOBAL` to edit anyone.
@@ -279,6 +284,19 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 <!-- INJECT_API_MODELS_HERE -->
 
 ---
+
+### API Documentation Generation
+
+This `API.md` file is generated automatically from the `API_TEMPLATE.md` file and the backend route definitions.
+
+To regenerate the `API.md` file, run the following command from the root of the project:
+
+```bash
+./gradlew generateApiDocs
+```
+
+---
+
 **Notes:**
 
 * This is a preliminary design and is subject to change.

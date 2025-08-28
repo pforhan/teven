@@ -22,6 +22,7 @@ const MainLayout: React.FC = () => {
           {hasPermission('VIEW_REPORTS_ORGANIZATION') && <li><NavLink to="/reports">Reports</NavLink></li>}
           <li><NavLink to="/profile">Profile</NavLink></li>
           {hasPermission('VIEW_ORGANIZATIONS_GLOBAL') && <li><NavLink to="/organizations">Organizations</NavLink></li>}
+          {(hasPermission('VIEW_USERS_ORGANIZATION') || hasPermission('VIEW_USERS_GLOBAL')) && <li><NavLink to="/users">Users</NavLink></li>}
           <li><button onClick={handleLogout}>Logout</button></li>
         </ul>
       </nav>

@@ -15,7 +15,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val username: String, 
           val password: String, 
           val email: String, 
-          val displayName: String
+          val displayName: String, 
+          val roles: List<String> = emptyList(
+        )
         )
         ```
     * Response:
@@ -25,8 +27,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val username: String, 
           val email: String, 
           val displayName: String, 
-          val role: String, 
-          val passwordHash: String, 
+          val roles: List<String>, 
           val staffDetails: StaffDetails?
         )
         ```
@@ -44,10 +45,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         ```kotlin
         data class LoginResponse(
           val token: String, 
-          val userId: Int, 
-          val username: String, 
-          val displayName: String, 
-          val role: String
+          val user: UserResponse
         )
         ```
 
@@ -61,11 +59,15 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val username: String, 
           val email: String, 
           val displayName: String, 
-          val role: String, 
-          val passwordHash: String, 
+          val roles: List<String>, 
           val staffDetails: StaffDetails?
         )
         ```
+
+* `GET /api/users`: Retrieve all users.
+    * Authentication: Required.
+    * Permissions: `VIEW_USERS_ORGANIZATION` to view users in your org, or `VIEW_USERS_GLOBAL` to view all users.
+    * Response: `List<UserResponse>`
 
 * `PUT /api/users/{user_id}`: Update user details.
     * Authentication: Required.
@@ -85,8 +87,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val username: String, 
           val email: String, 
           val displayName: String, 
-          val role: String, 
-          val passwordHash: String, 
+          val roles: List<String>, 
           val staffDetails: StaffDetails?
         )
         ```
@@ -581,7 +582,9 @@ data class CreateUserRequest(
   val username: String, 
   val password: String, 
   val email: String, 
-  val displayName: String
+  val displayName: String, 
+  val roles: List<String> = emptyList(
+)
 )
 
 data class CustomerResponse(
@@ -629,10 +632,7 @@ data class LoginRequest(
 
 data class LoginResponse(
   val token: String, 
-  val userId: Int, 
-  val username: String, 
-  val displayName: String, 
-  val role: String
+  val user: UserResponse
 )
 
 data class OrganizationDetails(
@@ -747,13 +747,25 @@ data class UserResponse(
   val username: String, 
   val email: String, 
   val displayName: String, 
-  val role: String, 
-  val passwordHash: String, 
+  val roles: List<String>, 
   val staffDetails: StaffDetails?
 )
 ```
 
 ---
+
+### API Documentation Generation
+
+This `API.md` file is generated automatically from the `API_TEMPLATE.md` file and the backend route definitions.
+
+To regenerate the `API.md` file, run the following command from the root of the project:
+
+```bash
+./gradlew generateApiDocs
+```
+
+---
+
 **Notes:**
 
 * This is a preliminary design and is subject to change.
