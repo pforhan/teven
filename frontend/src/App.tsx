@@ -19,6 +19,8 @@ import OrganizationList from './components/organizations/OrganizationList';
 import CreateOrganizationForm from './components/organizations/CreateOrganizationForm';
 import EditOrganizationForm from './components/organizations/EditOrganizationForm';
 import UserList from './components/users/UserList';
+import CreateUserForm from './components/users/CreateUserForm';
+import EditUserForm from './components/users/EditUserForm';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 const AppRoutes = () => {
@@ -50,6 +52,8 @@ const AppRoutes = () => {
               <Route path="organizations/create" element={<ProtectedRoute permission="MANAGE_ORGANIZATIONS_GLOBAL"><CreateOrganizationForm /></ProtectedRoute>} />
               <Route path="organizations/edit/:organizationId" element={<ProtectedRoute permission="MANAGE_ORGANIZATIONS_GLOBAL"><EditOrganizationForm /></ProtectedRoute>} />
               <Route path="users" element={<ProtectedRoute permission="VIEW_USERS_ORGANIZATION"><UserList /></ProtectedRoute>} />
+              <Route path="users/create" element={<ProtectedRoute permission="MANAGE_USERS_GLOBAL"><CreateUserForm /></ProtectedRoute>} />
+              <Route path="users/edit/:userId" element={<ProtectedRoute permission="MANAGE_USERS_GLOBAL"><EditUserForm /></ProtectedRoute>} />
             </Route>
           )}
         <Route path="*" element={<Navigate to={userContext ? "/" : "/login"} />} />

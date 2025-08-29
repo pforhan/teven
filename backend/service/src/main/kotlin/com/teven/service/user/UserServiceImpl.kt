@@ -80,7 +80,30 @@ class UserServiceImpl(
     return user?.let { toUserResponse(it) }
   }
 
-  override suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest): UserResponse? {
+  override suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest, callerId: Int): UserResponse? {
+    val callerRoles = roleService.getRolesForUser(callerId)
+    val callerPermissions = callerRoles.flatMap { it.permissions }.distinct()
+
+    val targetUser = userDao.getUserById(userId)
+      ?: throw SecurityException("User not found.")
+
+    when {
+      callerId == userId -> {
+        if (!callerPermissions.contains("MANAGE_USERS_SELF")) {
+          throw SecurityException("User does not have permission to manage their own profile.")
+        }
+      }
+      callerPermissions.contains("MANAGE_USERS_GLOBAL") -> {
+        // Global permission, no further checks needed
+      }
+      callerPermissions.contains("MANAGE_USERS_ORGANIZATION") -> {
+        if (!areInSameOrganization(callerId, userId)) {
+          throw SecurityException("User does not have permission to manage users outside their organization.")
+        }
+      }
+      else -> throw SecurityException("User does not have permission to update users.")
+    }
+
     val user = userDao.updateUser(userId, updateUserRequest)
     return user?.let { toUserResponse(it) }
   }

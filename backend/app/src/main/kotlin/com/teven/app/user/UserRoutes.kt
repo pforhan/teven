@@ -12,6 +12,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
@@ -87,6 +88,33 @@ fun Route.userRoutes() {
         val user = userService.getUserById(userId)
         if (user != null) {
           call.respond(HttpStatusCode.OK, user)
+        } else {
+          call.respond(HttpStatusCode.NotFound, StatusResponse("User not found"))
+        }
+      } catch (e: SecurityException) {
+        call.respond(HttpStatusCode.Forbidden, StatusResponse(e.message ?: "Permission denied"))
+      }
+    }
+
+    put("/{userId}") {
+      val principal = call.principal<JWTPrincipal>()
+      val callerId = principal?.payload?.getClaim("userId")?.asInt()
+      if (callerId == null) {
+        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
+        return@put
+      }
+
+      val userId = call.parameters["userId"]?.toIntOrNull()
+      if (userId == null) {
+        call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid user ID"))
+        return@put
+      }
+
+      val updateUserRequest = call.receive<com.teven.api.model.user.UpdateUserRequest>()
+      try {
+        val updatedUser = userService.updateUser(userId, updateUserRequest, callerId)
+        if (updatedUser != null) {
+          call.respond(HttpStatusCode.OK, updatedUser)
         } else {
           call.respond(HttpStatusCode.NotFound, StatusResponse("User not found"))
         }

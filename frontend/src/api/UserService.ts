@@ -1,8 +1,26 @@
-import type { UserResponse } from '../types/auth';
+import type { UserResponse, CreateUserRequest, UpdateUserRequest } from '../types/auth';
 import { apiClient } from './apiClient';
 
 export class UserService {
   static async getAllUsers(): Promise<UserResponse[]> {
     return apiClient('/api/users');
+  }
+
+  static async getUser(userId: number): Promise<UserResponse> {
+    return apiClient(`/api/users/${userId}`);
+  }
+
+  static async createUser(request: CreateUserRequest): Promise<UserResponse> {
+    return apiClient('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  static async updateUser(userId: number, request: UpdateUserRequest): Promise<UserResponse> {
+    return apiClient(`/api/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
   }
 }

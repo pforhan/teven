@@ -53,7 +53,17 @@ export interface UpdateStaffDetails {
 
 export interface UpdateUserRequest {
   email?: string;
+  displayName?: string;
+  roles?: string[];
   staffDetails?: UpdateStaffDetails;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  password: string;
+  email: string;
+  displayName: string;
+  roles: string[];
 }
 
 export interface OrganizationDetails {
