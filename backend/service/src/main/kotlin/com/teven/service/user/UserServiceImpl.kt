@@ -5,6 +5,7 @@ import com.teven.api.model.organization.OrganizationDetails
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.api.model.user.UpdateUserRequest
 import com.teven.api.model.user.UserResponse
+import com.teven.core.Constants
 import com.teven.core.security.AuthorizationException
 import com.teven.core.service.RoleService
 import com.teven.core.service.UserService
@@ -32,10 +33,18 @@ class UserServiceImpl(
   }
 
   override suspend fun createUser(createUserRequest: CreateUserRequest, callerId: Int): UserResponse {
-    val callerRoles = roleService.getRolesForUser(callerId).map { it.roleName }
+    val callerRolesResponse = roleService.getRolesForUser(callerId)
+    val callerRoleNames = callerRolesResponse.map { it.roleName }
     val requestedRoles = createUserRequest.roles
 
-    if (!callerRoles.containsAll(requestedRoles)) {
+    if (requestedRoles.contains(Constants.ROLE_SUPERADMIN) && !callerRoleNames.contains(Constants.ROLE_SUPERADMIN)) {
+      throw AuthorizationException(
+        code = HttpStatusCode.Forbidden,
+        message = "Only SuperAdmins can assign the SuperAdmin role."
+      )
+    }
+
+    if (!callerRoleNames.containsAll(requestedRoles)) {
       throw AuthorizationException(
         code = HttpStatusCode.Forbidden,
         message = "User does not have permission to assign all requested roles."
@@ -52,8 +61,8 @@ class UserServiceImpl(
   }
 
   override suspend fun getAllUsers(callerId: Int): List<UserResponse> {
-    val callerRoles = roleService.getRolesForUser(callerId)
-    val callerPermissions = callerRoles.flatMap { it.permissions }.distinct()
+    val callerRolesResponse = roleService.getRolesForUser(callerId)
+    val callerPermissions = callerRolesResponse.flatMap { it.permissions }.distinct()
 
     val users = when {
       callerPermissions.contains("VIEW_USERS_GLOBAL") -> userDao.getAllUsers()
@@ -81,11 +90,38 @@ class UserServiceImpl(
   }
 
   override suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest, callerId: Int): UserResponse? {
-    val callerRoles = roleService.getRolesForUser(callerId)
-    val callerPermissions = callerRoles.flatMap { it.permissions }.distinct()
+    val callerRolesResponse = roleService.getRolesForUser(callerId)
+    val callerRoleNames = callerRolesResponse.map { it.roleName }
+    val callerPermissions = callerRolesResponse.flatMap { it.permissions }.distinct()
 
     val targetUser = userDao.getUserById(userId)
       ?: throw SecurityException("User not found.")
+
+    val targetUserCurrentRoles = roleService.getRolesForUser(userId).map { it.roleName }
+    val requestedRoles = updateUserRequest.roles
+
+    if (requestedRoles != null) {
+      if (requestedRoles.contains(Constants.ROLE_SUPERADMIN) && !callerRoleNames.contains(Constants.ROLE_SUPERADMIN)) {
+        throw AuthorizationException(
+          code = HttpStatusCode.Forbidden,
+          message = "Only SuperAdmins can assign the SuperAdmin role."
+        )
+      }
+
+      if (targetUserCurrentRoles.contains(Constants.ROLE_SUPERADMIN) && !requestedRoles.contains(Constants.ROLE_SUPERADMIN) && !callerRoleNames.contains(Constants.ROLE_SUPERADMIN)) {
+        throw AuthorizationException(
+          code = HttpStatusCode.Forbidden,
+          message = "Only SuperAdmins can revoke the SuperAdmin role."
+        )
+      }
+
+      if (!callerRoleNames.containsAll(requestedRoles)) {
+        throw AuthorizationException(
+          code = HttpStatusCode.Forbidden,
+          message = "User does not have permission to assign all requested roles."
+        )
+      }
+    }
 
     when {
       callerId == userId -> {
@@ -105,6 +141,22 @@ class UserServiceImpl(
     }
 
     val user = userDao.updateUser(userId, updateUserRequest)
+    if (requestedRoles != null) {
+      val currentRoleNames = roleService.getRolesForUser(userId).map { it.roleName }
+
+      // Remove roles that are no longer requested
+      currentRoleNames.filter { it !in requestedRoles }.forEach { roleName ->
+        roleService.getRoleByName(roleName)?.let { role ->
+          roleService.removeRoleFromUser(userId, role.roleId)
+        }
+      }
+      // Add newly requested roles
+      requestedRoles.filter { it !in currentRoleNames }.forEach { roleName ->
+        roleService.getRoleByName(roleName)?.let { role ->
+          roleService.assignRoleToUser(userId, role.roleId)
+        }
+      }
+    }
     return user?.let { toUserResponse(it) }
   }
 

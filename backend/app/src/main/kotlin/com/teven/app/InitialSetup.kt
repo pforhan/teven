@@ -3,6 +3,7 @@ package com.teven.app
 import com.teven.api.model.organization.CreateOrganizationRequest
 import com.teven.api.model.role.CreateRoleRequest
 import com.teven.api.model.user.CreateUserRequest
+import com.teven.core.Constants
 import com.teven.core.security.Permission
 import com.teven.core.service.RoleService
 import com.teven.core.service.UserService
@@ -10,10 +11,10 @@ import com.teven.service.organization.OrganizationService
 
 suspend fun seedInitialData(userService: UserService, roleService: RoleService, organizationService: OrganizationService) {
   // 1. Seed the SuperAdmin Role and User
-  if (roleService.getRoleByName("SuperAdmin") == null) {
+  if (roleService.getRoleByName(Constants.ROLE_SUPERADMIN) == null) {
     roleService.createRole(
       CreateRoleRequest(
-      roleName = "SuperAdmin",
+      roleName = Constants.ROLE_SUPERADMIN,
       permissions = Permission.values().map { it.name }
     ))
     val superAdminEmail = System.getenv("SUPERADMIN_EMAIL")
@@ -40,7 +41,7 @@ suspend fun seedInitialData(userService: UserService, roleService: RoleService, 
         )
       )
       organizationService.assignUserToOrganization(superAdmin.userId, tevenOrganization.organizationId, 0)
-      val superAdminRole = roleService.getRoleByName("SuperAdmin")!!
+      val superAdminRole = roleService.getRoleByName(Constants.ROLE_SUPERADMIN)!!
       roleService.assignRoleToUser(superAdmin.userId, superAdminRole.roleId)
     }
   }

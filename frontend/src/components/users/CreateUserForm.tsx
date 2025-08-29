@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserService } from '../../api/UserService';
+import { RoleService } from '../../api/RoleService';
 import type { CreateUserRequest } from '../../types/auth';
+import type { RoleResponse } from '../../types/roles';
 import ErrorDisplay from '../common/ErrorDisplay';
 
 const CreateUserForm: React.FC = () => {
@@ -10,8 +12,31 @@ const CreateUserForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [roles, setRoles] = useState<string[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<RoleResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const rolesData = await RoleService.getAllRoles();
+        setAvailableRoles(rolesData);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unknown error occurred');
+        }
+      }
+    };
+    fetchRoles();
+  }, []);
+
+  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const options = Array.from(e.target.options);
+    const values = options.filter(option => option.selected).map(option => option.value);
+    setSelectedRoles(values);
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -23,7 +48,7 @@ const CreateUserForm: React.FC = () => {
         password,
         email,
         displayName,
-        roles,
+        roles: selectedRoles,
       };
 
       await UserService.createUser(request);
@@ -59,8 +84,14 @@ const CreateUserForm: React.FC = () => {
           <input type="text" id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
         </div>
         <div>
-          <label htmlFor="roles">Roles (comma-separated):</label>
-          <input type="text" id="roles" value={roles.join(', ')} onChange={(e) => setRoles(e.target.value.split(',').map(role => role.trim()))} />
+          <label htmlFor="roles">Roles:</label>
+          <select id="roles" multiple={true} value={selectedRoles} onChange={handleRoleChange}>
+            {availableRoles.map(role => (
+              <option key={role.roleId} value={role.roleName}>
+                {role.roleName}
+              </option>
+            ))}
+          </select>
         </div>
         <button type="submit">Create User</button>
         <button type="button" onClick={() => navigate('/users')}>Cancel</button>
