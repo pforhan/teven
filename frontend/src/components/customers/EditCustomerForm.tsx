@@ -11,7 +11,9 @@ const EditCustomerForm: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const [customer, setCustomer] = useState<CustomerResponse | null>(null);
   const [name, setName] = useState('');
-  const [contactInformation, setContactInformation] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -21,7 +23,9 @@ const EditCustomerForm: React.FC = () => {
         const fetchedCustomer = await CustomerService.getCustomer(parseInt(customerId));
         setCustomer(fetchedCustomer);
         setName(fetchedCustomer.name);
-        setContactInformation(fetchedCustomer.contactInformation);
+        setPhone(fetchedCustomer.phone);
+        setAddress(fetchedCustomer.address);
+        setNotes(fetchedCustomer.notes);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
@@ -42,7 +46,9 @@ const EditCustomerForm: React.FC = () => {
     try {
       const request: UpdateCustomerRequest = {
         name,
-        contactInformation,
+        phone,
+        address,
+        notes,
       };
 
       await CustomerService.updateCustomer(parseInt(customerId), request);
@@ -70,8 +76,16 @@ const EditCustomerForm: React.FC = () => {
           <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div>
-          <label htmlFor="contactInformation">Contact Information:</label>
-          <input type="text" id="contactInformation" value={contactInformation} onChange={(e) => setContactInformation(e.target.value)} required />
+          <label htmlFor="phone">Phone:</label>
+          <input type="text" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+        </div>
+        <div>
+          <label htmlFor="address">Address:</label>
+          <input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} required />
+        </div>
+        <div>
+          <label htmlFor="notes">Notes:</label>
+          <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} required />
         </div>
         <button type="submit">Update Customer</button>
         <button type="button" onClick={() => navigate('/customers')}>Cancel</button>

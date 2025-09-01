@@ -1,15 +1,9 @@
-import type { LoginRequest, LoginResponse, RegisterRequest, UserResponse, UserDetailsResponse, UpdateUserRequest, UserContextResponse } from '../types/auth';
+import type { LoginRequest, LoginResponse, UserResponse, UserDetailsResponse, UpdateUserRequest, UserContextResponse } from '../types/auth';
 import { apiClient } from './apiClient';
 
 export const TOKEN_KEY = 'teven-auth-token';
 
 export class AuthService {
-  static async register(request: RegisterRequest): Promise<UserResponse> {
-    return apiClient('/api/users/register', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-  }
 
   static async login(request: LoginRequest): Promise<LoginResponse> {
     const data = await apiClient('/api/users/login', {

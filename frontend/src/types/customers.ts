@@ -3,15 +3,21 @@
 export interface CustomerResponse {
   customerId: number;
   name: string;
-  contactInformation: string;
+  phone: string;
+  address: string;
+  notes: string;
 }
 
 export interface CreateCustomerRequest {
   name: string;
-  contactInformation: string;
+  phone: string;
+  address: string;
+  notes: string;
 }
 
 export interface UpdateCustomerRequest {
   name?: string;
-  contactInformation?: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
 }

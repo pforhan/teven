@@ -2,7 +2,6 @@ package com.teven.app
 
 import com.teven.api.model.auth.LoginRequest
 import com.teven.api.model.common.StatusResponse
-import com.teven.api.model.user.CreateUserRequest
 import com.teven.core.service.AuthService
 import com.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
@@ -15,15 +14,9 @@ import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 fun Route.authRoutes() {
-  val userService by inject<UserService>()
   val authService by inject<AuthService>()
 
   route("/api/users") {
-    post("/register") {
-      val createUserRequest = call.receive<CreateUserRequest>()
-      val newUser = userService.createUser(createUserRequest, 0)
-      call.respond(HttpStatusCode.Created, newUser)
-    }
 
     post("/login") {
       val loginRequest = call.receive<LoginRequest>()

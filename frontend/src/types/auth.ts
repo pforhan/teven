@@ -5,7 +5,7 @@ export interface RegisterRequest {
   password: string;
   email: string;
   displayName: string;
-  role: string; // e.g., "organizer", "staff"
+  roles: string[];
 }
 
 export interface UserResponse {
@@ -64,6 +64,7 @@ export interface CreateUserRequest {
   email: string;
   displayName: string;
   roles: string[];
+  organizationId?: string;
 }
 
 export interface OrganizationDetails {

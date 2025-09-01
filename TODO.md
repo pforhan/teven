@@ -8,6 +8,7 @@ This document tracks design questions and areas that need further clarification.
 - **UI/UX details:** Specific UI/UX details, such as pagination, sorting, and filtering for the lists of data, need to be fleshed out.
 - **Backend Tests:** Implement comprehensive unit and integration tests for all backend services and routes.
 - **Frontend Tests:** Implement comprehensive unit and integration tests for all frontend components and services.
+- **User invites:** Provide a mechanism to send a single-use URL to users for invites.  Allow management of current invites, perhaps on the users page.
 
 ---
 

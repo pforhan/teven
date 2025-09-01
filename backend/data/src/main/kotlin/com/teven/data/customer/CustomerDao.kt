@@ -17,7 +17,9 @@ class CustomerDao {
     return CustomerResponse(
       customerId = row[Customers.id],
       name = row[Customers.name],
-      contactInformation = row[Customers.contactInformation]
+      phone = row[Customers.phone],
+      address = row[Customers.address],
+      notes = row[Customers.notes]
     )
   }
 
@@ -35,13 +37,17 @@ class CustomerDao {
     dbQuery {
       val id = Customers.insert {
         it[name] = createCustomerRequest.name
-        it[contactInformation] = createCustomerRequest.contactInformation
+        it[phone] = createCustomerRequest.phone
+        it[address] = createCustomerRequest.address
+        it[notes] = createCustomerRequest.notes
       } get Customers.id
 
       CustomerResponse(
         customerId = id,
         name = createCustomerRequest.name,
-        contactInformation = createCustomerRequest.contactInformation
+        phone = createCustomerRequest.phone,
+        address = createCustomerRequest.address,
+        notes = createCustomerRequest.notes
       )
     }
 
@@ -51,9 +57,9 @@ class CustomerDao {
   ): Boolean = dbQuery {
     Customers.update({ Customers.id eq customerId }) {
       updateCustomerRequest.name?.let { name -> it[Customers.name] = name }
-      updateCustomerRequest.contactInformation?.let { contactInformation ->
-        it[Customers.contactInformation] = contactInformation
-      }
+      updateCustomerRequest.phone?.let { phone -> it[Customers.phone] = phone }
+      updateCustomerRequest.address?.let { address -> it[Customers.address] = address }
+      updateCustomerRequest.notes?.let { notes -> it[Customers.notes] = notes }
     } > 0
   }
 

@@ -6,5 +6,7 @@ import kotlinx.serialization.Serializable
 data class CustomerResponse(
   val customerId: Int,
   val name: String,
-  val contactInformation: String,
+  val phone: String,
+  val address: String,
+  val notes: String,
 )

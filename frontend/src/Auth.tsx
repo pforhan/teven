@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
-import type { LoginRequest, RegisterRequest, UserResponse } from './types/auth';
+import type { LoginRequest } from './types/auth';
 import { AuthService } from './api/AuthService';
 import ErrorDisplay from './components/common/ErrorDisplay';
 import { useAuth } from './AuthContext';
 
 const Auth: React.FC = () => {
-  const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [role, setRole] = useState('staff'); // Default role
   const [error, setError] = useState<string | null>(null);
   const { refetchUserContext } = useAuth();
 
@@ -19,25 +15,12 @@ const Auth: React.FC = () => {
     setError(null);
 
     try {
-      if (isRegistering) {
-        const registerRequest: RegisterRequest = {
-          username,
-          password,
-          email,
-          displayName,
-          role,
-        };
-        const data: UserResponse = await AuthService.register(registerRequest);
-        console.log('Registration successful:', data);
-        setIsRegistering(false); // Switch to login form after successful registration
-      } else {
-        const loginRequest: LoginRequest = {
-          username,
-          password,
-        };
-        await AuthService.login(loginRequest);
-        await refetchUserContext();
-      }
+      const loginRequest: LoginRequest = {
+        username,
+        password,
+      };
+      await AuthService.login(loginRequest);
+      await refetchUserContext();
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -49,7 +32,7 @@ const Auth: React.FC = () => {
 
   return (
     <div className="auth-container">
-      <h2>{isRegistering ? 'Register' : 'Login'}</h2>
+      <h2>Login</h2>
       <ErrorDisplay message={error} />
       <form onSubmit={handleSubmit}>
         <div>
@@ -72,42 +55,8 @@ const Auth: React.FC = () => {
             required
           />
         </div>
-        {isRegistering && (
-          <>
-            <div>
-              <label htmlFor="email">Email:</label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="displayName">Display Name:</label>
-              <input
-                type="text"
-                id="displayName"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="role">Role:</label>
-              <select id="role" value={role} onChange={(e) => setRole(e.target.value)}>
-                <option value="staff">Staff</option>
-                <option value="organizer">Organizer</option>
-              </select>
-            </div>
-          </>
-        )}
-        <button type="submit">{isRegistering ? 'Register' : 'Login'}</button>
+        <button type="submit">Login</button>
       </form>
-      <button onClick={() => setIsRegistering(!isRegistering)}>
-        {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
-      </button>
     </div>
   );
 };

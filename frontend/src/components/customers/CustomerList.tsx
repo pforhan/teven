@@ -74,7 +74,7 @@ const CustomerList: React.FC = () => {
       <ul>
         {customers.map(customer => (
           <li key={customer.customerId}>
-            <strong>{customer.name}</strong> - {customer.contactInformation}
+            <strong>{customer.name}</strong> - {customer.phone} - {customer.address} - {customer.notes}
             {hasPermission('MANAGE_CUSTOMERS_ORGANIZATION') && (
               <>
                 <button onClick={() => navigate(`/customers/edit/${customer.customerId}`)}>Edit</button>
