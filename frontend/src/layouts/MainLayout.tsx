@@ -1,18 +1,10 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth, usePermissions } from '../AuthContext';
-import { AuthService } from '../api/AuthService';
 
 const MainLayout: React.FC = () => {
+  const { logout } = useAuth();
   const { hasPermission } = usePermissions();
-  const { refetchUserContext } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    AuthService.logout();
-    await refetchUserContext();
-    navigate('/login');
-  };
 
   return (
     <div className="main-layout">
@@ -25,7 +17,7 @@ const MainLayout: React.FC = () => {
           <li><NavLink to="/profile">Profile</NavLink></li>
           {hasPermission('VIEW_ORGANIZATIONS_GLOBAL') && <li><NavLink to="/organizations">Organizations</NavLink></li>}
           {(hasPermission('VIEW_USERS_ORGANIZATION') || hasPermission('VIEW_USERS_GLOBAL')) && <li><NavLink to="/users">Users</NavLink></li>}
-          <li><button onClick={handleLogout}>Logout</button></li>
+          <li><button onClick={logout}>Logout</button></li>
         </ul>
       </nav>
       <main className="content">
