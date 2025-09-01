@@ -1,15 +1,17 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth, usePermissions } from '../AuthContext';
 import { AuthService } from '../api/AuthService';
 
 const MainLayout: React.FC = () => {
   const { hasPermission } = usePermissions();
   const { refetchUserContext } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     AuthService.logout();
     await refetchUserContext();
+    navigate('/login');
   };
 
   return (
