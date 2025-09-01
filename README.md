@@ -23,8 +23,6 @@ This repository contains the core documentation for the Teven project. As the pr
 
 ## **Getting Started**
 
-## **Getting Started**
-
 To get started with the Teven application, you can use Docker Compose to set up and run the backend and database services.
 
 ### Prerequisites

@@ -1,6 +1,7 @@
 package com.teven.app.di
 
 import com.teven.auth.AuthServiceImpl
+import com.teven.core.security.JwtConfig
 import com.teven.core.service.AuthService
 import com.teven.core.service.PermissionService
 import com.teven.core.service.RoleService
@@ -26,7 +27,7 @@ val appModule = module {
   single { UserDao() }
   
   single<UserService> { UserServiceImpl(get(), get(), get(), get()) }
-  single<AuthService> { AuthServiceImpl(get(), get()) }
+  single<AuthService> { AuthServiceImpl(get(), get(), get()) }
   single<RoleService> { RoleServiceImpl(get()) }
   single<PermissionService> { PermissionServiceImpl(get()) }
   single { EventDao() }
@@ -40,4 +41,9 @@ val appModule = module {
   single { RoleDao() }
   single { OrganizationDao() }
   single { OrganizationService(get(), get()) }
+  single { JwtConfig(
+    secret = System.getenv("JWT_SECRET") ?: throw IllegalArgumentException("JWT_SECRET environment variable not set"),
+    issuer = System.getenv("JWT_ISSUER") ?: throw IllegalArgumentException("JWT_ISSUER environment variable not set"),
+    audience = System.getenv("JWT_AUDIENCE") ?: throw IllegalArgumentException("JWT_AUDIENCE environment variable not set")
+  ) }
 }
