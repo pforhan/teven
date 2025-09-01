@@ -8,6 +8,8 @@ logback = "1.4.14"
 kotlinxSerializationJson = "1.6.0"
 dokka = "1.9.20"
 jbcrypt = "0.4"
+junit = "5.10.0"
+mockk = "1.13.8"
 
 [libraries]
 jbcrypt = { module = "org.mindrot:jbcrypt", version.ref = "jbcrypt" }
@@ -36,6 +38,9 @@ postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" 
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

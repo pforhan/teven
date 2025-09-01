@@ -2,6 +2,7 @@ package com.teven.app.di
 
 import com.teven.auth.AuthServiceImpl
 import com.teven.core.service.AuthService
+import com.teven.core.service.PermissionService
 import com.teven.core.service.RoleService
 import com.teven.core.service.UserService
 import com.teven.data.customer.CustomerDao
@@ -15,6 +16,7 @@ import com.teven.service.customer.CustomerService
 import com.teven.service.event.EventService
 import com.teven.service.inventory.InventoryService
 import com.teven.service.organization.OrganizationService
+import com.teven.service.permission.PermissionServiceImpl
 import com.teven.service.report.ReportService
 import com.teven.service.role.RoleServiceImpl
 import com.teven.service.user.UserServiceImpl
@@ -23,9 +25,10 @@ import org.koin.dsl.module
 val appModule = module {
   single { UserDao() }
   
-  single<UserService> { UserServiceImpl(get(), get(), get()) }
+  single<UserService> { UserServiceImpl(get(), get(), get(), get()) }
   single<AuthService> { AuthServiceImpl(get(), get()) }
   single<RoleService> { RoleServiceImpl(get()) }
+  single<PermissionService> { PermissionServiceImpl(get()) }
   single { EventDao() }
   single { EventService(get()) }
   single { CustomerDao() }

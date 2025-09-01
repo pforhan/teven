@@ -7,6 +7,14 @@ import com.teven.api.model.user.UpdateUserRequest
 import com.teven.api.model.user.UserResponse
 import com.teven.core.Constants
 import com.teven.core.security.AuthorizationException
+import com.teven.core.security.Permission.ASSIGN_ROLES_GLOBAL
+import com.teven.core.security.Permission.ASSIGN_ROLES_ORGANIZATION
+import com.teven.core.security.Permission.MANAGE_USERS_GLOBAL
+import com.teven.core.security.Permission.MANAGE_USERS_ORGANIZATION
+import com.teven.core.security.Permission.MANAGE_USERS_SELF
+import com.teven.core.security.Permission.VIEW_USERS_GLOBAL
+import com.teven.core.security.Permission.VIEW_USERS_ORGANIZATION
+import com.teven.core.service.PermissionService
 import com.teven.core.service.RoleService
 import com.teven.core.service.UserService
 import com.teven.core.user.User
@@ -18,10 +26,12 @@ class UserServiceImpl(
   private val userDao: UserDao,
   private val organizationDao: OrganizationDao,
   private val roleService: RoleService,
+  private val permissionService: PermissionService,
 ) : UserService {
   override suspend fun toUserResponse(user: User): UserResponse {
     val roles = roleService.getRolesForUser(user.userId)
-    val organization = userDao.getOrganizationForUser(user.userId)?.let { organizationDao.getOrganizationById(it) }
+    val organization =
+      userDao.getOrganizationForUser(user.userId)?.let { organizationDao.getOrganizationById(it) }
     return UserResponse(
       userId = user.userId,
       username = user.username,
@@ -32,22 +42,24 @@ class UserServiceImpl(
     )
   }
 
-  override suspend fun createUser(createUserRequest: CreateUserRequest, callerId: Int): UserResponse {
-    val callerRolesResponse = roleService.getRolesForUser(callerId)
-    val callerRoleNames = callerRolesResponse.map { it.roleName }
+  override suspend fun createUser(
+    createUserRequest: CreateUserRequest,
+    callerId: Int,
+  ): UserResponse {
+    val callerPermissions = permissionService.getPermissions(callerId)
     val requestedRoles = createUserRequest.roles
 
-    if (requestedRoles.contains(Constants.ROLE_SUPERADMIN) && !callerRoleNames.contains(Constants.ROLE_SUPERADMIN)) {
+    if (requestedRoles.contains(Constants.ROLE_SUPERADMIN) && !callerPermissions.isSuperAdmin) {
       throw AuthorizationException(
         code = HttpStatusCode.Forbidden,
         message = "Only SuperAdmins can assign the SuperAdmin role."
       )
     }
 
-    if (!callerRoleNames.containsAll(requestedRoles)) {
+    if (!callerPermissions.hasAnyPermissions(ASSIGN_ROLES_GLOBAL, ASSIGN_ROLES_ORGANIZATION)) {
       throw AuthorizationException(
         code = HttpStatusCode.Forbidden,
-        message = "User does not have permission to assign all requested roles."
+        message = "User does not have permission to assign roles."
       )
     }
 
@@ -61,12 +73,11 @@ class UserServiceImpl(
   }
 
   override suspend fun getAllUsers(callerId: Int): List<UserResponse> {
-    val callerRolesResponse = roleService.getRolesForUser(callerId)
-    val callerPermissions = callerRolesResponse.flatMap { it.permissions }.distinct()
+    val callerPermissions = permissionService.getPermissions(callerId)
 
     val users = when {
-      callerPermissions.contains("VIEW_USERS_GLOBAL") -> userDao.getAllUsers()
-      callerPermissions.contains("VIEW_USERS_ORGANIZATION") -> {
+      callerPermissions.hasPermission(VIEW_USERS_GLOBAL) -> userDao.getAllUsers()
+      callerPermissions.hasPermission(VIEW_USERS_ORGANIZATION) -> {
         val organizationId = userDao.getOrganizationForUser(callerId)
         if (organizationId != null) {
           userDao.getUsersByOrganization(organizationId)
@@ -74,69 +85,64 @@ class UserServiceImpl(
           emptyList()
         }
       }
+
       else -> throw SecurityException("User does not have permission to view users.")
     }
     return users.map { toUserResponse(it) }
   }
 
-  override suspend fun getUserById(userId: Int): UserResponse? {
-    val user = userDao.getUserById(userId)
-    return user?.let { toUserResponse(it) }
-  }
+  override suspend fun getUserById(userId: Int): UserResponse? =
+    userDao.getUserById(userId)?.let { toUserResponse(it) }
 
-  override suspend fun getUserByUsername(username: String): UserResponse? {
-    val user = userDao.getUserByUsername(username)
-    return user?.let { toUserResponse(it) }
-  }
+  override suspend fun getUserByUsername(username: String): UserResponse? =
+    userDao.getUserByUsername(username)?.let { toUserResponse(it) }
 
-  override suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest, callerId: Int): UserResponse? {
-    val callerRolesResponse = roleService.getRolesForUser(callerId)
-    val callerRoleNames = callerRolesResponse.map { it.roleName }
-    val callerPermissions = callerRolesResponse.flatMap { it.permissions }.distinct()
-
-    val targetUser = userDao.getUserById(userId)
-      ?: throw SecurityException("User not found.")
-
+  override suspend fun updateUser(
+    userId: Int,
+    updateUserRequest: UpdateUserRequest,
+    callerId: Int,
+  ): UserResponse? {
+    val callerPermissions = permissionService.getPermissions(callerId)
     val targetUserCurrentRoles = roleService.getRolesForUser(userId).map { it.roleName }
     val requestedRoles = updateUserRequest.roles
 
     if (requestedRoles != null) {
-      if (requestedRoles.contains(Constants.ROLE_SUPERADMIN) && !callerRoleNames.contains(Constants.ROLE_SUPERADMIN)) {
+      val isAssigningSuperAdmin = requestedRoles.contains(Constants.ROLE_SUPERADMIN)
+      val isRevokingSuperAdmin =
+        targetUserCurrentRoles.contains(Constants.ROLE_SUPERADMIN) && !isAssigningSuperAdmin
+
+      if ((isAssigningSuperAdmin || isRevokingSuperAdmin) && !callerPermissions.isSuperAdmin) {
         throw AuthorizationException(
           code = HttpStatusCode.Forbidden,
-          message = "Only SuperAdmins can assign the SuperAdmin role."
+          message = "Only SuperAdmins can assign or revoke the SuperAdmin role."
         )
       }
 
-      if (targetUserCurrentRoles.contains(Constants.ROLE_SUPERADMIN) && !requestedRoles.contains(Constants.ROLE_SUPERADMIN) && !callerRoleNames.contains(Constants.ROLE_SUPERADMIN)) {
+      if (!callerPermissions.hasAnyPermissions(ASSIGN_ROLES_GLOBAL, ASSIGN_ROLES_ORGANIZATION)) {
         throw AuthorizationException(
           code = HttpStatusCode.Forbidden,
-          message = "Only SuperAdmins can revoke the SuperAdmin role."
-        )
-      }
-
-      if (!callerRoleNames.containsAll(requestedRoles)) {
-        throw AuthorizationException(
-          code = HttpStatusCode.Forbidden,
-          message = "User does not have permission to assign all requested roles."
+          message = "User does not have permission to assign roles."
         )
       }
     }
 
     when {
       callerId == userId -> {
-        if (!callerPermissions.contains("MANAGE_USERS_SELF")) {
+        if (!callerPermissions.hasPermission(MANAGE_USERS_SELF)) {
           throw SecurityException("User does not have permission to manage their own profile.")
         }
       }
-      callerPermissions.contains("MANAGE_USERS_GLOBAL") -> {
+
+      callerPermissions.hasPermission(MANAGE_USERS_GLOBAL) -> {
         // Global permission, no further checks needed
       }
-      callerPermissions.contains("MANAGE_USERS_ORGANIZATION") -> {
+
+      callerPermissions.hasPermission(MANAGE_USERS_ORGANIZATION) -> {
         if (!areInSameOrganization(callerId, userId)) {
           throw SecurityException("User does not have permission to manage users outside their organization.")
         }
       }
+
       else -> throw SecurityException("User does not have permission to update users.")
     }
 
@@ -171,12 +177,19 @@ class UserServiceImpl(
     val user = userDao.getUserById(userId)
 
     return if (user != null) {
-      val organization = userDao.getOrganizationForUser(userId)?.let { organizationDao.getOrganizationById(it) }
+      val organization =
+        userDao.getOrganizationForUser(userId)?.let { organizationDao.getOrganizationById(it) }
       val roles = roleService.getRolesForUser(userId)
       val permissions = roles.flatMap { it.permissions }.distinct()
       LoggedInContextResponse(
         user = toUserResponse(user),
-        organization = organization?.let { OrganizationDetails(it.organizationId, it.name, it.contactInformation) },
+        organization = organization?.let {
+          OrganizationDetails(
+            it.organizationId,
+            it.name,
+            it.contactInformation
+          )
+        },
         permissions = permissions
       )
     } else {
