@@ -2,15 +2,13 @@ package com.teven
 
 
 import com.teven.api.model.common.StatusResponse
+import com.teven.app.InitialSetup
 import com.teven.app.configureRouting
 import com.teven.app.di.appModule
-import com.teven.app.seedInitialData
-import com.teven.auth.JwtConfig
-import com.teven.auth.configureJwt
+import com.teven.auth.ApplicationAuth
 import com.teven.auth.createAuthorizationPlugin
 import com.teven.core.security.AuthorizationException
 import com.teven.core.service.RoleService
-import com.teven.core.service.UserService
 import com.teven.data.DatabaseFactory
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -38,24 +36,14 @@ fun Application.module() {
     modules(appModule)
   }
 
-  val userService by inject<UserService>()
-  val roleService by inject<RoleService>()
-  val organizationService by inject<com.teven.service.organization.OrganizationService>()
-
+  val initialSetup by inject<InitialSetup>()
   runBlocking {
-    seedInitialData(userService, roleService, organizationService)
+    initialSetup.seedInitialData()
   }
+  val roleService by inject<RoleService>()
+  val applicationAuth by inject<ApplicationAuth>()
 
-  val jwtConfig = JwtConfig(
-    secret = System.getenv("JWT_SECRET")
-      ?: throw IllegalArgumentException("JWT_SECRET environment variable not set"),
-    issuer = System.getenv("JWT_ISSUER")
-      ?: throw IllegalArgumentException("JWT_ISSUER environment variable not set"),
-    audience = System.getenv("JWT_AUDIENCE")
-      ?: throw IllegalArgumentException("JWT_AUDIENCE environment variable not set")
-  )
-
-  configureJwt(jwtConfig)
+  applicationAuth.configureJwt(this)
 
   install(createAuthorizationPlugin(roleService))
 

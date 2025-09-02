@@ -35,6 +35,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: ${JWT_ISSUER}
       JWT_AUDIENCE: ${JWT_AUDIENCE}
+      JWT_EXPIRATION_MILLIS: ${JWT_EXPIRATION_MILLIS}
     depends_on:
       db:
         condition: service_healthy

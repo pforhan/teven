@@ -18,16 +18,20 @@ class AuthServiceImpl(
 ) : AuthService {
   override suspend fun loginUser(loginRequest: LoginRequest): LoginResponse? {
     val user = userDao.getUserByUsername(loginRequest.username)
-    if (user != null && BCrypt.checkpw(loginRequest.password, user.passwordHash)) {
-      val token = JWT.create()
-        .withAudience(jwtConfig.audience)
-        .withIssuer(jwtConfig.issuer)
-        .withClaim("userId", user.userId)
-        .withExpiresAt(Date(System.currentTimeMillis() + 600000))
-        .sign(Algorithm.HMAC256(jwtConfig.secret))
-      val userResponse = userService.toUserResponse(user)
-      return LoginResponse(token, userResponse)
+    if (user == null) {
+      return null
     }
-    return null
+    val passwordMatches = BCrypt.checkpw(loginRequest.password, user.passwordHash)
+    if (!passwordMatches) {
+      return null
+    }
+
+    val token = JWT.create()
+      .withAudience(jwtConfig.audience)
+      .withIssuer(jwtConfig.issuer)
+      .withClaim("userId", user.userId)
+      .withExpiresAt(Date(System.currentTimeMillis() + jwtConfig.expirationTimeMillis))
+      .sign(Algorithm.HMAC256(jwtConfig.secret))
+    return LoginResponse(token, userService.toUserResponse(user))
   }
 }

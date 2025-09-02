@@ -1,5 +1,7 @@
 package com.teven.app.di
 
+import com.teven.app.InitialSetup
+import com.teven.auth.ApplicationAuth
 import com.teven.auth.AuthServiceImpl
 import com.teven.core.security.JwtConfig
 import com.teven.core.service.AuthService
@@ -44,6 +46,9 @@ val appModule = module {
   single { JwtConfig(
     secret = System.getenv("JWT_SECRET") ?: throw IllegalArgumentException("JWT_SECRET environment variable not set"),
     issuer = System.getenv("JWT_ISSUER") ?: throw IllegalArgumentException("JWT_ISSUER environment variable not set"),
-    audience = System.getenv("JWT_AUDIENCE") ?: throw IllegalArgumentException("JWT_AUDIENCE environment variable not set")
+    audience = System.getenv("JWT_AUDIENCE") ?: throw IllegalArgumentException("JWT_AUDIENCE environment variable not set"),
+    expirationTimeMillis = System.getenv("JWT_EXPIRATION_MILLIS")?.toLongOrNull() ?: throw IllegalArgumentException("JWT_EXPIRATION_MILLIS environment variable not set or invalid")
   ) }
+  single { InitialSetup(get(), get(), get()) }
+  single { ApplicationAuth(get()) }
 }
