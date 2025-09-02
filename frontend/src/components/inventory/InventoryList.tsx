@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { InventoryService } from '../../api/InventoryService';
 import type { InventoryItemResponse } from '../../types/inventory';
 import { usePermissions } from '../../AuthContext';
-import ErrorDisplay from '../common/ErrorDisplay';
+import TableView, { type Column } from '../common/TableView';
 
 const InventoryList: React.FC = () => {
   const navigate = useNavigate();
   const [inventoryItems, setInventoryItems] = useState<InventoryItemResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
+  const canManageInventory = hasPermission('MANAGE_INVENTORY_ORGANIZATION');
   const [nameFilter, setNameFilter] = useState('');
   const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
 
@@ -45,10 +46,31 @@ const InventoryList: React.FC = () => {
     }
   };
 
+  const columns: Column<InventoryItemResponse>[] = [
+    { key: 'name', label: 'Name' },
+    { key: 'quantity', label: 'Quantity' },
+    { key: 'description', label: 'Description' },
+  ];
+
+  const renderActions = (item: InventoryItemResponse) => (
+    <>
+      {canManageInventory && (
+        <>
+          <button onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}>Edit</button>
+          <button onClick={() => handleDelete(item.inventoryId)}>Delete</button>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div>
-      <h2>Inventory</h2>
-      <ErrorDisplay message={error} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2>Inventory</h2>
+        {canManageInventory && (
+          <button onClick={() => navigate('/inventory/create')}>Create Item</button>
+        )}
+      </div>
 
       <div>
         <label htmlFor="nameFilter">Filter by Name:</label>
@@ -68,25 +90,17 @@ const InventoryList: React.FC = () => {
         </select>
       </div>
 
-      {hasPermission('MANAGE_INVENTORY_ORGANIZATION') && (
-        <button onClick={() => navigate('/inventory/create')}>Create Item</button>
-      )}
-      <ul>
-        {inventoryItems.map(item => (
-          <li key={item.inventoryId}>
-            <strong>{item.name}</strong> (Quantity: {item.quantity})
-            {hasPermission('MANAGE_INVENTORY_ORGANIZATION') && (
-              <>
-                <button onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}>Edit</button>
-                <button onClick={() => handleDelete(item.inventoryId)}>Delete</button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+      <TableView
+        title=""
+        data={inventoryItems}
+        columns={columns}
+        getKey={(item) => item.inventoryId}
+        renderActions={renderActions}
+        error={error}
+        canView={true} // Assuming anyone who can see the page can view the list
+      />
     </div>
   );
 };
 
 export default InventoryList;
-

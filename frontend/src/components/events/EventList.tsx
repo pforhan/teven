@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import type { EventResponse } from '../../types/events';
 import { usePermissions } from '../../AuthContext';
-import ErrorDisplay from '../common/ErrorDisplay';
+import TableView, { type Column } from '../common/TableView';
 
 const EventList: React.FC = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
+  const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
   const [titleFilter, setTitleFilter] = useState('');
   const [sortByDate, setSortByDate] = useState<'asc' | 'desc' | ''>('');
 
@@ -45,10 +46,32 @@ const EventList: React.FC = () => {
     }
   };
 
+  const columns: Column<EventResponse>[] = [
+    { key: 'title', label: 'Title' },
+    { key: 'date', label: 'Date' },
+    { key: 'time', label: 'Time' },
+    { key: 'description', label: 'Description' },
+  ];
+
+  const renderActions = (event: EventResponse) => (
+    <>
+      {canManageEvents && (
+        <>
+          <button onClick={() => navigate(`/events/edit/${event.eventId}`)}>Edit</button>
+          <button onClick={() => handleDelete(event.eventId)}>Delete</button>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div>
-      <h2>Events</h2>
-      <ErrorDisplay message={error} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2>Events</h2>
+        {canManageEvents && (
+          <button onClick={() => navigate('/events/create')}>Create Event</button>
+        )}
+      </div>
 
       <div>
         <label htmlFor="titleFilter">Filter by Title:</label>
@@ -68,22 +91,15 @@ const EventList: React.FC = () => {
         </select>
       </div>
 
-      {hasPermission('MANAGE_EVENTS_ORGANIZATION') && (
-        <button onClick={() => navigate('/events/create')}>Create Event</button>
-      )}
-      <ul>
-        {events.map(event => (
-          <li key={event.eventId}>
-            <strong>{event.title}</strong> - {event.date} at {event.time}
-            {hasPermission('MANAGE_EVENTS_ORGANIZATION') && (
-              <>
-                <button onClick={() => navigate(`/events/edit/${event.eventId}`)}>Edit</button>
-                <button onClick={() => handleDelete(event.eventId)}>Delete</button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+      <TableView
+        title=""
+        data={events}
+        columns={columns}
+        getKey={(event) => event.eventId}
+        renderActions={renderActions}
+        error={error}
+        canView={true} // Assuming anyone who can see the page can view the list
+      />
     </div>
   );
 };

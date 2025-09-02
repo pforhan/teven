@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserService } from '../../api/UserService';
 import type { UserResponse } from '../../types/auth';
 import { usePermissions } from '../../AuthContext';
-import ErrorDisplay from '../common/ErrorDisplay';
+import TableView, { type Column } from '../common/TableView';
 
 const UserList: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +11,7 @@ const UserList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
   const canViewUsers = hasPermission('VIEW_USERS_ORGANIZATION') || hasPermission('VIEW_USERS_GLOBAL');
+  const canManageUsers = hasPermission('MANAGE_USERS_GLOBAL');
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -31,47 +32,41 @@ const UserList: React.FC = () => {
     }
   }, [fetchUsers, canViewUsers]);
 
-  if (!canViewUsers) {
-    return <ErrorDisplay message="Access denied: You do not have permission to view users." />;
+  const columns: Column<UserResponse>[] = [
+    { key: 'username', label: 'Username' },
+    { key: 'displayName', label: 'Display Name' },
+    { key: 'email', label: 'Email' },
+    { key: 'roles', label: 'Roles', render: (user: UserResponse) => user.roles.join(', ') },
+  ];
+
+  if (hasPermission('VIEW_USERS_GLOBAL')) {
+    columns.push({ key: 'organization', label: 'Organization', render: (user: UserResponse) => user.organization?.name || 'N/A' });
   }
 
-  return (
-    <div>
-      <h2>Users</h2>
-      <ErrorDisplay message={error} />
-
-      {hasPermission('MANAGE_USERS_GLOBAL') && (
-        <button onClick={() => navigate('/users/create')}>Create User</button>
+  const renderActions = (user: UserResponse) => (
+    <>
+      {canManageUsers && (
+        <button onClick={() => navigate(`/users/edit/${user.userId}`)}>Edit</button>
       )}
-      <table>
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Display Name</th>
-            <th>Email</th>
-            <th>Roles</th>
-            {hasPermission('VIEW_USERS_GLOBAL') && <th>Organization</th>}
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map(user => (
-            <tr key={user.userId}>
-              <td>{user.username}</td>
-              <td>{user.displayName}</td>
-              <td>{user.email}</td>
-              <td>{user.roles.join(', ')}</td>
-              {hasPermission('VIEW_USERS_GLOBAL') && <td>{user.organization?.name || 'N/A'}</td>}
-              <td>
-                {hasPermission('MANAGE_USERS_GLOBAL') && (
-                  <button onClick={() => navigate(`/users/edit/${user.userId}`)}>Edit</button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    </>
+  );
+
+  return (
+    <TableView
+      title="Users"
+      data={users}
+      columns={columns}
+      getKey={(user) => user.userId}
+      renderActions={renderActions}
+      createButton={{
+        label: 'Create User',
+        onClick: () => navigate('/users/create'),
+        permission: canManageUsers,
+      }}
+      error={error}
+      canView={canViewUsers}
+      viewError="Access denied: You do not have permission to view users."
+    />
   );
 };
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { OrganizationService } from '../../api/OrganizationService';
 import type { OrganizationResponse } from '../../types/organizations';
 import { usePermissions } from '../../AuthContext';
-import ErrorDisplay from '../common/ErrorDisplay';
+import TableView, { type Column } from '../common/TableView';
 
 const OrganizationList: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +11,7 @@ const OrganizationList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
   const canViewOrganizations = hasPermission('VIEW_ORGANIZATIONS_GLOBAL');
+  const canManageOrganizations = hasPermission('MANAGE_ORGANIZATIONS_GLOBAL');
 
   const fetchOrganizations = useCallback(async () => {
     try {
@@ -46,32 +47,38 @@ const OrganizationList: React.FC = () => {
     }
   };
 
-  if (!hasPermission('VIEW_ORGANIZATIONS_GLOBAL')) {
-    return <ErrorDisplay message="Access denied: You do not have permission to view organizations." />;
-  }
+  const columns: Column<OrganizationResponse>[] = [
+    { key: 'name', label: 'Name' },
+    { key: 'contactInformation', label: 'Contact Information' },
+  ];
+
+  const renderActions = (org: OrganizationResponse) => (
+    <>
+      {canManageOrganizations && (
+        <>
+          <button onClick={() => navigate(`/organizations/edit/${org.organizationId}`)}>Edit</button>
+          <button onClick={() => handleDelete(org.organizationId)}>Delete</button>
+        </>
+      )}
+    </>
+  );
 
   return (
-    <div>
-      <h2>Organizations</h2>
-      <ErrorDisplay message={error} />
-
-      {hasPermission('MANAGE_ORGANIZATIONS_GLOBAL') && (
-        <button onClick={() => navigate('/organizations/create')}>Create Organization</button>
-      )}
-      <ul>
-        {organizations.map(org => (
-          <li key={org.organizationId}>
-            <strong>{org.name}</strong> - {org.contactInformation}
-            {hasPermission('MANAGE_ORGANIZATIONS_GLOBAL') && (
-              <>
-                <button onClick={() => navigate(`/organizations/edit/${org.organizationId}`)}>Edit</button>
-                <button onClick={() => handleDelete(org.organizationId)}>Delete</button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <TableView
+      title="Organizations"
+      data={organizations}
+      columns={columns}
+      getKey={(org) => org.organizationId}
+      renderActions={renderActions}
+      createButton={{
+        label: 'Create Organization',
+        onClick: () => navigate('/organizations/create'),
+        permission: canManageOrganizations,
+      }}
+      error={error}
+      canView={canViewOrganizations}
+      viewError="Access denied: You do not have permission to view organizations."
+    />
   );
 };
 
