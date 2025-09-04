@@ -2,6 +2,9 @@ package com.teven.app.user
 
 import com.teven.api.model.common.StatusResponse
 import com.teven.api.model.user.CreateUserRequest
+import com.teven.auth.withPermission
+import com.teven.core.security.Permission
+import com.teven.core.service.PermissionService
 import com.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -18,38 +21,23 @@ import org.koin.ktor.ext.inject
 
 fun Route.userRoutes() {
   val userService by inject<UserService>()
+  val permissionService by inject<PermissionService>()
 
   route("/api/users") {
-    post {
-      val principal = call.principal<JWTPrincipal>()
-      val callerId = principal?.payload?.getClaim("userId")?.asInt()
-      if (callerId == null) {
-        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
-        return@post
-      }
-
-      val createUserRequest = call.receive<CreateUserRequest>()
-      try {
-        val newUser = userService.createUser(createUserRequest, callerId)
+    withPermission(permissionService,Permission.MANAGE_USERS_ORGANIZATION) {
+      post {
+        val createUserRequest = call.receive<CreateUserRequest>()
+        val newUser = userService.createUser(createUserRequest)
         call.respond(HttpStatusCode.Created, newUser)
-      } catch (e: SecurityException) {
-        call.respond(HttpStatusCode.Forbidden, StatusResponse(e.message ?: "Permission denied"))
       }
     }
 
-    get {
-      val principal = call.principal<JWTPrincipal>()
-      val callerId = principal?.payload?.getClaim("userId")?.asInt()
-      if (callerId == null) {
-        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
-        return@get
-      }
-
-      try {
+    withPermission(permissionService, Permission.VIEW_USERS_ORGANIZATION) {
+      get {
+        val principal = call.principal<JWTPrincipal>()
+        val callerId = principal?.payload?.getClaim("userId")?.asInt() ?: return@get
         val users = userService.getAllUsers(callerId)
         call.respond(HttpStatusCode.OK, users)
-      } catch (e: SecurityException) {
-        call.respond(HttpStatusCode.Forbidden, StatusResponse(e.message ?: "Permission denied"))
       }
     }
 
@@ -70,56 +58,28 @@ fun Route.userRoutes() {
       }
     }
 
-    get("/{userId}") {
-      val principal = call.principal<JWTPrincipal>()
-      val callerId = principal?.payload?.getClaim("userId")?.asInt()
-      if (callerId == null) {
-        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
-        return@get
-      }
-
-      val userId = call.parameters["userId"]?.toIntOrNull()
-      if (userId == null) {
-        call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid user ID"))
-        return@get
-      }
-
-      try {
+    withPermission(permissionService, Permission.VIEW_USERS_ORGANIZATION) {
+      get("/{userId}") {
+        val userId = call.parameters["userId"]?.toIntOrNull() ?: return@get
         val user = userService.getUserById(userId)
         if (user != null) {
           call.respond(HttpStatusCode.OK, user)
         } else {
           call.respond(HttpStatusCode.NotFound, StatusResponse("User not found"))
         }
-      } catch (e: SecurityException) {
-        call.respond(HttpStatusCode.Forbidden, StatusResponse(e.message ?: "Permission denied"))
       }
     }
 
-    put("/{userId}") {
-      val principal = call.principal<JWTPrincipal>()
-      val callerId = principal?.payload?.getClaim("userId")?.asInt()
-      if (callerId == null) {
-        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
-        return@put
-      }
-
-      val userId = call.parameters["userId"]?.toIntOrNull()
-      if (userId == null) {
-        call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid user ID"))
-        return@put
-      }
-
-      val updateUserRequest = call.receive<com.teven.api.model.user.UpdateUserRequest>()
-      try {
-        val updatedUser = userService.updateUser(userId, updateUserRequest, callerId)
+    withPermission(permissionService,Permission.MANAGE_USERS_ORGANIZATION) {
+      put("/{userId}") {
+        val userId = call.parameters["userId"]?.toIntOrNull() ?: return@put
+        val updateUserRequest = call.receive<com.teven.api.model.user.UpdateUserRequest>()
+        val updatedUser = userService.updateUser(userId, updateUserRequest)
         if (updatedUser != null) {
           call.respond(HttpStatusCode.OK, updatedUser)
         } else {
           call.respond(HttpStatusCode.NotFound, StatusResponse("User not found"))
         }
-      } catch (e: SecurityException) {
-        call.respond(HttpStatusCode.Forbidden, StatusResponse(e.message ?: "Permission denied"))
       }
     }
   }

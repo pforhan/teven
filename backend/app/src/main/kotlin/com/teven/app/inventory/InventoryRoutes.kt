@@ -6,6 +6,7 @@ import com.teven.api.model.inventory.TrackInventoryUsageRequest
 import com.teven.api.model.inventory.UpdateInventoryItemRequest
 import com.teven.auth.withPermission
 import com.teven.core.security.Permission
+import com.teven.core.service.PermissionService
 import com.teven.service.inventory.InventoryService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -18,12 +19,14 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
+import kotlin.getValue
 
 fun Route.inventoryRoutes() {
   val inventoryService by inject<InventoryService>()
+  val permissionService by inject<PermissionService>()
 
   route("/api/inventory") {
-    withPermission(Permission.MANAGE_INVENTORY_ORGANIZATION) {
+    withPermission(permissionService, Permission.MANAGE_INVENTORY_ORGANIZATION) {
       post {
         val createInventoryItemRequest = call.receive<CreateInventoryItemRequest>()
         val newInventoryItem = inventoryService.createInventoryItem(createInventoryItemRequest)
@@ -81,7 +84,7 @@ fun Route.inventoryRoutes() {
       }
     }
 
-    withPermission(Permission.VIEW_INVENTORY_ORGANIZATION) {
+    withPermission(permissionService, Permission.VIEW_INVENTORY_ORGANIZATION) {
       get {
         val inventoryItems = inventoryService.getAllInventoryItems()
         call.respond(HttpStatusCode.OK, inventoryItems)

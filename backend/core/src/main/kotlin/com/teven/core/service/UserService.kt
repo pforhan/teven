@@ -8,11 +8,11 @@ import com.teven.core.user.User
 
 interface UserService {
   suspend fun toUserResponse(user: User): UserResponse
-  suspend fun createUser(createUserRequest: CreateUserRequest, callerId: Int): UserResponse
+  suspend fun createUser(createUserRequest: CreateUserRequest): UserResponse
   suspend fun getAllUsers(callerId: Int): List<UserResponse>
   suspend fun getUserById(userId: Int): UserResponse?
   suspend fun getUserContext(userId: Int): LoggedInContextResponse?
   suspend fun areInSameOrganization(userId1: Int?, userId2: Int?): Boolean
-  suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest, callerId: Int): UserResponse?
+  suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest): UserResponse?
   suspend fun getUserByUsername(username: String): UserResponse?
 }

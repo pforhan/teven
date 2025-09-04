@@ -6,6 +6,7 @@ import com.teven.api.model.event.RsvpRequest
 import com.teven.api.model.event.UpdateEventRequest
 import com.teven.auth.withPermission
 import com.teven.core.security.Permission
+import com.teven.core.service.PermissionService
 import com.teven.service.event.EventService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -20,12 +21,14 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
+import kotlin.getValue
 
 fun Route.eventRoutes() {
   val eventService by inject<EventService>()
+  val permissionService by inject<PermissionService>()
 
   route("/api/events") {
-    withPermission(Permission.MANAGE_EVENTS_ORGANIZATION) {
+    withPermission(permissionService, Permission.MANAGE_EVENTS_ORGANIZATION) {
       post {
         val createEventRequest = call.receive<CreateEventRequest>()
         val newEvent = eventService.createEvent(createEventRequest)
@@ -63,7 +66,7 @@ fun Route.eventRoutes() {
       }
     }
 
-    withPermission(Permission.ASSIGN_STAFF_TO_EVENTS_ORGANIZATION) {
+    withPermission(permissionService, Permission.ASSIGN_STAFF_TO_EVENTS_ORGANIZATION) {
       post("{event_id}/staff/{user_id}") {
         val eventId = call.parameters["event_id"]?.toIntOrNull()
         val userId = call.parameters["user_id"]?.toIntOrNull()
@@ -99,7 +102,7 @@ fun Route.eventRoutes() {
       }
     }
 
-    withPermission(Permission.VIEW_EVENTS_ORGANIZATION) {
+    withPermission(permissionService, Permission.VIEW_EVENTS_ORGANIZATION) {
       get {
         val events = eventService.getAllEvents()
         call.respond(HttpStatusCode.OK, events)

@@ -2,7 +2,7 @@ package com.teven.api.model.user
 
 import kotlinx.serialization.Serializable
 
-// TODO for users with appropriate permissions, need to allow a role specification
+// TODO should be able to specify an organization
 @Serializable
 data class CreateUserRequest(
   val username: String,

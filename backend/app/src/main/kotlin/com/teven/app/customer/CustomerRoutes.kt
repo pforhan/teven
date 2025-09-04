@@ -5,6 +5,7 @@ import com.teven.api.model.customer.CreateCustomerRequest
 import com.teven.api.model.customer.UpdateCustomerRequest
 import com.teven.auth.withPermission
 import com.teven.core.security.Permission
+import com.teven.core.service.PermissionService
 import com.teven.service.customer.CustomerService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -20,9 +21,10 @@ import org.koin.ktor.ext.inject
 
 fun Route.customerRoutes() {
   val customerService by inject<CustomerService>()
+  val permissionService by inject<PermissionService>()
 
   route("/api/customers") {
-    withPermission(Permission.MANAGE_CUSTOMERS_ORGANIZATION) {
+    withPermission(permissionService,Permission.MANAGE_CUSTOMERS_ORGANIZATION) {
       post {
         val createCustomerRequest = call.receive<CreateCustomerRequest>()
         val newCustomer = customerService.createCustomer(createCustomerRequest)
@@ -60,7 +62,7 @@ fun Route.customerRoutes() {
       }
     }
 
-    withPermission(Permission.VIEW_CUSTOMERS_ORGANIZATION) {
+    withPermission(permissionService, Permission.VIEW_CUSTOMERS_ORGANIZATION) {
       get {
         val customers = customerService.getAllCustomers()
         call.respond(HttpStatusCode.OK, customers)

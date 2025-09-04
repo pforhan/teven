@@ -5,6 +5,7 @@ import com.teven.api.model.role.CreateRoleRequest
 import com.teven.api.model.role.UpdateRoleRequest
 import com.teven.auth.withPermission
 import com.teven.core.security.Permission
+import com.teven.core.service.PermissionService
 import com.teven.core.service.RoleService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -17,12 +18,14 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
+import kotlin.getValue
 
 fun Route.roleRoutes() {
   val roleService by inject<RoleService>()
+  val permissionService by inject<PermissionService>()
 
   route("/api/roles") {
-    withPermission(Permission.MANAGE_ROLES_GLOBAL) {
+    withPermission(permissionService, Permission.MANAGE_ROLES_GLOBAL) {
       post {
         val createRoleRequest = call.receive<CreateRoleRequest>()
         val newRole = roleService.createRole(createRoleRequest)
@@ -81,7 +84,7 @@ fun Route.roleRoutes() {
   }
 
   route("/api/users/{user_id}/roles") {
-    withPermission(Permission.MANAGE_ROLES_GLOBAL) {
+    withPermission(permissionService, Permission.MANAGE_ROLES_GLOBAL) {
       post("/{role_id}") {
         val userId = call.parameters["user_id"]?.toIntOrNull()
         val roleId = call.parameters["role_id"]?.toIntOrNull()
