@@ -50,6 +50,17 @@ const InventoryList: React.FC = () => {
     { key: 'name', label: 'Name' },
     { key: 'quantity', label: 'Quantity' },
     { key: 'description', label: 'Description' },
+    {
+      key: 'events',
+      label: 'Used in Events',
+      render: (item: InventoryItemResponse) => (
+        <ul>
+          {item.events.map(event => (
+            <li key={event.eventId}>ID: {event.eventId} (Qty: {event.quantity})</li>
+          ))}
+        </ul>
+      ),
+    },
   ];
 
   const renderActions = (item: InventoryItemResponse) => (

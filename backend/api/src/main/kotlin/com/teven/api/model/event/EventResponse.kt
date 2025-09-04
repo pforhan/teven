@@ -1,5 +1,6 @@
 package com.teven.api.model.event
 
+import com.teven.api.model.event.EventInventoryItem
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,7 +11,7 @@ data class EventResponse(
   val time: String,
   val location: String,
   val description: String,
-  val inventoryIds: List<Int>,
+  val inventoryItems: List<EventInventoryItem>,
   val customerId: Int,
   val assignedStaffIds: List<Int>,
   val rsvps: List<RsvpStatus>,

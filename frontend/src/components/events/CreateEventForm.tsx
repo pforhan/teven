@@ -1,10 +1,9 @@
-// frontend/src/components/events/CreateEventForm.tsx
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
-import type { CreateEventRequest } from '../../types/events';
+import type { CreateEventRequest, EventInventoryItem } from '../../types/events';
 import ErrorDisplay from '../common/ErrorDisplay';
+import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
 
 const CreateEventForm: React.FC = () => {
   const navigate = useNavigate();
@@ -13,8 +12,8 @@ const CreateEventForm: React.FC = () => {
   const [time, setTime] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
-  const [inventoryIds, setInventoryIds] = useState(''); // TODO: Implement proper multi-select
-  const [customerId, setCustomerId] = useState(''); // TODO: Implement proper customer selection
+  const [inventoryItems, setInventoryItems] = useState<EventInventoryItem[]>([]);
+  const [customerId, setCustomerId] = useState('');
   const [openInvitation, setOpenInvitation] = useState(false);
   const [numberOfStaffNeeded, setNumberOfStaffNeeded] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -30,17 +29,16 @@ const CreateEventForm: React.FC = () => {
         time,
         location,
         description,
-        inventoryIds: inventoryIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)),
+        inventoryItems,
         customerId: parseInt(customerId),
         staffInvites: {
           openInvitation,
           numberOfStaffNeeded,
-          // specificStaffIds: [], // TODO: Implement specific staff selection
         },
       };
 
       await EventService.createEvent(request);
-      navigate('/events'); // Redirect to event list after creation
+      navigate('/events');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -76,8 +74,10 @@ const CreateEventForm: React.FC = () => {
           <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required />
         </div>
         <div>
-          <label htmlFor="inventoryIds">Inventory IDs (comma-separated):</label>
-          <input type="text" id="inventoryIds" value={inventoryIds} onChange={(e) => setInventoryIds(e.target.value)} />
+          <InventoryAssociationEditor
+            initialInventoryItems={[]}
+            onInventoryItemsChange={setInventoryItems}
+          />
         </div>
         <div>
           <label htmlFor="customerId">Customer ID:</label>

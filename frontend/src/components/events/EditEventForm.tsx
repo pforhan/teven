@@ -1,10 +1,9 @@
-// frontend/src/components/events/EditEventForm.tsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
-import type { EventResponse, UpdateEventRequest } from '../../types/events';
+import type { EventResponse, UpdateEventRequest, EventInventoryItem } from '../../types/events';
 import ErrorDisplay from '../common/ErrorDisplay';
+import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
 
 const EditEventForm: React.FC = () => {
   const navigate = useNavigate();
@@ -15,7 +14,7 @@ const EditEventForm: React.FC = () => {
   const [time, setTime] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
-  const [inventoryIds, setInventoryIds] = useState('');
+  const [inventoryItems, setInventoryItems] = useState<EventInventoryItem[]>([]);
   const [customerId, setCustomerId] = useState('');
   const [openInvitation, setOpenInvitation] = useState(false);
   const [numberOfStaffNeeded, setNumberOfStaffNeeded] = useState(0);
@@ -32,9 +31,8 @@ const EditEventForm: React.FC = () => {
         setTime(fetchedEvent.time);
         setLocation(fetchedEvent.location);
         setDescription(fetchedEvent.description);
-        setInventoryIds(fetchedEvent.inventoryIds.join(','));
+        setInventoryItems(fetchedEvent.inventoryItems);
         setCustomerId(fetchedEvent.customerId.toString());
-        // staffInvites are part of the request, not the response, so initialize with defaults
         setOpenInvitation(false);
         setNumberOfStaffNeeded(0);
       } catch (err) {
@@ -61,7 +59,7 @@ const EditEventForm: React.FC = () => {
         time,
         location,
         description,
-        inventoryIds: inventoryIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)),
+        inventoryItems,
         customerId: parseInt(customerId),
         staffInvites: {
           openInvitation,
@@ -110,8 +108,10 @@ const EditEventForm: React.FC = () => {
           <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required />
         </div>
         <div>
-          <label htmlFor="inventoryIds">Inventory IDs (comma-separated):</label>
-          <input type="text" id="inventoryIds" value={inventoryIds} onChange={(e) => setInventoryIds(e.target.value)} />
+          <InventoryAssociationEditor
+            initialInventoryItems={event.inventoryItems}
+            onInventoryItemsChange={setInventoryItems}
+          />
         </div>
         <div>
           <label htmlFor="customerId">Customer ID:</label>

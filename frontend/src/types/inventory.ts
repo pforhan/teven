@@ -1,10 +1,17 @@
 // frontend/src/types/inventory.ts
 
+export interface EventSummaryResponse {
+  eventId: number;
+  title: string;
+  quantity: number;
+}
+
 export interface InventoryItemResponse {
   inventoryId: number;
   name: string;
   description: string;
   quantity: number;
+  events: EventSummaryResponse[];
 }
 
 export interface CreateInventoryItemRequest {

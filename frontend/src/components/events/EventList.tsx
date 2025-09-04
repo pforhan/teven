@@ -51,6 +51,17 @@ const EventList: React.FC = () => {
     { key: 'date', label: 'Date' },
     { key: 'time', label: 'Time' },
     { key: 'description', label: 'Description' },
+    {
+      key: 'inventoryItems',
+      label: 'Inventory Items',
+      render: (event: EventResponse) => (
+        <ul>
+          {event.inventoryItems.map(item => (
+            <li key={item.inventoryId}>ID: {item.inventoryId} (Qty: {item.quantity})</li>
+          ))}
+        </ul>
+      ),
+    },
   ];
 
   const renderActions = (event: EventResponse) => (

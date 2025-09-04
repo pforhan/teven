@@ -1,9 +1,11 @@
 package com.teven.data.event
 
 import com.teven.api.model.event.CreateEventRequest
+import com.teven.api.model.event.EventInventoryItem
 import com.teven.api.model.event.EventResponse
 import com.teven.api.model.event.RsvpStatus
 import com.teven.data.dbQuery
+import com.teven.data.inventory.InventoryDao
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
@@ -13,12 +15,14 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 
-class EventDao {
-  private fun toEventResponse(row: ResultRow): EventResponse {
+class EventDao(
+  private val inventoryDao: InventoryDao,
+) {
+  private suspend fun toEventResponse(row: ResultRow): EventResponse {
     val eventId = row[Events.id]
 
-    val inventoryIds = EventInventory.select { EventInventory.eventId eq eventId }
-      .map { it[EventInventory.inventoryId].value }
+    val inventoryItems = EventInventory.select { EventInventory.eventId eq eventId }
+      .map { EventInventoryItem(it[EventInventory.inventoryItemId], it[EventInventory.quantity]) }
 
     val assignedStaffIds =
       EventStaff.select { EventStaff.eventId eq eventId }.map { it[EventStaff.userId].value }
@@ -33,7 +37,7 @@ class EventDao {
       time = row[Events.time],
       location = row[Events.location],
       description = row[Events.description],
-      inventoryIds = inventoryIds,
+      inventoryItems = inventoryItems,
       customerId = row[Events.customerId],
       assignedStaffIds = assignedStaffIds,
       rsvps = rsvps
@@ -59,7 +63,7 @@ class EventDao {
       time = createEventRequest.time,
       location = createEventRequest.location,
       description = createEventRequest.description,
-      inventoryIds = createEventRequest.inventoryIds,
+      inventoryItems = emptyList(), // Will be populated by the .also block
       customerId = createEventRequest.customerId,
       assignedStaffIds = createEventRequest.staffInvites.specificStaffIds ?: emptyList(),
       rsvps = emptyList()
@@ -67,7 +71,7 @@ class EventDao {
       createEventRequest.inventoryIds.forEach { inventoryId ->
         EventInventory.insert {
           it[eventId] = newEvent.eventId
-          it[EventInventory.inventoryId] = inventoryId
+          it[EventInventory.inventoryItemId] = inventoryId
         }
       }
       createEventRequest.staffInvites.specificStaffIds?.forEach { userId ->
@@ -106,7 +110,7 @@ class EventDao {
         it.forEach { inventoryId ->
           EventInventory.insert {
             it[EventInventory.eventId] = eventId
-            it[EventInventory.inventoryId] = inventoryId
+            it[EventInventory.inventoryItemId] = inventoryId
           }
         }
       }
@@ -153,5 +157,12 @@ class EventDao {
       it[Rsvps.availability] = availability
     }
     insertStatement.resultedValues?.isNotEmpty() ?: false
+  }
+
+  suspend fun getEventsForInventoryItem(inventoryItemId: Int): List<EventResponse> = dbQuery {
+    (EventInventory innerJoin Events)
+      .slice(Events.columns)
+      .select { EventInventory.inventoryItemId eq inventoryItemId }
+      .map { toEventResponse(it) }
   }
 }

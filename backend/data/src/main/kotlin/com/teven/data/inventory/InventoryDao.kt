@@ -1,10 +1,14 @@
 package com.teven.data.inventory
 
+import com.teven.api.model.event.EventSummaryResponse
 import com.teven.api.model.inventory.CreateInventoryItemRequest
 import com.teven.api.model.inventory.InventoryItemResponse
 import com.teven.api.model.inventory.TrackInventoryUsageRequest
 import com.teven.api.model.inventory.UpdateInventoryItemRequest
 import com.teven.data.dbQuery
+import com.teven.data.event.EventDao
+import com.teven.data.event.EventInventory
+import com.teven.data.event.Events
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
@@ -13,13 +17,19 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 
-class InventoryDao {
-  private fun toInventoryItemResponse(row: ResultRow): InventoryItemResponse {
+class InventoryDao(
+  private val eventDao: EventDao,
+) {
+  private suspend fun toInventoryItemResponse(row: ResultRow): InventoryItemResponse {
+    val inventoryId = row[InventoryItems.id].value
+    val events = EventInventory.select { EventInventory.inventoryItemId eq inventoryId }
+      .map { EventSummaryResponse(it[EventInventory.eventId], "", it[EventInventory.quantity]) }
     return InventoryItemResponse(
-      inventoryId = row[InventoryItems.id].value,
+      inventoryId = inventoryId,
       name = row[InventoryItems.name],
       description = row[InventoryItems.description],
-      quantity = row[InventoryItems.quantity]
+      quantity = row[InventoryItems.quantity],
+      events = events
     )
   }
 
@@ -45,7 +55,8 @@ class InventoryDao {
         inventoryId = id.value,
         name = createInventoryItemRequest.name,
         description = createInventoryItemRequest.description,
-        quantity = createInventoryItemRequest.quantity
+        quantity = createInventoryItemRequest.quantity,
+        events = emptyList()
       )
     }
 
@@ -79,5 +90,12 @@ class InventoryDao {
       it[InventoryUsage.usageDate] = java.time.LocalDate.now().toString() // Use current date
     }
     true
+  }
+
+  suspend fun getInventoryItemsForEvent(eventId: Int): List<InventoryItemResponse> = dbQuery {
+    (EventInventory innerJoin InventoryItems)
+      .slice(InventoryItems.columns)
+      .select { EventInventory.eventId eq eventId }
+      .map { toInventoryItemResponse(it) }
   }
 }

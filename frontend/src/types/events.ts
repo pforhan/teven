@@ -6,13 +6,18 @@ export interface StaffInviteDetails {
   numberOfStaffNeeded: number; // Required: number of staff slots for the event
 }
 
+export interface EventInventoryItem {
+  inventoryId: number;
+  quantity: number;
+}
+
 export interface CreateEventRequest {
   title: string;
   date: string; // ISO 8601 date string (e.g., "YYYY-MM-DD")
   time: string; // ISO 8601 time string (e.g., "HH:MM:SS")
   location: string;
   description: string;
-  inventoryIds: number[];
+  inventoryItems: EventInventoryItem[];
   customerId: number; // Single customer ID
   staffInvites: StaffInviteDetails; // Details for staff invitation
 }
@@ -29,7 +34,7 @@ export interface EventResponse {
   time: string;
   location: string;
   description: string;
-  inventoryIds: number[];
+  inventoryItems: EventInventoryItem[];
   customerId: number;
   assignedStaffIds: number[];
   rsvps: RsvpStatus[];
@@ -41,7 +46,7 @@ export interface UpdateEventRequest {
   time?: string;
   location?: string;
   description?: string;
-  inventoryIds?: number[];
+  inventoryItems?: EventInventoryItem[];
   customerId?: number;
   staffInvites?: StaffInviteDetails;
 }
