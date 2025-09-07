@@ -8,7 +8,6 @@ import com.teven.api.model.inventory.UpdateInventoryItemRequest
 import com.teven.data.dbQuery
 import com.teven.data.event.EventDao
 import com.teven.data.event.EventInventory
-import com.teven.data.event.Events
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere

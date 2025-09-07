@@ -14,10 +14,11 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class EventDao(
-  private val inventoryDao: InventoryDao,
-) {
+class EventDao : KoinComponent {
+  private val inventoryDao: InventoryDao by inject()
   private suspend fun toEventResponse(row: ResultRow): EventResponse {
     val eventId = row[Events.id]
 

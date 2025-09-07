@@ -43,9 +43,9 @@ fun Application.module() {
   val roleService by inject<RoleService>()
   val applicationAuth by inject<ApplicationAuth>()
 
-  applicationAuth.configureJwt(this)
+    applicationAuth.configureJwt(this)
 
-  install(createAuthorizationPlugin(roleService))
+    install(createAuthorizationPlugin(roleService))
 
   install(StatusPages) {
     exception<AuthorizationException> { call, cause ->
