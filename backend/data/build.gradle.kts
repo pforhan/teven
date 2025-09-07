@@ -9,5 +9,4 @@ dependencies {
   implementation(libs.exposed.dao)
   implementation(libs.exposed.jdbc)
   implementation(libs.postgresql)
-  implementation(libs.koin.core)
 }

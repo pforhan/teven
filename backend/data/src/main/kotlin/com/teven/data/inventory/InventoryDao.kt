@@ -16,9 +16,7 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 
-class InventoryDao(
-  private val eventDao: EventDao,
-) {
+class InventoryDao {
   private suspend fun toInventoryItemResponse(row: ResultRow): InventoryItemResponse {
     val inventoryId = row[InventoryItems.id].value
     val events = EventInventory.select { EventInventory.inventoryItemId eq inventoryId }

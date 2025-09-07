@@ -5,7 +5,6 @@ import com.teven.api.model.event.EventInventoryItem
 import com.teven.api.model.event.EventResponse
 import com.teven.api.model.event.RsvpStatus
 import com.teven.data.dbQuery
-import com.teven.data.inventory.InventoryDao
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
@@ -14,11 +13,8 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class EventDao : KoinComponent {
-  private val inventoryDao: InventoryDao by inject()
+class EventDao {
   private suspend fun toEventResponse(row: ResultRow): EventResponse {
     val eventId = row[Events.id]
 
