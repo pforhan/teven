@@ -11,9 +11,8 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 
 fun Route.withPermission(permissionService: PermissionService, vararg permissions: Permission, build: Route.() -> Unit): Route {
-    val route = createChild(PermissionRouteSelector())
-
-    route.intercept(ApplicationCallPipeline.Call) {
+    val routeWithPermissions = createChild(PermissionRouteSelector())
+    routeWithPermissions.intercept(ApplicationCallPipeline.Call) { 
         val principal = call.principal<JWTPrincipal>()
         val callerId = principal?.payload?.getClaim("userId")?.asInt()
 
@@ -32,6 +31,6 @@ fun Route.withPermission(permissionService: PermissionService, vararg permission
         proceed()
     }
 
-    route.build()
-    return route
+    build(routeWithPermissions)
+    return routeWithPermissions
 }

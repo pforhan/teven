@@ -1,6 +1,5 @@
 package com.teven
 
-
 import com.teven.api.model.common.StatusResponse
 import com.teven.app.InitialSetup
 import com.teven.app.configureRouting
@@ -10,6 +9,7 @@ import com.teven.auth.createAuthorizationPlugin
 import com.teven.core.security.AuthorizationException
 import com.teven.core.service.RoleService
 import com.teven.data.DatabaseFactory
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -49,7 +49,27 @@ fun Application.module() {
 
   install(StatusPages) {
     exception<AuthorizationException> { call, cause ->
-      call.respond(cause.code, StatusResponse(cause.message ?: ""))
+      cause.printStackTrace()
+      call.respond(
+        cause.code,
+        StatusResponse(cause.message ?: "Auth exception: ${cause.stackTraceToString()}")
+      )
+    }
+
+    exception<Throwable> { call, cause ->
+      cause.printStackTrace()
+      call.respond(
+        HttpStatusCode.InternalServerError,
+        StatusResponse("Internal server error: ${cause.stackTraceToString()}")
+      )
+    }
+
+    status(HttpStatusCode.InternalServerError) { call, status ->
+      call.respond(status, StatusResponse("Internal server error: who knows why"))
+    }
+
+    status(HttpStatusCode.BadRequest) { call, status ->
+      call.respond(status, StatusResponse("Bad request: who knows why"))
     }
   }
 
