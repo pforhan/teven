@@ -29,7 +29,7 @@ const CreateEventForm: React.FC = () => {
         time,
         location,
         description,
-        inventoryItems,
+        inventoryIds: inventoryItems.map((item) => item.inventoryId),
         customerId: parseInt(customerId),
         staffInvites: {
           openInvitation,

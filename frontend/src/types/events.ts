@@ -17,7 +17,7 @@ export interface CreateEventRequest {
   time: string; // ISO 8601 time string (e.g., "HH:MM:SS")
   location: string;
   description: string;
-  inventoryItems: EventInventoryItem[];
+  inventoryIds: number[];
   customerId: number; // Single customer ID
   staffInvites: StaffInviteDetails; // Details for staff invitation
 }
