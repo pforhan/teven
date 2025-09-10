@@ -1,6 +1,5 @@
 package com.teven.api.model.event
 
-import com.teven.api.model.event.EventInventoryItem
 import kotlinx.serialization.Serializable
 
 @Serializable

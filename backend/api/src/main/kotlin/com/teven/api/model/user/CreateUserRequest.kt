@@ -10,4 +10,5 @@ data class CreateUserRequest(
   val email: String,
   val displayName: String,
   val roles: List<String> = emptyList(),
+  val organizationId: Int? = null,
 )

@@ -8,7 +8,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.response.respond
 
@@ -28,7 +27,12 @@ class ApplicationAuth(
           )
           validate { credential ->
             if (credential.payload.audience.contains(jwtConfig.audience)) {
-              JWTPrincipal(credential.payload)
+              val userId = credential.payload.getClaim("userId").asInt()
+              if (userId != null) {
+                UserIdPrincipal(userId)
+              } else {
+                null
+              }
             } else {
               null
             }

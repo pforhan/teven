@@ -5,8 +5,9 @@ import com.teven.app.InitialSetup
 import com.teven.app.configureRouting
 import com.teven.app.di.appModule
 import com.teven.auth.ApplicationAuth
-import com.teven.auth.createAuthorizationPlugin
+
 import com.teven.core.security.AuthorizationException
+import com.teven.core.service.PermissionService
 import com.teven.core.service.RoleService
 import com.teven.data.DatabaseFactory
 import io.ktor.http.HttpStatusCode
@@ -42,10 +43,11 @@ fun Application.module() {
   }
   val roleService by inject<RoleService>()
   val applicationAuth by inject<ApplicationAuth>()
+  val permissionService by inject<PermissionService>()
 
-    applicationAuth.configureJwt(this)
+  applicationAuth.configureJwt(this)
 
-    install(createAuthorizationPlugin(roleService))
+  attributes.put(PermissionService.key, permissionService)
 
   install(StatusPages) {
     exception<AuthorizationException> { call, cause ->

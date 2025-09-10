@@ -1,9 +1,13 @@
 ## Teven Service APIs
 
-This document outlines the API endpoints for the Teven service, including their purpose, authentication requirements, and the expected request/response data structures. Data structures are presented using Kotlin pseudocode for conciseness.
+This document outlines the API endpoints for the Teven service, including their purpose,
+authentication requirements, and the expected request/response data structures. Data structures are
+presented using Kotlin pseudocode for conciseness.
 
 **Authentication:**
-Most API endpoints in Teven will require authentication. We will use JSON Web Tokens (JWT) for authentication. The JWT will be included in the `Authorization` header of the HTTP request in the format: `Bearer <token>`. Endpoints not requiring authentication are explicitly marked.
+Most API endpoints in Teven will require authentication. We will use JSON Web Tokens (JWT) for
+authentication. The JWT will be included in the `Authorization` header of the HTTP request in the
+format: `Bearer <token>`. Endpoints not requiring authentication are explicitly marked.
 
 ### I. Authentication and Authorization API
 
@@ -51,7 +55,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/users/{user_id}`: Retrieve user details.
     * Authentication: Required.
-    * Permissions: `MANAGE_USERS_SELF` to view your own profile, `VIEW_USERS_ORGANIZATION` to view others in your org, or `VIEW_USERS_GLOBAL` to view anyone.
+    * Permissions: `MANAGE_USERS_SELF` to view your own profile, `VIEW_USERS_ORGANIZATION` to view
+      others in your org, or `VIEW_USERS_GLOBAL` to view anyone.
     * Response:
         ```kotlin
         data class UserResponse(
@@ -66,12 +71,14 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 * `GET /api/users`: Retrieve all users.
     * Authentication: Required.
-    * Permissions: `VIEW_USERS_ORGANIZATION` to view users in your org, or `VIEW_USERS_GLOBAL` to view all users.
+    * Permissions: `VIEW_USERS_ORGANIZATION` to view users in your org, or `VIEW_USERS_GLOBAL` to
+      view all users.
     * Response: `List<UserResponse>`
 
 * `PUT /api/users/{user_id}`: Update user details.
     * Authentication: Required.
-    * Permissions: `MANAGE_USERS_SELF` to edit your own profile, `MANAGE_USERS_ORGANIZATION` to edit others in your org, or `MANAGE_USERS_GLOBAL` to edit anyone.
+    * Permissions: `MANAGE_USERS_SELF` to edit your own profile, `MANAGE_USERS_ORGANIZATION` to edit
+      others in your org, or `MANAGE_USERS_GLOBAL` to edit anyone.
     * Request:
         ```kotlin
         data class UpdateUserRequest(
@@ -756,7 +763,8 @@ data class UserResponse(
 
 ### API Documentation Generation
 
-This `API.md` file is generated automatically from the `API_TEMPLATE.md` file and the backend route definitions.
+This `API.md` file is generated automatically from the `API_TEMPLATE.md` file and the backend route
+definitions.
 
 To regenerate the `API.md` file, run the following command from the root of the project:
 
@@ -769,7 +777,10 @@ To regenerate the `API.md` file, run the following command from the root of the 
 **Notes:**
 
 * This is a preliminary design and is subject to change.
-* Error handling (e.g., 400 Bad Request, 404 Not Found, 500 Internal Server Error) is not detailed here but should be implemented for all endpoints.
+* Error handling (e.g., 400 Bad Request, 404 Not Found, 500 Internal Server Error) is not detailed
+  here but should be implemented for all endpoints.
 * Input validation should be performed for all requests.
-* Pagination should be implemented for endpoints that return large lists of data (e.g., `/api/events`, `/api/customers`, `/api/inventory`).
-* Consider using a more descriptive name for "Availability Functionality" (e.g., "StaffAvailability").
+* Pagination should be implemented for endpoints that return large lists of data (e.g.,
+  `/api/events`, `/api/customers`, `/api/inventory`).
+* Consider using a more descriptive name for "Availability Functionality" (e.g., "
+  StaffAvailability").

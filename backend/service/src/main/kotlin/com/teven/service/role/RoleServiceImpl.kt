@@ -7,8 +7,8 @@ import com.teven.core.service.RoleService
 import com.teven.data.role.RoleDao
 
 class RoleServiceImpl(
-  private val roleDao: RoleDao
-): RoleService {
+  private val roleDao: RoleDao,
+) : RoleService {
   override suspend fun createRole(createRoleRequest: CreateRoleRequest): RoleResponse {
     return roleDao.createRole(createRoleRequest)
   }

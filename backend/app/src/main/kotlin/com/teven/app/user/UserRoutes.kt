@@ -2,13 +2,12 @@ package com.teven.app.user
 
 import com.teven.api.model.common.StatusResponse
 import com.teven.api.model.user.CreateUserRequest
+import com.teven.auth.UserIdPrincipal
 import com.teven.auth.withPermission
-import com.teven.core.security.Permission
-import com.teven.core.service.PermissionService
+import com.teven.core.security.Permission.MANAGE_USERS_ORGANIZATION
+import com.teven.core.security.Permission.VIEW_USERS_ORGANIZATION
 import com.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
-import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -21,10 +20,9 @@ import org.koin.ktor.ext.inject
 
 fun Route.userRoutes() {
   val userService by inject<UserService>()
-  val permissionService by inject<PermissionService>()
 
   route("/api/users") {
-    withPermission(permissionService,Permission.MANAGE_USERS_ORGANIZATION) {
+    withPermission(MANAGE_USERS_ORGANIZATION) {
       post {
         val createUserRequest = call.receive<CreateUserRequest>()
         val newUser = userService.createUser(createUserRequest)
@@ -32,18 +30,18 @@ fun Route.userRoutes() {
       }
     }
 
-    withPermission(permissionService, Permission.VIEW_USERS_ORGANIZATION) {
+    withPermission(VIEW_USERS_ORGANIZATION) {
       get {
-        val principal = call.principal<JWTPrincipal>()
-        val callerId = principal?.payload?.getClaim("userId")?.asInt() ?: return@get
+        val principal = call.principal<UserIdPrincipal>()
+        val callerId = principal?.userId ?: return@get
         val users = userService.getAllUsers(callerId)
         call.respond(HttpStatusCode.OK, users)
       }
     }
 
     get("/context") {
-      val principal = call.principal<JWTPrincipal>()
-      val userId = principal?.payload?.getClaim("userId")?.asInt()
+      val principal = call.principal<UserIdPrincipal>()
+      val userId = principal?.userId
 
       if (userId == null) {
         call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
@@ -58,7 +56,7 @@ fun Route.userRoutes() {
       }
     }
 
-    withPermission(permissionService, Permission.VIEW_USERS_ORGANIZATION) {
+    withPermission(VIEW_USERS_ORGANIZATION) {
       get("/{userId}") {
         val userId = call.parameters["userId"]?.toIntOrNull() ?: return@get
         val user = userService.getUserById(userId)
@@ -70,7 +68,7 @@ fun Route.userRoutes() {
       }
     }
 
-    withPermission(permissionService,Permission.MANAGE_USERS_ORGANIZATION) {
+    withPermission(MANAGE_USERS_ORGANIZATION) {
       put("/{userId}") {
         val userId = call.parameters["userId"]?.toIntOrNull() ?: return@put
         val updateUserRequest = call.receive<com.teven.api.model.user.UpdateUserRequest>()

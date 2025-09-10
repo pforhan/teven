@@ -25,10 +25,12 @@ object Events : Table() {
     val eventId = row[id]
 
     val inventoryIds = EventInventory.select { EventInventory.eventId eq eventId }
-      .map { EventInventoryItem(
-        inventoryId = it[EventInventory.inventoryItemId],
-        quantity = it[EventInventory.quantity],
-      ) }
+      .map {
+        EventInventoryItem(
+          inventoryId = it[EventInventory.inventoryItemId],
+          quantity = it[EventInventory.quantity],
+        )
+      }
 
     val assignedStaffIds =
       EventStaff.select { EventStaff.eventId eq eventId }.map { it[EventStaff.userId].value }

@@ -5,7 +5,10 @@ import io.ktor.server.routing.RouteSelectorEvaluation
 import io.ktor.server.routing.RoutingResolveContext
 
 class PermissionRouteSelector : RouteSelector() {
-    override fun evaluate(context: RoutingResolveContext, segmentIndex: Int): RouteSelectorEvaluation {
-        return RouteSelectorEvaluation.Constant
-    }
+  override suspend fun evaluate(
+    context: RoutingResolveContext,
+    segmentIndex: Int,
+  ): RouteSelectorEvaluation {
+    return RouteSelectorEvaluation.Constant
+  }
 }

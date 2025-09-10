@@ -27,7 +27,7 @@ This document outlines the conventions and best practices to follow when using t
 
 ## Frontend (React/TypeScript)
 
-- **Building:** Build and test frontend with `npm run build`
+- **Building:** Build and test frontend with `npm run build --prefix frontend`
 - **Component-Based Architecture:** Follow a component-based architecture, creating reusable components where possible.
 - **TypeScript:** Use TypeScript for all frontend code to ensure type safety.
 - **State Management:** Use a consistent state management library (e.g., Redux, MobX) if one is established in the project.

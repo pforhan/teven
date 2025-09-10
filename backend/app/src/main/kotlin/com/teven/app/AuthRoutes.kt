@@ -4,7 +4,6 @@ import com.teven.api.model.auth.LoginRequest
 import com.teven.api.model.common.StatusResponse
 import com.teven.core.service.AuthService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route

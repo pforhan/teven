@@ -25,7 +25,7 @@ import org.koin.dsl.module
 
 val appModule = module {
   single { UserDao() }
-  
+
   single<UserService> { UserServiceImpl(get(), get(), get()) }
   single<AuthService> { AuthServiceImpl(get(), get(), get()) }
   single<RoleService> { RoleServiceImpl(get()) }
@@ -39,12 +39,18 @@ val appModule = module {
   single { RoleDao() }
   single { OrganizationDao() }
   single { OrganizationService(get(), get()) }
-  single { JwtConfig(
-    secret = System.getenv("JWT_SECRET") ?: throw IllegalArgumentException("JWT_SECRET environment variable not set"),
-    issuer = System.getenv("JWT_ISSUER") ?: throw IllegalArgumentException("JWT_ISSUER environment variable not set"),
-    audience = System.getenv("JWT_AUDIENCE") ?: throw IllegalArgumentException("JWT_AUDIENCE environment variable not set"),
-    expirationTimeMillis = System.getenv("JWT_EXPIRATION_MILLIS")?.toLongOrNull() ?: throw IllegalArgumentException("JWT_EXPIRATION_MILLIS environment variable not set or invalid")
-  ) }
+  single {
+    JwtConfig(
+      secret = System.getenv("JWT_SECRET")
+        ?: throw IllegalArgumentException("JWT_SECRET environment variable not set"),
+      issuer = System.getenv("JWT_ISSUER")
+        ?: throw IllegalArgumentException("JWT_ISSUER environment variable not set"),
+      audience = System.getenv("JWT_AUDIENCE")
+        ?: throw IllegalArgumentException("JWT_AUDIENCE environment variable not set"),
+      expirationTimeMillis = System.getenv("JWT_EXPIRATION_MILLIS")?.toLongOrNull()
+        ?: throw IllegalArgumentException("JWT_EXPIRATION_MILLIS environment variable not set or invalid")
+    )
+  }
   single { InitialSetup(get(), get(), get()) }
   single { ApplicationAuth(get()) }
 }

@@ -4,11 +4,10 @@ import com.teven.api.model.common.StatusResponse
 import com.teven.api.model.organization.CreateOrganizationRequest
 import com.teven.api.model.organization.UpdateOrganizationRequest
 import com.teven.auth.withPermission
-import com.teven.core.security.Permission
-import com.teven.core.service.PermissionService
+import com.teven.core.security.Permission.MANAGE_ORGANIZATIONS_GLOBAL
+import com.teven.core.security.Permission.VIEW_ORGANIZATIONS_GLOBAL
 import com.teven.service.organization.OrganizationService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -21,10 +20,9 @@ import org.koin.ktor.ext.inject
 
 fun Route.organizationRoutes() {
   val organizationService by inject<OrganizationService>()
-  val permissionService by inject<PermissionService>()
 
   route("/api/organizations") {
-    withPermission(permissionService, Permission.MANAGE_ORGANIZATIONS_GLOBAL) {
+    withPermission(MANAGE_ORGANIZATIONS_GLOBAL) {
       post {
         val createOrganizationRequest = call.receive<CreateOrganizationRequest>()
         val newOrganization = organizationService.createOrganization(createOrganizationRequest)
@@ -65,7 +63,7 @@ fun Route.organizationRoutes() {
       }
     }
 
-    withPermission(permissionService, Permission.VIEW_ORGANIZATIONS_GLOBAL) {
+    withPermission(VIEW_ORGANIZATIONS_GLOBAL) {
       get {
         val organizations = organizationService.getAllOrganizations()
         call.respond(HttpStatusCode.OK, organizations)

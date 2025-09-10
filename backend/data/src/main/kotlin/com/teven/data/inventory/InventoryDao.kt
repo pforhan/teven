@@ -6,7 +6,6 @@ import com.teven.api.model.inventory.InventoryItemResponse
 import com.teven.api.model.inventory.TrackInventoryUsageRequest
 import com.teven.api.model.inventory.UpdateInventoryItemRequest
 import com.teven.data.dbQuery
-import com.teven.data.event.EventDao
 import com.teven.data.event.EventInventory
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq

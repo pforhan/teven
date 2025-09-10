@@ -46,7 +46,10 @@ class InitialSetup(
             contactInformation = "admin@teven.com",
           ),
         )
-        organizationDao.assignUserToOrganization(superAdminUser.userId, tevenOrganization.organizationId)
+        organizationDao.assignUserToOrganization(
+          superAdminUser.userId,
+          tevenOrganization.organizationId
+        )
         val superAdminRole = roleDao.getRoleByName(Constants.ROLE_SUPERADMIN)!!
         roleDao.assignRoleToUser(superAdminUser.userId, superAdminRole.roleId)
       }

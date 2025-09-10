@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.1.0"
-ktor = "2.3.7"
+ktor = "3.2.3"
 koin = "4.1.0"
 exposed = "0.45.0"
 postgresql = "42.6.0"
