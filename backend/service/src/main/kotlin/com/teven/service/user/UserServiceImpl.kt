@@ -44,13 +44,20 @@ class UserServiceImpl(
     return toUserResponse(user)
   }
 
-  // TODO I don't think this is correct -- if a superadmin has an org it should still get all users
   override suspend fun getAllUsers(callerId: Int): List<UserResponse> {
-    val organizationId = userDao.getOrganizationForUser(callerId)
-    val users = if (organizationId != null) {
-      userDao.getUsersByOrganization(organizationId)
-    } else {
+    val callerRoles = roleService.getRolesForUser(callerId)
+    val isSuperAdmin = callerRoles.any { it.roleName == "superadmin" }
+
+    val users = if (isSuperAdmin) {
       userDao.getAllUsers()
+    } else {
+      val organizationId = userDao.getOrganizationForUser(callerId)
+      if (organizationId != null) {
+        userDao.getUsersByOrganization(organizationId)
+      } else {
+        // Non-superadmins not in an org can't see anyone
+        emptyList()
+      }
     }
     return users.map { toUserResponse(it) }
   }
