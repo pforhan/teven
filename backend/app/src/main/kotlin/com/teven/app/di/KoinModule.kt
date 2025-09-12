@@ -8,12 +8,14 @@ import com.teven.core.service.AuthService
 import com.teven.core.service.PermissionService
 import com.teven.core.service.RoleService
 import com.teven.core.service.UserService
+import com.teven.data.customer.CustomerDao
 import com.teven.data.event.EventDao
 import com.teven.data.inventory.InventoryDao
 import com.teven.data.organization.OrganizationDao
 import com.teven.data.report.ReportDao
 import com.teven.data.role.RoleDao
 import com.teven.data.user.UserDao
+import com.teven.service.customer.CustomerService
 import com.teven.service.event.EventService
 import com.teven.service.inventory.InventoryService
 import com.teven.service.organization.OrganizationService
@@ -39,6 +41,8 @@ val appModule = module {
   single { RoleDao() }
   single { OrganizationDao() }
   single { OrganizationService(get(), get()) }
+  single { CustomerDao() }
+  single { CustomerService(get()) }
   single {
     JwtConfig(
       secret = System.getenv("JWT_SECRET")
