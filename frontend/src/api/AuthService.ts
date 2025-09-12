@@ -6,7 +6,7 @@ export const TOKEN_KEY = 'teven-auth-token';
 export class AuthService {
 
   static async login(request: LoginRequest): Promise<LoginResponse> {
-    const data = await apiClient('/api/users/login', {
+    const data = await apiClient<LoginResponse>('/api/users/login', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -37,17 +37,17 @@ export class AuthService {
   }
 
   static async getUserDetails(userId: number): Promise<UserDetailsResponse> {
-    return apiClient(`/api/users/${userId}`);
+    return apiClient<UserDetailsResponse>(`/api/users/${userId}`);
   }
 
   static async updateUserDetails(userId: number, request: UpdateUserRequest): Promise<UserResponse> {
-    return apiClient(`/api/users/${userId}`, {
+    return apiClient<UserResponse>(`/api/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(request),
     });
   }
 
   static async getUserContext(): Promise<UserContextResponse> {
-    return apiClient('/api/users/context');
+    return apiClient<UserContextResponse>('/api/users/context');
   }
 }

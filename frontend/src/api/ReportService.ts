@@ -7,10 +7,10 @@ export class ReportService {
       startDate: request.startDate,
       endDate: request.endDate,
     }).toString();
-    return apiClient(`/api/reports/staff_hours?${queryParams}`);
+    return apiClient<StaffHoursReportResponse[]>(`/api/reports/staff_hours?${queryParams}`);
   }
 
   static async getInventoryUsageReport(): Promise<InventoryUsageReportResponse[]> {
-    return apiClient('/api/reports/inventory_usage');
+    return apiClient<InventoryUsageReportResponse[]>('/api/reports/inventory_usage');
   }
 }

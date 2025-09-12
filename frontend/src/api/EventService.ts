@@ -4,7 +4,7 @@ import { apiClient } from './apiClient';
 
 export class EventService {
   static async createEvent(request: CreateEventRequest): Promise<EventResponse> {
-    return apiClient('/api/events', {
+    return apiClient<EventResponse>('/api/events', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -18,34 +18,34 @@ export class EventService {
     if (sortByDate) {
       url.searchParams.append('sortByDate', sortByDate);
     }
-    return apiClient(url.toString());
+    return apiClient<EventResponse[]>(url.toString());
   }
 
   static async getEvent(eventId: number): Promise<EventResponse> {
-    return apiClient(`/api/events/${eventId}`);
+    return apiClient<EventResponse>(`/api/events/${eventId}`);
   }
 
   static async updateEvent(eventId: number, request: UpdateEventRequest): Promise<EventResponse> {
-    return apiClient(`/api/events/${eventId}`, {
+    return apiClient<EventResponse>(`/api/events/${eventId}`, {
       method: 'PUT',
       body: JSON.stringify(request),
     });
   }
 
   static async deleteEvent(eventId: number): Promise<StatusResponse> {
-    return apiClient(`/api/events/${eventId}`, { method: 'DELETE' });
+    return apiClient<StatusResponse>(`/api/events/${eventId}`, { method: 'DELETE' });
   }
 
   static async assignStaffToEvent(eventId: number, userId: number): Promise<StatusResponse> {
-    return apiClient(`/api/events/${eventId}/staff/${userId}`, { method: 'POST' });
+    return apiClient<StatusResponse>(`/api/events/${eventId}/staff/${userId}`, { method: 'POST' });
   }
 
   static async removeStaffFromEvent(eventId: number, userId: number): Promise<StatusResponse> {
-    return apiClient(`/api/events/${eventId}/staff/${userId}`, { method: 'DELETE' });
+    return apiClient<StatusResponse>(`/api/events/${eventId}/staff/${userId}`, { method: 'DELETE' });
   }
 
   static async rsvpToEvent(eventId: number, request: RsvpRequest): Promise<StatusResponse> {
-    return apiClient(`/api/events/${eventId}/rsvp`, {
+    return apiClient<StatusResponse>(`/api/events/${eventId}/rsvp`, {
       method: 'POST',
       body: JSON.stringify(request),
     });

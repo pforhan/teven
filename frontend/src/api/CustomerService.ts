@@ -11,28 +11,28 @@ export class CustomerService {
     if (sortByName) {
       url.searchParams.append('sortByName', sortByName);
     }
-    return apiClient(url.toString());
+    return apiClient<CustomerResponse[]>(url.toString());
   }
 
   static async getCustomer(customerId: number): Promise<CustomerResponse> {
-    return apiClient(`/api/customers/${customerId}`);
+    return apiClient<CustomerResponse>(`/api/customers/${customerId}`);
   }
 
   static async createCustomer(request: CreateCustomerRequest): Promise<CustomerResponse> {
-    return apiClient('/api/customers', {
+    return apiClient<CustomerResponse>('/api/customers', {
       method: 'POST',
       body: JSON.stringify(request),
     });
   }
 
   static async updateCustomer(customerId: number, request: UpdateCustomerRequest): Promise<CustomerResponse> {
-    return apiClient(`/api/customers/${customerId}`, {
+    return apiClient<CustomerResponse>(`/api/customers/${customerId}`, {
       method: 'PUT',
       body: JSON.stringify(request),
     });
   }
 
   static async deleteCustomer(customerId: number): Promise<StatusResponse> {
-    return apiClient(`/api/customers/${customerId}`, { method: 'DELETE' });
+    return apiClient<StatusResponse>(`/api/customers/${customerId}`, { method: 'DELETE' });
   }
 }

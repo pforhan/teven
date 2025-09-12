@@ -11,33 +11,33 @@ export class InventoryService {
     if (sortByName) {
       url.searchParams.append('sortByName', sortByName);
     }
-    return apiClient(url.toString());
+    return apiClient<InventoryItemResponse[]>(url.toString());
   }
 
   static async getInventoryItem(inventoryId: number): Promise<InventoryItemResponse> {
-    return apiClient(`/api/inventory/${inventoryId}`);
+    return apiClient<InventoryItemResponse>(`/api/inventory/${inventoryId}`);
   }
 
   static async createInventoryItem(request: CreateInventoryItemRequest): Promise<InventoryItemResponse> {
-    return apiClient('/api/inventory', {
+    return apiClient<InventoryItemResponse>('/api/inventory', {
       method: 'POST',
       body: JSON.stringify(request),
     });
   }
 
   static async updateInventoryItem(inventoryId: number, request: UpdateInventoryItemRequest): Promise<InventoryItemResponse> {
-    return apiClient(`/api/inventory/${inventoryId}`, {
+    return apiClient<InventoryItemResponse>(`/api/inventory/${inventoryId}`, {
       method: 'PUT',
       body: JSON.stringify(request),
     });
   }
 
   static async deleteInventoryItem(inventoryId: number): Promise<StatusResponse> {
-    return apiClient(`/api/inventory/${inventoryId}`, { method: 'DELETE' });
+    return apiClient<StatusResponse>(`/api/inventory/${inventoryId}`, { method: 'DELETE' });
   }
 
   static async trackInventoryUsage(inventoryId: number, request: TrackInventoryUsageRequest): Promise<StatusResponse> {
-    return apiClient(`/api/inventory/${inventoryId}/usage`, {
+    return apiClient<StatusResponse>(`/api/inventory/${inventoryId}/usage`, {
       method: 'POST',
       body: JSON.stringify(request),
     });
