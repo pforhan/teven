@@ -1,5 +1,3 @@
-// frontend/src/components/organizations/EditOrganizationForm.tsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { OrganizationService } from '../../api/OrganizationService';
@@ -61,21 +59,23 @@ const EditOrganizationForm: React.FC = () => {
   }
 
   return (
-    <div>
-      <h2>Edit Organization: {organization.name}</h2>
-      <ErrorDisplay message={error} />
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="name">Name:</label>
-          <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="contactInformation">Contact Information:</label>
-          <input type="text" id="contactInformation" value={contactInformation} onChange={(e) => setContactInformation(e.target.value)} required />
-        </div>
-        <button type="submit">Update Organization</button>
-        <button type="button" onClick={() => navigate('/organizations')}>Cancel</button>
-      </form>
+    <div className="card">
+      <div className="card-body">
+        <h2 className="card-title">Edit Organization: {organization.name}</h2>
+        <ErrorDisplay message={error} />
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="name" className="form-label">Name:</label>
+            <input type="text" id="name" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="contactInformation" className="form-label">Contact Information:</label>
+            <input type="text" id="contactInformation" className="form-control" value={contactInformation} onChange={(e) => setContactInformation(e.target.value)} required />
+          </div>
+          <button type="submit" className="btn btn-primary">Update Organization</button>
+          <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/organizations')}>Cancel</button>
+        </form>
+      </div>
     </div>
   );
 };

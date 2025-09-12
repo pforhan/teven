@@ -83,51 +83,55 @@ const EditEventForm: React.FC = () => {
   }
 
   return (
-    <div>
-      <h2>Edit Event: {event.title}</h2>
-      <ErrorDisplay message={error} />
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="title">Title:</label>
-          <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="date">Date:</label>
-          <input type="date" id="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="time">Time:</label>
-          <input type="time" id="time" value={time} onChange={(e) => setTime(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="location">Location:</label>
-          <input type="text" id="location" value={location} onChange={(e) => setLocation(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="description">Description:</label>
-          <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required />
-        </div>
-        <div>
-          <InventoryAssociationEditor
-            initialInventoryItems={event.inventoryItems}
-            onInventoryItemsChange={setInventoryItems}
-          />
-        </div>
-        <div>
-          <label htmlFor="customerId">Customer ID:</label>
-          <input type="number" id="customerId" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="openInvitation">Open Invitation:</label>
-          <input type="checkbox" id="openInvitation" checked={openInvitation} onChange={(e) => setOpenInvitation(e.target.checked)} />
-        </div>
-        <div>
-          <label htmlFor="numberOfStaffNeeded">Number of Staff Needed:</label>
-          <input type="number" id="numberOfStaffNeeded" value={numberOfStaffNeeded} onChange={(e) => setNumberOfStaffNeeded(parseInt(e.target.value))} required />
-        </div>
-        <button type="submit">Update Event</button>
-        <button type="button" onClick={() => navigate('/events')}>Cancel</button>
-      </form>
+    <div className="card">
+      <div className="card-body">
+        <h2 className="card-title">Edit Event: {event.title}</h2>
+        <ErrorDisplay message={error} />
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="title" className="form-label">Title:</label>
+            <input type="text" id="title" className="form-control" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label htmlFor="date" className="form-label">Date:</label>
+              <input type="date" id="date" className="form-control" value={date} onChange={(e) => setDate(e.target.value)} required />
+            </div>
+            <div className="col-md-6">
+              <label htmlFor="time" className="form-label">Time:</label>
+              <input type="time" id="time" className="form-control" value={time} onChange={(e) => setTime(e.target.value)} required />
+            </div>
+          </div>
+          <div className="mb-3">
+            <label htmlFor="location" className="form-label">Location:</label>
+            <input type="text" id="location" className="form-control" value={location} onChange={(e) => setLocation(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="description" className="form-label">Description:</label>
+            <textarea id="description" className="form-control" value={description} onChange={(e) => setDescription(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <InventoryAssociationEditor
+              initialInventoryItems={event.inventoryItems}
+              onInventoryItemsChange={setInventoryItems}
+            />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="customerId" className="form-label">Customer ID:</label>
+            <input type="number" id="customerId" className="form-control" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required />
+          </div>
+          <div className="mb-3 form-check">
+            <input type="checkbox" id="openInvitation" className="form-check-input" checked={openInvitation} onChange={(e) => setOpenInvitation(e.target.checked)} />
+            <label htmlFor="openInvitation" className="form-check-label">Open Invitation</label>
+          </div>
+          <div className="mb-3">
+            <label htmlFor="numberOfStaffNeeded" className="form-label">Number of Staff Needed:</label>
+            <input type="number" id="numberOfStaffNeeded" className="form-control" value={numberOfStaffNeeded} onChange={(e) => setNumberOfStaffNeeded(parseInt(e.target.value))} required />
+          </div>
+          <button type="submit" className="btn btn-primary">Update Event</button>
+          <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/events')}>Cancel</button>
+        </form>
+      </div>
     </div>
   );
 };

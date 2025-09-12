@@ -72,15 +72,18 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
   };
 
   return (
-    <div>
-      <h3>Associated Inventory</h3>
+    <div className="mb-3">
+      <h4>Associated Inventory</h4>
       <ErrorDisplay message={error} />
 
       {availableInventory.length === 0 ? (
-        <p>No inventory items available. <Link to="/inventory/create">Create one?</Link></p>
+        <p className="alert alert-info">
+          No inventory items available. <Link to="/inventory/create" className="alert-link">Create one?</Link>
+        </p>
       ) : (
-        <div>
+        <div className="input-group mb-3">
           <select
+            className="form-select"
             value={selectedInventoryId}
             onChange={(e) => setSelectedInventoryId(e.target.value)}
           >
@@ -92,21 +95,22 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
           </select>
           <input
             type="number"
+            className="form-control"
             value={selectedQuantity}
             onChange={(e) => setSelectedQuantity(parseInt(e.target.value) || 1)}
             min="1"
           />
-          <button type="button" onClick={handleAddItem}>Add Item</button>
+          <button type="button" className="btn btn-outline-secondary" onClick={handleAddItem}>Add Item</button>
         </div>
       )}
 
-      <ul>
+      <ul className="list-group">
         {currentAssociatedItems.map(item => {
           const inventoryDetail = availableInventory.find(inv => inv.inventoryId === item.inventoryId);
           return (
-            <li key={item.inventoryId}>
+            <li key={item.inventoryId} className="list-group-item d-flex justify-content-between align-items-center">
               {inventoryDetail?.name || `ID: ${item.inventoryId}`} - Quantity: {item.quantity}
-              <button type="button" onClick={() => handleRemoveItem(item.inventoryId)}>Remove</button>
+              <button type="button" className="btn btn-sm btn-danger" onClick={() => handleRemoveItem(item.inventoryId)}>Remove</button>
             </li>
           );
         })}

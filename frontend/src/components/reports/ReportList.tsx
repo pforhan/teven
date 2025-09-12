@@ -1,5 +1,3 @@
-// frontend/src/components/reports/ReportList.tsx
-
 import React, { useState, useEffect } from 'react';
 import { ReportService } from '../../api/ReportService';
 import type { StaffHoursReportResponse, InventoryUsageReportResponse } from '../../types/reports';
@@ -49,66 +47,80 @@ const ReportList: React.FC = () => {
   }, []);
 
   return (
-    <div>
+    <div className="container-fluid">
       <h2>Reports</h2>
       <ErrorDisplay message={error} />
 
-      <h3>Staff Hours Report</h3>
-      <div>
-        <label htmlFor="startDate">Start Date:</label>
-        <input type="date" id="startDate" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+      <div className="card mb-4">
+        <div className="card-body">
+          <h3 className="card-title">Staff Hours Report</h3>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label htmlFor="startDate" className="form-label">Start Date:</label>
+              <input type="date" id="startDate" className="form-control" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div className="col-md-6">
+              <label htmlFor="endDate" className="form-label">End Date:</label>
+              <input type="date" id="endDate" className="form-control" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+          <button onClick={fetchStaffHoursReport} className="btn btn-primary mb-3">Generate Staff Hours Report</button>
+          {staffHoursReport.length > 0 ? (
+            <div className="table-responsive">
+              <table className="table table-striped table-hover">
+                <thead className="table-dark">
+                  <tr>
+                    <th>User ID</th>
+                    <th>Username</th>
+                    <th>Total Hours Worked</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staffHoursReport.map(item => (
+                    <tr key={item.userId}>
+                      <td>{item.userId}</td>
+                      <td>{item.username}</td>
+                      <td>{item.totalHoursWorked}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>No staff hours data available for the selected period.</p>
+          )}
+        </div>
       </div>
-      <div>
-        <label htmlFor="endDate">End Date:</label>
-        <input type="date" id="endDate" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-      </div>
-      <button onClick={fetchStaffHoursReport}>Generate Staff Hours Report</button>
-      {staffHoursReport.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>User ID</th>
-              <th>Username</th>
-              <th>Total Hours Worked</th>
-            </tr>
-          </thead>
-          <tbody>
-            {staffHoursReport.map(item => (
-              <tr key={item.userId}>
-                <td>{item.userId}</td>
-                <td>{item.username}</td>
-                <td>{item.totalHoursWorked}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p>No staff hours data available for the selected period.</p>
-      )}
 
-      <h3>Inventory Usage Report</h3>
-      {inventoryUsageReport.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>Inventory ID</th>
-              <th>Name</th>
-              <th>Usage Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inventoryUsageReport.map(item => (
-              <tr key={item.inventoryId}>
-                <td>{item.inventoryId}</td>
-                <td>{item.name}</td>
-                <td>{item.usageCount}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p>No inventory usage data available.</p>
-      )}
+      <div className="card">
+        <div className="card-body">
+          <h3 className="card-title">Inventory Usage Report</h3>
+          {inventoryUsageReport.length > 0 ? (
+            <div className="table-responsive">
+              <table className="table table-striped table-hover">
+                <thead className="table-dark">
+                  <tr>
+                    <th>Inventory ID</th>
+                    <th>Name</th>
+                    <th>Usage Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inventoryUsageReport.map(item => (
+                    <tr key={item.inventoryId}>
+                      <td>{item.inventoryId}</td>
+                      <td>{item.name}</td>
+                      <td>{item.usageCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>No inventory usage data available.</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

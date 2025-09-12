@@ -79,57 +79,60 @@ const CreateUserForm: React.FC = () => {
   };
 
   return (
-    <div>
-      <h2>Create New User</h2>
-      <ErrorDisplay message={error} />
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="username">Username:</label>
-          <input type="text" id="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="password">Password:</label>
-          <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="email">Email:</label>
-          <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="displayName">Display Name:</label>
-          <input type="text" id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="roles">Roles:</label>
-          <select id="roles" multiple={true} value={selectedRoles} onChange={handleRoleChange}>
-            {availableRoles.map(role => (
-              <option key={role.roleId} value={role.roleName}>
-                {role.roleName}
-              </option>
-            ))}
-          </select>
-        </div>
-        {isSuperAdmin && (
-          <div>
-            <label htmlFor="organization">Organization:</label>
-            <select
-              id="organization"
-              value={selectedOrganization}
-              onChange={(e) => setSelectedOrganization(e.target.value)}
-              required
-            >
-              <option value="">Select an Organization</option>
-              {availableOrganizations.map(org => (
-                <option key={org.organizationId} value={org.organizationId}>
-                  {org.name}
+    <div className="card">
+      <div className="card-body">
+        <h2 className="card-title">Create New User</h2>
+        <ErrorDisplay message={error} />
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="username" className="form-label">Username:</label>
+            <input type="text" id="username" className="form-control" value={username} onChange={(e) => setUsername(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="password" className="form-label">Password:</label>
+            <input type="password" id="password" className="form-control" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="email" className="form-label">Email:</label>
+            <input type="email" id="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="displayName" className="form-label">Display Name:</label>
+            <input type="text" id="displayName" className="form-control" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="roles" className="form-label">Roles:</label>
+            <select id="roles" multiple={true} className="form-select" value={selectedRoles} onChange={handleRoleChange}>
+              {availableRoles.map(role => (
+                <option key={role.roleId} value={role.roleName}>
+                  {role.roleName}
                 </option>
               ))}
             </select>
           </div>
-        )}
-        <button type="submit">Create User</button>
-        <button type="button" onClick={() => navigate('/users')}>Cancel</button>
-      </form>
+          {isSuperAdmin && (
+            <div className="mb-3">
+              <label htmlFor="organization" className="form-label">Organization:</label>
+              <select
+                id="organization"
+                className="form-select"
+                value={selectedOrganization}
+                onChange={(e) => setSelectedOrganization(e.target.value)}
+                required
+              >
+                <option value="">Select an Organization</option>
+                {availableOrganizations.map(org => (
+                  <option key={org.organizationId} value={org.organizationId}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button type="submit" className="btn btn-primary">Create User</button>
+          <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/users')}>Cancel</button>
+        </form>
+      </div>
     </div>
   );
 };

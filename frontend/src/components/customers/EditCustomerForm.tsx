@@ -67,29 +67,31 @@ const EditCustomerForm: React.FC = () => {
   }
 
   return (
-    <div>
-      <h2>Edit Customer: {customer.name}</h2>
-      <ErrorDisplay message={error} />
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="name">Name:</label>
-          <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="phone">Phone:</label>
-          <input type="text" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="address">Address:</label>
-          <input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="notes">Notes:</label>
-          <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} required />
-        </div>
-        <button type="submit">Update Customer</button>
-        <button type="button" onClick={() => navigate('/customers')}>Cancel</button>
-      </form>
+    <div className="card">
+      <div className="card-body">
+        <h2 className="card-title">Edit Customer: {customer.name}</h2>
+        <ErrorDisplay message={error} />
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="name" className="form-label">Name:</label>
+            <input type="text" id="name" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="phone" className="form-label">Phone:</label>
+            <input type="text" id="phone" className="form-control" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="address" className="form-label">Address:</label>
+            <input type="text" id="address" className="form-control" value={address} onChange={(e) => setAddress(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="notes" className="form-label">Notes:</label>
+            <textarea id="notes" className="form-control" value={notes} onChange={(e) => setNotes(e.target.value)} required />
+          </div>
+          <button type="submit" className="btn btn-primary">Update Customer</button>
+          <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/customers')}>Cancel</button>
+        </form>
+      </div>
     </div>
   );
 };

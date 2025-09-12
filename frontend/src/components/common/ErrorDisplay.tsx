@@ -12,8 +12,8 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ message }) => {
   }
 
   return (
-    <div className="error-message">
-      <p>Error: {message}</p>
+    <div className="alert alert-danger" role="alert">
+      Error: {message}
     </div>
   );
 };

@@ -68,38 +68,41 @@ const EventList: React.FC = () => {
     <>
       {canManageEvents && (
         <>
-          <button onClick={() => navigate(`/events/edit/${event.eventId}`)}>Edit</button>
-          <button onClick={() => handleDelete(event.eventId)}>Delete</button>
+          <button className="btn btn-sm btn-primary me-2" onClick={() => navigate(`/events/edit/${event.eventId}`)}>Edit</button>
+          <button className="btn btn-sm btn-danger" onClick={() => handleDelete(event.eventId)}>Delete</button>
         </>
       )}
     </>
   );
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="container-fluid">
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Events</h2>
         {canManageEvents && (
-          <button onClick={() => navigate('/events/create')}>Create Event</button>
+          <button className="btn btn-primary" onClick={() => navigate('/events/create')}>Create Event</button>
         )}
       </div>
 
-      <div>
-        <label htmlFor="titleFilter">Filter by Title:</label>
-        <input
-          type="text"
-          id="titleFilter"
-          value={titleFilter}
-          onChange={(e) => setTitleFilter(e.target.value)}
-        />
-      </div>
-      <div>
-        <label htmlFor="sortByDate">Sort by Date:</label>
-        <select id="sortByDate" value={sortByDate} onChange={(e) => setSortByDate(e.target.value as 'asc' | 'desc' | '')}>
-          <option value="">None</option>
-          <option value="asc">Ascending</option>
-          <option value="desc">Descending</option>
-        </select>
+      <div className="row mb-3">
+        <div className="col-md-6">
+          <label htmlFor="titleFilter" className="form-label">Filter by Title:</label>
+          <input
+            type="text"
+            id="titleFilter"
+            className="form-control"
+            value={titleFilter}
+            onChange={(e) => setTitleFilter(e.target.value)}
+          />
+        </div>
+        <div className="col-md-6">
+          <label htmlFor="sortByDate" className="form-label">Sort by Date:</label>
+          <select id="sortByDate" className="form-select" value={sortByDate} onChange={(e) => setSortByDate(e.target.value as 'asc' | 'desc' | '')}>
+            <option value="">None</option>
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </div>
       </div>
 
       <TableView

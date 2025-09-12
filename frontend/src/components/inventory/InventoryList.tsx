@@ -67,38 +67,41 @@ const InventoryList: React.FC = () => {
     <>
       {canManageInventory && (
         <>
-          <button onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}>Edit</button>
-          <button onClick={() => handleDelete(item.inventoryId)}>Delete</button>
+          <button className="btn btn-sm btn-primary me-2" onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}>Edit</button>
+          <button className="btn btn-sm btn-danger" onClick={() => handleDelete(item.inventoryId)}>Delete</button>
         </>
       )}
     </>
   );
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="container-fluid">
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Inventory</h2>
         {canManageInventory && (
-          <button onClick={() => navigate('/inventory/create')}>Create Item</button>
+          <button className="btn btn-primary" onClick={() => navigate('/inventory/create')}>Create Item</button>
         )}
       </div>
 
-      <div>
-        <label htmlFor="nameFilter">Filter by Name:</label>
-        <input
-          type="text"
-          id="nameFilter"
-          value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
-        />
-      </div>
-      <div>
-        <label htmlFor="sortByName">Sort by Name:</label>
-        <select id="sortByName" value={sortByName} onChange={(e) => setSortByName(e.target.value as 'asc' | 'desc' | '')}>
-          <option value="">None</option>
-          <option value="asc">Ascending</option>
-          <option value="desc">Descending</option>
-        </select>
+      <div className="row mb-3">
+        <div className="col-md-6">
+          <label htmlFor="nameFilter" className="form-label">Filter by Name:</label>
+          <input
+            type="text"
+            id="nameFilter"
+            className="form-control"
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+          />
+        </div>
+        <div className="col-md-6">
+          <label htmlFor="sortByName" className="form-label">Sort by Name:</label>
+          <select id="sortByName" className="form-select" value={sortByName} onChange={(e) => setSortByName(e.target.value as 'asc' | 'desc' | '')}>
+            <option value="">None</option>
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </div>
       </div>
 
       <TableView

@@ -1,5 +1,3 @@
-// frontend/src/components/profile/EditProfileForm.tsx
-
 import React, { useState } from 'react';
 import { AuthService } from '../../api/AuthService';
 import type { UserDetailsResponse, UpdateUserRequest } from '../../types/auth';
@@ -46,37 +44,39 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({ user, onSave, onCance
   };
 
   return (
-    <div>
-      <h3>Edit Profile</h3>
-      <ErrorDisplay message={error} />
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">Email:</label>
-          <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        {user.staffDetails && (
-          <>
-            <div>
-              <label htmlFor="contactInformation">Contact Information:</label>
-              <input type="text" id="contactInformation" value={contactInformation} onChange={(e) => setContactInformation(e.target.value)} />
-            </div>
-            <div>
-              <label htmlFor="phoneNumber">Phone Number:</label>
-              <input type="text" id="phoneNumber" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
-            </div>
-            <div>
-              <label htmlFor="dateOfBirth">Date of Birth:</label>
-              <input type="date" id="dateOfBirth" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
-            </div>
-            <div>
-              <label htmlFor="skills">Skills (comma-separated):</label>
-              <input type="text" id="skills" value={skills} onChange={(e) => setSkills(e.target.value)} />
-            </div>
-          </>
-        )}
-        <button type="submit">Save Changes</button>
-        <button type="button" onClick={onCancel}>Cancel</button>
-      </form>
+    <div className="card mt-3">
+      <div className="card-body">
+        <h3 className="card-title">Edit Profile</h3>
+        <ErrorDisplay message={error} />
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="email" className="form-label">Email:</label>
+            <input type="email" id="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          {user.staffDetails && (
+            <>
+              <div className="mb-3">
+                <label htmlFor="contactInformation" className="form-label">Contact Information:</label>
+                <input type="text" id="contactInformation" className="form-control" value={contactInformation} onChange={(e) => setContactInformation(e.target.value)} />
+              </div>
+              <div className="mb-3">
+                <label htmlFor="phoneNumber" className="form-label">Phone Number:</label>
+                <input type="text" id="phoneNumber" className="form-control" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+              </div>
+              <div className="mb-3">
+                <label htmlFor="dateOfBirth" className="form-label">Date of Birth:</label>
+                <input type="date" id="dateOfBirth" className="form-control" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+              </div>
+              <div className="mb-3">
+                <label htmlFor="skills" className="form-label">Skills (comma-separated):</label>
+                <input type="text" id="skills" className="form-control" value={skills} onChange={(e) => setSkills(e.target.value)} />
+              </div>
+            </>
+          )}
+          <button type="submit" className="btn btn-primary">Save Changes</button>
+          <button type="button" className="btn btn-secondary ms-2" onClick={onCancel}>Cancel</button>
+        </form>
+      </div>
     </div>
   );
 };

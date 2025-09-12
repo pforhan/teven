@@ -64,21 +64,23 @@ const OrganizationList: React.FC = () => {
   );
 
   return (
-    <TableView
-      title="Organizations"
-      data={organizations}
-      columns={columns}
-      getKey={(org) => org.organizationId}
-      renderActions={renderActions}
-      createButton={{
-        label: 'Create Organization',
-        onClick: () => navigate('/organizations/create'),
-        permission: canManageOrganizations,
-      }}
-      error={error}
-      canView={canViewOrganizations}
-      viewError="Access denied: You do not have permission to view organizations."
-    />
+    <div className="container-fluid">
+      <TableView
+        title="Organizations"
+        data={organizations}
+        columns={columns}
+        getKey={(org) => org.organizationId}
+        renderActions={renderActions}
+        createButton={{
+          label: 'Create Organization',
+          onClick: () => navigate('/organizations/create'),
+          permission: canManageOrganizations,
+        }}
+        error={error}
+        canView={canViewOrganizations}
+        viewError="Access denied: You do not have permission to view organizations."
+      />
+    </div>
   );
 };
 

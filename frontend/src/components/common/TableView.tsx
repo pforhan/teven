@@ -33,42 +33,46 @@ const TableView = <T,>({ // eslint-disable-line
   viewError,
   getKey,
 }: TableViewProps<T> & { getKey: (item: T) => string | number }) => {
-  
+
 
   if (!canView) {
     return <ErrorDisplay message={viewError || "Access denied: You do not have permission to view this content."} />;
   }
 
   return (
-    <div>
-      <h2>{title}</h2>
-      <ErrorDisplay message={error} />
+    <div className="card">
+      <div className="card-body">
+        <h2 className="card-title">{title}</h2>
+        <ErrorDisplay message={error} />
 
-      {createButton && createButton.permission && (
-        <button onClick={createButton.onClick}>{createButton.label}</button>
-      )}
-      <table>
-        <thead>
-          <tr>
-            {columns.map(col => (
-              <th key={col.key as string}>{col.label}</th>
-            ))}
-            {renderActions && <th>Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map(item => (
-            <tr key={getKey(item)}>
-              {columns.map(col => (
-                <td key={col.key as string}>
-                  {col.render ? col.render(item) : (item[col.key as keyof T] as React.ReactNode)}
-                </td>
+        {createButton && createButton.permission && (
+          <button className="btn btn-primary mb-3" onClick={createButton.onClick}>{createButton.label}</button>
+        )}
+        <div className="table-responsive">
+          <table className="table table-striped table-hover">
+            <thead className="table-dark">
+              <tr>
+                {columns.map(col => (
+                  <th key={col.key as string}>{col.label}</th>
+                ))}
+                {renderActions && <th>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map(item => (
+                <tr key={getKey(item)}>
+                  {columns.map(col => (
+                    <td key={col.key as string}>
+                      {col.render ? col.render(item) : (item[col.key as keyof T] as React.ReactNode)}
+                    </td>
+                  ))}
+                  {renderActions && <td>{renderActions(item)}</td>}
+                </tr>
               ))}
-              {renderActions && <td>{renderActions(item)}</td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

@@ -74,31 +74,33 @@ const EditUserForm: React.FC = () => {
   }
 
   return (
-    <div>
-      <h2>Edit User: {user.displayName}</h2>
-      <ErrorDisplay message={error} />
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">Email:</label>
-          <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="displayName">Display Name:</label>
-          <input type="text" id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
-        </div>
-        <div>
-          <label htmlFor="roles">Roles:</label>
-          <select id="roles" multiple={true} value={selectedRoles} onChange={handleRoleChange}>
-            {availableRoles.map(role => (
-              <option key={role.roleId} value={role.roleName}>
-                {role.roleName}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="submit">Update User</button>
-        <button type="button" onClick={() => navigate('/users')}>Cancel</button>
-      </form>
+    <div className="card">
+      <div className="card-body">
+        <h2 className="card-title">Edit User: {user.displayName}</h2>
+        <ErrorDisplay message={error} />
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="email" className="form-label">Email:</label>
+            <input type="email" id="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="displayName" className="form-label">Display Name:</label>
+            <input type="text" id="displayName" className="form-control" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="roles" className="form-label">Roles:</label>
+            <select id="roles" multiple={true} className="form-select" value={selectedRoles} onChange={handleRoleChange}>
+              {availableRoles.map(role => (
+                <option key={role.roleId} value={role.roleName}>
+                  {role.roleName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className="btn btn-primary">Update User</button>
+          <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/users')}>Cancel</button>
+        </form>
+      </div>
     </div>
   );
 };
