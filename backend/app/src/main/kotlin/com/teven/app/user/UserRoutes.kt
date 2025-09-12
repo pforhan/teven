@@ -1,6 +1,7 @@
 package com.teven.app.user
 
-import com.teven.api.model.common.StatusResponse
+import com.teven.api.model.common.failure
+import com.teven.api.model.common.success
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.auth.UserIdPrincipal
 import com.teven.auth.withPermission
@@ -8,6 +9,7 @@ import com.teven.core.security.Permission.MANAGE_USERS_ORGANIZATION
 import com.teven.core.security.Permission.VIEW_USERS_ORGANIZATION
 import com.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.*
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -26,7 +28,7 @@ fun Route.userRoutes() {
       post {
         val createUserRequest = call.receive<CreateUserRequest>()
         val newUser = userService.createUser(createUserRequest)
-        call.respond(HttpStatusCode.Created, newUser)
+        call.respond(HttpStatusCode.Created, success(newUser))
       }
     }
 
@@ -35,7 +37,7 @@ fun Route.userRoutes() {
         val principal = call.principal<UserIdPrincipal>()
         val callerId = principal?.userId ?: return@get
         val users = userService.getAllUsers(callerId)
-        call.respond(HttpStatusCode.OK, users)
+        call.respond(HttpStatusCode.OK, success(users))
       }
     }
 
@@ -44,15 +46,15 @@ fun Route.userRoutes() {
       val userId = principal?.userId
 
       if (userId == null) {
-        call.respond(HttpStatusCode.Unauthorized, StatusResponse("User ID not found in token"))
+        call.respond(HttpStatusCode.Unauthorized, failure("User ID not found in token"))
         return@get
       }
 
       val userContext = userService.getUserContext(userId)
       if (userContext != null) {
-        call.respond(HttpStatusCode.OK, userContext)
+        call.respond(HttpStatusCode.OK, success(userContext))
       } else {
-        call.respond(HttpStatusCode.NotFound, StatusResponse("User context not found"))
+        call.respond(HttpStatusCode.NotFound, failure("User context not found"))
       }
     }
 
@@ -61,9 +63,9 @@ fun Route.userRoutes() {
         val userId = call.parameters["userId"]?.toIntOrNull() ?: return@get
         val user = userService.getUserById(userId)
         if (user != null) {
-          call.respond(HttpStatusCode.OK, user)
+          call.respond(HttpStatusCode.OK, success(user))
         } else {
-          call.respond(HttpStatusCode.NotFound, StatusResponse("User not found"))
+          call.respond(HttpStatusCode.NotFound, failure("User not found"))
         }
       }
     }
@@ -74,9 +76,9 @@ fun Route.userRoutes() {
         val updateUserRequest = call.receive<com.teven.api.model.user.UpdateUserRequest>()
         val updatedUser = userService.updateUser(userId, updateUserRequest)
         if (updatedUser != null) {
-          call.respond(HttpStatusCode.OK, updatedUser)
+          call.respond(HttpStatusCode.OK, success(updatedUser))
         } else {
-          call.respond(HttpStatusCode.NotFound, StatusResponse("User not found"))
+          call.respond(HttpStatusCode.NotFound, failure("User not found"))
         }
       }
     }

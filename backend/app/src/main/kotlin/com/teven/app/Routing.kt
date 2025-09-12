@@ -1,6 +1,6 @@
 package com.teven.app
 
-import com.teven.api.model.common.StatusResponse
+import com.teven.api.model.common.failure
 import com.teven.app.customer.customerRoutes
 import com.teven.app.event.eventRoutes
 import com.teven.app.inventory.inventoryRoutes
@@ -10,15 +10,12 @@ import com.teven.app.role.roleRoutes
 import com.teven.app.user.userRoutes
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
+import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
+import io.ktor.server.http.content.default
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.response.respond
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
-import io.ktor.server.routing.route
-import io.ktor.server.routing.routing
+import io.ktor.server.routing.*
 
 fun Application.configureRouting() {
   routing {
@@ -36,16 +33,16 @@ fun Application.configureRouting() {
     // Catch-all for unmatched API routes
     route("/api") {
       get("/{...}") {
-        call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
+        call.respond(HttpStatusCode.NotFound, failure("API endpoint not found"))
       }
       post("/{...}") {
-        call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
+        call.respond(HttpStatusCode.NotFound, failure("API endpoint not found"))
       }
       put("/{...}") {
-        call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
+        call.respond(HttpStatusCode.NotFound, failure("API endpoint not found"))
       }
       delete("/{...}") {
-        call.respond(HttpStatusCode.NotFound, StatusResponse("API endpoint not found"))
+        call.respond(HttpStatusCode.NotFound, failure("API endpoint not found"))
       }
     }
 

@@ -1,12 +1,14 @@
 package com.teven.app.role
 
-import com.teven.api.model.common.StatusResponse
+import com.teven.api.model.common.failure
+import com.teven.api.model.common.success
 import com.teven.api.model.role.CreateRoleRequest
 import com.teven.api.model.role.UpdateRoleRequest
 import com.teven.auth.withPermission
 import com.teven.core.security.Permission.MANAGE_ROLES_GLOBAL
 import com.teven.core.service.RoleService
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.*
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -25,22 +27,22 @@ fun Route.roleRoutes() {
       post {
         val createRoleRequest = call.receive<CreateRoleRequest>()
         val newRole = roleService.createRole(createRoleRequest)
-        call.respond(HttpStatusCode.Created, newRole)
+        call.respond(HttpStatusCode.Created, success(newRole))
       }
 
       put("/{role_id}") {
         val roleId = call.parameters["role_id"]?.toIntOrNull()
         if (roleId == null) {
-          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid role ID"))
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid role ID"))
           return@put
         }
         val updateRoleRequest = call.receive<UpdateRoleRequest>()
         if (roleService.updateRole(roleId, updateRoleRequest)) {
-          call.respond(HttpStatusCode.OK, StatusResponse("Role with ID $roleId updated"))
+          call.respond(HttpStatusCode.OK, success("Role with ID $roleId updated"))
         } else {
           call.respond(
             HttpStatusCode.NotFound,
-            StatusResponse("Role not found or no changes applied")
+            failure("Role not found or no changes applied")
           )
         }
       }
@@ -48,33 +50,33 @@ fun Route.roleRoutes() {
       delete("/{role_id}") {
         val roleId = call.parameters["role_id"]?.toIntOrNull()
         if (roleId == null) {
-          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid role ID"))
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid role ID"))
           return@delete
         }
         if (roleService.deleteRole(roleId)) {
           call.respond(HttpStatusCode.NoContent)
         } else {
-          call.respond(HttpStatusCode.NotFound, StatusResponse("Role not found"))
+          call.respond(HttpStatusCode.NotFound, failure("Role not found"))
         }
       }
     }
 
     get {
       val roles = roleService.getAllRoles()
-      call.respond(HttpStatusCode.OK, roles)
+      call.respond(HttpStatusCode.OK, success(roles))
     }
 
     get("/{role_id}") {
       val roleId = call.parameters["role_id"]?.toIntOrNull()
       if (roleId == null) {
-        call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid role ID"))
+        call.respond(HttpStatusCode.BadRequest, failure("Invalid role ID"))
         return@get
       }
       val role = roleService.getRoleById(roleId)
       if (role != null) {
-        call.respond(HttpStatusCode.OK, role)
+        call.respond(HttpStatusCode.OK, success(role))
       } else {
-        call.respond(HttpStatusCode.NotFound, StatusResponse("Role not found"))
+        call.respond(HttpStatusCode.NotFound, failure("Role not found"))
       }
     }
   }
@@ -85,15 +87,15 @@ fun Route.roleRoutes() {
         val userId = call.parameters["user_id"]?.toIntOrNull()
         val roleId = call.parameters["role_id"]?.toIntOrNull()
         if (userId == null || roleId == null) {
-          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid user ID or role ID"))
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid user ID or role ID"))
           return@post
         }
         if (roleService.assignRoleToUser(userId, roleId)) {
-          call.respond(HttpStatusCode.OK, StatusResponse("OK"))
+          call.respond(HttpStatusCode.OK, success("OK"))
         } else {
           call.respond(
             HttpStatusCode.InternalServerError,
-            StatusResponse("Failed to assign role")
+            failure("Failed to assign role")
           )
         }
       }
@@ -102,15 +104,15 @@ fun Route.roleRoutes() {
         val userId = call.parameters["user_id"]?.toIntOrNull()
         val roleId = call.parameters["role_id"]?.toIntOrNull()
         if (userId == null || roleId == null) {
-          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid user ID or role ID"))
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid user ID or role ID"))
           return@delete
         }
         if (roleService.removeRoleFromUser(userId, roleId)) {
-          call.respond(HttpStatusCode.OK, StatusResponse("OK"))
+          call.respond(HttpStatusCode.OK, success("OK"))
         } else {
           call.respond(
             HttpStatusCode.InternalServerError,
-            StatusResponse("Failed to remove role")
+            failure("Failed to remove role")
           )
         }
       }

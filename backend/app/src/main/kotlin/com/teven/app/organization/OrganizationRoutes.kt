@@ -1,6 +1,7 @@
 package com.teven.app.organization
 
-import com.teven.api.model.common.StatusResponse
+import com.teven.api.model.common.failure
+import com.teven.api.model.common.success
 import com.teven.api.model.organization.CreateOrganizationRequest
 import com.teven.api.model.organization.UpdateOrganizationRequest
 import com.teven.auth.withPermission
@@ -8,6 +9,7 @@ import com.teven.core.security.Permission.MANAGE_ORGANIZATIONS_GLOBAL
 import com.teven.core.security.Permission.VIEW_ORGANIZATIONS_GLOBAL
 import com.teven.service.organization.OrganizationService
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.*
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -26,25 +28,25 @@ fun Route.organizationRoutes() {
       post {
         val createOrganizationRequest = call.receive<CreateOrganizationRequest>()
         val newOrganization = organizationService.createOrganization(createOrganizationRequest)
-        call.respond(HttpStatusCode.Created, newOrganization)
+        call.respond(HttpStatusCode.Created, success(newOrganization))
       }
 
       put("/{organization_id}") {
         val organizationId = call.parameters["organization_id"]?.toIntOrNull()
         if (organizationId == null) {
-          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid organization ID"))
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid organization ID"))
           return@put
         }
         val updateOrganizationRequest = call.receive<UpdateOrganizationRequest>()
         if (organizationService.updateOrganization(organizationId, updateOrganizationRequest)) {
           call.respond(
             HttpStatusCode.OK,
-            StatusResponse("Organization with ID $organizationId updated")
+            success("Organization with ID $organizationId updated")
           )
         } else {
           call.respond(
             HttpStatusCode.NotFound,
-            StatusResponse("Organization not found or no changes applied")
+            failure("Organization not found or no changes applied")
           )
         }
       }
@@ -52,13 +54,13 @@ fun Route.organizationRoutes() {
       delete("/{organization_id}") {
         val organizationId = call.parameters["organization_id"]?.toIntOrNull()
         if (organizationId == null) {
-          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid organization ID"))
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid organization ID"))
           return@delete
         }
         if (organizationService.deleteOrganization(organizationId)) {
           call.respond(HttpStatusCode.NoContent)
         } else {
-          call.respond(HttpStatusCode.NotFound, StatusResponse("Organization not found"))
+          call.respond(HttpStatusCode.NotFound, failure("Organization not found"))
         }
       }
     }
@@ -66,20 +68,20 @@ fun Route.organizationRoutes() {
     withPermission(VIEW_ORGANIZATIONS_GLOBAL) {
       get {
         val organizations = organizationService.getAllOrganizations()
-        call.respond(HttpStatusCode.OK, organizations)
+        call.respond(HttpStatusCode.OK, success(organizations))
       }
 
       get("/{organization_id}") {
         val organizationId = call.parameters["organization_id"]?.toIntOrNull()
         if (organizationId == null) {
-          call.respond(HttpStatusCode.BadRequest, StatusResponse("Invalid organization ID"))
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid organization ID"))
           return@get
         }
         val organization = organizationService.getOrganizationById(organizationId)
         if (organization != null) {
-          call.respond(HttpStatusCode.OK, organization)
+          call.respond(HttpStatusCode.OK, success(organization))
         } else {
-          call.respond(HttpStatusCode.NotFound, StatusResponse("Organization not found"))
+          call.respond(HttpStatusCode.NotFound, failure("Organization not found"))
         }
       }
     }

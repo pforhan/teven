@@ -1,11 +1,13 @@
 package com.teven.app.report
 
+import com.teven.api.model.common.success
 import com.teven.api.model.report.StaffHoursReportRequest
 import com.teven.auth.withPermission
 import com.teven.core.security.Permission
 import com.teven.core.security.Permission.VIEW_REPORTS_ORGANIZATION
 import com.teven.service.report.ReportService
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.*
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -22,12 +24,12 @@ fun Route.reportRoutes() {
       post("/staff_hours") {
         val staffHoursReportRequest = call.receive<StaffHoursReportRequest>()
         val report = reportService.getStaffHoursReport(staffHoursReportRequest)
-        call.respond(HttpStatusCode.OK, report)
+        call.respond(HttpStatusCode.OK, success(report))
       }
 
       get("/inventory_usage") {
         val report = reportService.getInventoryUsageReport()
-        call.respond(HttpStatusCode.OK, report)
+        call.respond(HttpStatusCode.OK, success(report))
       }
     }
   }

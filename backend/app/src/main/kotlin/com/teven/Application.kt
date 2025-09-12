@@ -1,11 +1,10 @@
 package com.teven
 
-import com.teven.api.model.common.StatusResponse
+import com.teven.api.model.common.failure
 import com.teven.app.InitialSetup
 import com.teven.app.configureRouting
 import com.teven.app.di.appModule
 import com.teven.auth.ApplicationAuth
-
 import com.teven.core.security.AuthorizationException
 import com.teven.core.service.PermissionService
 import com.teven.core.service.RoleService
@@ -54,7 +53,7 @@ fun Application.module() {
       cause.printStackTrace()
       call.respond(
         cause.code,
-        StatusResponse(cause.message ?: "Auth exception: ${cause.stackTraceToString()}")
+        failure(cause.message ?: "Authorization error")
       )
     }
 
@@ -62,22 +61,18 @@ fun Application.module() {
       cause.printStackTrace()
       call.respond(
         HttpStatusCode.InternalServerError,
-        StatusResponse("Internal server error: ${cause.stackTraceToString()}")
+        failure("Internal server error", cause.stackTraceToString())
       )
     }
 
     status(HttpStatusCode.InternalServerError) { call, status ->
-      call.respond(status, StatusResponse("Internal server error: who knows why"))
+      call.respond(status, failure("Internal server error: who knows why"))
     }
 
     status(HttpStatusCode.BadRequest) { call, status ->
-      call.respond(status, StatusResponse("Bad request: who knows why"))
+      call.respond(status, failure("Bad request: who knows why"))
     }
   }
 
   configureRouting()
 }
-
-
-
-

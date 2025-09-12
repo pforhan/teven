@@ -1,9 +1,11 @@
 package com.teven.app
 
 import com.teven.api.model.auth.LoginRequest
-import com.teven.api.model.common.StatusResponse
+import com.teven.api.model.common.failure
+import com.teven.api.model.common.success
 import com.teven.core.service.AuthService
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.*
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -20,9 +22,9 @@ fun Route.authRoutes() {
       val loginRequest = call.receive<LoginRequest>()
       val loginResponse = authService.loginUser(loginRequest)
       if (loginResponse != null) {
-        call.respond(HttpStatusCode.OK, loginResponse)
+        call.respond(HttpStatusCode.OK, success(loginResponse))
       } else {
-        call.respond(HttpStatusCode.Unauthorized, StatusResponse("Invalid credentials"))
+        call.respond(HttpStatusCode.Unauthorized, failure("Invalid credentials"))
       }
     }
   }
