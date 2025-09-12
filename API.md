@@ -1,13 +1,9 @@
 ## Teven Service APIs
 
-This document outlines the API endpoints for the Teven service, including their purpose,
-authentication requirements, and the expected request/response data structures. Data structures are
-presented using Kotlin pseudocode for conciseness.
+This document outlines the API endpoints for the Teven service, including their purpose, authentication requirements, and the expected request/response data structures. Data structures are presented using Kotlin pseudocode for conciseness.
 
 **Authentication:**
-Most API endpoints in Teven will require authentication. We will use JSON Web Tokens (JWT) for
-authentication. The JWT will be included in the `Authorization` header of the HTTP request in the
-format: `Bearer <token>`. Endpoints not requiring authentication are explicitly marked.
+Most API endpoints in Teven will require authentication. We will use JSON Web Tokens (JWT) for authentication. The JWT will be included in the `Authorization` header of the HTTP request in the format: `Bearer <token>`. Endpoints not requiring authentication are explicitly marked.
 
 ### I. Authentication and Authorization API
 
@@ -21,7 +17,8 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val email: String, 
           val displayName: String, 
           val roles: List<String> = emptyList(
-        )
+        ), 
+          val organizationId: Int?
         )
         ```
     * Response:
@@ -32,7 +29,8 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val email: String, 
           val displayName: String, 
           val roles: List<String>, 
-          val staffDetails: StaffDetails?
+          val staffDetails: StaffDetails?, 
+          val organization: Organization?
         )
         ```
 
@@ -55,8 +53,7 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
 
 * `GET /api/users/{user_id}`: Retrieve user details.
     * Authentication: Required.
-    * Permissions: `MANAGE_USERS_SELF` to view your own profile, `VIEW_USERS_ORGANIZATION` to view
-      others in your org, or `VIEW_USERS_GLOBAL` to view anyone.
+    * Permissions: `MANAGE_USERS_SELF` to view your own profile, `VIEW_USERS_ORGANIZATION` to view others in your org, or `VIEW_USERS_GLOBAL` to view anyone.
     * Response:
         ```kotlin
         data class UserResponse(
@@ -65,25 +62,25 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val email: String, 
           val displayName: String, 
           val roles: List<String>, 
-          val staffDetails: StaffDetails?
+          val staffDetails: StaffDetails?, 
+          val organization: Organization?
         )
         ```
 
 * `GET /api/users`: Retrieve all users.
     * Authentication: Required.
-    * Permissions: `VIEW_USERS_ORGANIZATION` to view users in your org, or `VIEW_USERS_GLOBAL` to
-      view all users.
+    * Permissions: `VIEW_USERS_ORGANIZATION` to view users in your org, or `VIEW_USERS_GLOBAL` to view all users.
     * Response: `List<UserResponse>`
 
 * `PUT /api/users/{user_id}`: Update user details.
     * Authentication: Required.
-    * Permissions: `MANAGE_USERS_SELF` to edit your own profile, `MANAGE_USERS_ORGANIZATION` to edit
-      others in your org, or `MANAGE_USERS_GLOBAL` to edit anyone.
+    * Permissions: `MANAGE_USERS_SELF` to edit your own profile, `MANAGE_USERS_ORGANIZATION` to edit others in your org, or `MANAGE_USERS_GLOBAL` to edit anyone.
     * Request:
         ```kotlin
         data class UpdateUserRequest(
           val email: String?, 
           val displayName: String?, 
+          val roles: List<String>?, 
           val staffDetails: UpdateStaffDetails?
         )
         ```
@@ -95,7 +92,8 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val email: String, 
           val displayName: String, 
           val roles: List<String>, 
-          val staffDetails: StaffDetails?
+          val staffDetails: StaffDetails?, 
+          val organization: Organization?
         )
         ```
 
@@ -139,7 +137,7 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val time: String, 
           val location: String, 
           val description: String, 
-          val inventoryIds: List<Int>, 
+          val inventoryItems: List<EventInventoryItem>, 
           val customerId: Int, 
           val assignedStaffIds: List<Int>, 
           val rsvps: List<RsvpStatus>
@@ -163,7 +161,7 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val time: String, 
           val location: String, 
           val description: String, 
-          val inventoryIds: List<Int>, 
+          val inventoryItems: List<EventInventoryItem>, 
           val customerId: Int, 
           val assignedStaffIds: List<Int>, 
           val rsvps: List<RsvpStatus>
@@ -195,7 +193,7 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val time: String, 
           val location: String, 
           val description: String, 
-          val inventoryIds: List<Int>, 
+          val inventoryItems: List<EventInventoryItem>, 
           val customerId: Int, 
           val assignedStaffIds: List<Int>, 
           val rsvps: List<RsvpStatus>
@@ -249,7 +247,9 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
         data class CustomerResponse(
           val customerId: Int, 
           val name: String, 
-          val contactInformation: String
+          val phone: String, 
+          val address: String, 
+          val notes: String
         )
         ```
 
@@ -260,7 +260,9 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
         ```kotlin
         data class CreateCustomerRequest(
           val name: String, 
-          val contactInformation: String
+          val phone: String, 
+          val address: String, 
+          val notes: String
         )
         ```
     * Response:
@@ -268,7 +270,9 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
         data class CustomerResponse(
           val customerId: Int, 
           val name: String, 
-          val contactInformation: String
+          val phone: String, 
+          val address: String, 
+          val notes: String
         )
         ```
 
@@ -279,7 +283,9 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
         ```kotlin
         data class UpdateCustomerRequest(
           val name: String?, 
-          val contactInformation: String?
+          val phone: String?, 
+          val address: String?, 
+          val notes: String?
         )
         ```
     * Response:
@@ -287,7 +293,9 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
         data class CustomerResponse(
           val customerId: Int, 
           val name: String, 
-          val contactInformation: String
+          val phone: String, 
+          val address: String, 
+          val notes: String
         )
         ```
 
@@ -314,7 +322,8 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val inventoryId: Int, 
           val name: String, 
           val description: String, 
-          val quantity: Int
+          val quantity: Int, 
+          val events: List<EventSummaryResponse>
         )
         ```
 
@@ -335,7 +344,8 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val inventoryId: Int, 
           val name: String, 
           val description: String, 
-          val quantity: Int
+          val quantity: Int, 
+          val events: List<EventSummaryResponse>
         )
         ```
 
@@ -356,7 +366,8 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
           val inventoryId: Int, 
           val name: String, 
           val description: String, 
-          val quantity: Int
+          val quantity: Int, 
+          val events: List<EventSummaryResponse>
         )
         ```
 
@@ -553,9 +564,22 @@ format: `Bearer <token>`. Endpoints not requiring authentication are explicitly 
 ### Data Models
 
 ```kotlin
+data class ApiError(
+  val message: String, 
+  val details: String?
+)
+
+data class ApiResponse<T>(
+  val success: Boolean, 
+  val data: T?, 
+  val error: ApiError?
+)
+
 data class CreateCustomerRequest(
   val name: String, 
-  val contactInformation: String
+  val phone: String, 
+  val address: String, 
+  val notes: String
 )
 
 data class CreateEventRequest(
@@ -591,13 +615,21 @@ data class CreateUserRequest(
   val email: String, 
   val displayName: String, 
   val roles: List<String> = emptyList(
-)
+), 
+  val organizationId: Int?
 )
 
 data class CustomerResponse(
   val customerId: Int, 
   val name: String, 
-  val contactInformation: String
+  val phone: String, 
+  val address: String, 
+  val notes: String
+)
+
+data class EventInventoryItem(
+  val inventoryId: Int, 
+  val quantity: Int
 )
 
 data class EventResponse(
@@ -607,17 +639,24 @@ data class EventResponse(
   val time: String, 
   val location: String, 
   val description: String, 
-  val inventoryIds: List<Int>, 
+  val inventoryItems: List<EventInventoryItem>, 
   val customerId: Int, 
   val assignedStaffIds: List<Int>, 
   val rsvps: List<RsvpStatus>
+)
+
+data class EventSummaryResponse(
+  val eventId: Int, 
+  val title: String, 
+  val quantity: Int
 )
 
 data class InventoryItemResponse(
   val inventoryId: Int, 
   val name: String, 
   val description: String, 
-  val quantity: Int
+  val quantity: Int, 
+  val events: List<EventSummaryResponse>
 )
 
 data class InventoryUsageReportResponse(
@@ -640,6 +679,10 @@ data class LoginRequest(
 data class LoginResponse(
   val token: String, 
   val user: UserResponse
+)
+
+data class Organization(
+  val name: String
 )
 
 data class OrganizationDetails(
@@ -706,7 +749,9 @@ data class TrackInventoryUsageRequest(
 
 data class UpdateCustomerRequest(
   val name: String?, 
-  val contactInformation: String?
+  val phone: String?, 
+  val address: String?, 
+  val notes: String?
 )
 
 data class UpdateEventRequest(
@@ -746,6 +791,7 @@ data class UpdateStaffDetails(
 data class UpdateUserRequest(
   val email: String?, 
   val displayName: String?, 
+  val roles: List<String>?, 
   val staffDetails: UpdateStaffDetails?
 )
 
@@ -755,7 +801,8 @@ data class UserResponse(
   val email: String, 
   val displayName: String, 
   val roles: List<String>, 
-  val staffDetails: StaffDetails?
+  val staffDetails: StaffDetails?, 
+  val organization: Organization?
 )
 ```
 
@@ -763,8 +810,7 @@ data class UserResponse(
 
 ### API Documentation Generation
 
-This `API.md` file is generated automatically from the `API_TEMPLATE.md` file and the backend route
-definitions.
+This `API.md` file is generated automatically from the `API_TEMPLATE.md` file and the backend route definitions.
 
 To regenerate the `API.md` file, run the following command from the root of the project:
 
@@ -777,10 +823,7 @@ To regenerate the `API.md` file, run the following command from the root of the 
 **Notes:**
 
 * This is a preliminary design and is subject to change.
-* Error handling (e.g., 400 Bad Request, 404 Not Found, 500 Internal Server Error) is not detailed
-  here but should be implemented for all endpoints.
+* Error handling (e.g., 400 Bad Request, 404 Not Found, 500 Internal Server Error) is not detailed here but should be implemented for all endpoints.
 * Input validation should be performed for all requests.
-* Pagination should be implemented for endpoints that return large lists of data (e.g.,
-  `/api/events`, `/api/customers`, `/api/inventory`).
-* Consider using a more descriptive name for "Availability Functionality" (e.g., "
-  StaffAvailability").
+* Pagination should be implemented for endpoints that return large lists of data (e.g., `/api/events`, `/api/customers`, `/api/inventory`).
+* Consider using a more descriptive name for "Availability Functionality" (e.g., "StaffAvailability").
