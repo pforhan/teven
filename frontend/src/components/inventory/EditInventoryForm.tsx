@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { InventoryService } from '../../api/InventoryService';
+import { OrganizationService } from '../../api/OrganizationService';
 import type { InventoryItemResponse, UpdateInventoryItemRequest } from '../../types/inventory';
+import type { OrganizationResponse } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
+import { usePermissions } from '../../AuthContext';
 
 const EditInventoryForm: React.FC = () => {
   const navigate = useNavigate();
@@ -13,9 +16,14 @@ const EditInventoryForm: React.FC = () => {
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState(0);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
+  const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
+
+  const { hasPermission } = usePermissions();
+  const canManageGlobalInventory = hasPermission('MANAGE_INVENTORY_GLOBAL');
 
   useEffect(() => {
-    const fetchInventoryItem = async () => {
+    const fetchInventoryItemAndOrganizations = async () => {
       if (!inventoryId) return;
       try {
         const fetchedItem = await InventoryService.getInventoryItem(parseInt(inventoryId));
@@ -23,6 +31,12 @@ const EditInventoryForm: React.FC = () => {
         setName(fetchedItem.name);
         setDescription(fetchedItem.description);
         setQuantity(fetchedItem.quantity);
+
+        if (canManageGlobalInventory) {
+          const orgs = await OrganizationService.getAllOrganizations();
+          setAvailableOrganizations(orgs);
+        }
+        setSelectedOrganizationId(fetchedItem.organization.organizationId.toString());
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {
           setError({ message: err.message, details: err.details });
@@ -33,8 +47,8 @@ const EditInventoryForm: React.FC = () => {
         }
       }
     };
-    fetchInventoryItem();
-  }, [inventoryId]);
+    fetchInventoryItemAndOrganizations();
+  }, [inventoryId, canManageGlobalInventory]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,16 +57,23 @@ const EditInventoryForm: React.FC = () => {
     if (!inventoryId) return;
 
     try {
+      const organizationIdToUse = canManageGlobalInventory
+        ? (selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined)
+        : undefined; // Organization ID is not sent if not global manager
+
       const request: UpdateInventoryItemRequest = {
         name,
         description,
         quantity,
+        organizationId: organizationIdToUse,
       };
 
       await InventoryService.updateInventoryItem(parseInt(inventoryId), request);
       navigate('/inventory');
-    } catch (err) {
-      if (err instanceof Error) {
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
         setError({ message: err.message });
       } else {
         setError({ message: 'An unknown error occurred' });
@@ -82,6 +103,25 @@ const EditInventoryForm: React.FC = () => {
             <label htmlFor="quantity" className="form-label">Quantity:</label>
             <input type="number" id="quantity" className="form-control" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value))} required />
           </div>
+
+          {canManageGlobalInventory && (
+            <div className="mb-3">
+              <label htmlFor="organization" className="form-label">Organization:</label>
+              <select
+                id="organization"
+                className="form-select"
+                value={selectedOrganizationId}
+                onChange={(e) => setSelectedOrganizationId(e.target.value)}
+              >
+                {availableOrganizations.map(org => (
+                  <option key={org.organizationId} value={org.organizationId}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button type="submit" className="btn btn-primary">Update Item</button>
           <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/inventory')}>Cancel</button>
         </form>

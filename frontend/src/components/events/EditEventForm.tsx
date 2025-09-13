@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
+import { OrganizationService } from '../../api/OrganizationService';
 import type { EventResponse, UpdateEventRequest, EventInventoryItem } from '../../types/events';
+import type { OrganizationResponse } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
 import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
+import { usePermissions } from '../../AuthContext';
 
 const EditEventForm: React.FC = () => {
   const navigate = useNavigate();
@@ -20,9 +23,14 @@ const EditEventForm: React.FC = () => {
   const [openInvitation, setOpenInvitation] = useState(false);
   const [numberOfStaffNeeded, setNumberOfStaffNeeded] = useState(0);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
+  const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
+
+  const { hasPermission } = usePermissions();
+  const canManageGlobalEvents = hasPermission('MANAGE_EVENTS_GLOBAL');
 
   useEffect(() => {
-    const fetchEvent = async () => {
+    const fetchEventAndOrganizations = async () => {
       if (!eventId) return;
       try {
         const fetchedEvent = await EventService.getEvent(parseInt(eventId));
@@ -36,6 +44,12 @@ const EditEventForm: React.FC = () => {
         setCustomerId(fetchedEvent.customerId.toString());
         setOpenInvitation(false);
         setNumberOfStaffNeeded(0);
+
+        if (canManageGlobalEvents) {
+          const orgs = await OrganizationService.getAllOrganizations();
+          setAvailableOrganizations(orgs);
+        }
+        setSelectedOrganizationId(fetchedEvent.organization.organizationId.toString());
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {
           setError({ message: err.message, details: err.details });
@@ -46,8 +60,8 @@ const EditEventForm: React.FC = () => {
         }
       }
     };
-    fetchEvent();
-  }, [eventId]);
+    fetchEventAndOrganizations();
+  }, [eventId, canManageGlobalEvents]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +70,10 @@ const EditEventForm: React.FC = () => {
     if (!eventId) return;
 
     try {
+      const organizationIdToUse = canManageGlobalEvents
+        ? (selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined)
+        : undefined; // Organization ID is not sent if not global manager
+
       const request: UpdateEventRequest = {
         title,
         date,
@@ -68,12 +86,15 @@ const EditEventForm: React.FC = () => {
           openInvitation,
           numberOfStaffNeeded,
         },
+        organizationId: organizationIdToUse,
       };
 
       await EventService.updateEvent(parseInt(eventId), request);
       navigate('/events');
-    } catch (err) {
-      if (err instanceof Error) {
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
         setError({ message: err.message });
       } else {
         setError({ message: 'An unknown error occurred' });
@@ -123,6 +144,25 @@ const EditEventForm: React.FC = () => {
             <label htmlFor="customerId" className="form-label">Customer ID:</label>
             <input type="number" id="customerId" className="form-control" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required />
           </div>
+
+          {canManageGlobalEvents && (
+            <div className="mb-3">
+              <label htmlFor="organization" className="form-label">Organization:</label>
+              <select
+                id="organization"
+                className="form-select"
+                value={selectedOrganizationId}
+                onChange={(e) => setSelectedOrganizationId(e.target.value)}
+              >
+                {availableOrganizations.map(org => (
+                  <option key={org.organizationId} value={org.organizationId}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="mb-3 form-check">
             <input type="checkbox" id="openInvitation" className="form-check-input" checked={openInvitation} onChange={(e) => setOpenInvitation(e.target.checked)} />
             <label htmlFor="openInvitation" className="form-check-label">Open Invitation</label>
