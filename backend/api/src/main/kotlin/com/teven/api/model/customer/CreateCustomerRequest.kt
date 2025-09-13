@@ -8,5 +8,5 @@ data class CreateCustomerRequest(
   val phone: String,
   val address: String,
   val notes: String,
-  val organizationId: Int?,
+  val organizationId: Int? = null,
 )

@@ -18,7 +18,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val displayName: String, 
           val roles: List<String> = emptyList(
         ), 
-          val organizationId: Int?
+          val organizationId: Int
         )
         ```
     * Response:
@@ -30,7 +30,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val displayName: String, 
           val roles: List<String>, 
           val staffDetails: StaffDetails?, 
-          val organization: Organization?
+          val organization: OrganizationResponse
         )
         ```
 
@@ -63,7 +63,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val displayName: String, 
           val roles: List<String>, 
           val staffDetails: StaffDetails?, 
-          val organization: Organization?
+          val organization: OrganizationResponse
         )
         ```
 
@@ -81,7 +81,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val email: String?, 
           val displayName: String?, 
           val roles: List<String>?, 
-          val staffDetails: UpdateStaffDetails?
+          val staffDetails: UpdateStaffDetails?, 
+          val organizationId: Int?
         )
         ```
     * Response:
@@ -93,7 +94,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val displayName: String, 
           val roles: List<String>, 
           val staffDetails: StaffDetails?, 
-          val organization: Organization?
+          val organization: OrganizationResponse
         )
         ```
 
@@ -103,7 +104,6 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         ```kotlin
         data class LoggedInContextResponse(
           val user: UserResponse, 
-          val organization: OrganizationDetails?, 
           val permissions: List<String>
         )
         ```
@@ -125,7 +125,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val description: String, 
           val inventoryIds: List<Int>, 
           val customerId: Int, 
-          val staffInvites: StaffInviteDetails
+          val staffInvites: StaffInviteDetails, 
+          val organizationId: Int
         )
         ```
     * Response:
@@ -140,7 +141,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val inventoryItems: List<EventInventoryItem>, 
           val customerId: Int, 
           val assignedStaffIds: List<Int>, 
-          val rsvps: List<RsvpStatus>
+          val rsvps: List<RsvpStatus>, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -164,7 +166,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val inventoryItems: List<EventInventoryItem>, 
           val customerId: Int, 
           val assignedStaffIds: List<Int>, 
-          val rsvps: List<RsvpStatus>
+          val rsvps: List<RsvpStatus>, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -181,7 +184,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val description: String?, 
           val inventoryIds: List<Int>?, 
           val customerId: Int?, 
-          val staffInvites: StaffInviteDetails?
+          val staffInvites: StaffInviteDetails?, 
+          val organizationId: Int?
         )
         ```
     * Response:
@@ -196,7 +200,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val inventoryItems: List<EventInventoryItem>, 
           val customerId: Int, 
           val assignedStaffIds: List<Int>, 
-          val rsvps: List<RsvpStatus>
+          val rsvps: List<RsvpStatus>, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -249,7 +254,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val phone: String, 
           val address: String, 
-          val notes: String
+          val notes: String, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -262,7 +268,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val phone: String, 
           val address: String, 
-          val notes: String
+          val notes: String, 
+          val organizationId: Int?
         )
         ```
     * Response:
@@ -272,7 +279,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val phone: String, 
           val address: String, 
-          val notes: String
+          val notes: String, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -285,7 +293,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String?, 
           val phone: String?, 
           val address: String?, 
-          val notes: String?
+          val notes: String?, 
+          val organizationId: Int?
         )
         ```
     * Response:
@@ -295,7 +304,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val phone: String, 
           val address: String, 
-          val notes: String
+          val notes: String, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -323,7 +333,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
-          val events: List<EventSummaryResponse>
+          val events: List<EventSummaryResponse>, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -335,7 +346,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         data class CreateInventoryItemRequest(
           val name: String, 
           val description: String, 
-          val quantity: Int
+          val quantity: Int, 
+          val organizationId: Int?
         )
         ```
     * Response:
@@ -345,7 +357,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
-          val events: List<EventSummaryResponse>
+          val events: List<EventSummaryResponse>, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -357,7 +370,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         data class UpdateInventoryItemRequest(
           val name: String?, 
           val description: String?, 
-          val quantity: Int?
+          val quantity: Int?, 
+          val organizationId: Int?
         )
         ```
     * Response:
@@ -367,7 +381,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
-          val events: List<EventSummaryResponse>
+          val events: List<EventSummaryResponse>, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -579,7 +594,8 @@ data class CreateCustomerRequest(
   val name: String, 
   val phone: String, 
   val address: String, 
-  val notes: String
+  val notes: String, 
+  val organizationId: Int?
 )
 
 data class CreateEventRequest(
@@ -590,13 +606,15 @@ data class CreateEventRequest(
   val description: String, 
   val inventoryIds: List<Int>, 
   val customerId: Int, 
-  val staffInvites: StaffInviteDetails
+  val staffInvites: StaffInviteDetails, 
+  val organizationId: Int
 )
 
 data class CreateInventoryItemRequest(
   val name: String, 
   val description: String, 
-  val quantity: Int
+  val quantity: Int, 
+  val organizationId: Int?
 )
 
 data class CreateOrganizationRequest(
@@ -616,7 +634,7 @@ data class CreateUserRequest(
   val displayName: String, 
   val roles: List<String> = emptyList(
 ), 
-  val organizationId: Int?
+  val organizationId: Int
 )
 
 data class CustomerResponse(
@@ -624,7 +642,8 @@ data class CustomerResponse(
   val name: String, 
   val phone: String, 
   val address: String, 
-  val notes: String
+  val notes: String, 
+  val organization: OrganizationResponse
 )
 
 data class EventInventoryItem(
@@ -642,7 +661,8 @@ data class EventResponse(
   val inventoryItems: List<EventInventoryItem>, 
   val customerId: Int, 
   val assignedStaffIds: List<Int>, 
-  val rsvps: List<RsvpStatus>
+  val rsvps: List<RsvpStatus>, 
+  val organization: OrganizationResponse
 )
 
 data class EventSummaryResponse(
@@ -656,7 +676,8 @@ data class InventoryItemResponse(
   val name: String, 
   val description: String, 
   val quantity: Int, 
-  val events: List<EventSummaryResponse>
+  val events: List<EventSummaryResponse>, 
+  val organization: OrganizationResponse
 )
 
 data class InventoryUsageReportResponse(
@@ -667,7 +688,6 @@ data class InventoryUsageReportResponse(
 
 data class LoggedInContextResponse(
   val user: UserResponse, 
-  val organization: OrganizationDetails?, 
   val permissions: List<String>
 )
 
@@ -751,7 +771,8 @@ data class UpdateCustomerRequest(
   val name: String?, 
   val phone: String?, 
   val address: String?, 
-  val notes: String?
+  val notes: String?, 
+  val organizationId: Int?
 )
 
 data class UpdateEventRequest(
@@ -762,13 +783,15 @@ data class UpdateEventRequest(
   val description: String?, 
   val inventoryIds: List<Int>?, 
   val customerId: Int?, 
-  val staffInvites: StaffInviteDetails?
+  val staffInvites: StaffInviteDetails?, 
+  val organizationId: Int?
 )
 
 data class UpdateInventoryItemRequest(
   val name: String?, 
   val description: String?, 
-  val quantity: Int?
+  val quantity: Int?, 
+  val organizationId: Int?
 )
 
 data class UpdateOrganizationRequest(
@@ -792,7 +815,8 @@ data class UpdateUserRequest(
   val email: String?, 
   val displayName: String?, 
   val roles: List<String>?, 
-  val staffDetails: UpdateStaffDetails?
+  val staffDetails: UpdateStaffDetails?, 
+  val organizationId: Int?
 )
 
 data class UserResponse(
@@ -802,7 +826,7 @@ data class UserResponse(
   val displayName: String, 
   val roles: List<String>, 
   val staffDetails: StaffDetails?, 
-  val organization: Organization?
+  val organization: OrganizationResponse
 )
 ```
 
