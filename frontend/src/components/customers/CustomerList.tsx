@@ -11,6 +11,7 @@ const CustomerList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
   const canManageCustomers = hasPermission('MANAGE_CUSTOMERS_ORGANIZATION');
+  const canViewGlobalCustomers = hasPermission('VIEW_CUSTOMERS_GLOBAL');
   const [nameFilter, setNameFilter] = useState('');
   const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
 
@@ -51,6 +52,7 @@ const CustomerList: React.FC = () => {
     { key: 'phone', label: 'Phone' },
     { key: 'address', label: 'Address' },
     { key: 'notes', label: 'Notes' },
+    ...(canViewGlobalCustomers ? [{ key: 'organization' as keyof CustomerResponse, label: 'Organization', render: (customer: CustomerResponse) => customer.organization.name }] : []),
   ];
 
   const renderActions = (customer: CustomerResponse) => (

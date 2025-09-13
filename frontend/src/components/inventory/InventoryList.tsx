@@ -11,6 +11,7 @@ const InventoryList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
   const canManageInventory = hasPermission('MANAGE_INVENTORY_ORGANIZATION');
+  const canViewGlobalInventory = hasPermission('VIEW_INVENTORY_GLOBAL');
   const [nameFilter, setNameFilter] = useState('');
   const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
 
@@ -61,6 +62,7 @@ const InventoryList: React.FC = () => {
         </ul>
       ),
     },
+    ...(canViewGlobalInventory ? [{ key: 'organization' as keyof InventoryItemResponse, label: 'Organization', render: (item: InventoryItemResponse) => item.organization.name }] : []),
   ];
 
   const renderActions = (item: InventoryItemResponse) => (

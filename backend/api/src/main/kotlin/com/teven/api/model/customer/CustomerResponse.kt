@@ -1,5 +1,6 @@
 package com.teven.api.model.customer
 
+import com.teven.api.model.organization.OrganizationResponse
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,4 +10,5 @@ data class CustomerResponse(
   val phone: String,
   val address: String,
   val notes: String,
+  val organization: OrganizationResponse,
 )

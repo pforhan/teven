@@ -1,11 +1,14 @@
 // frontend/src/types/customers.ts
 
+import type { OrganizationResponse } from './organizations';
+
 export interface CustomerResponse {
   customerId: number;
   name: string;
   phone: string;
   address: string;
   notes: string;
+  organization: OrganizationResponse;
 }
 
 export interface CreateCustomerRequest {
@@ -13,6 +16,7 @@ export interface CreateCustomerRequest {
   phone: string;
   address: string;
   notes: string;
+  organizationId?: number;
 }
 
 export interface UpdateCustomerRequest {
@@ -20,4 +24,5 @@ export interface UpdateCustomerRequest {
   phone?: string;
   address?: string;
   notes?: string;
+  organizationId?: number;
 }

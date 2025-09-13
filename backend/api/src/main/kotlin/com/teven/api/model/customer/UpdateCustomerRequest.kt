@@ -8,4 +8,5 @@ data class UpdateCustomerRequest(
   val phone: String? = null,
   val address: String? = null,
   val notes: String? = null,
+  val organizationId: Int? = null,
 )

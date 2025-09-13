@@ -4,9 +4,11 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.teven.api.model.common.failure
 import com.teven.core.security.JwtConfig
+import com.teven.core.security.Permission
+import com.teven.core.security.UserPrincipal
+import com.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
-import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.jwt
@@ -14,6 +16,7 @@ import io.ktor.server.response.respond
 
 class ApplicationAuth(
   private val jwtConfig: JwtConfig,
+  private val userService: UserService,
 ) {
   fun configureJwt(application: Application) {
     application.apply {
@@ -30,7 +33,16 @@ class ApplicationAuth(
             if (credential.payload.audience.contains(jwtConfig.audience)) {
               val userId = credential.payload.getClaim("userId").asInt()
               if (userId != null) {
-                UserIdPrincipal(userId)
+                val context = userService.getUserContext(userId)
+                if (context != null) {
+                  UserPrincipal(
+                    userId = context.user.userId,
+                    organizationId = context.organization.organizationId,
+                    permissions = context.permissions.map { Permission.valueOf(it) }.toSet()
+                  )
+                } else {
+                  null
+                }
               } else {
                 null
               }

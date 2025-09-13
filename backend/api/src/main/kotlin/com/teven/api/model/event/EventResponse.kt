@@ -1,5 +1,6 @@
 package com.teven.api.model.event
 
+import com.teven.api.model.organization.OrganizationResponse
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -14,6 +15,7 @@ data class EventResponse(
   val customerId: Int,
   val assignedStaffIds: List<Int>,
   val rsvps: List<RsvpStatus>,
+  val organization: OrganizationResponse,
 )
 
 @Serializable

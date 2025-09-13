@@ -12,6 +12,7 @@ data class CreateEventRequest(
   val inventoryIds: List<Int>,
   val customerId: Int, // Single customer ID
   val staffInvites: StaffInviteDetails, // Details for staff invitation
+  val organizationId: Int,
 )
 
 @Serializable

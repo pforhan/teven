@@ -5,8 +5,10 @@ import com.teven.api.model.inventory.CreateInventoryItemRequest
 import com.teven.api.model.inventory.InventoryItemResponse
 import com.teven.api.model.inventory.TrackInventoryUsageRequest
 import com.teven.api.model.inventory.UpdateInventoryItemRequest
+import com.teven.api.model.organization.OrganizationResponse
 import com.teven.data.dbQuery
 import com.teven.data.event.EventInventory
+import com.teven.data.organization.Organizations
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
@@ -20,17 +22,31 @@ class InventoryDao {
     val inventoryId = row[InventoryItems.id].value
     val events = EventInventory.select { EventInventory.inventoryItemId eq inventoryId }
       .map { EventSummaryResponse(it[EventInventory.eventId], "", it[EventInventory.quantity]) }
+
+    val organization = Organizations.select { Organizations.id eq row[InventoryItems.organizationId] }.single().let {
+      OrganizationResponse(
+        organizationId = it[Organizations.id].value,
+        name = it[Organizations.name],
+        contactInformation = it[Organizations.contactInformation]
+      )
+    }
+
     return InventoryItemResponse(
       inventoryId = inventoryId,
       name = row[InventoryItems.name],
       description = row[InventoryItems.description],
       quantity = row[InventoryItems.quantity],
-      events = events
+      events = events,
+      organization = organization,
     )
   }
 
   suspend fun getAllInventoryItems(): List<InventoryItemResponse> = dbQuery {
     InventoryItems.selectAll().map { toInventoryItemResponse(it) }
+  }
+
+  suspend fun getAllInventoryItemsByOrganization(organizationId: Int): List<InventoryItemResponse> = dbQuery {
+    InventoryItems.select { InventoryItems.organizationId eq organizationId }.map { toInventoryItemResponse(it) }
   }
 
   suspend fun getInventoryItemById(inventoryId: Int): InventoryItemResponse? = dbQuery {
@@ -41,10 +57,11 @@ class InventoryDao {
 
   suspend fun createInventoryItem(createInventoryItemRequest: CreateInventoryItemRequest): InventoryItemResponse =
     dbQuery {
-      val id = InventoryItems.insert {
-        it[name] = createInventoryItemRequest.name
-        it[description] = createInventoryItemRequest.description
-        it[quantity] = createInventoryItemRequest.quantity
+      val id = InventoryItems.insert { insertStatement ->
+        insertStatement[name] = createInventoryItemRequest.name
+        insertStatement[description] = createInventoryItemRequest.description
+        insertStatement[quantity] = createInventoryItemRequest.quantity
+        insertStatement[organizationId] = createInventoryItemRequest.organizationId!!
       } get InventoryItems.id
 
       InventoryItemResponse(
@@ -52,7 +69,14 @@ class InventoryDao {
         name = createInventoryItemRequest.name,
         description = createInventoryItemRequest.description,
         quantity = createInventoryItemRequest.quantity,
-        events = emptyList()
+        events = emptyList(),
+        organization = Organizations.select { Organizations.id eq createInventoryItemRequest.organizationId }.single().let {
+          OrganizationResponse(
+            organizationId = it[Organizations.id].value,
+            name = it[Organizations.name],
+            contactInformation = it[Organizations.contactInformation]
+          )
+        },
       )
     }
 
@@ -68,6 +92,7 @@ class InventoryDao {
       updateInventoryItemRequest.quantity?.let { quantity ->
         it[InventoryItems.quantity] = quantity
       }
+      updateInventoryItemRequest.organizationId?.let { organizationId -> it[InventoryItems.organizationId] = organizationId }
     } > 0
   }
 

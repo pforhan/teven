@@ -4,7 +4,9 @@ import com.teven.api.model.event.CreateEventRequest
 import com.teven.api.model.event.EventInventoryItem
 import com.teven.api.model.event.EventResponse
 import com.teven.api.model.event.RsvpStatus
+import com.teven.api.model.organization.OrganizationResponse
 import com.teven.data.dbQuery
+import com.teven.data.organization.Organizations
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
@@ -27,6 +29,15 @@ class EventDao {
     val rsvps = Rsvps.select { Rsvps.eventId eq eventId }
       .map { RsvpStatus(it[Rsvps.userId].value, it[Rsvps.availability]) }
 
+    val organization =
+      Organizations.select { Organizations.id eq row[Events.organizationId] }.single().let {
+        OrganizationResponse(
+          organizationId = it[Organizations.id].value,
+          name = it[Organizations.name],
+          contactInformation = it[Organizations.contactInformation]
+        )
+      }
+
     return EventResponse(
       eventId = eventId,
       title = row[Events.title],
@@ -37,7 +48,8 @@ class EventDao {
       inventoryItems = inventoryItems,
       customerId = row[Events.customerId],
       assignedStaffIds = assignedStaffIds,
-      rsvps = rsvps
+      rsvps = rsvps,
+      organization = organization,
     )
   }
 
@@ -51,6 +63,7 @@ class EventDao {
       it[customerId] = createEventRequest.customerId
       it[openInvitation] = createEventRequest.staffInvites.openInvitation
       it[numberOfStaffNeeded] = createEventRequest.staffInvites.numberOfStaffNeeded
+      it[organizationId] = createEventRequest.organizationId
     } get Events.id
 
     EventResponse(
@@ -63,7 +76,15 @@ class EventDao {
       inventoryItems = emptyList(), // Will be populated by the .also block
       customerId = createEventRequest.customerId,
       assignedStaffIds = createEventRequest.staffInvites.specificStaffIds ?: emptyList(),
-      rsvps = emptyList()
+      rsvps = emptyList(),
+      organization = Organizations.select { Organizations.id eq createEventRequest.organizationId }
+        .single().let {
+        OrganizationResponse(
+          organizationId = it[Organizations.id].value,
+          name = it[Organizations.name],
+          contactInformation = it[Organizations.contactInformation]
+        )
+      },
     ).also { newEvent ->
       createEventRequest.inventoryIds.forEach { inventoryId ->
         EventInventory.insert {
@@ -84,6 +105,10 @@ class EventDao {
     Events.selectAll().map { toEventResponse(it) }
   }
 
+  suspend fun getAllEventsByOrganization(organizationId: Int): List<EventResponse> = dbQuery {
+    Events.select { Events.organizationId eq organizationId }.map { toEventResponse(it) }
+  }
+
   suspend fun getEventById(eventId: Int): EventResponse? = dbQuery {
     Events.select { Events.id eq eventId }
       .mapNotNull { toEventResponse(it) }
@@ -101,23 +126,27 @@ class EventDao {
       updateEventRequest.location?.let { location -> it[Events.location] = location }
       updateEventRequest.description?.let { description -> it[Events.description] = description }
       updateEventRequest.customerId?.let { customerId -> it[Events.customerId] = customerId }
+      updateEventRequest.organizationId?.let { organizationId ->
+        it[Events.organizationId] =
+          organizationId
+      }
 
-      updateEventRequest.inventoryIds?.let {
+      updateEventRequest.inventoryIds?.let { inventoryIds ->
         EventInventory.deleteWhere { EventInventory.eventId eq eventId }
-        it.forEach { inventoryId ->
-          EventInventory.insert {
-            it[EventInventory.eventId] = eventId
-            it[EventInventory.inventoryItemId] = inventoryId
+        inventoryIds.forEach { inventoryId ->
+          EventInventory.insert { anEvInv ->
+            anEvInv[EventInventory.eventId] = eventId
+            anEvInv[EventInventory.inventoryItemId] = inventoryId
           }
         }
       }
       updateEventRequest.staffInvites?.let { staffInvites ->
-        staffInvites.specificStaffIds?.let {
+        staffInvites.specificStaffIds?.let { staffUserIds ->
           EventStaff.deleteWhere { EventStaff.eventId eq eventId }
-          it.forEach { userId ->
-            EventStaff.insert {
-              it[EventStaff.eventId] = eventId
-              it[EventStaff.userId] = userId
+          staffUserIds.forEach { userId ->
+            EventStaff.insert { aStaff ->
+              aStaff[EventStaff.eventId] = eventId
+              aStaff[EventStaff.userId] = userId
             }
           }
         }

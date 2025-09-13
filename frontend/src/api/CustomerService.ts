@@ -3,13 +3,16 @@ import type { StatusResponse } from '../types/common';
 import { apiClient } from './apiClient';
 
 export class CustomerService {
-  static async getAllCustomers(nameFilter?: string, sortByName?: 'asc' | 'desc'): Promise<CustomerResponse[]> {
+  static async getAllCustomers(nameFilter?: string, sortByName?: 'asc' | 'desc', organizationId?: number): Promise<CustomerResponse[]> {
     const url = new URL('/api/customers', window.location.origin);
     if (nameFilter) {
       url.searchParams.append('name', nameFilter);
     }
     if (sortByName) {
       url.searchParams.append('sortByName', sortByName);
+    }
+    if (organizationId) {
+      url.searchParams.append('organizationId', organizationId.toString());
     }
     return apiClient<CustomerResponse[]>(url.toString());
   }

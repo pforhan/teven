@@ -3,13 +3,16 @@ import type { StatusResponse } from '../types/common';
 import { apiClient } from './apiClient';
 
 export class InventoryService {
-  static async getAllInventoryItems(nameFilter?: string, sortByName?: 'asc' | 'desc'): Promise<InventoryItemResponse[]> {
+  static async getAllInventoryItems(nameFilter?: string, sortByName?: 'asc' | 'desc', organizationId?: number): Promise<InventoryItemResponse[]> {
     const url = new URL('/api/inventory', window.location.origin);
     if (nameFilter) {
       url.searchParams.append('name', nameFilter);
     }
     if (sortByName) {
-      url.searchParams.append('sortByName', sortByName);
+      url.searchParams.append('sortByDate', sortByName);
+    }
+    if (organizationId) {
+      url.searchParams.append('organizationId', organizationId.toString());
     }
     return apiClient<InventoryItemResponse[]>(url.toString());
   }

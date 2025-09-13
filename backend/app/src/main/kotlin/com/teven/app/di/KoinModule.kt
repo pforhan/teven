@@ -56,5 +56,5 @@ val appModule = module {
     )
   }
   single { InitialSetup(get(), get(), get()) }
-  single { ApplicationAuth(get()) }
+  single { ApplicationAuth(get(), get()) }
 }

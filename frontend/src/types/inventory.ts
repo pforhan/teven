@@ -1,5 +1,7 @@
 // frontend/src/types/inventory.ts
 
+import type { OrganizationResponse } from './organizations';
+
 export interface EventSummaryResponse {
   eventId: number;
   title: string;
@@ -12,18 +14,21 @@ export interface InventoryItemResponse {
   description: string;
   quantity: number;
   events: EventSummaryResponse[];
+  organization: OrganizationResponse;
 }
 
 export interface CreateInventoryItemRequest {
   name: string;
   description: string;
   quantity: number;
+  organizationId?: number;
 }
 
 export interface UpdateInventoryItemRequest {
   name?: string;
   description?: string;
   quantity?: number;
+  organizationId?: number;
 }
 
 export interface TrackInventoryUsageRequest {

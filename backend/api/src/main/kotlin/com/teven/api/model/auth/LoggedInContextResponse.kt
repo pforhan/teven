@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class LoggedInContextResponse(
   val user: UserResponse,
-  val organization: OrganizationDetails?, // Nullable if user not part of org
+  val organization: OrganizationDetails,
   val permissions: List<String>, // List of permissions for the user in current context
 )

@@ -1,5 +1,7 @@
 // frontend/src/types/events.ts
 
+import type { OrganizationResponse } from './organizations';
+
 export interface StaffInviteDetails {
   specificStaffIds?: number[]; // Optional: list of specific staff to invite
   openInvitation: boolean; // True if invitation is open to any staff
@@ -20,6 +22,7 @@ export interface CreateEventRequest {
   inventoryIds: number[];
   customerId: number; // Single customer ID
   staffInvites: StaffInviteDetails; // Details for staff invitation
+  organizationId?: number;
 }
 
 export interface RsvpStatus {
@@ -38,6 +41,7 @@ export interface EventResponse {
   customerId: number;
   assignedStaffIds: number[];
   rsvps: RsvpStatus[];
+  organization: OrganizationResponse;
 }
 
 export interface UpdateEventRequest {
@@ -49,6 +53,7 @@ export interface UpdateEventRequest {
   inventoryItems?: EventInventoryItem[];
   customerId?: number;
   staffInvites?: StaffInviteDetails;
+  organizationId?: number;
 }
 
 export interface RsvpRequest {

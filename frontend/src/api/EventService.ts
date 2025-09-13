@@ -10,13 +10,16 @@ export class EventService {
     });
   }
 
-  static async getAllEvents(titleFilter?: string, sortByDate?: 'asc' | 'desc'): Promise<EventResponse[]> {
+  static async getAllEvents(titleFilter?: string, sortByDate?: 'asc' | 'desc', organizationId?: number): Promise<EventResponse[]> {
     const url = new URL('/api/events', window.location.origin);
     if (titleFilter) {
       url.searchParams.append('title', titleFilter);
     }
     if (sortByDate) {
       url.searchParams.append('sortByDate', sortByDate);
+    }
+    if (organizationId) {
+      url.searchParams.append('organizationId', organizationId.toString());
     }
     return apiClient<EventResponse[]>(url.toString());
   }

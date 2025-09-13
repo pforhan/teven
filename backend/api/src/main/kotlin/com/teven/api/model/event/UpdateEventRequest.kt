@@ -12,4 +12,5 @@ data class UpdateEventRequest(
   val inventoryIds: List<Int>? = null,
   val customerId: Int? = null,
   val staffInvites: StaffInviteDetails? = null,
+  val organizationId: Int? = null,
 )

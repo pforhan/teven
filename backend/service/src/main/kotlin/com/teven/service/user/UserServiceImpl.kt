@@ -1,6 +1,7 @@
 package com.teven.service.user
 
 import com.teven.api.model.auth.LoggedInContextResponse
+import com.teven.api.model.auth.StaffDetails
 import com.teven.api.model.organization.Organization
 import com.teven.api.model.organization.OrganizationDetails
 import com.teven.api.model.user.CreateUserRequest
@@ -27,7 +28,7 @@ class UserServiceImpl(
       email = user.email,
       displayName = user.displayName,
       roles = roles.map { it.roleName },
-      organization = organization?.let { Organization(it.name) }
+      organization = organization?.let { Organization(name = it.name, id = it.organizationId) },
     )
   }
 

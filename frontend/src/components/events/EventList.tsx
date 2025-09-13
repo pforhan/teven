@@ -11,6 +11,7 @@ const EventList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
   const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
+  const canViewGlobalEvents = hasPermission('VIEW_EVENTS_GLOBAL');
   const [titleFilter, setTitleFilter] = useState('');
   const [sortByDate, setSortByDate] = useState<'asc' | 'desc' | ''>('');
 
@@ -62,6 +63,7 @@ const EventList: React.FC = () => {
         </ul>
       ),
     },
+    ...(canViewGlobalEvents ? [{ key: 'organization' as keyof EventResponse, label: 'Organization', render: (event: EventResponse) => event.organization.name }] : []),
   ];
 
   const renderActions = (event: EventResponse) => (
