@@ -4,6 +4,7 @@ import com.teven.api.model.auth.LoggedInContextResponse
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.api.model.user.UpdateUserRequest
 import com.teven.api.model.user.UserResponse
+import com.teven.core.Constants
 import com.teven.core.service.RoleService
 import com.teven.core.service.UserService
 import com.teven.core.user.User
@@ -41,7 +42,7 @@ class UserServiceImpl(
 
   override suspend fun getAllUsers(callerId: Int): List<UserResponse> {
     val callerRoles = roleService.getRolesForUser(callerId)
-    val isSuperAdmin = callerRoles.any { it.roleName == "superadmin" }
+    val isSuperAdmin = callerRoles.any { it.roleName == Constants.ROLE_SUPERADMIN }
 
     val users = if (isSuperAdmin) {
       userDao.getAllUsers()
