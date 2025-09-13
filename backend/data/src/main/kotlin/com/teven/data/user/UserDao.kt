@@ -1,11 +1,12 @@
 package com.teven.data.user
 
-import com.teven.api.model.organization.Organization
+import com.teven.api.model.organization.OrganizationResponse
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.api.model.user.UpdateUserRequest
 import com.teven.core.security.PasswordHasher
 import com.teven.core.user.User
 import com.teven.data.dbQuery
+import com.teven.data.organization.Organizations
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
@@ -44,10 +45,10 @@ class UserDao {
     Users.selectAll().map { toUser(it) }
   }
 
-  suspend fun getUserById(userId: Int): User? = dbQuery {
+  suspend fun getUserById(userId: Int): User = dbQuery {
     Users.select { Users.id eq userId }
       .mapNotNull { toUser(it) }
-      .singleOrNull()
+      .single()
   }
 
   suspend fun getUserByUsername(username: String): User? = dbQuery {
@@ -77,9 +78,17 @@ class UserDao {
     org1 != null && org1 == org2
   }
 
-  suspend fun getOrganizationForUser(userId: Int): Int? = dbQuery {
-    UserOrganizations.select { UserOrganizations.userId eq userId }
-      .map { it[UserOrganizations.organizationId] }.singleOrNull()
+  suspend fun getOrganizationForUser(userId: Int): OrganizationResponse = dbQuery {
+    val organizationId = UserOrganizations.select { UserOrganizations.userId eq userId }
+      .map { it[UserOrganizations.organizationId] }.single()
+
+    Organizations.select { Organizations.id eq organizationId }.single().let {
+      OrganizationResponse(
+        organizationId = it[Organizations.id].value,
+        name = it[Organizations.name],
+        contactInformation = it[Organizations.contactInformation]
+      )
+    }
   }
 
   suspend fun getUsersByOrganization(organizationId: Int): List<User> = dbQuery {

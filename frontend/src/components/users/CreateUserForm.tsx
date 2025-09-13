@@ -64,7 +64,7 @@ const CreateUserForm: React.FC = () => {
         email,
         displayName,
         roles: selectedRoles,
-        organizationId: isSuperAdmin ? (selectedOrganization || undefined) : userContext?.organization?.organizationId?.toString(),
+        organizationId: isSuperAdmin ? (selectedOrganization || undefined) : userContext?.user.organization?.organizationId?.toString(),
       };
 
       await UserService.createUser(request);

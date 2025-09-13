@@ -1,34 +1,28 @@
 package com.teven.service.user
 
 import com.teven.api.model.auth.LoggedInContextResponse
-import com.teven.api.model.auth.StaffDetails
-import com.teven.api.model.organization.Organization
-import com.teven.api.model.organization.OrganizationDetails
 import com.teven.api.model.user.CreateUserRequest
 import com.teven.api.model.user.UpdateUserRequest
 import com.teven.api.model.user.UserResponse
 import com.teven.core.service.RoleService
 import com.teven.core.service.UserService
 import com.teven.core.user.User
-import com.teven.data.organization.OrganizationDao
 import com.teven.data.user.UserDao
 
 class UserServiceImpl(
   private val userDao: UserDao,
-  private val organizationDao: OrganizationDao,
   private val roleService: RoleService,
 ) : UserService {
   override suspend fun toUserResponse(user: User): UserResponse {
     val roles = roleService.getRolesForUser(user.userId)
-    val organization =
-      userDao.getOrganizationForUser(user.userId)?.let { organizationDao.getOrganizationById(it) }
+    val organization = userDao.getOrganizationForUser(user.userId)
     return UserResponse(
       userId = user.userId,
       username = user.username,
       email = user.email,
       displayName = user.displayName,
       roles = roles.map { it.roleName },
-      organization = organization?.let { Organization(name = it.name, id = it.organizationId) },
+      organization = organization,
     )
   }
 
@@ -52,13 +46,8 @@ class UserServiceImpl(
     val users = if (isSuperAdmin) {
       userDao.getAllUsers()
     } else {
-      val organizationId = userDao.getOrganizationForUser(callerId)
-      if (organizationId != null) {
-        userDao.getUsersByOrganization(organizationId)
-      } else {
-        // Non-superadmins not in an org can't see anyone
-        emptyList()
-      }
+      val organizationId = userDao.getOrganizationForUser(callerId).organizationId
+      userDao.getUsersByOrganization(organizationId)
     }
     return users.map { toUserResponse(it) }
   }
@@ -101,27 +90,9 @@ class UserServiceImpl(
     return userDao.areInSameOrganization(userId1, userId2)
   }
 
-  override suspend fun getUserContext(userId: Int): LoggedInContextResponse? {
-    val user = userDao.getUserById(userId)
-
-    return if (user != null) {
-      val organization =
-        userDao.getOrganizationForUser(userId)?.let { organizationDao.getOrganizationById(it) }
-      val roles = roleService.getRolesForUser(userId)
-      val permissions = roles.flatMap { it.permissions }.distinct()
-      LoggedInContextResponse(
-        user = toUserResponse(user),
-        organization = organization?.let {
-          OrganizationDetails(
-            it.organizationId,
-            it.name,
-            it.contactInformation
-          )
-        },
-        permissions = permissions
-      )
-    } else {
-      null
-    }
-  }
+  override suspend fun getUserContext(userId: Int): LoggedInContextResponse =
+    LoggedInContextResponse(
+      user = toUserResponse(userDao.getUserById(userId)),
+      permissions = roleService.getRolesForUser(userId).flatMap { it.permissions }.distinct()
+    )
 }

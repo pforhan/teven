@@ -1,7 +1,7 @@
 package com.teven.api.model.user
 
 import com.teven.api.model.auth.StaffDetails
-import com.teven.api.model.organization.Organization
+import com.teven.api.model.organization.OrganizationResponse
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -12,5 +12,5 @@ data class UserResponse(
   val displayName: String,
   val roles: List<String>,
   val staffDetails: StaffDetails? = null,
-  val organization: Organization,
+  val organization: OrganizationResponse,
 )

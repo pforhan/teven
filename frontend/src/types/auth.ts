@@ -14,7 +14,7 @@ export interface UserResponse {
   email: string;
   displayName: string;
   roles: string[];
-  organization?: { name: string };
+  organization: OrganizationDetails;
 }
 
 export interface LoginRequest {
@@ -76,6 +76,5 @@ export interface OrganizationDetails {
 
 export interface UserContextResponse {
   user: UserResponse;
-  organization?: OrganizationDetails; // Nullable if user not part of org
   permissions: string[]; // List of permissions for the user in current context
 }

@@ -34,15 +34,11 @@ class ApplicationAuth(
               val userId = credential.payload.getClaim("userId").asInt()
               if (userId != null) {
                 val context = userService.getUserContext(userId)
-                if (context != null) {
-                  UserPrincipal(
-                    userId = context.user.userId,
-                    organizationId = context.organization.organizationId,
-                    permissions = context.permissions.map { Permission.valueOf(it) }.toSet()
-                  )
-                } else {
-                  null
-                }
+                UserPrincipal(
+                  userId = context.user.userId,
+                  organizationId = context.user.organization.organizationId,
+                  permissions = context.permissions.map { Permission.valueOf(it) }.toSet()
+                )
               } else {
                 null
               }

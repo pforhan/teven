@@ -6,40 +6,6 @@ import com.teven.api.model.inventory.CreateInventoryItemRequest
 import com.teven.api.model.inventory.TrackInventoryUsageRequest
 import com.teven.api.model.inventory.UpdateInventoryItemRequest
 import com.teven.auth.withPermission
-import com.teven.core.security.Permission.MANAGE_INVENTORY_ORGANIZATION
-import com.teven.core.security.Permission.VIEW_INVENTORY_ORGANIZATION
-import com.teven.service.inventory.InventoryService
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.*
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
-import io.ktor.server.routing.route
-import org.koin.ktor.ext.inject
-
-fun Route.inventoryRoutes() {
-  val inventoryService by inject<InventoryService>()
-
-  route("/api/inventory") {
-    withPermission(MANAGE_INVENTORY_ORGANIZATION) {
-      post {
-        val createInventoryItemRequest = call.receive<CreateInventoryItemRequest>()
-        val newInventoryItem = inventoryService.createInventoryItem(createInventoryItemRequest)
-        call.respond(HttpStatusCode.Created, success(newInventoryItem))
-      }
-
-      package com.teven.app.inventory
-
-import com.teven.api.model.common.failure
-import com.teven.api.model.common.success
-import com.teven.api.model.inventory.CreateInventoryItemRequest
-import com.teven.api.model.inventory.TrackInventoryUsageRequest
-import com.teven.api.model.inventory.UpdateInventoryItemRequest
-import com.teven.auth.withPermission
 import com.teven.core.security.AuthContext
 import com.teven.core.security.Permission.MANAGE_INVENTORY_GLOBAL
 import com.teven.core.security.Permission.MANAGE_INVENTORY_ORGANIZATION
@@ -48,11 +14,15 @@ import com.teven.core.security.Permission.VIEW_INVENTORY_ORGANIZATION
 import com.teven.core.security.UserPrincipal
 import com.teven.service.inventory.InventoryService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.*
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 fun Route.inventoryRoutes() {
@@ -156,58 +126,4 @@ fun Route.inventoryRoutes() {
 
 private fun UserPrincipal.toAuthContext(): AuthContext {
   return AuthContext(userId, organizationId, permissions)
-}
-
-      delete("/{inventory_id}") {
-        val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
-        if (inventoryId == null) {
-          call.respond(HttpStatusCode.BadRequest, failure("Invalid inventory ID"))
-          return@delete
-        }
-        if (inventoryService.deleteInventoryItem(inventoryId)) {
-          call.respond(HttpStatusCode.NoContent)
-        } else {
-          call.respond(HttpStatusCode.NotFound, failure("Inventory item not found"))
-        }
-      }
-
-      post("/{inventory_id}/usage") {
-        val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
-        if (inventoryId == null) {
-          call.respond(HttpStatusCode.BadRequest, failure("Invalid inventory ID"))
-          return@post
-        }
-        val trackInventoryUsageRequest = call.receive<TrackInventoryUsageRequest>()
-        if (inventoryService.trackInventoryUsage(inventoryId, trackInventoryUsageRequest)) {
-          call.respond(HttpStatusCode.OK, success("OK"))
-        } else {
-          call.respond(
-            HttpStatusCode.InternalServerError,
-            failure("Failed to track inventory usage")
-          )
-        }
-      }
-    }
-
-    withPermission(VIEW_INVENTORY_ORGANIZATION) {
-      get {
-        val inventoryItems = inventoryService.getAllInventoryItems()
-        call.respond(HttpStatusCode.OK, success(inventoryItems))
-      }
-
-      get("/{inventory_id}") {
-        val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
-        if (inventoryId == null) {
-          call.respond(HttpStatusCode.BadRequest, failure("Invalid inventory ID"))
-          return@get
-        }
-        val inventoryItem = inventoryService.getInventoryItemById(inventoryId)
-        if (inventoryItem != null) {
-          call.respond(HttpStatusCode.OK, success(inventoryItem))
-        } else {
-          call.respond(HttpStatusCode.NotFound, failure("Inventory item not found"))
-        }
-      }
-    }
-  }
 }

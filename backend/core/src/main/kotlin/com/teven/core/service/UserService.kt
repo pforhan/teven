@@ -11,7 +11,7 @@ interface UserService {
   suspend fun createUser(createUserRequest: CreateUserRequest): UserResponse
   suspend fun getAllUsers(callerId: Int): List<UserResponse>
   suspend fun getUserById(userId: Int): UserResponse?
-  suspend fun getUserContext(userId: Int): LoggedInContextResponse?
+  suspend fun getUserContext(userId: Int): LoggedInContextResponse
   suspend fun areInSameOrganization(userId1: Int?, userId2: Int?): Boolean
   suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest): UserResponse?
   suspend fun getUserByUsername(username: String): UserResponse?

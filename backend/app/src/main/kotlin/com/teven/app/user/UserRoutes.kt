@@ -9,7 +9,6 @@ import com.teven.core.security.Permission.MANAGE_USERS_ORGANIZATION
 import com.teven.core.security.Permission.VIEW_USERS_ORGANIZATION
 import com.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.*
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -50,12 +49,7 @@ fun Route.userRoutes() {
         return@get
       }
 
-      val userContext = userService.getUserContext(userId)
-      if (userContext != null) {
-        call.respond(HttpStatusCode.OK, success(userContext))
-      } else {
-        call.respond(HttpStatusCode.NotFound, failure("User context not found"))
-      }
+      call.respond(HttpStatusCode.OK, success(userService.getUserContext(userId)))
     }
 
     withPermission(VIEW_USERS_ORGANIZATION) {

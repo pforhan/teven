@@ -34,14 +34,15 @@ class OrganizationService(
   }
 
   suspend fun assignUserToOrganization(userId: Int, organizationId: Int, callerId: Int): Boolean {
-    val callerPermissions = userService.getUserContext(callerId)?.permissions ?: emptyList()
+    val callerPermissions = userService.getUserContext(callerId).permissions
 
     if (callerPermissions.contains(Permission.MANAGE_USERS_GLOBAL.name)) {
       return organizationDao.assignUserToOrganization(userId, organizationId)
     }
 
     if (callerPermissions.contains(Permission.MANAGE_USERS_ORGANIZATION.name)) {
-      val callerOrganizationId = userService.getUserContext(callerId)?.organization?.organizationId
+      val callerOrganizationId =
+        userService.getUserContext(callerId).user.organization.organizationId
       if (callerOrganizationId == organizationId) {
         return organizationDao.assignUserToOrganization(userId, organizationId)
       }
