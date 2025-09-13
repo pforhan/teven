@@ -4,11 +4,12 @@ import { InventoryService } from '../../api/InventoryService';
 import type { InventoryItemResponse } from '../../types/inventory';
 import { usePermissions } from '../../AuthContext';
 import TableView, { type Column } from '../common/TableView';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const InventoryList: React.FC = () => {
   const navigate = useNavigate();
   const [inventoryItems, setInventoryItems] = useState<InventoryItemResponse[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
   const canManageInventory = hasPermission('MANAGE_INVENTORY_ORGANIZATION');
   const canViewGlobalInventory = hasPermission('VIEW_INVENTORY_GLOBAL');
@@ -19,11 +20,13 @@ const InventoryList: React.FC = () => {
     try {
       const inventoryData = await InventoryService.getAllInventoryItems(nameFilter, sortByName === '' ? undefined : sortByName);
       setInventoryItems(inventoryData);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   }, [nameFilter, sortByName]);
@@ -39,9 +42,9 @@ const InventoryList: React.FC = () => {
         fetchInventoryItems(); // Re-fetch inventory items after deletion
       } catch (err) {
         if (err instanceof Error) {
-          setError(err.message);
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     }

@@ -4,6 +4,7 @@ import { EventService } from '../../api/EventService';
 import type { CreateEventRequest, EventInventoryItem } from '../../types/events';
 import ErrorDisplay from '../common/ErrorDisplay';
 import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const CreateEventForm: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const CreateEventForm: React.FC = () => {
   const [customerId, setCustomerId] = useState('');
   const [openInvitation, setOpenInvitation] = useState(false);
   const [numberOfStaffNeeded, setNumberOfStaffNeeded] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -39,11 +40,13 @@ const CreateEventForm: React.FC = () => {
 
       await EventService.createEvent(request);
       navigate('/events');
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -52,7 +55,7 @@ const CreateEventForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Create New Event</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="title" className="form-label">Title:</label>

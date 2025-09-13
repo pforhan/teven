@@ -4,11 +4,12 @@ import { OrganizationService } from '../../api/OrganizationService';
 import type { OrganizationResponse } from '../../types/organizations';
 import { usePermissions } from '../../AuthContext';
 import TableView, { type Column } from '../common/TableView';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const OrganizationList: React.FC = () => {
   const navigate = useNavigate();
   const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
   const canViewOrganizations = hasPermission('VIEW_ORGANIZATIONS_GLOBAL');
   const canManageOrganizations = hasPermission('MANAGE_ORGANIZATIONS_GLOBAL');
@@ -17,11 +18,13 @@ const OrganizationList: React.FC = () => {
     try {
       const orgData = await OrganizationService.getAllOrganizations();
       setOrganizations(orgData);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   }, []);
@@ -37,11 +40,13 @@ const OrganizationList: React.FC = () => {
       try {
         await OrganizationService.deleteOrganization(organizationId);
         fetchOrganizations(); // Re-fetch organizations after deletion
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     }
@@ -78,7 +83,7 @@ const OrganizationList: React.FC = () => {
         }}
         error={error}
         canView={canViewOrganizations}
-        viewError="Access denied: You do not have permission to view organizations."
+        viewError={{ message: "Access denied: You do not have permission to view organizations." }}
       />
     </div>
   );

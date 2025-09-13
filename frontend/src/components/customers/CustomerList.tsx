@@ -4,11 +4,12 @@ import { CustomerService } from '../../api/CustomerService';
 import type { CustomerResponse } from '../../types/customers';
 import { usePermissions } from '../../AuthContext';
 import TableView, { type Column } from '../common/TableView';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const CustomerList: React.FC = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<CustomerResponse[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
   const canManageCustomers = hasPermission('MANAGE_CUSTOMERS_ORGANIZATION');
   const canViewGlobalCustomers = hasPermission('VIEW_CUSTOMERS_GLOBAL');
@@ -19,11 +20,13 @@ const CustomerList: React.FC = () => {
     try {
       const customerData = await CustomerService.getAllCustomers(nameFilter, sortByName === '' ? undefined : sortByName);
       setCustomers(customerData);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   }, [nameFilter, sortByName]);
@@ -39,9 +42,9 @@ const CustomerList: React.FC = () => {
         fetchCustomers(); // Re-fetch customers after deletion
       } catch (err) {
         if (err instanceof Error) {
-          setError(err.message);
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     }

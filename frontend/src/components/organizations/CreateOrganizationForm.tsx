@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { OrganizationService } from '../../api/OrganizationService';
 import type { CreateOrganizationRequest } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const CreateOrganizationForm: React.FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [contactInformation, setContactInformation] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -22,11 +23,13 @@ const CreateOrganizationForm: React.FC = () => {
 
       await OrganizationService.createOrganization(request);
       navigate('/organizations'); // Redirect to organization list after creation
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -35,7 +38,7 @@ const CreateOrganizationForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Create New Organization</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="name" className="form-label">Name:</label>

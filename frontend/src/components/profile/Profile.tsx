@@ -5,11 +5,12 @@ import { useAuth } from '../../AuthContext';
 import EditProfileForm from './EditProfileForm';
 
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const Profile: React.FC = () => {
   const { userContext } = useAuth();
   const [userDetails, setUserDetails] = useState<UserDetailsResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const fetchUserDetails = async () => {
@@ -18,11 +19,13 @@ const Profile: React.FC = () => {
       const details = await AuthService.getUserDetails(userContext.user.userId);
       setUserDetails(details);
       setError(null);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -44,7 +47,7 @@ const Profile: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Profile</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         {isEditing ? (
           <EditProfileForm user={userDetails} onSave={handleSave} onCancel={() => setIsEditing(false)} />
         ) : (

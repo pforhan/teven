@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { CustomerService } from '../../api/CustomerService';
 import type { CreateCustomerRequest } from '../../types/customers';
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const CreateCustomerForm: React.FC = () => {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ const CreateCustomerForm: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -28,11 +29,13 @@ const CreateCustomerForm: React.FC = () => {
 
       await CustomerService.createCustomer(request);
       navigate('/customers'); // Redirect to customer list after creation
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -41,7 +44,7 @@ const CreateCustomerForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Create New Customer</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="name" className="form-label">Name:</label>

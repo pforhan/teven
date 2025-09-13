@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { CustomerService } from '../../api/CustomerService';
 import type { CustomerResponse, UpdateCustomerRequest } from '../../types/customers';
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const EditCustomerForm: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const EditCustomerForm: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   useEffect(() => {
     const fetchCustomer = async () => {
@@ -26,11 +27,13 @@ const EditCustomerForm: React.FC = () => {
         setPhone(fetchedCustomer.phone);
         setAddress(fetchedCustomer.address);
         setNotes(fetchedCustomer.notes);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     };
@@ -55,9 +58,9 @@ const EditCustomerForm: React.FC = () => {
       navigate('/customers');
     } catch (err) {
       if (err instanceof Error) {
-        setError(err.message);
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -70,7 +73,7 @@ const EditCustomerForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Edit Customer: {customer.name}</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="name" className="form-label">Name:</label>

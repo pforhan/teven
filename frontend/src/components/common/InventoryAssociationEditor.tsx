@@ -4,6 +4,7 @@ import type { InventoryItemResponse } from '../../types/inventory';
 import type { EventInventoryItem } from '../../types/events';
 import ErrorDisplay from './ErrorDisplay';
 import { Link } from 'react-router-dom';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 interface InventoryAssociationEditorProps {
   initialInventoryItems: EventInventoryItem[];
@@ -18,7 +19,7 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
   const [selectedInventoryId, setSelectedInventoryId] = useState<string>('');
   const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
   const [currentAssociatedItems, setCurrentAssociatedItems] = useState<EventInventoryItem[]>(initialInventoryItems);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   useEffect(() => {
     const fetchInventory = async () => {
@@ -28,11 +29,13 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
         if (items.length > 0 && !selectedInventoryId) {
           setSelectedInventoryId(items[0].inventoryId.toString());
         }
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred while fetching inventory');
+          setError({ message: 'An unknown error occurred while fetching inventory' });
         }
       }
     };
@@ -46,7 +49,7 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
   const handleAddItem = () => {
     const inventoryId = parseInt(selectedInventoryId);
     if (isNaN(inventoryId) || selectedQuantity <= 0) {
-      setError('Please select a valid inventory item and quantity.');
+      setError({ message: 'Please select a valid inventory item and quantity.' });
       return;
     }
 
@@ -74,7 +77,7 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
   return (
     <div className="mb-3">
       <h4>Associated Inventory</h4>
-      <ErrorDisplay message={error} />
+      <ErrorDisplay error={error} />
 
       {availableInventory.length === 0 ? (
         <p className="alert alert-info">

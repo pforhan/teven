@@ -4,6 +4,7 @@ import { EventService } from '../../api/EventService';
 import type { EventResponse, UpdateEventRequest, EventInventoryItem } from '../../types/events';
 import ErrorDisplay from '../common/ErrorDisplay';
 import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const EditEventForm: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const EditEventForm: React.FC = () => {
   const [customerId, setCustomerId] = useState('');
   const [openInvitation, setOpenInvitation] = useState(false);
   const [numberOfStaffNeeded, setNumberOfStaffNeeded] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -35,11 +36,13 @@ const EditEventForm: React.FC = () => {
         setCustomerId(fetchedEvent.customerId.toString());
         setOpenInvitation(false);
         setNumberOfStaffNeeded(0);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     };
@@ -71,9 +74,9 @@ const EditEventForm: React.FC = () => {
       navigate('/events');
     } catch (err) {
       if (err instanceof Error) {
-        setError(err.message);
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -86,7 +89,7 @@ const EditEventForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Edit Event: {event.title}</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="title" className="form-label">Title:</label>

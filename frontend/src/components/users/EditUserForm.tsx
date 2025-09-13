@@ -5,6 +5,7 @@ import { RoleService } from '../../api/RoleService';
 import type { UserResponse, UpdateUserRequest } from '../../types/auth';
 import type { RoleResponse } from '../../types/roles';
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const EditUserForm: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const EditUserForm: React.FC = () => {
   const [displayName, setDisplayName] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleResponse[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   useEffect(() => {
     const fetchUserAndRoles = async () => {
@@ -28,11 +29,13 @@ const EditUserForm: React.FC = () => {
 
         const rolesData = await RoleService.getAllRoles();
         setAvailableRoles(rolesData);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     };
@@ -62,9 +65,9 @@ const EditUserForm: React.FC = () => {
       navigate('/users');
     } catch (err) {
       if (err instanceof Error) {
-        setError(err.message);
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -77,7 +80,7 @@ const EditUserForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Edit User: {user.displayName}</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="email" className="form-label">Email:</label>

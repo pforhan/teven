@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import type { LoginRequest } from './types/auth';
 import { AuthService } from './api/AuthService';
+import { ApiErrorWithDetails } from './errors/ApiErrorWithDetails';
 import ErrorDisplay from './components/common/ErrorDisplay';
 import { useAuth } from './AuthContext';
 
 const Auth: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { refetchUserContext } = useAuth();
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -22,10 +23,12 @@ const Auth: React.FC = () => {
       await AuthService.login(loginRequest);
       await refetchUserContext();
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -34,7 +37,7 @@ const Auth: React.FC = () => {
     <div className="container d-flex justify-content-center align-items-center vh-100">
       <div className="card p-4" style={{ width: '25rem' }}>
         <h2 className="card-title text-center mb-4">Login</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="username" className="form-label">Username:</label>

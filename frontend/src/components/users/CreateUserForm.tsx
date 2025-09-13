@@ -9,6 +9,7 @@ import type { RoleResponse } from '../../types/roles';
 import type { OrganizationResponse } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
 import { Constants } from '../../core/Constants';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const CreateUserForm: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const CreateUserForm: React.FC = () => {
   const [availableRoles, setAvailableRoles] = useState<RoleResponse[]>([]);
   const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
   const [selectedOrganization, setSelectedOrganization] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const { userContext } = useAuth();
 
@@ -36,11 +37,13 @@ const CreateUserForm: React.FC = () => {
           const orgsData = await OrganizationService.getAllOrganizations();
           setAvailableOrganizations(orgsData);
         }
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     };
@@ -58,22 +61,33 @@ const CreateUserForm: React.FC = () => {
     setError(null);
 
     try {
+      const organizationIdToUse = isSuperAdmin
+        ? (selectedOrganization ? parseInt(selectedOrganization) : undefined)
+        : userContext?.user.organization?.organizationId;
+
+      if (organizationIdToUse === undefined) {
+        setError({ message: 'Organization must be selected.' });
+        return;
+      }
+
       const request: CreateUserRequest = {
         username,
         password,
         email,
         displayName,
         roles: selectedRoles,
-        organizationId: isSuperAdmin ? (selectedOrganization || undefined) : userContext?.user.organization?.organizationId?.toString(),
+        organizationId: organizationIdToUse,
       };
 
       await UserService.createUser(request);
       navigate('/users'); // Redirect to user list after creation
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -82,7 +96,7 @@ const CreateUserForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Create New User</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="username" className="form-label">Username:</label>

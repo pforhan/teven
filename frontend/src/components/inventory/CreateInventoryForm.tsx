@@ -5,13 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { InventoryService } from '../../api/InventoryService';
 import type { CreateInventoryItemRequest } from '../../types/inventory';
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const CreateInventoryForm: React.FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -26,11 +27,13 @@ const CreateInventoryForm: React.FC = () => {
 
       await InventoryService.createInventoryItem(request);
       navigate('/inventory'); // Redirect to inventory list after creation
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -39,7 +42,7 @@ const CreateInventoryForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Create New Inventory Item</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="name" className="form-label">Name:</label>

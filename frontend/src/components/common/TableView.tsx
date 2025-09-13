@@ -17,9 +17,9 @@ interface TableViewProps<T> {
     onClick: () => void;
     permission?: boolean;
   } | null;
-  error: string | null;
+  error: { message: string; details?: string } | null;
   canView: boolean;
-  viewError?: string;
+  viewError?: { message: string; details?: string } | null;
 }
 
 const TableView = <T,>({ // eslint-disable-line
@@ -36,14 +36,14 @@ const TableView = <T,>({ // eslint-disable-line
 
 
   if (!canView) {
-    return <ErrorDisplay message={viewError || "Access denied: You do not have permission to view this content."} />;
+    return <ErrorDisplay error={viewError || { message: "Access denied: You do not have permission to view this content." }} />;
   }
 
   return (
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">{title}</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
 
         {createButton && createButton.permission && (
           <button className="btn btn-primary mb-3" onClick={createButton.onClick}>{createButton.label}</button>

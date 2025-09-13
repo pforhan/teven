@@ -4,11 +4,12 @@ import { EventService } from '../../api/EventService';
 import type { EventResponse } from '../../types/events';
 import { usePermissions } from '../../AuthContext';
 import TableView, { type Column } from '../common/TableView';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const EventList: React.FC = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<EventResponse[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
   const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
   const canViewGlobalEvents = hasPermission('VIEW_EVENTS_GLOBAL');
@@ -19,11 +20,13 @@ const EventList: React.FC = () => {
     try {
       const eventData = await EventService.getAllEvents(titleFilter, sortByDate === '' ? undefined : sortByDate);
       setEvents(eventData);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   }, [titleFilter, sortByDate]);
@@ -39,9 +42,9 @@ const EventList: React.FC = () => {
         fetchEvents(); // Re-fetch events after deletion
       } catch (err) {
         if (err instanceof Error) {
-          setError(err.message);
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     }

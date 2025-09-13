@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { OrganizationService } from '../../api/OrganizationService';
 import type { OrganizationResponse, UpdateOrganizationRequest } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const EditOrganizationForm: React.FC = () => {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ const EditOrganizationForm: React.FC = () => {
   const [organization, setOrganization] = useState<OrganizationResponse | null>(null);
   const [name, setName] = useState('');
   const [contactInformation, setContactInformation] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   useEffect(() => {
     const fetchOrganization = async () => {
@@ -20,11 +21,13 @@ const EditOrganizationForm: React.FC = () => {
         setOrganization(fetchedOrganization);
         setName(fetchedOrganization.name);
         setContactInformation(fetchedOrganization.contactInformation);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     };
@@ -47,9 +50,9 @@ const EditOrganizationForm: React.FC = () => {
       navigate('/organizations');
     } catch (err) {
       if (err instanceof Error) {
-        setError(err.message);
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -62,7 +65,7 @@ const EditOrganizationForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Edit Organization: {organization.name}</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="name" className="form-label">Name:</label>

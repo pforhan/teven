@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { InventoryService } from '../../api/InventoryService';
 import type { InventoryItemResponse, UpdateInventoryItemRequest } from '../../types/inventory';
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const EditInventoryForm: React.FC = () => {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ const EditInventoryForm: React.FC = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   useEffect(() => {
     const fetchInventoryItem = async () => {
@@ -22,11 +23,13 @@ const EditInventoryForm: React.FC = () => {
         setName(fetchedItem.name);
         setDescription(fetchedItem.description);
         setQuantity(fetchedItem.quantity);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
+          setError({ message: err.message });
         } else {
-          setError('An unknown error occurred');
+          setError({ message: 'An unknown error occurred' });
         }
       }
     };
@@ -50,9 +53,9 @@ const EditInventoryForm: React.FC = () => {
       navigate('/inventory');
     } catch (err) {
       if (err instanceof Error) {
-        setError(err.message);
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -65,7 +68,7 @@ const EditInventoryForm: React.FC = () => {
     <div className="card">
       <div className="card-body">
         <h2 className="card-title">Edit Inventory Item: {inventoryItem.name}</h2>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="name" className="form-label">Name:</label>

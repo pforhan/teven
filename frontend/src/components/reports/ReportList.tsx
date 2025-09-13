@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { ReportService } from '../../api/ReportService';
 import type { StaffHoursReportResponse, InventoryUsageReportResponse } from '../../types/reports';
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const ReportList: React.FC = () => {
   const [staffHoursReport, setStaffHoursReport] = useState<StaffHoursReportResponse[]>([]);
   const [inventoryUsageReport, setInventoryUsageReport] = useState<InventoryUsageReportResponse[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const fetchStaffHoursReport = async () => {
     try {
@@ -17,13 +18,15 @@ const ReportList: React.FC = () => {
         setStaffHoursReport(report);
         setError(null);
       } else {
-        setError('Please select both start and end dates for staff hours report.');
+        setError({ message: 'Please select both start and end dates for staff hours report.' });
       }
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred while fetching staff hours report');
+        setError({ message: 'An unknown error occurred while fetching staff hours report' });
       }
     }
   };
@@ -33,11 +36,13 @@ const ReportList: React.FC = () => {
       const report = await ReportService.getInventoryUsageReport();
       setInventoryUsageReport(report);
       setError(null);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred while fetching inventory usage report');
+        setError({ message: 'An unknown error occurred while fetching inventory usage report' });
       }
     }
   };
@@ -49,7 +54,7 @@ const ReportList: React.FC = () => {
   return (
     <div className="container-fluid">
       <h2>Reports</h2>
-      <ErrorDisplay message={error} />
+      <ErrorDisplay error={error} />
 
       <div className="card mb-4">
         <div className="card-body">

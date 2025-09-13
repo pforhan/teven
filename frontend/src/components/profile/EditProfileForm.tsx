@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AuthService } from '../../api/AuthService';
 import type { UserDetailsResponse, UpdateUserRequest } from '../../types/auth';
 import ErrorDisplay from '../common/ErrorDisplay';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 interface EditProfileFormProps {
   user: UserDetailsResponse;
@@ -15,7 +16,7 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({ user, onSave, onCance
   const [phoneNumber, setPhoneNumber] = useState(user.staffDetails?.phoneNumber || '');
   const [dateOfBirth, setDateOfBirth] = useState(user.staffDetails?.dateOfBirth || '');
   const [skills, setSkills] = useState(user.staffDetails?.skills.join(', ') || '');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,11 +35,13 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({ user, onSave, onCance
 
       await AuthService.updateUserDetails(user.userId, request);
       onSave();
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   };
@@ -47,7 +50,7 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({ user, onSave, onCance
     <div className="card mt-3">
       <div className="card-body">
         <h3 className="card-title">Edit Profile</h3>
-        <ErrorDisplay message={error} />
+        <ErrorDisplay error={error} />
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="email" className="form-label">Email:</label>

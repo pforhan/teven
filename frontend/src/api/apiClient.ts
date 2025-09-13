@@ -1,5 +1,6 @@
 import { AuthService } from './AuthService';
 import { UnauthorizedError } from '../errors/UnauthorizedError';
+import { ApiErrorWithDetails } from '../errors/ApiErrorWithDetails';
 import type { ApiResponse } from '../types/api';
 
 export const apiClient = async <T>(url: string, options: RequestInit = {}): Promise<T> => {
@@ -21,12 +22,13 @@ export const apiClient = async <T>(url: string, options: RequestInit = {}): Prom
     if (contentType && contentType.indexOf("application/json") !== -1) {
       const apiResponse: ApiResponse<T> = await response.json();
       if (apiResponse.error) {
-        throw new Error(apiResponse.error.message);
+        throw new ApiErrorWithDetails(apiResponse.error.message, apiResponse.error.details);
       }
     }
     const errorText = await response.text();
-    throw new Error(
-      `API request failed with status ${response.status}: ${errorText}`
+    throw new ApiErrorWithDetails(
+      `API request failed with status ${response.status}`,
+      errorText
     );
   }
 
@@ -36,7 +38,7 @@ export const apiClient = async <T>(url: string, options: RequestInit = {}): Prom
     if (apiResponse.success) {
       return apiResponse.data as T;
     } else {
-      throw new Error(apiResponse.error?.message || 'API request failed');
+      throw new ApiErrorWithDetails(apiResponse.error?.message || 'API request failed', apiResponse.error?.details);
     }
   } else {
     // If there's no content, we can't reasonably return a T, so we'll return null

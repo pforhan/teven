@@ -4,11 +4,12 @@ import { UserService } from '../../api/UserService';
 import type { UserResponse } from '../../types/auth';
 import { usePermissions } from '../../AuthContext';
 import TableView, { type Column } from '../common/TableView';
+import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const UserList: React.FC = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserResponse[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
   const canViewUsers = hasPermission('VIEW_USERS_ORGANIZATION') || hasPermission('VIEW_USERS_GLOBAL');
   const canManageUsers = hasPermission('MANAGE_USERS_GLOBAL');
@@ -17,11 +18,13 @@ const UserList: React.FC = () => {
     try {
       const userData = await UserService.getAllUsers();
       setUsers(userData);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
       } else {
-        setError('An unknown error occurred');
+        setError({ message: 'An unknown error occurred' });
       }
     }
   }, []);
@@ -65,7 +68,7 @@ const UserList: React.FC = () => {
       }}
       error={error}
       canView={canViewUsers}
-      viewError="Access denied: You do not have permission to view users."
+      viewError={{ message: "Access denied: You do not have permission to view users." }}
     />
   );
 };
