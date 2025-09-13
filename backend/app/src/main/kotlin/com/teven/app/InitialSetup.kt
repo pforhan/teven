@@ -20,7 +20,7 @@ class InitialSetup(
       roleDao.createRole(
         CreateRoleRequest(
           roleName = Constants.ROLE_SUPERADMIN,
-          permissions = Permission.values().map { it.name },
+          permissions = Permission.entries.map { it.name },
         ),
       )
       val superAdminEmail = System.getenv("SUPERADMIN_EMAIL")
@@ -32,23 +32,20 @@ class InitialSetup(
 
       val existingUser = userDao.getUserByUsername(superAdminEmail)
       if (existingUser == null) {
-        val superAdminUser = userDao.createUser(
-          CreateUserRequest(
-            username = superAdminEmail,
-            email = superAdminEmail,
-            password = superAdminPassword,
-            displayName = "Super Admin",
-          ),
-        )
         val tevenOrganization = organizationDao.createOrganization(
           CreateOrganizationRequest(
             name = "Teven",
             contactInformation = "admin@teven.com",
           ),
         )
-        organizationDao.assignUserToOrganization(
-          superAdminUser.userId,
-          tevenOrganization.organizationId
+        val superAdminUser = userDao.createUser(
+          CreateUserRequest(
+            username = superAdminEmail,
+            email = superAdminEmail,
+            password = superAdminPassword,
+            displayName = "Super Admin",
+            organizationId = tevenOrganization.organizationId,
+          ),
         )
         val superAdminRole = roleDao.getRoleByName(Constants.ROLE_SUPERADMIN)!!
         roleDao.assignRoleToUser(superAdminUser.userId, superAdminRole.roleId)

@@ -8,6 +8,7 @@ data class UpdateUserRequest(
   val displayName: String? = null,
   val roles: List<String>? = null,
   val staffDetails: UpdateStaffDetails? = null,
+  val organizationId: Int? = null,
 )
 
 @Serializable

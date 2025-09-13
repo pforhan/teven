@@ -32,6 +32,11 @@ class UserDao {
       it[passwordHash] = PasswordHasher.hashPassword(registerRequest.password)
     } get Users.id
 
+    UserOrganizations.insert {
+      it[userId] = id.value
+      it[organizationId] = registerRequest.organizationId
+    }
+
     User(
       userId = id.value,
       username = registerRequest.username,
