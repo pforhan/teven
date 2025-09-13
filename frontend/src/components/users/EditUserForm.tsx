@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { UserService } from '../../api/UserService';
 import { RoleService } from '../../api/RoleService';
+import { OrganizationService } from '../../api/OrganizationService';
 import type { UserResponse, UpdateUserRequest } from '../../types/auth';
 import type { RoleResponse } from '../../types/roles';
+import type { OrganizationResponse } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
+import { useAuth, usePermissions } from '../../AuthContext';
 
 const EditUserForm: React.FC = () => {
   const navigate = useNavigate();
@@ -15,10 +18,16 @@ const EditUserForm: React.FC = () => {
   const [displayName, setDisplayName] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleResponse[]>([]);
+  const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
+  const { } = useAuth();
+  const { hasPermission } = usePermissions();
+  const canManageGlobalUsers = hasPermission('MANAGE_USERS_GLOBAL');
+
   useEffect(() => {
-    const fetchUserAndRoles = async () => {
+    const fetchUserAndRolesAndOrganizations = async () => {
       if (!userId) return;
       try {
         const fetchedUser = await UserService.getUser(parseInt(userId));
@@ -29,6 +38,12 @@ const EditUserForm: React.FC = () => {
 
         const rolesData = await RoleService.getAllRoles();
         setAvailableRoles(rolesData);
+
+        if (canManageGlobalUsers) {
+          const orgs = await OrganizationService.getAllOrganizations();
+          setAvailableOrganizations(orgs);
+        }
+        setSelectedOrganizationId(fetchedUser.organization?.organizationId?.toString() || '');
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {
           setError({ message: err.message, details: err.details });
@@ -39,8 +54,8 @@ const EditUserForm: React.FC = () => {
         }
       }
     };
-    fetchUserAndRoles();
-  }, [userId]);
+    fetchUserAndRolesAndOrganizations();
+  }, [userId, canManageGlobalUsers]);
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const options = Array.from(e.target.options);
@@ -55,16 +70,23 @@ const EditUserForm: React.FC = () => {
     if (!userId) return;
 
     try {
+      const organizationIdToUse = canManageGlobalUsers
+        ? (selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined)
+        : undefined; // Organization ID is not sent if not global manager
+
       const request: UpdateUserRequest = {
         email,
         displayName,
         roles: selectedRoles,
+        organizationId: organizationIdToUse,
       };
 
       await UserService.updateUser(parseInt(userId), request);
       navigate('/users');
-    } catch (err) {
-      if (err instanceof Error) {
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
         setError({ message: err.message });
       } else {
         setError({ message: 'An unknown error occurred' });
@@ -100,6 +122,25 @@ const EditUserForm: React.FC = () => {
               ))}
             </select>
           </div>
+
+          {canManageGlobalUsers && (
+            <div className="mb-3">
+              <label htmlFor="organization" className="form-label">Organization:</label>
+              <select
+                id="organization"
+                className="form-select"
+                value={selectedOrganizationId}
+                onChange={(e) => setSelectedOrganizationId(e.target.value)}
+              >
+                {availableOrganizations.map(org => (
+                  <option key={org.organizationId} value={org.organizationId}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button type="submit" className="btn btn-primary">Update User</button>
           <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/users')}>Cancel</button>
         </form>

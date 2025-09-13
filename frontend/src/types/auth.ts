@@ -56,6 +56,7 @@ export interface UpdateUserRequest {
   displayName?: string;
   roles?: string[];
   staffDetails?: UpdateStaffDetails;
+  organizationId?: number;
 }
 
 export interface CreateUserRequest {

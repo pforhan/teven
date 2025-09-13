@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { UserService } from '../../api/UserService';
 import { RoleService } from '../../api/RoleService';
 import { OrganizationService } from '../../api/OrganizationService';
-import { useAuth } from '../../AuthContext';
+import { useAuth, usePermissions } from '../../AuthContext';
 import type { CreateUserRequest } from '../../types/auth';
 import type { RoleResponse } from '../../types/roles';
 import type { OrganizationResponse } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
-import { Constants } from '../../core/Constants';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const CreateUserForm: React.FC = () => {
@@ -24,8 +23,8 @@ const CreateUserForm: React.FC = () => {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const { userContext } = useAuth();
-
-  const isSuperAdmin = userContext?.user?.roles?.includes(Constants.ROLE_SUPERADMIN) || false;
+  const { hasPermission } = usePermissions();
+  const canManageGlobalUsers = hasPermission('MANAGE_USERS_GLOBAL');
 
   useEffect(() => {
     const fetchRolesAndOrganizations = async () => {
@@ -33,7 +32,7 @@ const CreateUserForm: React.FC = () => {
         const rolesData = await RoleService.getAllRoles();
         setAvailableRoles(rolesData);
 
-        if (isSuperAdmin) {
+        if (canManageGlobalUsers) {
           const orgsData = await OrganizationService.getAllOrganizations();
           setAvailableOrganizations(orgsData);
         }
@@ -48,7 +47,7 @@ const CreateUserForm: React.FC = () => {
       }
     };
     fetchRolesAndOrganizations();
-  }, [isSuperAdmin]);
+  }, [canManageGlobalUsers]);
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const options = Array.from(e.target.options);
@@ -61,9 +60,9 @@ const CreateUserForm: React.FC = () => {
     setError(null);
 
     try {
-      const organizationIdToUse = isSuperAdmin
+      const organizationIdToUse = canManageGlobalUsers
         ? (selectedOrganization ? parseInt(selectedOrganization) : undefined)
-        : userContext?.user.organization?.organizationId;
+        : userContext?.user?.organization?.organizationId;
 
       if (organizationIdToUse === undefined) {
         setError({ message: 'Organization must be selected.' });
@@ -124,7 +123,7 @@ const CreateUserForm: React.FC = () => {
               ))}
             </select>
           </div>
-          {isSuperAdmin && (
+          {canManageGlobalUsers && (
             <div className="mb-3">
               <label htmlFor="organization" className="form-label">Organization:</label>
               <select
