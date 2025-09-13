@@ -3,10 +3,10 @@ package com.teven.app.user
 import com.teven.api.model.common.failure
 import com.teven.api.model.common.success
 import com.teven.api.model.user.CreateUserRequest
-import com.teven.auth.UserIdPrincipal
 import com.teven.auth.withPermission
 import com.teven.core.security.Permission.MANAGE_USERS_ORGANIZATION
 import com.teven.core.security.Permission.VIEW_USERS_ORGANIZATION
+import com.teven.core.security.UserPrincipal
 import com.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
@@ -33,7 +33,7 @@ fun Route.userRoutes() {
 
     withPermission(VIEW_USERS_ORGANIZATION) {
       get {
-        val principal = call.principal<UserIdPrincipal>()
+        val principal = call.principal<UserPrincipal>()
         val callerId = principal?.userId ?: return@get
         val users = userService.getAllUsers(callerId)
         call.respond(HttpStatusCode.OK, success(users))
@@ -41,7 +41,7 @@ fun Route.userRoutes() {
     }
 
     get("/context") {
-      val principal = call.principal<UserIdPrincipal>()
+      val principal = call.principal<UserPrincipal>()
       val userId = principal?.userId
 
       if (userId == null) {

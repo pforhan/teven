@@ -1,6 +1,7 @@
 package com.teven.auth
 
 import com.teven.core.security.Permission
+import com.teven.core.security.UserPrincipal
 import com.teven.core.service.PermissionService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin
@@ -15,7 +16,7 @@ val AuthorizationPlugin = createRouteScopedPlugin(
 
   pluginConfig.forEach { permission ->
     onCall { call ->
-      val principal = call.authentication.principal<UserIdPrincipal>()
+      val principal = call.authentication.principal<UserPrincipal>()
       val callerId = principal?.userId
 
       if (callerId == null) {
