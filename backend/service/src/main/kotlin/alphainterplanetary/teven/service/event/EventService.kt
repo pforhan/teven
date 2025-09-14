@@ -110,16 +110,5 @@ class EventService(private val eventDao: EventDao) {
     return eventDao.rsvpToEvent(eventId, userId, availability)
   }
 
-  suspend fun joinEvent(authContext: AuthContext, eventId: Int): Boolean {
-    val event = eventDao.getEventById(eventId)
-      ?: throw IllegalArgumentException("Event not found")
-
-    // Check if the user has permission to join events.
-    // For ASSIGN_TO_EVENTS_SELF, the user can only join events within their own organization.
-    if (!authContext.hasPermission(Permission.ASSIGN_TO_EVENTS_SELF) || event.organization.organizationId != authContext.organizationId) {
-      throw IllegalAccessException("User not authorized to join this event")
-    }
-
-    return eventDao.joinEvent(eventId, authContext.userId)
-  }
+  
 }

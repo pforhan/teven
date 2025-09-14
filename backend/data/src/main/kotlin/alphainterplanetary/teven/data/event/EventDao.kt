@@ -190,30 +190,23 @@ class EventDao(
   }
 
   suspend fun rsvpToEvent(eventId: Int, userId: Int, availability: String): Boolean = dbQuery {
-    val insertStatement = Rsvps.insert {
-      it[Rsvps.eventId] = eventId
-      it[Rsvps.userId] = userId
-      it[Rsvps.availability] = availability
-    }
-    insertStatement.resultedValues?.isNotEmpty() ?: false
-  }
-
-  suspend fun joinEvent(eventId: Int, userId: Int): Boolean = dbQuery {
     val existingRsvp = Rsvps.select { (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }.singleOrNull()
     if (existingRsvp != null) {
-      // User already RSVP'd, update their availability to 'available'
+      // User already RSVP'd, update their availability
       Rsvps.update({ (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }) {
-        it[Rsvps.availability] = "available"
+        it[Rsvps.availability] = availability
       } > 0
     } else {
       // No existing RSVP, insert a new one
       Rsvps.insert {
         it[Rsvps.eventId] = eventId
         it[Rsvps.userId] = userId
-        it[Rsvps.availability] = "available"
+        it[Rsvps.availability] = availability
       }.resultedValues?.isNotEmpty() ?: false
     }
   }
+
+  
 
   suspend fun getEventsForInventoryItem(inventoryItemId: Int): List<EventResponse> = dbQuery {
     (EventInventory innerJoin Events)

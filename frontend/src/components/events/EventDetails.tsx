@@ -64,27 +64,7 @@ const EventDetails: React.FC = () => {
     }
   };
 
-  const handleJoinEvent = async () => {
-    if (!eventId || !userContext?.user?.userId) return;
-    setError(null);
-    setSuccessMessage(null);
-
-    try {
-      await EventService.joinEvent(parseInt(eventId));
-      setSuccessMessage('Successfully joined the event!');
-      setMyRsvpStatus('available'); // Update local state
-      const fetchedEvent = await EventService.getEvent(parseInt(eventId)); // Re-fetch to update joined users
-      setEvent(fetchedEvent);
-    } catch (err: unknown) {
-      if (err instanceof ApiErrorWithDetails) {
-        setError({ message: err.message, details: err.details });
-      } else if (err instanceof Error) {
-        setError({ message: err.message });
-      } else {
-        setError({ message: 'An unknown error occurred while joining the event' });
-      }
-    }
-  };
+  
 
   if (!event) {
     return <div>Loading event details...</div>;
@@ -130,7 +110,7 @@ const EventDetails: React.FC = () => {
             {myRsvpStatus === 'available' ? (
               <button className="btn btn-warning me-2" onClick={() => handleRsvpChange('unspecified')}>Unjoin Event</button>
             ) : (
-              <button className="btn btn-primary me-2" onClick={handleJoinEvent}>Join Event</button>
+              <button className="btn btn-primary me-2" onClick={() => handleRsvpChange('available')}>Join Event</button>
             )}
             <button className="btn btn-danger" onClick={() => handleRsvpChange('unavailable')}>RSVP No</button>
           </div>

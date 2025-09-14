@@ -156,29 +156,7 @@ fun Route.eventRoutes() {
       }
     }
 
-    // Join Event
-    withPermission(ASSIGN_TO_EVENTS_SELF) {
-      post("{event_id}/join") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
-        val eventId = call.parameters["event_id"]?.toIntOrNull()
-        if (eventId == null) {
-          call.respond(HttpStatusCode.BadRequest, failure("Invalid event ID"))
-          return@post
-        }
-
-        try {
-          if (eventService.joinEvent(authContext, eventId)) {
-            call.respond(HttpStatusCode.OK, success("Successfully joined event"))
-          } else {
-            call.respond(HttpStatusCode.InternalServerError, failure("Failed to join event"))
-          }
-        } catch (e: IllegalAccessException) {
-          call.respond(HttpStatusCode.Forbidden, failure(e.message ?: "Access denied"))
-        } catch (e: IllegalArgumentException) {
-          call.respond(HttpStatusCode.BadRequest, failure(e.message ?: "Invalid request"))
-        }
-      }
-    }
+    
   }
 }
 
