@@ -37,23 +37,23 @@ const AppRoutes = () => {
       ) : (
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Navigate to="/events" />} />
-          <Route path="events" element={<ProtectedRoute permission="VIEW_EVENTS_ORGANIZATION"><EventList /></ProtectedRoute>} />
-          <Route path="events/create" element={<ProtectedRoute permission="MANAGE_EVENTS_ORGANIZATION"><CreateEventForm /></ProtectedRoute>} />
-          <Route path="events/edit/:eventId" element={<ProtectedRoute permission="MANAGE_EVENTS_ORGANIZATION"><EditEventForm /></ProtectedRoute>} />
-          <Route path="customers" element={<ProtectedRoute permission="VIEW_CUSTOMERS_ORGANIZATION"><CustomerList /></ProtectedRoute>} />
-          <Route path="customers/create" element={<ProtectedRoute permission="MANAGE_CUSTOMERS_ORGANIZATION"><CreateCustomerForm /></ProtectedRoute>} />
-          <Route path="customers/edit/:customerId" element={<ProtectedRoute permission="MANAGE_CUSTOMERS_ORGANIZATION"><EditCustomerForm /></ProtectedRoute>} />
-          <Route path="inventory" element={<ProtectedRoute permission="VIEW_INVENTORY_ORGANIZATION"><InventoryList /></ProtectedRoute>} />
-          <Route path="inventory/create" element={<ProtectedRoute permission="MANAGE_INVENTORY_ORGANIZATION"><CreateInventoryForm /></ProtectedRoute>} />
-          <Route path="inventory/edit/:inventoryId" element={<ProtectedRoute permission="MANAGE_INVENTORY_ORGANIZATION"><EditInventoryForm /></ProtectedRoute>} />
-          <Route path="reports" element={<ProtectedRoute permission="VIEW_REPORTS_ORGANIZATION"><ReportList /></ProtectedRoute>} />
+          <Route path="events" element={<ProtectedRoute permissions="VIEW_EVENTS_ORGANIZATION"><EventList /></ProtectedRoute>} />
+          <Route path="events/create" element={<ProtectedRoute permissions="MANAGE_EVENTS_ORGANIZATION"><CreateEventForm /></ProtectedRoute>} />
+          <Route path="events/edit/:eventId" element={<ProtectedRoute permissions="MANAGE_EVENTS_ORGANIZATION"><EditEventForm /></ProtectedRoute>} />
+          <Route path="customers" element={<ProtectedRoute permissions="VIEW_CUSTOMERS_ORGANIZATION"><CustomerList /></ProtectedRoute>} />
+          <Route path="customers/create" element={<ProtectedRoute permissions="MANAGE_CUSTOMERS_ORGANIZATION"><CreateCustomerForm /></ProtectedRoute>} />
+          <Route path="customers/edit/:customerId" element={<ProtectedRoute permissions="MANAGE_CUSTOMERS_ORGANIZATION"><EditCustomerForm /></ProtectedRoute>} />
+          <Route path="inventory" element={<ProtectedRoute permissions="VIEW_INVENTORY_ORGANIZATION"><InventoryList /></ProtectedRoute>} />
+          <Route path="inventory/create" element={<ProtectedRoute permissions="MANAGE_INVENTORY_ORGANIZATION"><CreateInventoryForm /></ProtectedRoute>} />
+          <Route path="inventory/edit/:inventoryId" element={<ProtectedRoute permissions="MANAGE_INVENTORY_ORGANIZATION"><EditInventoryForm /></ProtectedRoute>} />
+          <Route path="reports" element={<ProtectedRoute permissions="VIEW_REPORTS_ORGANIZATION"><ReportList /></ProtectedRoute>} />
           <Route path="profile" element={<Profile />} />
-              <Route path="organizations" element={<ProtectedRoute permission="VIEW_ORGANIZATIONS_GLOBAL"><OrganizationList /></ProtectedRoute>} />
-              <Route path="organizations/create" element={<ProtectedRoute permission="MANAGE_ORGANIZATIONS_GLOBAL"><CreateOrganizationForm /></ProtectedRoute>} />
-              <Route path="organizations/edit/:organizationId" element={<ProtectedRoute permission="MANAGE_ORGANIZATIONS_GLOBAL"><EditOrganizationForm /></ProtectedRoute>} />
-              <Route path="users" element={<ProtectedRoute permission="VIEW_USERS_ORGANIZATION"><UserList /></ProtectedRoute>} />
-              <Route path="users/create" element={<ProtectedRoute permission="MANAGE_USERS_GLOBAL"><CreateUserForm /></ProtectedRoute>} />
-              <Route path="users/edit/:userId" element={<ProtectedRoute permission="MANAGE_USERS_GLOBAL"><EditUserForm /></ProtectedRoute>} />
+              <Route path="organizations" element={<ProtectedRoute permissions="VIEW_ORGANIZATIONS_GLOBAL"><OrganizationList /></ProtectedRoute>} />
+              <Route path="organizations/create" element={<ProtectedRoute permissions="MANAGE_ORGANIZATIONS_GLOBAL"><CreateOrganizationForm /></ProtectedRoute>} />
+              <Route path="organizations/edit/:organizationId" element={<ProtectedRoute permissions="MANAGE_ORGANIZATIONS_GLOBAL"><EditOrganizationForm /></ProtectedRoute>} />
+              <Route path="users" element={<ProtectedRoute permissions="VIEW_USERS_ORGANIZATION"><UserList /></ProtectedRoute>} />
+              <Route path="users/create" element={<ProtectedRoute permissions={["MANAGE_USERS_GLOBAL", "MANAGE_USERS_ORGANIZATION"]}><CreateUserForm /></ProtectedRoute>} />
+              <Route path="users/edit/:userId" element={<ProtectedRoute permissions="MANAGE_USERS_GLOBAL"><EditUserForm /></ProtectedRoute>} />
             </Route>
           )}
         <Route path="*" element={<Navigate to={userContext ? "/" : "/login"} />} />
