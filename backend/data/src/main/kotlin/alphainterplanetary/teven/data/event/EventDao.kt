@@ -8,6 +8,7 @@ import alphainterplanetary.teven.api.model.event.RsvpStatus
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.dbQuery
+import alphainterplanetary.teven.data.inventory.InventoryItems
 import alphainterplanetary.teven.data.organization.Organizations
 import alphainterplanetary.teven.data.user.UserDao
 import alphainterplanetary.teven.data.user.Users
@@ -27,7 +28,15 @@ class EventDao(
     val eventId = row[Events.id]
 
     val inventoryItems = EventInventory.select { EventInventory.eventId eq eventId }
-      .map { EventInventoryItem(it[EventInventory.inventoryItemId], it[EventInventory.quantity]) }
+      .mapNotNull { eventInventoryRow ->
+          InventoryItems.select { InventoryItems.id eq eventInventoryRow[EventInventory.inventoryItemId] }.singleOrNull()?.let { inventoryItemRow ->
+              EventInventoryItem(
+                  inventoryId = eventInventoryRow[EventInventory.inventoryItemId],
+                  itemName = inventoryItemRow[InventoryItems.name],
+                  quantity = eventInventoryRow[EventInventory.quantity]
+              )
+          }
+      }
 
     val assignedStaffIds =
       EventStaff.select { EventStaff.eventId eq eventId }.map { it[EventStaff.userId].value }

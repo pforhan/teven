@@ -10,6 +10,7 @@ export interface StaffInviteDetails {
 
 export interface EventInventoryItem {
   inventoryId: number;
+  itemName: string;
   quantity: number;
 }
 

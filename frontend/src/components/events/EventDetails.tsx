@@ -88,7 +88,7 @@ const EventDetails: React.FC = () => {
         {event.inventoryItems.length > 0 ? (
           <ul>
             {event.inventoryItems.map(item => (
-              <li key={item.inventoryId}>{item.inventoryId} (Qty: {item.quantity})</li>
+              <li key={item.inventoryId}>{item.itemName} (Qty: {item.quantity})</li>
             ))}
           </ul>
         ) : (
@@ -108,12 +108,27 @@ const EventDetails: React.FC = () => {
 
         {canJoinEvents && (
           <div className="mt-3">
-            {myRsvpStatus === 'available' ? (
-              <button className="btn btn-warning me-2" onClick={() => handleRsvpChange('unspecified')}>Unjoin Event</button>
-            ) : (
-              <button className="btn btn-primary me-2" onClick={() => handleRsvpChange('available')}>Join Event</button>
-            )}
-            <button className="btn btn-danger" onClick={() => handleRsvpChange('unavailable')}>RSVP No</button>
+            <h4>RSVP Actions:</h4>
+            <div className="btn-group" role="group" aria-label="RSVP Actions">
+              <button
+                className={`btn ${myRsvpStatus === 'available' ? 'btn-success border border-3 border-dark' : 'btn-outline-success'}`}
+                onClick={() => handleRsvpChange('available')}
+              >
+                Yes
+              </button>
+              <button
+                className={`btn ${myRsvpStatus === 'unavailable' ? 'btn-danger border border-3 border-dark' : 'btn-outline-danger'}`}
+                onClick={() => handleRsvpChange('unavailable')}
+              >
+                No
+              </button>
+              <button
+                className={`btn ${myRsvpStatus === 'no response' ? 'btn-secondary border border-3 border-dark' : 'btn-outline-secondary'}`}
+                onClick={() => handleRsvpChange('no response')}
+              >
+                Delete RSVP
+              </button>
+            </div>
           </div>
         )}
 

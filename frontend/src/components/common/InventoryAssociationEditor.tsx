@@ -74,10 +74,13 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
       setCurrentAssociatedItems(updatedItems);
     } else {
       // Add new item
-      setCurrentAssociatedItems([
-        ...currentAssociatedItems,
-        { inventoryId, quantity: selectedQuantity },
-      ]);
+      const selectedItem = availableInventory.find(item => item.inventoryId === inventoryId);
+      if (selectedItem) {
+        setCurrentAssociatedItems([
+          ...currentAssociatedItems,
+          { inventoryId, itemName: selectedItem.name, quantity: selectedQuantity },
+        ]);
+      }
     }
     setError(null);
   };

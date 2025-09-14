@@ -5,5 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class EventInventoryItem(
   val inventoryId: Int,
+  val itemName: String,
   val quantity: Int,
 )
