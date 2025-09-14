@@ -18,6 +18,7 @@ const EventDetails: React.FC = () => {
   const { hasPermission } = usePermissions();
   const canJoinEvents = hasPermission('ASSIGN_TO_EVENTS_SELF');
   const canViewGlobalEvents = hasPermission('VIEW_EVENTS_GLOBAL');
+  const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -95,9 +96,9 @@ const EventDetails: React.FC = () => {
         )}
 
         <h3>Joined Users:</h3>
-        {event.rsvps.filter(rsvp => rsvp.availability === 'available').length > 0 ? (
+        {(canManageEvents || event.rsvps.filter(rsvp => rsvp.availability === 'available').length > 0) ? (
           <ul>
-            {event.rsvps.filter(rsvp => rsvp.availability === 'available').map(user => (
+            {event.rsvps.filter(rsvp => canManageEvents || rsvp.availability === 'available').map(user => (
               <li key={user.userId}>{user.displayName || user.email} ({user.availability})</li>
             ))}
           </ul>

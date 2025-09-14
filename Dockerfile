@@ -1,5 +1,5 @@
 # Stage 1: Gradle setup
-FROM cimg/openjdk:19.0-node as gradle-setup
+FROM cimg/openjdk:19.0-node AS gradle-setup
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN ./gradlew --status --no-daemon
 CMD ["/bin/bash", "-c", "ls -la /app"]
 
 # Stage 2: Build the frontend
-FROM node:20-slim as frontend-builder
+FROM node:20-slim AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -37,7 +37,7 @@ RUN npm install
 RUN npm run build
 
 # Stage 3: Build the backend and create the final image
-FROM cimg/openjdk:19.0-node as final
+FROM cimg/openjdk:19.0-node AS final
 
 WORKDIR /app
 

@@ -9,7 +9,8 @@ This document tracks design questions and areas that need further clarification.
 - **Backend Tests:** Implement comprehensive unit and integration tests for all backend services and routes.
 - **Frontend Tests:** Implement comprehensive unit and integration tests for all frontend components and services.
 - **User invites:** Provide a mechanism to send a single-use URL to users for invites.  Allow management of current invites, perhaps on the users page.
-- **Inventory checks:** The service should ensure inventory isn't used in the same place at the same time during event creation or editing. 
+- **Inventory checks:** The service should ensure inventory isn't used in the same place at the same time during event creation or editing.
+- **Request Event RSVPS:** an organizer should be able to select a number of employees when creating or editing an event, and specifically request their response.  Could be a new RSVP type of "requested" 
 ---
 
   **Completed:**
