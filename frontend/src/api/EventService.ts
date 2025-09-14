@@ -53,4 +53,8 @@ export class EventService {
       body: JSON.stringify(request),
     });
   }
+
+  static async joinEvent(eventId: number): Promise<StatusResponse> {
+    return apiClient<StatusResponse>(`/api/events/${eventId}/join`, { method: 'POST' });
+  }
 }

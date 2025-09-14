@@ -66,6 +66,7 @@ class InitialSetup(
             Permission.VIEW_EVENTS_ORGANIZATION.name,
             Permission.MANAGE_EVENTS_ORGANIZATION.name,
             Permission.ASSIGN_STAFF_TO_EVENTS_ORGANIZATION.name,
+            Permission.ASSIGN_TO_EVENTS_SELF.name,
             Permission.VIEW_INVENTORY_ORGANIZATION.name,
             Permission.MANAGE_INVENTORY_ORGANIZATION.name,
             Permission.VIEW_REPORTS_ORGANIZATION.name,
@@ -82,6 +83,7 @@ class InitialSetup(
           permissions = listOf(
             Permission.MANAGE_USERS_SELF.name,
             Permission.VIEW_EVENTS_ORGANIZATION.name,
+            Permission.ASSIGN_TO_EVENTS_SELF.name,
           ),
         ),
       )

@@ -7,6 +7,7 @@ import alphainterplanetary.teven.api.model.event.RsvpRequest
 import alphainterplanetary.teven.api.model.event.UpdateEventRequest
 import alphainterplanetary.teven.auth.withPermission
 import alphainterplanetary.teven.core.security.AuthContext
+import alphainterplanetary.teven.core.security.Permission.ASSIGN_TO_EVENTS_SELF
 import alphainterplanetary.teven.core.security.Permission.ASSIGN_STAFF_TO_EVENTS_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.MANAGE_EVENTS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.MANAGE_EVENTS_ORGANIZATION
@@ -152,6 +153,30 @@ fun Route.eventRoutes() {
         call.respond(HttpStatusCode.OK, success("OK"))
       } else {
         call.respond(HttpStatusCode.InternalServerError, failure("Failed to RSVP"))
+      }
+    }
+
+    // Join Event
+    withPermission(ASSIGN_TO_EVENTS_SELF) {
+      post("{event_id}/join") {
+        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val eventId = call.parameters["event_id"]?.toIntOrNull()
+        if (eventId == null) {
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid event ID"))
+          return@post
+        }
+
+        try {
+          if (eventService.joinEvent(authContext, eventId)) {
+            call.respond(HttpStatusCode.OK, success("Successfully joined event"))
+          } else {
+            call.respond(HttpStatusCode.InternalServerError, failure("Failed to join event"))
+          }
+        } catch (e: IllegalAccessException) {
+          call.respond(HttpStatusCode.Forbidden, failure(e.message ?: "Access denied"))
+        } catch (e: IllegalArgumentException) {
+          call.respond(HttpStatusCode.BadRequest, failure(e.message ?: "Invalid request"))
+        }
       }
     }
   }

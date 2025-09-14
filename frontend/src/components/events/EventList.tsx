@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import type { EventResponse } from '../../types/events';
 import { usePermissions } from '../../AuthContext';
@@ -51,7 +51,7 @@ const EventList: React.FC = () => {
   };
 
   const columns: Column<EventResponse>[] = [
-    { key: 'title', label: 'Title' },
+    { key: 'title', label: 'Title', render: (event: EventResponse) => <Link to={`/events/${event.eventId}`}>{event.title}</Link> },
     { key: 'date', label: 'Date' },
     { key: 'time', label: 'Time' },
     { key: 'description', label: 'Description' },

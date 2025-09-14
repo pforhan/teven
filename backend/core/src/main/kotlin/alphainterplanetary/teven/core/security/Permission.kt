@@ -72,6 +72,9 @@ enum class Permission {
   /** Allows a user to assign staff members to events within their own organization. */
   ASSIGN_STAFF_TO_EVENTS_ORGANIZATION,
 
+  /** Allows a user to assign themselves to events within their own organization. */
+  ASSIGN_TO_EVENTS_SELF,
+
   // Inventory Management
   /** Allows a user to view inventory items within their own organization. */
   VIEW_INVENTORY_ORGANIZATION,

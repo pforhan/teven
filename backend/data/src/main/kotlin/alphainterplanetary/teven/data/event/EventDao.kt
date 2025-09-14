@@ -6,9 +6,11 @@ import alphainterplanetary.teven.api.model.event.EventInventoryItem
 import alphainterplanetary.teven.api.model.event.EventResponse
 import alphainterplanetary.teven.api.model.event.RsvpStatus
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
+import alphainterplanetary.teven.api.model.user.UserResponse
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.organization.Organizations
+import alphainterplanetary.teven.data.user.Users
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
@@ -183,6 +185,23 @@ class EventDao {
       it[Rsvps.availability] = availability
     }
     insertStatement.resultedValues?.isNotEmpty() ?: false
+  }
+
+  suspend fun joinEvent(eventId: Int, userId: Int): Boolean = dbQuery {
+    val existingRsvp = Rsvps.select { (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }.singleOrNull()
+    if (existingRsvp != null) {
+      // User already RSVP'd, update their availability to 'available'
+      Rsvps.update({ (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }) {
+        it[Rsvps.availability] = "available"
+      } > 0
+    } else {
+      // No existing RSVP, insert a new one
+      Rsvps.insert {
+        it[Rsvps.eventId] = eventId
+        it[Rsvps.userId] = userId
+        it[Rsvps.availability] = "available"
+      }.resultedValues?.isNotEmpty() ?: false
+    }
   }
 
   suspend fun getEventsForInventoryItem(inventoryItemId: Int): List<EventResponse> = dbQuery {
