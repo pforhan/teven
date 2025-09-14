@@ -6,7 +6,6 @@ import alphainterplanetary.teven.api.model.event.EventInventoryItem
 import alphainterplanetary.teven.api.model.event.EventResponse
 import alphainterplanetary.teven.api.model.event.RsvpStatus
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
-import alphainterplanetary.teven.api.model.user.MinimalUserResponse
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.organization.Organizations
@@ -34,7 +33,16 @@ class EventDao(
       EventStaff.select { EventStaff.eventId eq eventId }.map { it[EventStaff.userId].value }
 
     val rsvps = Rsvps.select { Rsvps.eventId eq eventId }
-      .map { RsvpStatus(it[Rsvps.userId].value, it[Rsvps.availability]) }
+      .mapNotNull { rsvpRow ->
+          Users.select { Users.id eq rsvpRow[Rsvps.userId] }.singleOrNull()?.let { userRow ->
+              RsvpStatus(
+                  userId = rsvpRow[Rsvps.userId].value,
+                  displayName = userRow[Users.displayName],
+                  email = userRow[Users.email],
+                  availability = rsvpRow[Rsvps.availability]
+              )
+          }
+      }
 
     val organization =
       Organizations.select { Organizations.id eq row[Events.organizationId] }.single().let {
@@ -60,17 +68,7 @@ class EventDao(
         )
     )
 
-        val joinedUsers = rsvps.filter { it.availability == "available" }.mapNotNull { rsvp ->
-        Users.select { Users.id eq rsvp.userId }.singleOrNull()?.let { userRow ->
-            MinimalUserResponse(
-                userId = userRow[Users.id].value,
-                displayName = userRow[Users.displayName],
-                email = userRow[Users.email],
-            )
-        }
-    }
-
-    return EventResponse(
+        return EventResponse(
       eventId = eventId,
       title = row[Events.title],
       date = row[Events.date],
@@ -81,7 +79,6 @@ class EventDao(
       customer = customer,
       assignedStaffIds = assignedStaffIds,
       rsvps = rsvps,
-      joinedUsers = joinedUsers,
       organization = organization,
     )
   }

@@ -2,7 +2,6 @@ package alphainterplanetary.teven.api.model.event
 
 import alphainterplanetary.teven.api.model.customer.CustomerResponse
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
-import alphainterplanetary.teven.api.model.user.MinimalUserResponse
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -17,12 +16,13 @@ data class EventResponse(
   val customer: CustomerResponse,
   val assignedStaffIds: List<Int>,
   val rsvps: List<RsvpStatus>,
-  val joinedUsers: List<MinimalUserResponse>,
   val organization: OrganizationResponse,
 )
 
 @Serializable
 data class RsvpStatus(
   val userId: Int,
+  val displayName: String,
+  val email: String,
   val availability: String, // "available" or "unavailable"
 )

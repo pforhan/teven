@@ -12,6 +12,7 @@ const EventDetails: React.FC = () => {
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [myRsvpStatus, setMyRsvpStatus] = useState<string | null>(null);
 
   const { userContext } = useAuth();
   const { hasPermission } = usePermissions();
@@ -24,6 +25,9 @@ const EventDetails: React.FC = () => {
       try {
         const fetchedEvent = await EventService.getEvent(parseInt(eventId));
         setEvent(fetchedEvent);
+        // Determine current user's RSVP status
+        const currentUserRsvp = fetchedEvent.rsvps.find(rsvp => rsvp.userId === userContext?.user?.userId);
+        setMyRsvpStatus(currentUserRsvp?.availability || null);
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {
           setError({ message: err.message, details: err.details });
@@ -35,7 +39,30 @@ const EventDetails: React.FC = () => {
       }
     };
     fetchEvent();
-  }, [eventId]);
+  }, [eventId, userContext?.user?.userId]);
+
+  const handleRsvpChange = async (availability: string) => {
+    if (!eventId || !userContext?.user?.userId) return;
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      await EventService.rsvpToEvent(parseInt(eventId), { availability });
+      setSuccessMessage(`Successfully updated RSVP to ${availability}!`);
+      setMyRsvpStatus(availability);
+      // Re-fetch event to update joined users list
+      const fetchedEvent = await EventService.getEvent(parseInt(eventId));
+      setEvent(fetchedEvent);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
+      } else {
+        setError({ message: 'An unknown error occurred' });
+      }
+    }
+  };
 
   const handleJoinEvent = async () => {
     if (!eventId || !userContext?.user?.userId) return;
@@ -45,8 +72,9 @@ const EventDetails: React.FC = () => {
     try {
       await EventService.joinEvent(parseInt(eventId));
       setSuccessMessage('Successfully joined the event!');
-      // Optionally, refresh event details to show updated RSVP status
-      // fetchEvent();
+      setMyRsvpStatus('available'); // Update local state
+      const fetchedEvent = await EventService.getEvent(parseInt(eventId)); // Re-fetch to update joined users
+      setEvent(fetchedEvent);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
         setError({ message: err.message, details: err.details });
@@ -87,10 +115,10 @@ const EventDetails: React.FC = () => {
         )}
 
         <h3>Joined Users:</h3>
-        {event.joinedUsers.length > 0 ? (
+        {event.rsvps.filter(rsvp => rsvp.availability === 'available').length > 0 ? (
           <ul>
-            {event.joinedUsers.map(user => (
-              <li key={user.userId}>{user.displayName || user.email}</li>
+            {event.rsvps.filter(rsvp => rsvp.availability === 'available').map(user => (
+              <li key={user.userId}>{user.displayName || user.email} ({user.availability})</li>
             ))}
           </ul>
         ) : (
@@ -98,7 +126,14 @@ const EventDetails: React.FC = () => {
         )}
 
         {canJoinEvents && (
-          <button className="btn btn-primary mt-3" onClick={handleJoinEvent}>Join Event</button>
+          <div className="mt-3">
+            {myRsvpStatus === 'available' ? (
+              <button className="btn btn-warning me-2" onClick={() => handleRsvpChange('unspecified')}>Unjoin Event</button>
+            ) : (
+              <button className="btn btn-primary me-2" onClick={handleJoinEvent}>Join Event</button>
+            )}
+            <button className="btn btn-danger" onClick={() => handleRsvpChange('unavailable')}>RSVP No</button>
+          </div>
         )}
 
         <button className="btn btn-secondary mt-3 ms-2" onClick={() => navigate('/events')}>Back to Events</button>

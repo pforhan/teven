@@ -80,8 +80,4 @@ export interface UserContextResponse {
   permissions: string[]; // List of permissions for the user in current context
 }
 
-export interface MinimalUserResponse {
-  userId: number;
-  displayName: string;
-  email: string;
-}
+
