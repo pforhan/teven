@@ -1,5 +1,6 @@
 import type { CustomerResponse } from './customers';
 import type { OrganizationResponse } from './organizations';
+import type { MinimalUserResponse } from './auth'; // Corrected import path
 
 export interface StaffInviteDetails {
   specificStaffIds?: number[]; // Optional: list of specific staff to invite
@@ -39,7 +40,8 @@ export interface EventResponse {
   inventoryItems: EventInventoryItem[];
   customer: CustomerResponse;
   assignedStaffIds: number[];
-  rsvps: RsvpStatus[];
+  rsvps: RsvpStatus[]; // Corrected to array type
+  joinedUsers: MinimalUserResponse[]; // Corrected to array type
   organization: OrganizationResponse;
 }
 

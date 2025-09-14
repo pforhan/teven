@@ -32,7 +32,7 @@ val appModule = module {
   single<AuthService> { AuthServiceImpl(get(), get(), get()) }
   single<RoleService> { RoleServiceImpl(get()) }
   single<PermissionService> { PermissionServiceImpl(get()) }
-  single { EventDao() }
+  single { EventDao(get()) }
   single { InventoryDao() }
   single { EventService(get()) }
   single { InventoryService(get()) }

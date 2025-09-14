@@ -90,7 +90,7 @@ const EventDetails: React.FC = () => {
         {event.joinedUsers.length > 0 ? (
           <ul>
             {event.joinedUsers.map(user => (
-              <li key={user.userId}>{user.displayName || user.username}</li>
+              <li key={user.userId}>{user.displayName || user.email}</li>
             ))}
           </ul>
         ) : (

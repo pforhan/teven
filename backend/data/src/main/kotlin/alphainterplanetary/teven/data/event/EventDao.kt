@@ -6,10 +6,11 @@ import alphainterplanetary.teven.api.model.event.EventInventoryItem
 import alphainterplanetary.teven.api.model.event.EventResponse
 import alphainterplanetary.teven.api.model.event.RsvpStatus
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
-import alphainterplanetary.teven.api.model.user.UserResponse
+import alphainterplanetary.teven.api.model.user.MinimalUserResponse
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.organization.Organizations
+import alphainterplanetary.teven.data.user.UserDao
 import alphainterplanetary.teven.data.user.Users
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -20,7 +21,9 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 
-class EventDao {
+class EventDao(
+  private val userDao: UserDao
+) {
   private suspend fun toEventResponse(row: ResultRow): EventResponse {
     val eventId = row[Events.id]
 
@@ -57,6 +60,16 @@ class EventDao {
         )
     )
 
+        val joinedUsers = rsvps.filter { it.availability == "available" }.mapNotNull { rsvp ->
+        Users.select { Users.id eq rsvp.userId }.singleOrNull()?.let { userRow ->
+            MinimalUserResponse(
+                userId = userRow[Users.id].value,
+                displayName = userRow[Users.displayName],
+                email = userRow[Users.email],
+            )
+        }
+    }
+
     return EventResponse(
       eventId = eventId,
       title = row[Events.title],
@@ -68,6 +81,7 @@ class EventDao {
       customer = customer,
       assignedStaffIds = assignedStaffIds,
       rsvps = rsvps,
+      joinedUsers = joinedUsers,
       organization = organization,
     )
   }
