@@ -1,0 +1,11 @@
+package alphainterplanetary.teven.api.model.auth
+
+import alphainterplanetary.teven.api.model.organization.OrganizationResponse
+import alphainterplanetary.teven.api.model.user.UserResponse
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class LoggedInContextResponse(
+  val user: UserResponse,
+  val permissions: List<String>, // List of permissions for the user in current context
+)

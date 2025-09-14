@@ -20,7 +20,7 @@ tasks.named<DokkaTask>("dokkaGfm") {
   outputDirectory.set(layout.buildDirectory.dir("dokka-gfm"))
   dokkaSourceSets.configureEach {
     // Only document the api models
-    sourceRoots.from(file("src/main/kotlin/com/teven/api/model"))
+    sourceRoots.from(file("src/main/kotlin/alphainterplanetary/teven/api/model"))
     // Don't show inherited members from Any, etc.
     suppressInheritedMembers.set(true)
   }

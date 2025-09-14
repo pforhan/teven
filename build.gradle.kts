@@ -8,7 +8,7 @@ plugins {
 }
 
 allprojects {
-    group = "com.teven"
+    group = "alphainterplanetary.teven"
     version = "0.0.1"
 
     repositories {

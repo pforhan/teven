@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-  mainClass.set("com.teven.ApplicationKt")
+  mainClass.set("alphainterplanetary.teven.ApplicationKt")
 }
 
 dependencies {

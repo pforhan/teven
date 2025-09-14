@@ -105,6 +105,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `GET /api/customers`: Retrieve all customers.
     * Authentication: Required.
     * Permissions: `VIEW_CUSTOMERS_ORGANIZATION`
+    * Query Parameters:
+        * `organizationId` (optional, integer): Filter customers by organization. Requires `VIEW_CUSTOMERS_GLOBAL` permission.
     * Response: `List<CustomerResponse>`
 
 * `GET /api/customers/{customerId}`: Retrieve a specific customer.
@@ -141,6 +143,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `GET /api/inventory`: Retrieve all inventory items.
     * Authentication: Required.
     * Permissions: `VIEW_INVENTORY_ORGANIZATION`
+    * Query Parameters:
+        * `organizationId` (optional, integer): Filter inventory items by organization. Requires `VIEW_INVENTORY_GLOBAL` permission.
     * Response: `List<InventoryItemResponse>`
 
 * `GET /api/inventory/{inventoryId}`: Retrieve a specific inventory item.
