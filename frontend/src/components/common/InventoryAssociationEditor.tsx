@@ -9,12 +9,14 @@ import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 interface InventoryAssociationEditorProps {
   initialInventoryItems: EventInventoryItem[];
   onInventoryItemsChange: (items: EventInventoryItem[]) => void;
+  organizationId: string | null;
 }
 
-const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
+const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({ 
   initialInventoryItems,
   onInventoryItemsChange,
-}) => {
+  organizationId,
+ }) => {
   const [availableInventory, setAvailableInventory] = useState<InventoryItemResponse[]>([]);
   const [selectedInventoryId, setSelectedInventoryId] = useState<string>('');
   const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
@@ -23,8 +25,18 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
 
   useEffect(() => {
     const fetchInventory = async () => {
+      setCurrentAssociatedItems([]);
+      if (!organizationId) {
+        setAvailableInventory([]);
+        return;
+      }
+      console.log('Fetching inventory for organizationId:', organizationId);
       try {
-        const items = await InventoryService.getAllInventoryItems();
+        const items = await InventoryService.getAllInventoryItems(
+          undefined,
+          'asc',
+          parseInt(organizationId)
+        );
         setAvailableInventory(items);
         if (items.length > 0 && !selectedInventoryId) {
           setSelectedInventoryId(items[0].inventoryId.toString());
@@ -40,7 +52,7 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
       }
     };
     fetchInventory();
-  }, [selectedInventoryId]);
+  }, [organizationId]);
 
   useEffect(() => {
     onInventoryItemsChange(currentAssociatedItems);
@@ -76,12 +88,12 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
 
   return (
     <div className="mb-3">
-      <h4>Associated Inventory</h4>
+      <label htmlFor="inventory" className="form-label">Associated Inventory:</label>
       <ErrorDisplay error={error} />
 
       {availableInventory.length === 0 ? (
         <p className="alert alert-info">
-          No inventory items available. <Link to="/inventory/create" className="alert-link">Create one?</Link>
+          No inventory items available for this organization. <Link to="/inventory/create" className="alert-link">Create one?</Link>
         </p>
       ) : (
         <div className="input-group mb-3">

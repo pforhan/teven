@@ -1,5 +1,6 @@
 package com.teven.api.model.event
 
+import com.teven.api.model.customer.CustomerResponse
 import com.teven.api.model.organization.OrganizationResponse
 import kotlinx.serialization.Serializable
 
@@ -12,7 +13,7 @@ data class EventResponse(
   val location: String,
   val description: String,
   val inventoryItems: List<EventInventoryItem>,
-  val customerId: Int,
+  val customer: CustomerResponse,
   val assignedStaffIds: List<Int>,
   val rsvps: List<RsvpStatus>,
   val organization: OrganizationResponse,

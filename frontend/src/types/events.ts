@@ -1,5 +1,4 @@
-// frontend/src/types/events.ts
-
+import type { CustomerResponse } from './customers';
 import type { OrganizationResponse } from './organizations';
 
 export interface StaffInviteDetails {
@@ -19,7 +18,7 @@ export interface CreateEventRequest {
   time: string; // ISO 8601 time string (e.g., "HH:MM:SS")
   location: string;
   description: string;
-  inventoryIds: number[];
+  inventoryItems: EventInventoryItem[];
   customerId: number; // Single customer ID
   staffInvites: StaffInviteDetails; // Details for staff invitation
   organizationId?: number;
@@ -38,7 +37,7 @@ export interface EventResponse {
   location: string;
   description: string;
   inventoryItems: EventInventoryItem[];
-  customerId: number;
+  customer: CustomerResponse;
   assignedStaffIds: number[];
   rsvps: RsvpStatus[];
   organization: OrganizationResponse;

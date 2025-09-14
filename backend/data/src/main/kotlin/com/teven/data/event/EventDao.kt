@@ -1,10 +1,12 @@
 package com.teven.data.event
 
+import com.teven.api.model.customer.CustomerResponse
 import com.teven.api.model.event.CreateEventRequest
 import com.teven.api.model.event.EventInventoryItem
 import com.teven.api.model.event.EventResponse
 import com.teven.api.model.event.RsvpStatus
 import com.teven.api.model.organization.OrganizationResponse
+import com.teven.data.customer.Customers
 import com.teven.data.dbQuery
 import com.teven.data.organization.Organizations
 import org.jetbrains.exposed.sql.ResultRow
@@ -38,6 +40,21 @@ class EventDao {
         )
       }
 
+    val customerRow = Customers.select { Customers.id eq row[Events.customerId] }.single()
+    val customerOrgRow = Organizations.select { Organizations.id eq customerRow[Customers.organizationId] }.single()
+    val customer = CustomerResponse(
+        customerId = customerRow[Customers.id],
+        name = customerRow[Customers.name],
+        phone = customerRow[Customers.phone],
+        address = customerRow[Customers.address],
+        notes = customerRow[Customers.notes],
+        organization = OrganizationResponse(
+            organizationId = customerOrgRow[Organizations.id].value,
+            name = customerOrgRow[Organizations.name],
+            contactInformation = customerOrgRow[Organizations.contactInformation]
+        )
+    )
+
     return EventResponse(
       eventId = eventId,
       title = row[Events.title],
@@ -46,7 +63,7 @@ class EventDao {
       location = row[Events.location],
       description = row[Events.description],
       inventoryItems = inventoryItems,
-      customerId = row[Events.customerId],
+      customer = customer,
       assignedStaffIds = assignedStaffIds,
       rsvps = rsvps,
       organization = organization,
@@ -66,39 +83,21 @@ class EventDao {
       it[organizationId] = createEventRequest.organizationId
     } get Events.id
 
-    EventResponse(
-      eventId = id,
-      title = createEventRequest.title,
-      date = createEventRequest.date,
-      time = createEventRequest.time,
-      location = createEventRequest.location,
-      description = createEventRequest.description,
-      inventoryItems = emptyList(), // Will be populated by the .also block
-      customerId = createEventRequest.customerId,
-      assignedStaffIds = createEventRequest.staffInvites.specificStaffIds ?: emptyList(),
-      rsvps = emptyList(),
-      organization = Organizations.select { Organizations.id eq createEventRequest.organizationId }
-        .single().let {
-        OrganizationResponse(
-          organizationId = it[Organizations.id].value,
-          name = it[Organizations.name],
-          contactInformation = it[Organizations.contactInformation]
-        )
-      },
-    ).also { newEvent ->
-      createEventRequest.inventoryIds.forEach { inventoryId ->
+    createEventRequest.inventoryItems.forEach { item ->
         EventInventory.insert {
-          it[eventId] = newEvent.eventId
-          it[EventInventory.inventoryItemId] = inventoryId
+          it[eventId] = id
+          it[inventoryItemId] = item.inventoryId
+          it[quantity] = item.quantity
         }
       }
       createEventRequest.staffInvites.specificStaffIds?.forEach { userId ->
         EventStaff.insert {
-          it[eventId] = newEvent.eventId
+          it[eventId] = id
           it[EventStaff.userId] = userId
         }
       }
-    }
+      
+    getEventById(id)!!
   }
 
   suspend fun getAllEvents(): List<EventResponse> = dbQuery {
@@ -131,12 +130,13 @@ class EventDao {
           organizationId
       }
 
-      updateEventRequest.inventoryIds?.let { inventoryIds ->
+      updateEventRequest.inventoryItems?.let { inventoryItems ->
         EventInventory.deleteWhere { EventInventory.eventId eq eventId }
-        inventoryIds.forEach { inventoryId ->
+        inventoryItems.forEach { item ->
           EventInventory.insert { anEvInv ->
             anEvInv[EventInventory.eventId] = eventId
-            anEvInv[EventInventory.inventoryItemId] = inventoryId
+            anEvInv[inventoryItemId] = item.inventoryId
+            anEvInv[quantity] = item.quantity
           }
         }
       }

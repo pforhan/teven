@@ -8,11 +8,17 @@ import com.teven.core.security.Permission
 import com.teven.data.customer.CustomerDao
 
 class CustomerService(private val customerDao: CustomerDao) {
-  suspend fun getAllCustomers(authContext: AuthContext): List<CustomerResponse> {
-    return if (authContext.hasPermission(Permission.VIEW_CUSTOMERS_GLOBAL)) {
-      customerDao.getAllCustomers()
+  suspend fun getAllCustomers(authContext: AuthContext, organizationId: Int? = null): List<CustomerResponse> {
+    val orgIdToUse = if (authContext.hasPermission(Permission.VIEW_CUSTOMERS_GLOBAL)) {
+      organizationId
     } else {
-      customerDao.getAllCustomersByOrganization(authContext.organizationId)
+      authContext.organizationId
+    }
+
+    return if (orgIdToUse != null) {
+      customerDao.getAllCustomersByOrganization(orgIdToUse)
+    } else {
+      customerDao.getAllCustomers()
     }
   }
 

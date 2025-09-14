@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import { OrganizationService } from '../../api/OrganizationService';
+import { CustomerService } from '../../api/CustomerService';
 import type { EventResponse, UpdateEventRequest, EventInventoryItem } from '../../types/events';
 import type { OrganizationResponse } from '../../types/organizations';
+import type { CustomerResponse } from '../../types/customers';
 import ErrorDisplay from '../common/ErrorDisplay';
 import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
@@ -25,6 +27,7 @@ const EditEventForm: React.FC = () => {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
+  const [availableCustomers, setAvailableCustomers] = useState<CustomerResponse[]>([]);
 
   const { hasPermission } = usePermissions();
   const canManageGlobalEvents = hasPermission('MANAGE_EVENTS_GLOBAL');
@@ -41,7 +44,7 @@ const EditEventForm: React.FC = () => {
         setLocation(fetchedEvent.location);
         setDescription(fetchedEvent.description);
         setInventoryItems(fetchedEvent.inventoryItems);
-        setCustomerId(fetchedEvent.customerId.toString());
+        setCustomerId(fetchedEvent.customer.customerId.toString());
         setOpenInvitation(false);
         setNumberOfStaffNeeded(0);
 
@@ -62,6 +65,31 @@ const EditEventForm: React.FC = () => {
     };
     fetchEventAndOrganizations();
   }, [eventId, canManageGlobalEvents]);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      if (selectedOrganizationId) {
+        console.log('Fetching customers for organizationId:', selectedOrganizationId);
+        try {
+          const customers = await CustomerService.getAllCustomers(
+            undefined,
+            'asc',
+            parseInt(selectedOrganizationId),
+          );
+          setAvailableCustomers(customers);
+        } catch (err: unknown) {
+          if (err instanceof ApiErrorWithDetails) {
+            setError({ message: err.message, details: err.details });
+          } else if (err instanceof Error) {
+            setError({ message: err.message });
+          } else {
+            setError({ message: 'An unknown error occurred while fetching customers' });
+          }
+        }
+      }
+    };
+    fetchCustomers();
+  }, [selectedOrganizationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,11 +166,27 @@ const EditEventForm: React.FC = () => {
             <InventoryAssociationEditor
               initialInventoryItems={event.inventoryItems}
               onInventoryItemsChange={setInventoryItems}
+              organizationId={selectedOrganizationId}
             />
           </div>
           <div className="mb-3">
-            <label htmlFor="customerId" className="form-label">Customer ID:</label>
-            <input type="number" id="customerId" className="form-control" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required />
+            <label htmlFor="customer" className="form-label">Customer:</label>
+            <select
+              id="customer"
+              className="form-select"
+              value={customerId}
+              onChange={(e) => {
+                setCustomerId(e.target.value);
+                console.log('Selected customerId:', e.target.value);
+              }}
+              required
+            >
+              {availableCustomers.map(customer => (
+                <option key={customer.customerId} value={customer.customerId}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {canManageGlobalEvents && (

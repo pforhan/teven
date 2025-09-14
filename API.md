@@ -123,7 +123,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val time: String, 
           val location: String, 
           val description: String, 
-          val inventoryIds: List<Int>, 
+          val inventoryItems: List<EventInventoryItem>, 
           val customerId: Int, 
           val staffInvites: StaffInviteDetails, 
           val organizationId: Int
@@ -139,7 +139,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val location: String, 
           val description: String, 
           val inventoryItems: List<EventInventoryItem>, 
-          val customerId: Int, 
+          val customer: CustomerResponse, 
           val assignedStaffIds: List<Int>, 
           val rsvps: List<RsvpStatus>, 
           val organization: OrganizationResponse
@@ -164,7 +164,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val location: String, 
           val description: String, 
           val inventoryItems: List<EventInventoryItem>, 
-          val customerId: Int, 
+          val customer: CustomerResponse, 
           val assignedStaffIds: List<Int>, 
           val rsvps: List<RsvpStatus>, 
           val organization: OrganizationResponse
@@ -182,7 +182,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val time: String?, 
           val location: String?, 
           val description: String?, 
-          val inventoryIds: List<Int>?, 
+          val inventoryItems: List<EventInventoryItem>?, 
           val customerId: Int?, 
           val staffInvites: StaffInviteDetails?, 
           val organizationId: Int?
@@ -198,7 +198,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val location: String, 
           val description: String, 
           val inventoryItems: List<EventInventoryItem>, 
-          val customerId: Int, 
+          val customer: CustomerResponse, 
           val assignedStaffIds: List<Int>, 
           val rsvps: List<RsvpStatus>, 
           val organization: OrganizationResponse
@@ -604,7 +604,7 @@ data class CreateEventRequest(
   val time: String, 
   val location: String, 
   val description: String, 
-  val inventoryIds: List<Int>, 
+  val inventoryItems: List<EventInventoryItem>, 
   val customerId: Int, 
   val staffInvites: StaffInviteDetails, 
   val organizationId: Int
@@ -659,7 +659,7 @@ data class EventResponse(
   val location: String, 
   val description: String, 
   val inventoryItems: List<EventInventoryItem>, 
-  val customerId: Int, 
+  val customer: CustomerResponse, 
   val assignedStaffIds: List<Int>, 
   val rsvps: List<RsvpStatus>, 
   val organization: OrganizationResponse
@@ -781,7 +781,7 @@ data class UpdateEventRequest(
   val time: String?, 
   val location: String?, 
   val description: String?, 
-  val inventoryIds: List<Int>?, 
+  val inventoryItems: List<EventInventoryItem>?, 
   val customerId: Int?, 
   val staffInvites: StaffInviteDetails?, 
   val organizationId: Int?

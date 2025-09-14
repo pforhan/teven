@@ -74,9 +74,9 @@ fun Route.customerRoutes() {
 
     // View Customers
     withPermission(VIEW_CUSTOMERS_ORGANIZATION, VIEW_CUSTOMERS_GLOBAL) {
-      get {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
-        val customers = customerService.getAllCustomers(authContext)
+      get { val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
+        val customers = customerService.getAllCustomers(authContext, organizationId)
         call.respond(HttpStatusCode.OK, success(customers))
       }
 

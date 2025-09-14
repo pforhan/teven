@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import { OrganizationService } from '../../api/OrganizationService';
+import { CustomerService } from '../../api/CustomerService';
 import type { CreateEventRequest, EventInventoryItem } from '../../types/events';
 import type { OrganizationResponse } from '../../types/organizations';
+import type { CustomerResponse } from '../../types/customers';
 import ErrorDisplay from '../common/ErrorDisplay';
 import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
@@ -23,6 +25,7 @@ const CreateEventForm: React.FC = () => {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
+  const [availableCustomers, setAvailableCustomers] = useState<CustomerResponse[]>([]);
 
   const { userContext } = useAuth();
   const { hasPermission } = usePermissions();
@@ -53,6 +56,36 @@ const CreateEventForm: React.FC = () => {
     fetchOrganizations();
   }, [canManageGlobalEvents, userContext]);
 
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      if (selectedOrganizationId) {
+        console.log('Fetching customers for organizationId:', selectedOrganizationId);
+        try {
+          const customers = await CustomerService.getAllCustomers(
+            undefined,
+            'asc',
+            parseInt(selectedOrganizationId),
+          );
+          setAvailableCustomers(customers);
+          if (customers.length > 0) {
+            setCustomerId(customers[0].customerId.toString());
+          } else {
+            setCustomerId('');
+          }
+        } catch (err: unknown) {
+          if (err instanceof ApiErrorWithDetails) {
+            setError({ message: err.message, details: err.details });
+          } else if (err instanceof Error) {
+            setError({ message: err.message });
+          } else {
+            setError({ message: 'An unknown error occurred while fetching customers' });
+          }
+        }
+      }
+    };
+    fetchCustomers();
+  }, [selectedOrganizationId]);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -73,7 +106,7 @@ const CreateEventForm: React.FC = () => {
         time,
         location,
         description,
-        inventoryIds: inventoryItems.map((item) => item.inventoryId),
+        inventoryItems: inventoryItems,
         customerId: parseInt(customerId),
         staffInvites: {
           openInvitation,
@@ -127,11 +160,8 @@ const CreateEventForm: React.FC = () => {
             <InventoryAssociationEditor
               initialInventoryItems={[]}
               onInventoryItemsChange={setInventoryItems}
+              organizationId={selectedOrganizationId}
             />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="customerId" className="form-label">Customer ID:</label>
-            <input type="number" id="customerId" className="form-control" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required />
           </div>
 
           {canManageGlobalEvents && (
@@ -152,6 +182,26 @@ const CreateEventForm: React.FC = () => {
               </select>
             </div>
           )}
+
+          <div className="mb-3">
+            <label htmlFor="customer" className="form-label">Customer:</label>
+            <select
+              id="customer"
+              className="form-select"
+              value={customerId}
+              onChange={(e) => {
+                setCustomerId(e.target.value);
+                console.log('Selected customerId:', e.target.value);
+              }}
+              required
+            >
+              {availableCustomers.map(customer => (
+                <option key={customer.customerId} value={customer.customerId}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="mb-3 form-check">
             <input type="checkbox" id="openInvitation" className="form-check-input" checked={openInvitation} onChange={(e) => setOpenInvitation(e.target.checked)} />

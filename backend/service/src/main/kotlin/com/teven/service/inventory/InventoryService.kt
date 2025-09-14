@@ -9,11 +9,17 @@ import com.teven.core.security.Permission
 import com.teven.data.inventory.InventoryDao
 
 class InventoryService(private val inventoryDao: InventoryDao) {
-  suspend fun getAllInventoryItems(authContext: AuthContext): List<InventoryItemResponse> {
-    return if (authContext.hasPermission(Permission.VIEW_INVENTORY_GLOBAL)) {
-      inventoryDao.getAllInventoryItems()
+  suspend fun getAllInventoryItems(authContext: AuthContext, organizationId: Int? = null): List<InventoryItemResponse> {
+    val orgIdToUse = if (authContext.hasPermission(Permission.VIEW_INVENTORY_GLOBAL)) {
+      organizationId
     } else {
-      inventoryDao.getAllInventoryItemsByOrganization(authContext.organizationId)
+      authContext.organizationId
+    }
+
+    return if (orgIdToUse != null) {
+      inventoryDao.getAllInventoryItemsByOrganization(orgIdToUse)
+    } else {
+      inventoryDao.getAllInventoryItems()
     }
   }
 
