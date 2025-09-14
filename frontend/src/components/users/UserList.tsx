@@ -12,7 +12,7 @@ const UserList: React.FC = () => {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
   const canViewUsers = hasPermission('VIEW_USERS_ORGANIZATION') || hasPermission('VIEW_USERS_GLOBAL');
-  const canManageUsers = hasPermission('MANAGE_USERS_GLOBAL');
+  const canManageUsers = hasPermission('MANAGE_USERS_GLOBAL') || hasPermission('MANAGE_USERS_ORGANIZATION');
 
   const fetchUsers = useCallback(async () => {
     try {
