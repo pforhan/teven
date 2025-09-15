@@ -36,6 +36,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER}
       JWT_AUDIENCE: ${JWT_AUDIENCE}
       JWT_EXPIRATION_MILLIS: ${JWT_EXPIRATION_MILLIS}
+      DEV_MODE: ${DEV_MODE:-false}
     depends_on:
       db:
         condition: service_healthy

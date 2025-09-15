@@ -80,7 +80,15 @@ Here's a breakdown of the variables:
 *   `TEVEN_POSTGRES_PASSWORD`: The password for the database user.
 *   `TEVEN_BACKEND_PORT`: The external port on your machine that maps to the backend container's port.
 
-*(This section will be populated with instructions on how to set up and run the Teven application once development begins.)*
+### Test Data
+
+To populate the database with test data, you can set the `DEV_MODE` environment variable to `true` in your `.env` file.
+
+```
+DEV_MODE=true
+```
+
+When this variable is set, the application will be populated with a set of test data on startup, including organizations, users, customers, inventory items, and events. This is useful for development and testing purposes.
 
 ## **Contributing**
 

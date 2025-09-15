@@ -9,6 +9,7 @@ import alphainterplanetary.teven.core.security.AuthorizationException
 import alphainterplanetary.teven.core.service.PermissionService
 import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.data.DatabaseFactory
+import alphainterplanetary.teven.data.populateTestData
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -39,8 +40,12 @@ fun Application.module() {
   val initialSetup by inject<InitialSetup>()
   runBlocking {
     initialSetup.seedInitialData()
+    val devMode = System.getenv("DEV_MODE")?.toBoolean() ?: false
+    if (devMode) {
+      populateTestData()
+    }
   }
-  val roleService by inject<RoleService>()
+
   val applicationAuth by inject<ApplicationAuth>()
   val permissionService by inject<PermissionService>()
 
