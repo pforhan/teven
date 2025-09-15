@@ -8,7 +8,10 @@ import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.data.event.EventDao
 
 class EventService(private val eventDao: EventDao) {
-  suspend fun createEvent(authContext: AuthContext, createEventRequest: CreateEventRequest): EventResponse {
+  suspend fun createEvent(
+    authContext: AuthContext,
+    createEventRequest: CreateEventRequest,
+  ): EventResponse {
     if (createEventRequest.title.isBlank()) {
       throw IllegalArgumentException("Event title cannot be empty")
     }
@@ -33,22 +36,18 @@ class EventService(private val eventDao: EventDao) {
     limit: Int?,
     offset: Long?,
   ): List<EventResponse> {
-    return if (authContext.hasPermission(Permission.VIEW_EVENTS_GLOBAL)) {
-      eventDao.getEvents(
-        startDate = startDate,
-        endDate = endDate,
-        limit = limit,
-        offset = offset,
-      )
+    val organizationId = if (authContext.hasPermission(Permission.VIEW_EVENTS_GLOBAL)) {
+      null
     } else {
-      eventDao.getEventsByOrganization(
-        organizationId = authContext.organizationId,
-        startDate = startDate,
-        endDate = endDate,
-        limit = limit,
-        offset = offset,
-      )
+      authContext.organizationId
     }
+    return eventDao.getEvents(
+      organizationId = organizationId,
+      startDate = startDate,
+      endDate = endDate,
+      limit = limit,
+      offset = offset,
+    )
   }
 
   suspend fun getEventById(authContext: AuthContext, eventId: Int): EventResponse? {
@@ -117,7 +116,12 @@ class EventService(private val eventDao: EventDao) {
     return eventDao.removeStaffFromEvent(eventId, userId)
   }
 
-  suspend fun rsvpToEvent(authContext: AuthContext, eventId: Int, userId: Int, availability: String): Boolean {
+  suspend fun rsvpToEvent(
+    authContext: AuthContext,
+    eventId: Int,
+    userId: Int,
+    availability: String,
+  ): Boolean {
     val event = eventDao.getEventById(eventId)
       ?: throw IllegalArgumentException("Event not found")
 
@@ -126,6 +130,4 @@ class EventService(private val eventDao: EventDao) {
     }
     return eventDao.rsvpToEvent(eventId, userId, availability)
   }
-
-  
 }

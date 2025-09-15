@@ -126,12 +126,14 @@ class EventDao(
   }
 
   suspend fun getEvents(
+    organizationId: Int?,
     startDate: String?,
     endDate: String?,
     limit: Int?,
     offset: Long?,
   ): List<EventResponse> = dbQuery {
     val conditions = mutableListOf<Op<Boolean>>()
+    organizationId?.let { conditions.add(Events.organizationId eq it) }
     startDate?.let { conditions.add(Events.date greaterEq it) }
     endDate?.let { conditions.add(Events.date lessEq it) }
     
@@ -141,26 +143,6 @@ class EventDao(
       val combinedCondition = Op.build { conditions.reduce { acc, op -> acc and op } }
       Events.select { combinedCondition }
     }
-    
-    limit?.let { query.limit(it, offset ?: 0) }
-    
-    query.map { toEventResponse(it) }
-  }
-
-  suspend fun getEventsByOrganization(
-    organizationId: Int,
-    startDate: String?,
-    endDate: String?,
-    limit: Int?,
-    offset: Long?,
-  ): List<EventResponse> = dbQuery {
-    val conditions = mutableListOf<Op<Boolean>>()
-    conditions.add(Events.organizationId eq organizationId)
-    startDate?.let { conditions.add(Events.date greaterEq it) }
-    endDate?.let { conditions.add(Events.date lessEq it) }
-    
-    val combinedCondition = Op.build { conditions.reduce { acc, op -> acc and op } }
-    val query = Events.select { combinedCondition }
     
     limit?.let { query.limit(it, offset ?: 0) }
     
