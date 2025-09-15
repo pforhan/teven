@@ -12,8 +12,11 @@ import alphainterplanetary.teven.data.inventory.InventoryItems
 import alphainterplanetary.teven.data.organization.Organizations
 import alphainterplanetary.teven.data.user.UserDao
 import alphainterplanetary.teven.data.user.Users
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
@@ -122,12 +125,46 @@ class EventDao(
     getEventById(id)!!
   }
 
-  suspend fun getAllEvents(): List<EventResponse> = dbQuery {
-    Events.selectAll().map { toEventResponse(it) }
+  suspend fun getEvents(
+    startDate: String?,
+    endDate: String?,
+    limit: Int?,
+    offset: Long?,
+  ): List<EventResponse> = dbQuery {
+    val conditions = mutableListOf<Op<Boolean>>()
+    startDate?.let { conditions.add(Events.date greaterEq it) }
+    endDate?.let { conditions.add(Events.date lessEq it) }
+    
+    val query = if (conditions.isEmpty()) {
+      Events.selectAll()
+    } else {
+      val combinedCondition = Op.build { conditions.reduce { acc, op -> acc and op } }
+      Events.select { combinedCondition }
+    }
+    
+    limit?.let { query.limit(it, offset ?: 0) }
+    
+    query.map { toEventResponse(it) }
   }
 
-  suspend fun getAllEventsByOrganization(organizationId: Int): List<EventResponse> = dbQuery {
-    Events.select { Events.organizationId eq organizationId }.map { toEventResponse(it) }
+  suspend fun getEventsByOrganization(
+    organizationId: Int,
+    startDate: String?,
+    endDate: String?,
+    limit: Int?,
+    offset: Long?,
+  ): List<EventResponse> = dbQuery {
+    val conditions = mutableListOf<Op<Boolean>>()
+    conditions.add(Events.organizationId eq organizationId)
+    startDate?.let { conditions.add(Events.date greaterEq it) }
+    endDate?.let { conditions.add(Events.date lessEq it) }
+    
+    val combinedCondition = Op.build { conditions.reduce { acc, op -> acc and op } }
+    val query = Events.select { combinedCondition }
+    
+    limit?.let { query.limit(it, offset ?: 0) }
+    
+    query.map { toEventResponse(it) }
   }
 
   suspend fun getEventById(eventId: Int): EventResponse? = dbQuery {
@@ -214,8 +251,6 @@ class EventDao(
       }.resultedValues?.isNotEmpty() ?: false
     }
   }
-
-  
 
   suspend fun getEventsForInventoryItem(inventoryItemId: Int): List<EventResponse> = dbQuery {
     (EventInventory innerJoin Events)

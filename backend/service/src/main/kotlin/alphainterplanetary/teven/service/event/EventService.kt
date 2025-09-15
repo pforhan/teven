@@ -26,11 +26,28 @@ class EventService(private val eventDao: EventDao) {
     return eventDao.createEvent(requestWithOrgId)
   }
 
-  suspend fun getAllEvents(authContext: AuthContext): List<EventResponse> {
+  suspend fun getEvents(
+    authContext: AuthContext,
+    startDate: String?,
+    endDate: String?,
+    limit: Int?,
+    offset: Long?,
+  ): List<EventResponse> {
     return if (authContext.hasPermission(Permission.VIEW_EVENTS_GLOBAL)) {
-      eventDao.getAllEvents()
+      eventDao.getEvents(
+        startDate = startDate,
+        endDate = endDate,
+        limit = limit,
+        offset = offset,
+      )
     } else {
-      eventDao.getAllEventsByOrganization(authContext.organizationId)
+      eventDao.getEventsByOrganization(
+        organizationId = authContext.organizationId,
+        startDate = startDate,
+        endDate = endDate,
+        limit = limit,
+        offset = offset,
+      )
     }
   }
 

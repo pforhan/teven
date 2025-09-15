@@ -149,6 +149,11 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `GET /api/events`: Retrieve all events.
     * Authentication: Required.
     * Permissions: `VIEW_EVENTS_ORGANIZATION`
+    * Query Parameters:
+        * `startDate` (optional, string, format: YYYY-MM-DD): The start date for the event search.
+        * `endDate` (optional, string, format: YYYY-MM-DD): The end date for the event search.
+        * `limit` (optional, integer): The maximum number of events to return.
+        * `offset` (optional, integer): The number of events to skip.
     * Response: `List<EventResponse>`
 
 * `GET /api/events/{eventId}`: Retrieve a specific event.

@@ -118,7 +118,18 @@ fun Route.eventRoutes() {
     withPermission(VIEW_EVENTS_ORGANIZATION, VIEW_EVENTS_GLOBAL) {
       get {
         val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
-        val events = eventService.getAllEvents(authContext)
+        val startDate = call.request.queryParameters["startDate"]
+        val endDate = call.request.queryParameters["endDate"]
+        val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+        val offset = call.request.queryParameters["offset"]?.toLongOrNull()
+
+        val events = eventService.getEvents(
+          authContext = authContext,
+          startDate = startDate,
+          endDate = endDate,
+          limit = limit,
+          offset = offset,
+        )
         call.respond(HttpStatusCode.OK, success(events))
       }
 

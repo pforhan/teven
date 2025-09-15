@@ -9,17 +9,26 @@ import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 const EventList: React.FC = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<EventResponse[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [limit] = useState(10);
+  const [canNextPage, setCanNextPage] = useState(true);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
   const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
   const canViewGlobalEvents = hasPermission('VIEW_EVENTS_GLOBAL');
-  const [titleFilter, setTitleFilter] = useState('');
-  const [sortByDate, setSortByDate] = useState<'asc' | 'desc' | ''>('');
+  
 
   const fetchEvents = useCallback(async () => {
     try {
-      const eventData = await EventService.getAllEvents(titleFilter, sortByDate === '' ? undefined : sortByDate);
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const startDate = `${year}-${month}-${day}`;
+
+      const eventData = await EventService.getAllEvents(limit, offset, undefined, startDate);
       setEvents(eventData);
+      setCanNextPage(eventData.length === limit);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
         setError({ message: err.message, details: err.details });
@@ -29,11 +38,11 @@ const EventList: React.FC = () => {
         setError({ message: 'An unknown error occurred' });
       }
     }
-  }, [titleFilter, sortByDate]);
+  }, [limit, offset]);
 
   useEffect(() => {
     fetchEvents();
-  }, [fetchEvents]);
+  }, [fetchEvents, offset]);
 
   const handleDelete = async (eventId: number) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
@@ -79,26 +88,7 @@ const EventList: React.FC = () => {
         )}
       </div>
 
-      <div className="row mb-3">
-        <div className="col-md-6">
-          <label htmlFor="titleFilter" className="form-label">Filter by Title:</label>
-          <input
-            type="text"
-            id="titleFilter"
-            className="form-control"
-            value={titleFilter}
-            onChange={(e) => setTitleFilter(e.target.value)}
-          />
-        </div>
-        <div className="col-md-6">
-          <label htmlFor="sortByDate" className="form-label">Sort by Date:</label>
-          <select id="sortByDate" className="form-select" value={sortByDate} onChange={(e) => setSortByDate(e.target.value as 'asc' | 'desc' | '')}>
-            <option value="">None</option>
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
-        </div>
-      </div>
+      
 
       <TableView
         title=""
@@ -109,6 +99,11 @@ const EventList: React.FC = () => {
         error={error}
         canView={true} // Assuming anyone who can see the page can view the list
       />
+
+      <div className="d-flex justify-content-end">
+        <button className="btn btn-secondary me-2" onClick={() => setOffset(offset - limit)} disabled={offset === 0}>Previous</button>
+        <button className="btn btn-secondary" onClick={() => setOffset(offset + limit)} disabled={!canNextPage}>Next</button>
+      </div>
     </div>
   );
 };
