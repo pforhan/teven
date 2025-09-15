@@ -4,21 +4,57 @@ import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.event.Events
 import alphainterplanetary.teven.data.inventory.InventoryItems
 import alphainterplanetary.teven.data.organization.Organizations
+import alphainterplanetary.teven.data.user.UserOrganizations
 import alphainterplanetary.teven.data.user.Users
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.select
 import java.time.LocalDate
 
 suspend fun populateTestData() {
   dbQuery {
+    val testOrgPrefix = "TEST_ORG_"
+    val testUserEmailSuffixes = listOf("@greenvistas.com", "@urbanbloom.com")
+
+    // Find and delete existing test organizations and their associated data
+    val testOrganizationIds = Organizations.select { Organizations.name like "$testOrgPrefix%" }.map { it[Organizations.id].value }
+
+    testOrganizationIds.forEach { orgId ->
+      // Delete dependent data first
+      Events.deleteWhere { Events.organizationId eq orgId }
+      Customers.deleteWhere { Customers.organizationId eq orgId }
+      InventoryItems.deleteWhere { InventoryItems.organizationId eq orgId }
+      UserOrganizations.deleteWhere { UserOrganizations.organizationId eq orgId }
+      // Note: Users themselves are deleted based on email suffix, not organizationId directly
+      // because a user might belong to multiple organizations.
+      // We assume test user emails are unique to test data.
+    }
+
+    // Delete users with test email suffixes
+    testUserEmailSuffixes.forEach { suffix ->
+      Users.deleteWhere { Users.email like "%${suffix}" }
+    }
+
+    // Finally, delete the test organizations
+    Organizations.deleteWhere { Organizations.name like "$testOrgPrefix%" }
+
     // Create Organizations
-    val org1Id = (Organizations.insert { it[name] = "Green Vistas Landscaping"; it[contactInformation] = "contact@greenvistas.com" } get Organizations.id).value
-    val org2Id = (Organizations.insert { it[name] = "Urban Bloom Gardens"; it[contactInformation] = "info@urbanbloom.com" } get Organizations.id).value
+    val org1Id = (Organizations.insert { it[name] = "${testOrgPrefix}Green Vistas Landscaping"; it[contactInformation] = "contact@greenvistas.com" } get Organizations.id).value
+    val org2Id = (Organizations.insert { it[name] = "${testOrgPrefix}Urban Bloom Gardens"; it[contactInformation] = "info@urbanbloom.com" } get Organizations.id).value
 
     // Create Users
-    Users.insert { it[displayName] = "Alice"; it[email] = "alice@greenvistas.com"; it[passwordHash] = "password" }
-    Users.insert { it[displayName] = "Bob"; it[email] = "bob@greenvistas.com"; it[passwordHash] = "password" }
-    Users.insert { it[displayName] = "Charlie"; it[email] = "charlie@urbanbloom.com"; it[passwordHash] = "password" }
-    Users.insert { it[displayName] = "Diana"; it[email] = "diana@urbanbloom.com"; it[passwordHash] = "password" }
+    val user1Id = (Users.insert { it[displayName] = "Alice"; it[email] = "alice@greenvistas.com"; it[passwordHash] = "password" } get Users.id).value
+    val user2Id = (Users.insert { it[displayName] = "Bob"; it[email] = "bob@greenvistas.com"; it[passwordHash] = "password" } get Users.id).value
+    val user3Id = (Users.insert { it[displayName] = "Charlie"; it[email] = "charlie@urbanbloom.com"; it[passwordHash] = "password" } get Users.id).value
+    val user4Id = (Users.insert { it[displayName] = "Diana"; it[email] = "diana@urbanbloom.com"; it[passwordHash] = "password" } get Users.id).value
+
+    // Associate Users with Organizations
+    UserOrganizations.insert { it[userId] = user1Id; it[organizationId] = org1Id }
+    UserOrganizations.insert { it[userId] = user2Id; it[organizationId] = org1Id }
+    UserOrganizations.insert { it[userId] = user3Id; it[organizationId] = org2Id }
+    UserOrganizations.insert { it[userId] = user4Id; it[organizationId] = org2Id }
 
     // Create Customers
     val cust1Id = Customers.insert { it[name] = "Smith Residence"; it[phone] = "555-1234"; it[address] = "123 Main St"; it[notes] = "Large backyard"; it[organizationId] = org1Id } get Customers.id
