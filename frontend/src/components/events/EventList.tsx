@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import type { EventResponse } from '../../types/events';
-import { usePermissions } from '../../AuthContext';
+import { usePermissions, useAuth } from '../../AuthContext';
 import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
+import { FaEdit, FaTrash, FaCheck, FaTimes, FaQuestion } from 'react-icons/fa';
 
 const EventList: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const EventList: React.FC = () => {
   const [canNextPage, setCanNextPage] = useState(true);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
+  const { userContext } = useAuth();
   const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
   const canViewGlobalEvents = hasPermission('VIEW_EVENTS_GLOBAL');
   
@@ -59,25 +61,64 @@ const EventList: React.FC = () => {
     }
   };
 
+  const handleRsvp = async (eventId: number, availability: string) => {
+    try {
+      await EventService.rsvpToEvent(eventId, { availability });
+      fetchEvents(); // Re-fetch events after RSVP
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
+      } else {
+        setError({ message: 'An unknown error occurred' });
+      }
+    }
+  };
+
   const columns: Column<EventResponse>[] = [
-    { key: 'title', label: 'Title', render: (event: EventResponse) => <Link to={`/events/${event.eventId}`}>{event.title}</Link> },
+    { key: 'title', label: 'Title', render: (event: EventResponse) => (
+      <div className="d-flex justify-content-between align-items-center">
+        <Link to={`/events/${event.eventId}`}>{event.title}</Link>
+        {canManageEvents && (
+          <div>
+            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/events/edit/${event.eventId}`)}><FaEdit /></button>
+            <button className="btn btn-sm btn-light" onClick={() => handleDelete(event.eventId)}><FaTrash /></button>
+          </div>
+        )}
+      </div>
+    ) },
     { key: 'date', label: 'Date' },
     { key: 'time', label: 'Time' },
     { key: 'description', label: 'Description' },
     { key: 'customer', label: 'Customer', render: (event: EventResponse) => event.customer.name },
     ...(canViewGlobalEvents ? [{ key: 'organization' as keyof EventResponse, label: 'Organization', render: (event: EventResponse) => event.organization.name }] : []),
+    { key: 'rsvp', label: 'RSVP', render: (event: EventResponse) => {
+      const myRsvpStatus = event.rsvps.find(rsvp => rsvp.userId === userContext?.user?.userId)?.availability;
+      return (
+        <div>
+          <button
+            className={`btn btn-sm me-1 ${myRsvpStatus === 'available' ? 'btn-success' : 'btn-light'}`}
+            onClick={() => handleRsvp(event.eventId, 'available')}
+          >
+            <FaCheck />
+          </button>
+          <button
+            className={`btn btn-sm me-1 ${myRsvpStatus === 'unavailable' ? 'btn-danger' : 'btn-light'}`}
+            onClick={() => handleRsvp(event.eventId, 'unavailable')}
+          >
+            <FaTimes />
+          </button>
+          <button
+            className="btn btn-sm btn-light"
+            onClick={() => handleRsvp(event.eventId, 'no response')}
+          >
+            <FaQuestion />
+          </button>
+        </div>
+      );
+    } },
   ];
-
-  const renderActions = (event: EventResponse) => (
-    <>
-      {canManageEvents && (
-        <>
-          <button className="btn btn-sm btn-primary me-2" onClick={() => navigate(`/events/edit/${event.eventId}`)}>Edit</button>
-          <button className="btn btn-sm btn-danger" onClick={() => handleDelete(event.eventId)}>Delete</button>
-        </>
-      )}
-    </>
-  );
 
   return (
     <div className="container-fluid">
@@ -91,13 +132,10 @@ const EventList: React.FC = () => {
       
 
       <TableView
-        title=""
         data={events}
         columns={columns}
-        getKey={(event) => event.eventId}
-        renderActions={renderActions}
+        keyField="eventId"
         error={error}
-        canView={true} // Assuming anyone who can see the page can view the list
       />
 
       <div className="d-flex justify-content-end">

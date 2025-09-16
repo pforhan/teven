@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import { UserService } from '../../api/UserService';
 import type { UserResponse } from '../../types/auth';
 import { usePermissions } from '../../AuthContext';
@@ -35,8 +36,33 @@ const UserList: React.FC = () => {
     }
   }, [fetchUsers, canViewUsers]);
 
+  const handleDelete = async (userId: number) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        await UserService.deleteUser(userId);
+        fetchUsers(); // Re-fetch users after deletion
+      } catch (err) {
+        if (err instanceof Error) {
+          setError({ message: err.message });
+        } else {
+          setError({ message: 'An unknown error occurred' });
+        }
+      }
+    }
+  };
+
   const columns: Column<UserResponse>[] = [
-    { key: 'username', label: 'Username' },
+    { key: 'username', label: 'Username', render: (user: UserResponse) => (
+      <div className="d-flex justify-content-between align-items-center">
+        <Link to={`/users/${user.userId}`}>{user.username}</Link>
+        {canManageUsers && (
+          <div>
+            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/users/edit/${user.userId}`)}><FaEdit /></button>
+            <button className="btn btn-sm btn-light" onClick={() => handleDelete(user.userId)}><FaTrash /></button>
+          </div>
+        )}
+      </div>
+    ) },
     { key: 'displayName', label: 'Display Name' },
     { key: 'email', label: 'Email' },
     { key: 'roles', label: 'Roles', render: (user: UserResponse) => user.roles.join(', ') },
@@ -46,30 +72,22 @@ const UserList: React.FC = () => {
     columns.push({ key: 'organization', label: 'Organization', render: (user: UserResponse) => user.organization?.name || 'N/A' });
   }
 
-  const renderActions = (user: UserResponse) => (
-    <>
-      {canManageUsers && (
-        <button onClick={() => navigate(`/users/edit/${user.userId}`)}>Edit</button>
-      )}
-    </>
-  );
-
   return (
-    <TableView
-      title="Users"
-      data={users}
-      columns={columns}
-      getKey={(user) => user.userId}
-      renderActions={renderActions}
-      createButton={{
-        label: 'Create User',
-        onClick: () => navigate('/users/create'),
-        permission: canManageUsers,
-      }}
-      error={error}
-      canView={canViewUsers}
-      viewError={{ message: "Access denied: You do not have permission to view users." }}
-    />
+    <div className="container-fluid">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2>Users</h2>
+        {canManageUsers && (
+          <button className="btn btn-primary" onClick={() => navigate('/users/create')}>Create User</button>
+        )}
+      </div>
+
+      <TableView
+        data={users}
+        columns={columns}
+        keyField="userId"
+        error={error}
+      />
+    </div>
   );
 };
 

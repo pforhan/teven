@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import { InventoryService } from '../../api/InventoryService';
 import type { InventoryItemResponse } from '../../types/inventory';
 import { usePermissions } from '../../AuthContext';
@@ -51,7 +52,17 @@ const InventoryList: React.FC = () => {
   };
 
   const columns: Column<InventoryItemResponse>[] = [
-    { key: 'name', label: 'Name' },
+    { key: 'name', label: 'Name', render: (item: InventoryItemResponse) => (
+      <div className="d-flex justify-content-between align-items-center">
+        <Link to={`/inventory/${item.inventoryId}`}>{item.name}</Link>
+        {canManageInventory && (
+          <div>
+            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}><FaEdit /></button>
+            <button className="btn btn-sm btn-light" onClick={() => handleDelete(item.inventoryId)}><FaTrash /></button>
+          </div>
+        )}
+      </div>
+    ) },
     { key: 'quantity', label: 'Quantity' },
     { key: 'description', label: 'Description' },
     {
@@ -67,17 +78,6 @@ const InventoryList: React.FC = () => {
     },
     ...(canViewGlobalInventory ? [{ key: 'organization' as keyof InventoryItemResponse, label: 'Organization', render: (item: InventoryItemResponse) => item.organization.name }] : []),
   ];
-
-  const renderActions = (item: InventoryItemResponse) => (
-    <>
-      {canManageInventory && (
-        <>
-          <button className="btn btn-sm btn-primary me-2" onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}>Edit</button>
-          <button className="btn btn-sm btn-danger" onClick={() => handleDelete(item.inventoryId)}>Delete</button>
-        </>
-      )}
-    </>
-  );
 
   return (
     <div className="container-fluid">
@@ -110,13 +110,10 @@ const InventoryList: React.FC = () => {
       </div>
 
       <TableView
-        title=""
         data={inventoryItems}
         columns={columns}
-        getKey={(item) => item.inventoryId}
-        renderActions={renderActions}
+        keyField="inventoryId"
         error={error}
-        canView={true} // Assuming anyone who can see the page can view the list
       />
     </div>
   );

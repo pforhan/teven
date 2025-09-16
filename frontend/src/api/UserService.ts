@@ -23,4 +23,10 @@ export class UserService {
       body: JSON.stringify(request),
     });
   }
+
+  static async deleteUser(userId: number): Promise<void> {
+    return apiClient<void>(`/api/users/${userId}`, {
+      method: 'DELETE',
+    });
+  }
 }

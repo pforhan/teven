@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import { CustomerService } from '../../api/CustomerService';
 import type { CustomerResponse } from '../../types/customers';
 import { usePermissions } from '../../AuthContext';
@@ -51,23 +52,22 @@ const CustomerList: React.FC = () => {
   };
 
   const columns: Column<CustomerResponse>[] = [
-    { key: 'name', label: 'Name' },
+    { key: 'name', label: 'Name', render: (customer: CustomerResponse) => (
+      <div className="d-flex justify-content-between align-items-center">
+        <Link to={`/customers/${customer.customerId}`}>{customer.name}</Link>
+        {canManageCustomers && (
+          <div>
+            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/customers/edit/${customer.customerId}`)}><FaEdit /></button>
+            <button className="btn btn-sm btn-light" onClick={() => handleDelete(customer.customerId)}><FaTrash /></button>
+          </div>
+        )}
+      </div>
+    ) },
     { key: 'phone', label: 'Phone' },
     { key: 'address', label: 'Address' },
     { key: 'notes', label: 'Notes' },
     ...(canViewGlobalCustomers ? [{ key: 'organization' as keyof CustomerResponse, label: 'Organization', render: (customer: CustomerResponse) => customer.organization.name }] : []),
   ];
-
-  const renderActions = (customer: CustomerResponse) => (
-    <>
-      {canManageCustomers && (
-        <>
-          <button className="btn btn-sm btn-primary me-2" onClick={() => navigate(`/customers/edit/${customer.customerId}`)}>Edit</button>
-          <button className="btn btn-sm btn-danger" onClick={() => handleDelete(customer.customerId)}>Delete</button>
-        </>
-      )}
-    </>
-  );
 
   return (
     <div className="container-fluid">
@@ -100,13 +100,10 @@ const CustomerList: React.FC = () => {
       </div>
 
       <TableView
-        title=""
         data={customers}
         columns={columns}
-        getKey={(customer) => customer.customerId}
-        renderActions={renderActions}
+        keyField="customerId"
         error={error}
-        canView={true} // Assuming anyone who can see the page can view the list
       />
     </div>
   );

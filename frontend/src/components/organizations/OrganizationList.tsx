@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import { OrganizationService } from '../../api/OrganizationService';
 import type { OrganizationResponse } from '../../types/organizations';
 import { usePermissions } from '../../AuthContext';
@@ -53,37 +54,34 @@ const OrganizationList: React.FC = () => {
   };
 
   const columns: Column<OrganizationResponse>[] = [
-    { key: 'name', label: 'Name' },
+    { key: 'name', label: 'Name', render: (org: OrganizationResponse) => (
+      <div className="d-flex justify-content-between align-items-center">
+        <Link to={`/organizations/${org.organizationId}`}>{org.name}</Link>
+        {canManageOrganizations && (
+          <div>
+            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/organizations/edit/${org.organizationId}`)}><FaEdit /></button>
+            <button className="btn btn-sm btn-light" onClick={() => handleDelete(org.organizationId)}><FaTrash /></button>
+          </div>
+        )}
+      </div>
+    ) },
     { key: 'contactInformation', label: 'Contact Information' },
   ];
 
-  const renderActions = (org: OrganizationResponse) => (
-    <>
-      {canManageOrganizations && (
-        <>
-          <button onClick={() => navigate(`/organizations/edit/${org.organizationId}`)}>Edit</button>
-          <button onClick={() => handleDelete(org.organizationId)}>Delete</button>
-        </>
-      )}
-    </>
-  );
-
   return (
     <div className="container-fluid">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2>Organizations</h2>
+        {canManageOrganizations && (
+          <button className="btn btn-primary" onClick={() => navigate('/organizations/create')}>Create Organization</button>
+        )}
+      </div>
+
       <TableView
-        title="Organizations"
         data={organizations}
         columns={columns}
-        getKey={(org) => org.organizationId}
-        renderActions={renderActions}
-        createButton={{
-          label: 'Create Organization',
-          onClick: () => navigate('/organizations/create'),
-          permission: canManageOrganizations,
-        }}
+        keyField="organizationId"
         error={error}
-        canView={canViewOrganizations}
-        viewError={{ message: "Access denied: You do not have permission to view organizations." }}
       />
     </div>
   );

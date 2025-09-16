@@ -42,6 +42,26 @@ const EventDetails: React.FC = () => {
     fetchEvent();
   }, [eventId, userContext?.user?.userId]);
 
+  const handleDelete = async () => {
+    if (!eventId) return;
+
+    if (window.confirm('Are you sure you want to delete this event?')) {
+      try {
+        await EventService.deleteEvent(parseInt(eventId));
+        setSuccessMessage('Event deleted successfully.');
+        navigate('/events');
+      } catch (err: unknown) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
+          setError({ message: err.message });
+        } else {
+          setError({ message: 'An unknown error occurred' });
+        }
+      }
+    }
+  };
+
   const handleRsvpChange = async (availability: string) => {
     if (!eventId || !userContext?.user?.userId) return;
     setError(null);
@@ -123,16 +143,24 @@ const EventDetails: React.FC = () => {
                 No
               </button>
               <button
-                className={`btn ${myRsvpStatus === 'no response' ? 'btn-secondary border border-3 border-dark' : 'btn-outline-secondary'}`}
+                className="btn btn-outline-secondary"
                 onClick={() => handleRsvpChange('no response')}
               >
-                Delete RSVP
+                Clear RSVP
               </button>
             </div>
           </div>
         )}
 
-        <button className="btn btn-secondary mt-3 ms-2" onClick={() => navigate('/events')}>Back to Events</button>
+        <div className="mt-3">
+          <button className="btn btn-secondary" onClick={() => navigate('/events')}>Back to Events</button>
+          {canManageEvents && (
+            <>
+              <button className="btn btn-primary ms-2" onClick={() => navigate(`/events/edit/${eventId}`)}>Edit</button>
+              <button className="btn btn-danger ms-2" onClick={handleDelete}>Delete</button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
