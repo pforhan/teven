@@ -27,20 +27,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [navigate]);
 
   const fetchUserContext = useCallback(async () => {
-    console.log('AuthContext: fetchUserContext called');
     const token = AuthService.getToken();
     if (!token) {
-      console.log('AuthContext: No token found, skipping user context fetch.');
       setUserContext(null);
       setLoading(false);
       return;
     }
 
     try {
-      console.log('AuthContext: Attempting to fetch user context...');
       const context = await AuthService.getUserContext();
       setUserContext(context);
-      console.log('AuthContext: User context fetched successfully:', context);
     } catch (error) {
       console.error('AuthContext: Error fetching user context:', error);
       if (error instanceof UnauthorizedError) {
@@ -59,12 +55,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } finally {
       setLoading(false);
-      console.log('AuthContext: Loading set to false.');
     }
   }, [navigate]);
 
   useEffect(() => {
-    console.log('AuthContext: useEffect triggered');
     fetchUserContext();
   }, [fetchUserContext]);
 

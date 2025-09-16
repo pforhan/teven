@@ -11,21 +11,17 @@ export class AuthService {
       body: JSON.stringify(request),
     });
     if (data.token) {
-      console.log('AuthService: Setting token in localStorage.');
       localStorage.setItem(TOKEN_KEY, data.token);
     }
     return data;
   }
 
   static logout() {
-    console.log('AuthService: Removing token from localStorage.');
     localStorage.removeItem(TOKEN_KEY);
   }
 
   static getToken(): string | null {
-    const token = localStorage.getItem(TOKEN_KEY);
-    console.log('AuthService: Getting token from localStorage. Token present:', !!token);
-    return token;
+    return localStorage.getItem(TOKEN_KEY);
   }
 
   static getAuthHeader(): { [key: string]: string } {
