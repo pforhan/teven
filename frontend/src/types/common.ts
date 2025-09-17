@@ -1,5 +1,11 @@
-// frontend/src/types/common.ts
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  offset: number;
+  limit: number;
+}
 
 export interface StatusResponse {
-  status: string; // "OK" on success
+  status: string;
+  message: string;
 }

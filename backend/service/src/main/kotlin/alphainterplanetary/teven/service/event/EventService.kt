@@ -6,6 +6,7 @@ import alphainterplanetary.teven.api.model.event.UpdateEventRequest
 import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.data.event.EventDao
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 
 class EventService(private val eventDao: EventDao) {
   suspend fun createEvent(
@@ -36,7 +37,7 @@ class EventService(private val eventDao: EventDao) {
     limit: Int?,
     offset: Long?,
     sortOrder: String?,
-  ): List<EventResponse> {
+  ): PaginatedResponse<EventResponse> {
     val organizationId = if (authContext.hasPermission(Permission.VIEW_EVENTS_GLOBAL)) {
       null
     } else {

@@ -1,5 +1,5 @@
 import type { CreateEventRequest, EventResponse, UpdateEventRequest, RsvpRequest } from '../types/events';
-import type { StatusResponse } from '../types/common';
+import type { StatusResponse, PaginatedResponse } from '../types/common';
 import { apiClient } from './apiClient';
 
 export class EventService {
@@ -10,7 +10,7 @@ export class EventService {
     });
   }
 
-  static async getAllEvents(limit?: number, offset?: number, organizationId?: number, startDate?: String, endDate?: String, sortOrder?: string): Promise<EventResponse[]> {
+  static async getAllEvents(limit?: number, offset?: number, organizationId?: number, startDate?: String, endDate?: String, sortOrder?: string): Promise<PaginatedResponse<EventResponse>> {
     const url = new URL('/api/events', window.location.origin);
     if (limit) {
       url.searchParams.append('limit', limit.toString());
@@ -30,7 +30,7 @@ export class EventService {
     if (sortOrder) {
       url.searchParams.append('sortOrder', sortOrder);
     }
-    return apiClient<EventResponse[]>(url.toString());
+    return apiClient<PaginatedResponse<EventResponse>>(url.toString());
   }
 
   static async getEvent(eventId: number): Promise<EventResponse> {

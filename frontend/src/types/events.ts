@@ -2,6 +2,7 @@ import type { CustomerResponse } from './customers';
 import type { OrganizationResponse } from './organizations';
 
 
+
 export interface StaffInviteDetails {
   specificStaffIds?: number[]; // Optional: list of specific staff to invite
   openInvitation: boolean; // True if invitation is open to any staff

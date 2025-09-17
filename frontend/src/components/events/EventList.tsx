@@ -13,7 +13,7 @@ const EventList: React.FC = () => {
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [offset, setOffset] = useState(0);
   const [limit] = useState(10);
-  const [canNextPage, setCanNextPage] = useState(true);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
   const { userContext } = useAuth();
@@ -29,8 +29,8 @@ const EventList: React.FC = () => {
   const fetchEvents = useCallback(async () => {
     try {
       const eventData = await EventService.getAllEvents(limit, offset, undefined, startDate, undefined, sortOrder);
-      setEvents(eventData);
-      setCanNextPage(eventData.length === limit);
+      setEvents(eventData.items);
+      setTotal(eventData.total);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
         setError({ message: err.message, details: err.details });
@@ -176,7 +176,10 @@ const EventList: React.FC = () => {
 
       <div className="d-flex justify-content-end">
         <button className="btn btn-secondary me-2" onClick={() => setOffset(offset - limit)} disabled={offset === 0}>Previous</button>
-        <button className="btn btn-secondary" onClick={() => setOffset(offset + limit)} disabled={!canNextPage}>Next</button>
+        <button className="btn btn-secondary" onClick={() => setOffset(offset + limit)} disabled={offset + limit >= total}>Next</button>
+      </div>
+      <div className="d-flex justify-content-end">
+        <span>Showing {offset + 1} - {Math.min(offset + limit, total)} of {total}</span>
       </div>
     </div>
   );

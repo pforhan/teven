@@ -6,6 +6,7 @@ import alphainterplanetary.teven.api.model.event.EventInventoryItem
 import alphainterplanetary.teven.api.model.event.EventResponse
 import alphainterplanetary.teven.api.model.event.RsvpStatus
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.inventory.InventoryItems
@@ -133,7 +134,7 @@ class EventDao(
     limit: Int?,
     offset: Long?,
     sortOrder: String?,
-  ): List<EventResponse> = dbQuery {
+  ): PaginatedResponse<EventResponse> = dbQuery {
     val conditions = mutableListOf<Op<Boolean>>()
     organizationId?.let { conditions.add(Events.organizationId eq it) }
     startDate?.let { conditions.add(Events.date greaterEq it) }
@@ -146,12 +147,21 @@ class EventDao(
       Events.select { combinedCondition }
     }
     
+    val total = query.count()
+
     val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
     query.orderBy(Events.date, sort)
 
     limit?.let { query.limit(it, offset ?: 0) }
     
-    query.map { toEventResponse(it) }
+    val events = query.map { toEventResponse(it) }
+
+    PaginatedResponse(
+      items = events,
+      total = total,
+      offset = offset ?: 0,
+      limit = limit ?: 0,
+    )
   }
 
   suspend fun getEventById(eventId: Int): EventResponse? = dbQuery {

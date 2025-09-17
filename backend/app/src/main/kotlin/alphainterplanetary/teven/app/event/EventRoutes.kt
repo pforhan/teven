@@ -168,8 +168,6 @@ fun Route.eventRoutes() {
         call.respond(HttpStatusCode.InternalServerError, failure("Failed to RSVP"))
       }
     }
-
-    
   }
 }
 
