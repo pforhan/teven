@@ -8,7 +8,7 @@ import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { FaEdit, FaTrash, FaCheck, FaTimes, FaUndo } from 'react-icons/fa';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
-const EventList: React.FC = () => {
+const EventListPage: React.FC = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [offset, setOffset] = useState(0);
@@ -185,4 +185,4 @@ const EventList: React.FC = () => {
   );
 };
 
-export default EventList;
+export default EventListPage;

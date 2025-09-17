@@ -1,0 +1,7 @@
+.date-cell:hover .btn-primary {
+  display: block !important;
+}
+
+.btn-primary {
+  display: none;
+}

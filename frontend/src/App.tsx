@@ -10,7 +10,8 @@ import CreateCustomerForm from './components/customers/CreateCustomerForm';
 import EditCustomerForm from './components/customers/EditCustomerForm';
 import CreateInventoryForm from './components/inventory/CreateInventoryForm';
 import EditInventoryForm from './components/inventory/EditInventoryForm';
-import EventList from './components/events/EventList';
+import EventListPage from './components/events/EventListPage';
+import EventCalendar from './components/events/EventCalendar';
 import EventDetails from './components/events/EventDetails';
 import CustomerList from './components/customers/CustomerList';
 import InventoryList from './components/inventory/InventoryList';
@@ -38,7 +39,8 @@ const AppRoutes = () => {
       ) : (
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Navigate to="/events" />} />
-          <Route path="events" element={<ProtectedRoute permissions="VIEW_EVENTS_ORGANIZATION"><EventList /></ProtectedRoute>} />
+          <Route path="events" element={<ProtectedRoute permissions="VIEW_EVENTS_ORGANIZATION"><EventListPage /></ProtectedRoute>} />
+          <Route path="events/calendar" element={<ProtectedRoute permissions="VIEW_EVENTS_ORGANIZATION"><EventCalendar /></ProtectedRoute>} />
           <Route path="events/:eventId" element={<ProtectedRoute permissions="VIEW_EVENTS_ORGANIZATION"><EventDetails /></ProtectedRoute>} />
           <Route path="events/create" element={<ProtectedRoute permissions="MANAGE_EVENTS_ORGANIZATION"><CreateEventForm /></ProtectedRoute>} />
           <Route path="events/edit/:eventId" element={<ProtectedRoute permissions="MANAGE_EVENTS_ORGANIZATION"><EditEventForm /></ProtectedRoute>} />

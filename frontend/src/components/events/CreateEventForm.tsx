@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import { OrganizationService } from '../../api/OrganizationService';
 import { CustomerService } from '../../api/CustomerService';
@@ -13,10 +13,24 @@ import { useAuth, usePermissions } from '../../AuthContext';
 
 const CreateEventForm: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [location, setLocation] = useState('');
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const dateParam = queryParams.get('date');
+    const timeParam = queryParams.get('time');
+
+    if (dateParam) {
+      setDate(dateParam);
+    }
+    if (timeParam) {
+      setTime(timeParam);
+    }
+  }, [location.search]);
+  const [eventLocation, setEventLocation] = useState('');
   const [description, setDescription] = useState('');
   const [inventoryItems, setInventoryItems] = useState<EventInventoryItem[]>([]);
   const [customerId, setCustomerId] = useState('');
@@ -104,7 +118,7 @@ const CreateEventForm: React.FC = () => {
         title,
         date,
         time,
-        location,
+        location: eventLocation,
         description,
         inventoryItems: inventoryItems,
         customerId: parseInt(customerId),
@@ -149,8 +163,8 @@ const CreateEventForm: React.FC = () => {
             </div>
           </div>
           <div className="mb-3">
-            <label htmlFor="location" className="form-label">Location:</label>
-            <input type="text" id="location" className="form-control" value={location} onChange={(e) => setLocation(e.target.value)} required />
+            <label htmlFor="eventLocation" className="form-label">Location:</label>
+            <input type="text" id="eventLocation" className="form-control" value={eventLocation} onChange={(e) => setEventLocation(e.target.value)} required />
           </div>
           <div className="mb-3">
             <label htmlFor="description" className="form-label">Description:</label>
