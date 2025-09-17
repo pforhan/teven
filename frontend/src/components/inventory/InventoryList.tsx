@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { InventoryService } from '../../api/InventoryService';
 import type { InventoryItemResponse } from '../../types/inventory';
 import { usePermissions } from '../../AuthContext';
@@ -16,6 +17,7 @@ const InventoryList: React.FC = () => {
   const canViewGlobalInventory = hasPermission('VIEW_INVENTORY_GLOBAL');
   const [nameFilter, setNameFilter] = useState('');
   const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
+  const [hoveredItemId, setHoveredItemId] = useState<number | null>(null);
 
   const fetchInventoryItems = useCallback(async () => {
     try {
@@ -53,12 +55,16 @@ const InventoryList: React.FC = () => {
 
   const columns: Column<InventoryItemResponse>[] = [
     { key: 'name', label: 'Name', render: (item: InventoryItemResponse) => (
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex justify-content-between align-items-center position-relative">
         <Link to={`/inventory/${item.inventoryId}`}>{item.name}</Link>
-        {canManageInventory && (
-          <div>
-            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}><FaEdit /></button>
-            <button className="btn btn-sm btn-light" onClick={() => handleDelete(item.inventoryId)}><FaTrash /></button>
+        {canManageInventory && hoveredItemId === item.inventoryId && (
+          <div className="position-absolute top-0 end-0 z-1">
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${item.inventoryId}`}>Edit</Tooltip>}>
+              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}><FaEdit /></button>
+            </OverlayTrigger>
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${item.inventoryId}`}>Delete</Tooltip>}>
+              <button className="btn btn-sm btn-light" onClick={() => handleDelete(item.inventoryId)}><FaTrash /></button>
+            </OverlayTrigger>
           </div>
         )}
       </div>
@@ -114,6 +120,8 @@ const InventoryList: React.FC = () => {
         columns={columns}
         keyField="inventoryId"
         error={error}
+        onRowMouseEnter={(item) => setHoveredItemId(item.inventoryId)}
+        onRowMouseLeave={() => setHoveredItemId(null)}
       />
     </div>
   );

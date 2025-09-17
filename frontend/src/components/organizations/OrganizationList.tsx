@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { OrganizationService } from '../../api/OrganizationService';
 import type { OrganizationResponse } from '../../types/organizations';
 import { usePermissions } from '../../AuthContext';
@@ -14,6 +15,7 @@ const OrganizationList: React.FC = () => {
   const { hasPermission } = usePermissions();
   const canViewOrganizations = hasPermission('VIEW_ORGANIZATIONS_GLOBAL');
   const canManageOrganizations = hasPermission('MANAGE_ORGANIZATIONS_GLOBAL');
+  const [hoveredOrgId, setHoveredOrgId] = useState<number | null>(null);
 
   const fetchOrganizations = useCallback(async () => {
     try {
@@ -55,12 +57,16 @@ const OrganizationList: React.FC = () => {
 
   const columns: Column<OrganizationResponse>[] = [
     { key: 'name', label: 'Name', render: (org: OrganizationResponse) => (
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex justify-content-between align-items-center position-relative">
         <Link to={`/organizations/${org.organizationId}`}>{org.name}</Link>
-        {canManageOrganizations && (
-          <div>
-            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/organizations/edit/${org.organizationId}`)}><FaEdit /></button>
-            <button className="btn btn-sm btn-light" onClick={() => handleDelete(org.organizationId)}><FaTrash /></button>
+        {canManageOrganizations && hoveredOrgId === org.organizationId && (
+          <div className="position-absolute top-0 end-0 z-1">
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${org.organizationId}`}>Edit</Tooltip>}>
+              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/organizations/edit/${org.organizationId}`)}><FaEdit /></button>
+            </OverlayTrigger>
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${org.organizationId}`}>Delete</Tooltip>}>
+              <button className="btn btn-sm btn-light" onClick={() => handleDelete(org.organizationId)}><FaTrash /></button>
+            </OverlayTrigger>
           </div>
         )}
       </div>
@@ -82,6 +88,8 @@ const OrganizationList: React.FC = () => {
         columns={columns}
         keyField="organizationId"
         error={error}
+        onRowMouseEnter={(org) => setHoveredOrgId(org.organizationId)}
+        onRowMouseLeave={() => setHoveredOrgId(null)}
       />
     </div>
   );

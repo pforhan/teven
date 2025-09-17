@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { UserService } from '../../api/UserService';
 import type { UserResponse } from '../../types/auth';
 import { usePermissions } from '../../AuthContext';
@@ -14,6 +15,7 @@ const UserList: React.FC = () => {
   const { hasPermission } = usePermissions();
   const canViewUsers = hasPermission('VIEW_USERS_ORGANIZATION') || hasPermission('VIEW_USERS_GLOBAL');
   const canManageUsers = hasPermission('MANAGE_USERS_GLOBAL') || hasPermission('MANAGE_USERS_ORGANIZATION');
+  const [hoveredUserId, setHoveredUserId] = useState<number | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -53,12 +55,16 @@ const UserList: React.FC = () => {
 
   const columns: Column<UserResponse>[] = [
     { key: 'username', label: 'Username', render: (user: UserResponse) => (
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex justify-content-between align-items-center position-relative">
         <Link to={`/users/${user.userId}`}>{user.username}</Link>
-        {canManageUsers && (
-          <div>
-            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/users/edit/${user.userId}`)}><FaEdit /></button>
-            <button className="btn btn-sm btn-light" onClick={() => handleDelete(user.userId)}><FaTrash /></button>
+        {canManageUsers && hoveredUserId === user.userId && (
+          <div className="position-absolute top-0 end-0 z-1">
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${user.userId}`}>Edit</Tooltip>}>
+              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/users/edit/${user.userId}`)}><FaEdit /></button>
+            </OverlayTrigger>
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${user.userId}`}>Delete</Tooltip>}>
+              <button className="btn btn-sm btn-light" onClick={() => handleDelete(user.userId)}><FaTrash /></button>
+            </OverlayTrigger>
           </div>
         )}
       </div>
@@ -86,6 +92,8 @@ const UserList: React.FC = () => {
         columns={columns}
         keyField="userId"
         error={error}
+        onRowMouseEnter={(user) => setHoveredUserId(user.userId)}
+        onRowMouseLeave={() => setHoveredUserId(null)}
       />
     </div>
   );

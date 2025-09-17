@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { CustomerService } from '../../api/CustomerService';
 import type { CustomerResponse } from '../../types/customers';
 import { usePermissions } from '../../AuthContext';
@@ -16,6 +17,7 @@ const CustomerList: React.FC = () => {
   const canViewGlobalCustomers = hasPermission('VIEW_CUSTOMERS_GLOBAL');
   const [nameFilter, setNameFilter] = useState('');
   const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
+  const [hoveredCustomerId, setHoveredCustomerId] = useState<number | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -53,12 +55,16 @@ const CustomerList: React.FC = () => {
 
   const columns: Column<CustomerResponse>[] = [
     { key: 'name', label: 'Name', render: (customer: CustomerResponse) => (
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex justify-content-between align-items-center position-relative">
         <Link to={`/customers/${customer.customerId}`}>{customer.name}</Link>
-        {canManageCustomers && (
-          <div>
-            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/customers/edit/${customer.customerId}`)}><FaEdit /></button>
-            <button className="btn btn-sm btn-light" onClick={() => handleDelete(customer.customerId)}><FaTrash /></button>
+        {canManageCustomers && hoveredCustomerId === customer.customerId && (
+          <div className="position-absolute top-0 end-0 z-1">
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${customer.customerId}`}>Edit</Tooltip>}>
+              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/customers/edit/${customer.customerId}`)}><FaEdit /></button>
+            </OverlayTrigger>
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${customer.customerId}`}>Delete</Tooltip>}>
+              <button className="btn btn-sm btn-light" onClick={() => handleDelete(customer.customerId)}><FaTrash /></button>
+            </OverlayTrigger>
           </div>
         )}
       </div>
@@ -104,6 +110,8 @@ const CustomerList: React.FC = () => {
         columns={columns}
         keyField="customerId"
         error={error}
+        onRowMouseEnter={(customer) => setHoveredCustomerId(customer.customerId)}
+        onRowMouseLeave={() => setHoveredCustomerId(null)}
       />
     </div>
   );

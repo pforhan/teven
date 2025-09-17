@@ -12,6 +12,8 @@ interface TableViewProps<T> {
   columns: Column<T>[];
   keyField: keyof T;
   error: { message: string; details?: string } | null;
+  onRowMouseEnter?: (item: T) => void;
+  onRowMouseLeave?: (item: T) => void;
 }
 
 const TableView = <T,>({ // eslint-disable-line
@@ -19,6 +21,8 @@ const TableView = <T,>({ // eslint-disable-line
   columns,
   keyField,
   error,
+  onRowMouseEnter,
+  onRowMouseLeave,
 }: TableViewProps<T>) => {
 
 
@@ -38,7 +42,11 @@ const TableView = <T,>({ // eslint-disable-line
             </thead>
             <tbody>
               {data.map(item => (
-                <tr key={item[keyField] as string | number}>
+                <tr
+                  key={item[keyField] as string | number}
+                  onMouseEnter={() => onRowMouseEnter && onRowMouseEnter(item)}
+                  onMouseLeave={() => onRowMouseLeave && onRowMouseLeave(item)}
+                >
                   {columns.map(col => (
                     <td key={col.key as string}>
                       {col.render ? col.render(item) : (item[col.key as keyof T] as React.ReactNode)}
