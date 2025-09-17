@@ -5,7 +5,8 @@ import type { EventResponse } from '../../types/events';
 import { usePermissions, useAuth } from '../../AuthContext';
 import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
-import { FaEdit, FaTrash, FaCheck, FaTimes, FaQuestion } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheck, FaTimes, FaUndo } from 'react-icons/fa';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 const EventList: React.FC = () => {
   const navigate = useNavigate();
@@ -18,17 +19,16 @@ const EventList: React.FC = () => {
   const { userContext } = useAuth();
   const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
   const canViewGlobalEvents = hasPermission('VIEW_EVENTS_GLOBAL');
-  
+  const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [sortOrder, setSortOrder] = useState('asc');
 
   const fetchEvents = useCallback(async () => {
     try {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const startDate = `${year}-${month}-${day}`;
-
-      const eventData = await EventService.getAllEvents(limit, offset, undefined, startDate);
+      const eventData = await EventService.getAllEvents(limit, offset, undefined, startDate, undefined, sortOrder);
       setEvents(eventData);
       setCanNextPage(eventData.length === limit);
     } catch (err: unknown) {
@@ -40,11 +40,11 @@ const EventList: React.FC = () => {
         setError({ message: 'An unknown error occurred' });
       }
     }
-  }, [limit, offset]);
+  }, [limit, offset, startDate, sortOrder]);
 
   useEffect(() => {
     fetchEvents();
-  }, [fetchEvents, offset]);
+  }, [fetchEvents, offset, startDate, sortOrder]);
 
   const handleDelete = async (eventId: number) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
@@ -78,12 +78,16 @@ const EventList: React.FC = () => {
 
   const columns: Column<EventResponse>[] = [
     { key: 'title', label: 'Title', render: (event: EventResponse) => (
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex justify-content-between align-items-center position-relative">
         <Link to={`/events/${event.eventId}`}>{event.title}</Link>
-        {canManageEvents && (
-          <div>
-            <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/events/edit/${event.eventId}`)}><FaEdit /></button>
-            <button className="btn btn-sm btn-light" onClick={() => handleDelete(event.eventId)}><FaTrash /></button>
+        {canManageEvents && hoveredEventId === event.eventId && (
+          <div className="position-absolute top-0 end-0 z-1">
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${event.eventId}`}>Edit Event</Tooltip>}>
+              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/events/edit/${event.eventId}`)}><FaEdit /></button>
+            </OverlayTrigger>
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${event.eventId}`}>Delete Event</Tooltip>}>
+              <button className="btn btn-sm btn-light" onClick={() => handleDelete(event.eventId)}><FaTrash /></button>
+            </OverlayTrigger>
           </div>
         )}
       </div>
@@ -97,24 +101,30 @@ const EventList: React.FC = () => {
       const myRsvpStatus = event.rsvps.find(rsvp => rsvp.userId === userContext?.user?.userId)?.availability;
       return (
         <div>
-          <button
-            className={`btn btn-sm me-1 ${myRsvpStatus === 'available' ? 'btn-success' : 'btn-light'}`}
-            onClick={() => handleRsvp(event.eventId, 'available')}
-          >
-            <FaCheck />
-          </button>
-          <button
-            className={`btn btn-sm me-1 ${myRsvpStatus === 'unavailable' ? 'btn-danger' : 'btn-light'}`}
-            onClick={() => handleRsvp(event.eventId, 'unavailable')}
-          >
-            <FaTimes />
-          </button>
-          <button
-            className="btn btn-sm btn-light"
-            onClick={() => handleRsvp(event.eventId, 'no response')}
-          >
-            <FaQuestion />
-          </button>
+          <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-available-${event.eventId}`}>RSVP Yes</Tooltip>}>
+            <button
+              className={`btn btn-sm me-1 ${myRsvpStatus === 'available' ? 'btn-success' : 'btn-light'}`}
+              onClick={() => handleRsvp(event.eventId, 'available')}
+            >
+              <FaCheck />
+            </button>
+          </OverlayTrigger>
+          <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-unavailable-${event.eventId}`}>RSVP No</Tooltip>}>
+            <button
+              className={`btn btn-sm me-1 ${myRsvpStatus === 'unavailable' ? 'btn-danger' : 'btn-light'}`}
+              onClick={() => handleRsvp(event.eventId, 'unavailable')}
+            >
+              <FaTimes />
+            </button>
+          </OverlayTrigger>
+          <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-clear-${event.eventId}`}>Clear RSVP</Tooltip>}>
+            <button
+              className="btn btn-sm btn-light"
+              onClick={() => handleRsvp(event.eventId, 'no response')}
+            >
+              <FaUndo />
+            </button>
+          </OverlayTrigger>
         </div>
       );
     } },
@@ -129,13 +139,39 @@ const EventList: React.FC = () => {
         )}
       </div>
 
-      
+      <div className="d-flex justify-content-start mb-3">
+        <div className="me-3">
+          <label htmlFor="startDate" className="form-label">Start Date</label>
+          <input
+            type="date"
+            id="startDate"
+            className="form-control"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <button className="btn btn-outline-secondary" type="button" onClick={() => {setStartDate(new Date().toISOString().split('T')[0]); setOffset(0);}}>Today</button>
+        </div>
+        <div>
+          <label htmlFor="sortOrder" className="form-label">Sort Order</label>
+          <select
+            id="sortOrder"
+            className="form-select"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+          >
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </div>
+      </div>
 
       <TableView
         data={events}
         columns={columns}
         keyField="eventId"
         error={error}
+        onRowMouseEnter={(event) => setHoveredEventId(event.eventId)}
+        onRowMouseLeave={() => setHoveredEventId(null)}
       />
 
       <div className="d-flex justify-content-end">

@@ -265,5 +265,21 @@ suspend fun populateTestData() {
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
     }
+
+    // Create 14 more events to test pagination
+    for (i in 1..14) {
+      val evtDate = if (i % 2 == 0) today.plusDays(i.toLong()) else today.minusDays(i.toLong())
+      Events.insert {
+        it[title] = "Event $i"
+        it[date] = evtDate.toString()
+        it[time] = "12:00"
+        it[location] = "Location $i"
+        it[description] = "Description for event $i"
+        it[customerId] = if (i % 2 == 0) cust1Id else cust3Id
+        it[organizationId] = if (i % 2 == 0) org1Id else org2Id
+        it[openInvitation] = false
+        it[numberOfStaffNeeded] = 0
+      }
+    }
   }
 }

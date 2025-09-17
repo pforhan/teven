@@ -23,6 +23,7 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.sql.SortOrder
 
 class EventDao(
   private val userDao: UserDao
@@ -131,6 +132,7 @@ class EventDao(
     endDate: String?,
     limit: Int?,
     offset: Long?,
+    sortOrder: String?,
   ): List<EventResponse> = dbQuery {
     val conditions = mutableListOf<Op<Boolean>>()
     organizationId?.let { conditions.add(Events.organizationId eq it) }
@@ -144,6 +146,9 @@ class EventDao(
       Events.select { combinedCondition }
     }
     
+    val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
+    query.orderBy(Events.date, sort)
+
     limit?.let { query.limit(it, offset ?: 0) }
     
     query.map { toEventResponse(it) }

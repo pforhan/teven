@@ -10,7 +10,7 @@ export class EventService {
     });
   }
 
-  static async getAllEvents(limit?: number, offset?: number, organizationId?: number, startDate?: String): Promise<EventResponse[]> {
+  static async getAllEvents(limit?: number, offset?: number, organizationId?: number, startDate?: String, endDate?: String, sortOrder?: string): Promise<EventResponse[]> {
     const url = new URL('/api/events', window.location.origin);
     if (limit) {
       url.searchParams.append('limit', limit.toString());
@@ -23,6 +23,12 @@ export class EventService {
     }
     if (startDate) {
       url.searchParams.append('startDate', startDate.toString());
+    }
+    if (endDate) {
+      url.searchParams.append('endDate', endDate.toString());
+    }
+    if (sortOrder) {
+      url.searchParams.append('sortOrder', sortOrder);
     }
     return apiClient<EventResponse[]>(url.toString());
   }

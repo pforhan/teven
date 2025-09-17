@@ -35,6 +35,7 @@ class EventService(private val eventDao: EventDao) {
     endDate: String?,
     limit: Int?,
     offset: Long?,
+    sortOrder: String?,
   ): List<EventResponse> {
     val organizationId = if (authContext.hasPermission(Permission.VIEW_EVENTS_GLOBAL)) {
       null
@@ -47,6 +48,7 @@ class EventService(private val eventDao: EventDao) {
       endDate = endDate,
       limit = limit,
       offset = offset,
+      sortOrder = sortOrder,
     )
   }
 

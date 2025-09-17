@@ -65,6 +65,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         * `endDate` (optional, string, format: YYYY-MM-DD): The end date for the event search.
         * `limit` (optional, integer): The maximum number of events to return.
         * `offset` (optional, integer): The number of events to skip.
+        * `sortOrder` (optional, string, `asc` or `desc`): The sort order for the events. Defaults to `asc`.
     * Response: `List<EventResponse>`
 
 * `GET /api/events/{eventId}`: Retrieve a specific event.
