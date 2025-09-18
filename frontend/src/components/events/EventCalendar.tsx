@@ -10,30 +10,54 @@ import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const localizer = momentLocalizer(moment);
 
-const DateCellWrapper = ({ children, value, onSelectSlot }: { children: React.ReactNode, value: Date, onSelectSlot: (slotInfo: any) => void }) => {
-  const navigate = useNavigate();
-  const [isHovered, setIsHovered] = useState(false);
+interface DateCellWrapperProps {
+  children: React.ReactNode;
+  value: Date;
+  onSelectSlot: (slotInfo: any) => void;
+  setPlaceholderEvent: (event: EventResponse | null) => void;
+  view: View;
+  leaveTimeoutRef: React.MutableRefObject<number | null>;
+}
+
+const DateCellWrapper = ({ children, value, onSelectSlot, setPlaceholderEvent, view, leaveTimeoutRef }: DateCellWrapperProps) => {
+
+  const handleMouseEnter = () => {
+    if (leaveTimeoutRef.current) {
+      clearTimeout(leaveTimeoutRef.current);
+      leaveTimeoutRef.current = null;
+    }
+    if (view === Views.MONTH) {
+      const placeholder: EventResponse = {
+        eventId: 'placeholder',
+        title: 'Create Event',
+        date: moment(value).format('YYYY-MM-DD'),
+        time: '12:00',
+        isPlaceholder: true,
+      };
+      setPlaceholderEvent(placeholder);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (view === Views.MONTH) {
+      leaveTimeoutRef.current = setTimeout(() => {
+        setPlaceholderEvent(null);
+      }, 100); // 100ms delay
+    }
+  };
 
   return (
     <div
-      className="rbc-day-bg"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      style={{ position: 'relative', height: '100%', width: '100%' }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={() => onSelectSlot({ start: value, action: 'click' })}
     >
+      <div
+        className="rbc-day-bg"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
       {children}
-      {isHovered && (
-        <button
-          className="btn btn-primary btn-sm"
-          style={{ position: 'absolute', top: '5px', right: '5px' }}
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/events/create?date=${moment(value).format('YYYY-MM-DD')}`)
-          }}
-        >
-          +
-        </button>
-      )}
     </div>
   );
 };
@@ -41,9 +65,11 @@ const DateCellWrapper = ({ children, value, onSelectSlot }: { children: React.Re
 const EventCalendar: React.FC = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<EventResponse[]>([]);
+  const [placeholderEvent, setPlaceholderEvent] = useState<EventResponse | null>(null);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
+  const leaveTimeoutRef = React.useRef<number | null>(null);
 
   const fetchEvents = useCallback(async (start: Date, end: Date) => {
     try {
@@ -87,34 +113,70 @@ const EventCalendar: React.FC = () => {
     }
   };
 
-  
+  const onSelectEvent = (event: EventResponse) => {
+    if (event.isPlaceholder) {
+      navigate(`/events/create?date=${moment(event.date).format('YYYY-MM-DD')}`);
+      return;
+    }
+    navigate(`/events/${event.eventId}`);
+  };
 
-  const eventStyleGetter = () => {
+  const eventStyleGetter = (event: EventResponse) => {
     const style = {
-      backgroundColor: '#3174ad',
+      backgroundColor: event.isPlaceholder ? '#d3d3d3' : '#3174ad',
       borderRadius: '5px',
       opacity: 0.8,
       color: 'white',
       border: '0px',
-      display: 'block'
+      display: 'block',
     };
     return {
       style: style
     };
   };
 
-  const EventComponent = ({ event }: { event: EventResponse }) => {
+  const EventComponent = ({ event, leaveTimeoutRef, setPlaceholderEvent }: { event: EventResponse; leaveTimeoutRef: React.MutableRefObject<number | null>; setPlaceholderEvent?: (event: EventResponse | null) => void; }) => {
+    const handleMouseEnter = () => {
+      if (leaveTimeoutRef.current) {
+        clearTimeout(leaveTimeoutRef.current);
+        leaveTimeoutRef.current = null;
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (event.isPlaceholder && setPlaceholderEvent) {
+        leaveTimeoutRef.current = setTimeout(() => {
+          setPlaceholderEvent(null);
+          console.log('onMouseLeave EventComponent: Clearing placeholder');
+        }, 100);
+      }
+    };
+
     if (view === Views.MONTH) {
+      if (event.isPlaceholder) {
+        return (
+          <span onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+            {event.title}
+          </span>
+        );
+      }
       return <span>{event.title} {event.time}</span>;
     }
     return <span>{event.title}</span>;
   };
 
-  const calendarEvents = events.map((event: EventResponse) => ({
-    ...event,
-    start: new Date(event.date + 'T' + event.time),
-    end: new Date(event.date + 'T' + event.time),
-  }));
+  const calendarEvents = [
+    ...events.map((event: EventResponse) => ({
+      ...event,
+      start: new Date(event.date + 'T' + event.time),
+      end: new Date(event.date + 'T' + event.time),
+    })),
+    ...(placeholderEvent ? [{
+      ...placeholderEvent,
+      start: new Date(placeholderEvent.date + 'T' + placeholderEvent.time),
+      end: new Date(placeholderEvent.date + 'T' + placeholderEvent.time),
+    }] : []),
+  ];
 
   return (
     <div className="container-fluid">
@@ -135,14 +197,19 @@ const EventCalendar: React.FC = () => {
         style={{ height: 800 }}
         selectable
         onSelectSlot={handleSelectSlot}
+        onSelectEvent={onSelectEvent}
         view={view}
         onView={view => setView(view)}
         date={date}
         onNavigate={date => setDate(date)}
         eventPropGetter={eventStyleGetter}
         components={{
-          event: EventComponent,
-          dateCellWrapper: (props) => <DateCellWrapper {...props} onSelectSlot={handleSelectSlot} />,
+          event: (props) => <EventComponent {...props} leaveTimeoutRef={leaveTimeoutRef} setPlaceholderEvent={setPlaceholderEvent} />,
+          dateCellWrapper: (props) => {
+            return (
+              <DateCellWrapper {...props} onSelectSlot={handleSelectSlot} setPlaceholderEvent={setPlaceholderEvent} view={view} leaveTimeoutRef={leaveTimeoutRef} />
+            );
+          },
           month: {
             dateHeader: ({ date, label }: { date: Date, label: string }) => {
               const isToday = moment(date).isSame(new Date(), 'day');

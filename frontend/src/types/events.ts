@@ -1,8 +1,6 @@
 import type { CustomerResponse } from './customers';
 import type { OrganizationResponse } from './organizations';
 
-
-
 export interface StaffInviteDetails {
   specificStaffIds?: number[]; // Optional: list of specific staff to invite
   openInvitation: boolean; // True if invitation is open to any staff
@@ -35,18 +33,18 @@ export interface RsvpStatus {
 }
 
 export interface EventResponse {
-  eventId: number;
+  eventId: number | string;
   title: string;
   date: string;
   time: string;
-  location: string;
-  description: string;
-  inventoryItems: EventInventoryItem[];
-  customer: CustomerResponse;
-  assignedStaffIds: number[];
-  rsvps: RsvpStatus[];
-  
-  organization: OrganizationResponse;
+  location?: string;
+  description?: string;
+  inventoryItems?: EventInventoryItem[];
+  customer?: CustomerResponse;
+  assignedStaffIds?: number[];
+  rsvps?: RsvpStatus[];
+  organization?: OrganizationResponse;
+  isPlaceholder?: boolean;
 }
 
 export interface UpdateEventRequest {
@@ -64,3 +62,13 @@ export interface UpdateEventRequest {
 export interface RsvpRequest {
   availability: string; // "available" or "unavailable"
 }
+
+export interface VirtualEvent {
+  id: string; // Unique ID for virtual event
+  title: string;
+  start: Date;
+  end: Date;
+  isVirtual: true;
+}
+
+export type CalendarEvent = (EventResponse | VirtualEvent) & { start: Date; end: Date; };

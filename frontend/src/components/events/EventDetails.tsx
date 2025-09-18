@@ -27,7 +27,7 @@ const EventDetails: React.FC = () => {
         const fetchedEvent = await EventService.getEvent(parseInt(eventId));
         setEvent(fetchedEvent);
         // Determine current user's RSVP status
-        const currentUserRsvp = fetchedEvent.rsvps.find(rsvp => rsvp.userId === userContext?.user?.userId);
+        const currentUserRsvp = fetchedEvent.rsvps?.find(rsvp => rsvp.userId === userContext?.user?.userId);
         setMyRsvpStatus(currentUserRsvp?.availability || null);
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {
@@ -101,13 +101,13 @@ const EventDetails: React.FC = () => {
         <p><strong>Time:</strong> {event.time}</p>
         <p><strong>Location:</strong> {event.location}</p>
         <p><strong>Description:</strong> {event.description}</p>
-        <p><strong>Customer:</strong> {event.customer.name}</p>
-        {canViewGlobalEvents && <p><strong>Organization:</strong> {event.organization.name}</p>}
+        <p><strong>Customer:</strong> {event.customer?.name || 'N/A'}</p>
+        {canViewGlobalEvents && <p><strong>Organization:</strong> {event.organization?.name || 'N/A'}</p>}
 
         <h3>Inventory Items:</h3>
-        {event.inventoryItems.length > 0 ? (
+        {event.inventoryItems && event.inventoryItems.length > 0 ? (
           <ul>
-            {event.inventoryItems.map(item => (
+            {event.inventoryItems?.map(item => (
               <li key={item.inventoryId}>{item.itemName} (Qty: {item.quantity})</li>
             ))}
           </ul>
@@ -116,9 +116,9 @@ const EventDetails: React.FC = () => {
         )}
 
         <h3>Joined Users:</h3>
-        {(canManageEvents || event.rsvps.filter(rsvp => rsvp.availability === 'available').length > 0) ? (
+        {(canManageEvents || (event.rsvps && event.rsvps.filter(rsvp => rsvp.availability === 'available').length > 0)) ? (
           <ul>
-            {event.rsvps.filter(rsvp => canManageEvents || rsvp.availability === 'available').map(user => (
+            {event.rsvps?.filter(rsvp => canManageEvents || rsvp.availability === 'available').map(user => (
               <li key={user.userId}>{user.displayName || user.email} ({user.availability})</li>
             ))}
           </ul>

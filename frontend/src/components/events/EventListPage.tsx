@@ -46,7 +46,8 @@ const EventListPage: React.FC = () => {
     fetchEvents();
   }, [fetchEvents, offset, startDate, sortOrder]);
 
-  const handleDelete = async (eventId: number) => {
+  const handleDelete = async (eventId: number | string) => {
+    if (typeof eventId !== 'number') return; // Prevent deleting placeholder events
     if (window.confirm('Are you sure you want to delete this event?')) {
       try {
         await EventService.deleteEvent(eventId);
@@ -61,7 +62,8 @@ const EventListPage: React.FC = () => {
     }
   };
 
-  const handleRsvp = async (eventId: number, availability: string) => {
+  const handleRsvp = async (eventId: number | string, availability: string) => {
+    if (typeof eventId !== 'number') return; // Prevent RSVPing to placeholder events
     try {
       await EventService.rsvpToEvent(eventId, { availability });
       fetchEvents(); // Re-fetch events after RSVP
@@ -79,8 +81,12 @@ const EventListPage: React.FC = () => {
   const columns: Column<EventResponse>[] = [
     { key: 'title', label: 'Title', render: (event: EventResponse) => (
       <div className="d-flex justify-content-between align-items-center position-relative">
-        <Link to={`/events/${event.eventId}`}>{event.title}</Link>
-        {canManageEvents && hoveredEventId === event.eventId && (
+        {typeof event.eventId === 'number' ? (
+          <Link to={`/events/${event.eventId}`}>{event.title}</Link>
+        ) : (
+          <span>{event.title}</span>
+        )}
+        {canManageEvents && typeof event.eventId === 'number' && hoveredEventId === event.eventId && (
           <div className="position-absolute top-0 end-0 z-1">
             <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${event.eventId}`}>Edit Event</Tooltip>}>
               <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/events/edit/${event.eventId}`)}><FaEdit /></button>
@@ -95,10 +101,10 @@ const EventListPage: React.FC = () => {
     { key: 'date', label: 'Date' },
     { key: 'time', label: 'Time' },
     { key: 'description', label: 'Description' },
-    { key: 'customer', label: 'Customer', render: (event: EventResponse) => event.customer.name },
-    ...(canViewGlobalEvents ? [{ key: 'organization' as keyof EventResponse, label: 'Organization', render: (event: EventResponse) => event.organization.name }] : []),
+    { key: 'customer', label: 'Customer', render: (event: EventResponse) => event.customer?.name || 'N/A' },
+    ...(canViewGlobalEvents ? [{ key: 'organization' as keyof EventResponse, label: 'Organization', render: (event: EventResponse) => event.organization?.name || 'N/A' }] : []),
     { key: 'rsvp', label: 'RSVP', render: (event: EventResponse) => {
-      const myRsvpStatus = event.rsvps.find(rsvp => rsvp.userId === userContext?.user?.userId)?.availability;
+      const myRsvpStatus = event.rsvps?.find(rsvp => rsvp.userId === userContext?.user?.userId)?.availability;
       return (
         <div>
           <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-available-${event.eventId}`}>RSVP Yes</Tooltip>}>
@@ -170,7 +176,7 @@ const EventListPage: React.FC = () => {
         columns={columns}
         keyField="eventId"
         error={error}
-        onRowMouseEnter={(event) => setHoveredEventId(event.eventId)}
+        onRowMouseEnter={(event) => typeof event.eventId === 'number' && setHoveredEventId(event.eventId)}
         onRowMouseLeave={() => setHoveredEventId(null)}
       />
 

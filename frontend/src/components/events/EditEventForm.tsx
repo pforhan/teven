@@ -41,10 +41,10 @@ const EditEventForm: React.FC = () => {
         setTitle(fetchedEvent.title);
         setDate(fetchedEvent.date);
         setTime(fetchedEvent.time);
-        setLocation(fetchedEvent.location);
-        setDescription(fetchedEvent.description);
-        setInventoryItems(fetchedEvent.inventoryItems);
-        setCustomerId(fetchedEvent.customer.customerId.toString());
+        setLocation(fetchedEvent.location || '');
+        setDescription(fetchedEvent.description || '');
+        setInventoryItems(fetchedEvent.inventoryItems || []);
+        setCustomerId(fetchedEvent.customer?.customerId.toString() || '');
         setOpenInvitation(false);
         setNumberOfStaffNeeded(0);
 
@@ -52,7 +52,7 @@ const EditEventForm: React.FC = () => {
           const orgs = await OrganizationService.getAllOrganizations();
           setAvailableOrganizations(orgs);
         }
-        setSelectedOrganizationId(fetchedEvent.organization.organizationId.toString());
+        setSelectedOrganizationId(fetchedEvent.organization?.organizationId.toString() || '');
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {
           setError({ message: err.message, details: err.details });
@@ -164,7 +164,7 @@ const EditEventForm: React.FC = () => {
           </div>
           <div className="mb-3">
             <InventoryAssociationEditor
-              initialInventoryItems={event.inventoryItems}
+              initialInventoryItems={event.inventoryItems || []}
               onInventoryItemsChange={setInventoryItems}
               organizationId={selectedOrganizationId}
             />
