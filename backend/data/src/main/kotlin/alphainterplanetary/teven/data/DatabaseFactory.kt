@@ -27,7 +27,7 @@ object DatabaseFactory {
     val user = System.getenv("DB_USER") ?: "teven_user"
     val password = System.getenv("DB_PASSWORD") ?: "teven_password"
 
-    Database.connect(jdbcUrl, driverClassName, user, password)
+    val db = Database.connect(jdbcUrl, driverClassName, user, password)
 
     transaction {
       SchemaUtils.create(
@@ -45,6 +45,7 @@ object DatabaseFactory {
         Users,
         UserOrganizations,
       )
+      SchemaUtils.createMissingTablesAndColumns(Events)
     }
   }
 }

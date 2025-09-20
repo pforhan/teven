@@ -15,6 +15,7 @@ object Events : Table() {
   val organizationId = integer("organization_id").references(Organizations.id)
   val openInvitation = bool("open_invitation")
   val numberOfStaffNeeded = integer("number_of_staff_needed")
+  val durationMinutes = integer("duration_minutes").default(60)
 
   override val primaryKey = PrimaryKey(id)
 }
