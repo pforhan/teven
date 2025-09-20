@@ -1,7 +1,7 @@
 package alphainterplanetary.teven.data.customer
 
 import alphainterplanetary.teven.data.organization.Organizations
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.v1.core.Table
 
 object Customers : Table() {
   val id = integer("id").autoIncrement()

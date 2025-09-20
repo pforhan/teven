@@ -1,7 +1,7 @@
 package alphainterplanetary.teven.data.inventory
 
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.ReferenceOption
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 
 object InventoryUsage : IntIdTable() {
   val inventoryId = reference("inventory_id", InventoryItems.id, onDelete = ReferenceOption.CASCADE)

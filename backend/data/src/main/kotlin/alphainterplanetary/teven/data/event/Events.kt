@@ -1,13 +1,8 @@
 package alphainterplanetary.teven.data.event
 
-import alphainterplanetary.teven.api.model.event.EventInventoryItem
-import alphainterplanetary.teven.api.model.event.EventResponse
-import alphainterplanetary.teven.api.model.event.RsvpStatus
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.organization.Organizations
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.v1.core.Table
 
 object Events : Table() {
   val id = integer("id").autoIncrement()
@@ -23,4 +18,3 @@ object Events : Table() {
 
   override val primaryKey = PrimaryKey(id)
 }
-

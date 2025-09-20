@@ -1,7 +1,7 @@
 package alphainterplanetary.teven.data.user
 
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.ReferenceOption
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 
 object StaffDetails : IntIdTable() {
   val userId = reference("user_id", Users.id, onDelete = ReferenceOption.CASCADE).uniqueIndex()

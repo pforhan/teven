@@ -1,20 +1,20 @@
 package alphainterplanetary.teven.data
 
 import alphainterplanetary.teven.data.customer.Customers
+import alphainterplanetary.teven.data.event.EventInventory
+import alphainterplanetary.teven.data.event.EventStaff
 import alphainterplanetary.teven.data.event.Events
+import alphainterplanetary.teven.data.event.Rsvps
 import alphainterplanetary.teven.data.inventory.InventoryItems
 import alphainterplanetary.teven.data.organization.Organizations
 import alphainterplanetary.teven.data.user.UserOrganizations
 import alphainterplanetary.teven.data.user.Users
-import alphainterplanetary.teven.data.event.Rsvps
-import alphainterplanetary.teven.data.event.EventInventory
-import alphainterplanetary.teven.data.event.EventStaff
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.like
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.LocalDate
 
 suspend fun populateTestData() {
@@ -23,12 +23,14 @@ suspend fun populateTestData() {
     val testUserEmailSuffixes = listOf("@greenvistas.com", "@urbanbloom.com")
 
     // Find and delete existing test organizations and their associated data
-    val testOrganizationIds = Organizations.select { Organizations.name like "$testOrgPrefix%" }
+    val testOrganizationIds = Organizations.selectAll()
+      .where { Organizations.name like "$testOrgPrefix%" }
       .map { it[Organizations.id].value }
 
     testOrganizationIds.forEach { orgId ->
       // Delete dependent data first
-      val eventIds = Events.select { Events.organizationId eq orgId }.map { it[Events.id] }
+      val eventIds = Events.selectAll()
+        .where { Events.organizationId eq orgId }.map { it[Events.id] }
       if (eventIds.isNotEmpty()) {
         Rsvps.deleteWhere { Rsvps.eventId inList eventIds }
         EventInventory.deleteWhere { EventInventory.eventId inList eventIds }

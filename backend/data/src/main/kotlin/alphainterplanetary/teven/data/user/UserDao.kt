@@ -7,11 +7,12 @@ import alphainterplanetary.teven.core.security.PasswordHasher
 import alphainterplanetary.teven.core.user.User
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.organization.Organizations
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 
 class UserDao {
   private fun toUser(row: ResultRow): User {
@@ -51,13 +52,15 @@ class UserDao {
   }
 
   suspend fun getUserById(userId: Int): User = dbQuery {
-    Users.select { Users.id eq userId }
+    Users.selectAll()
+      .where { Users.id eq userId }
       .mapNotNull { toUser(it) }
       .single()
   }
 
   suspend fun getUserByUsername(username: String): User? = dbQuery {
-    Users.select { Users.username eq username }
+    Users.selectAll()
+      .where { Users.username eq username }
       .mapNotNull { toUser(it) }
       .singleOrNull()
   }
@@ -76,29 +79,37 @@ class UserDao {
     }
 
   suspend fun areInSameOrganization(userId1: Int, userId2: Int): Boolean = dbQuery {
-    val org1 = UserOrganizations.select { UserOrganizations.userId eq userId1 }
+    val org1 = UserOrganizations.selectAll()
+      .where { UserOrganizations.userId eq userId1 }
       .map { it[UserOrganizations.organizationId] }.singleOrNull()
-    val org2 = UserOrganizations.select { UserOrganizations.userId eq userId2 }
+    val org2 = UserOrganizations.selectAll()
+      .where { UserOrganizations.userId eq userId2 }
       .map { it[UserOrganizations.organizationId] }.singleOrNull()
     org1 != null && org1 == org2
   }
 
   suspend fun getOrganizationForUser(userId: Int): OrganizationResponse = dbQuery {
-    val organizationId = UserOrganizations.select { UserOrganizations.userId eq userId }
+    val organizationId = UserOrganizations.selectAll()
+      .where { UserOrganizations.userId eq userId }
       .map { it[UserOrganizations.organizationId] }.single()
 
-    Organizations.select { Organizations.id eq organizationId }.single().let {
-      OrganizationResponse(
-        organizationId = it[Organizations.id].value,
-        name = it[Organizations.name],
-        contactInformation = it[Organizations.contactInformation]
-      )
-    }
+    Organizations.selectAll()
+      .where { Organizations.id eq organizationId }
+      .single().let {
+        OrganizationResponse(
+          organizationId = it[Organizations.id].value,
+          name = it[Organizations.name],
+          contactInformation = it[Organizations.contactInformation]
+        )
+      }
   }
 
   suspend fun getUsersByOrganization(organizationId: Int): List<User> = dbQuery {
-    val userIds = UserOrganizations.select { UserOrganizations.organizationId eq organizationId }
+    val userIds = UserOrganizations.selectAll()
+      .where { UserOrganizations.organizationId eq organizationId }
       .map { it[UserOrganizations.userId] }
-    Users.select { Users.id inList userIds }.map { toUser(it) }
+    Users.selectAll()
+      .where { Users.id inList userIds }
+      .map { toUser(it) }
   }
 }

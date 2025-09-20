@@ -1,65 +1,70 @@
 package alphainterplanetary.teven.data.event
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.customer.CustomerResponse
 import alphainterplanetary.teven.api.model.event.CreateEventRequest
 import alphainterplanetary.teven.api.model.event.EventInventoryItem
 import alphainterplanetary.teven.api.model.event.EventResponse
 import alphainterplanetary.teven.api.model.event.RsvpStatus
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
-import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.inventory.InventoryItems
 import alphainterplanetary.teven.data.organization.Organizations
 import alphainterplanetary.teven.data.user.UserDao
 import alphainterplanetary.teven.data.user.Users
-import org.jetbrains.exposed.sql.Op
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
-import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 
 class EventDao(
-  private val userDao: UserDao
+  private val userDao: UserDao,
 ) {
   private suspend fun toEventResponse(row: ResultRow): EventResponse {
     val eventId = row[Events.id]
 
-    val inventoryItems = EventInventory.select { EventInventory.eventId eq eventId }
+    val inventoryItems = EventInventory.selectAll().where { EventInventory.eventId eq eventId }
       .mapNotNull { eventInventoryRow ->
-          InventoryItems.select { InventoryItems.id eq eventInventoryRow[EventInventory.inventoryItemId] }.singleOrNull()?.let { inventoryItemRow ->
-              EventInventoryItem(
-                  inventoryId = eventInventoryRow[EventInventory.inventoryItemId],
-                  itemName = inventoryItemRow[InventoryItems.name],
-                  quantity = eventInventoryRow[EventInventory.quantity]
-              )
+        InventoryItems.selectAll()
+          .where { InventoryItems.id eq eventInventoryRow[EventInventory.inventoryItemId] }
+          .singleOrNull()?.let { inventoryItemRow ->
+            EventInventoryItem(
+              inventoryId = eventInventoryRow[EventInventory.inventoryItemId],
+              itemName = inventoryItemRow[InventoryItems.name],
+              quantity = eventInventoryRow[EventInventory.quantity]
+            )
           }
       }
 
-    val assignedStaffIds =
-      EventStaff.select { EventStaff.eventId eq eventId }.map { it[EventStaff.userId].value }
+    val assignedStaffIds = EventStaff.selectAll()
+      .where { EventStaff.eventId eq eventId }
+      .map { it[EventStaff.userId].value }
 
-    val rsvps = Rsvps.select { Rsvps.eventId eq eventId }
+    val rsvps = Rsvps.selectAll().where { Rsvps.eventId eq eventId }
       .mapNotNull { rsvpRow ->
-          Users.select { Users.id eq rsvpRow[Rsvps.userId] }.singleOrNull()?.let { userRow ->
-              RsvpStatus(
-                  userId = rsvpRow[Rsvps.userId].value,
-                  displayName = userRow[Users.displayName],
-                  email = userRow[Users.email],
-                  availability = rsvpRow[Rsvps.availability]
-              )
+        Users.selectAll().where { Users.id eq rsvpRow[Rsvps.userId] }
+          .singleOrNull()?.let { userRow ->
+            RsvpStatus(
+              userId = rsvpRow[Rsvps.userId].value,
+              displayName = userRow[Users.displayName],
+              email = userRow[Users.email],
+              availability = rsvpRow[Rsvps.availability]
+            )
           }
       }
 
-    val organization =
-      Organizations.select { Organizations.id eq row[Events.organizationId] }.single().let {
+    val organization = Organizations.selectAll()
+      .where { Organizations.id eq row[Events.organizationId] }
+      .single().let {
         OrganizationResponse(
           organizationId = it[Organizations.id].value,
           name = it[Organizations.name],
@@ -67,22 +72,24 @@ class EventDao(
         )
       }
 
-    val customerRow = Customers.select { Customers.id eq row[Events.customerId] }.single()
-    val customerOrgRow = Organizations.select { Organizations.id eq customerRow[Customers.organizationId] }.single()
+    val customerRow = Customers.selectAll().where { Customers.id eq row[Events.customerId] }.single()
+    val customerOrgRow = Organizations.selectAll()
+      .where { Organizations.id eq customerRow[Customers.organizationId] }
+      .single()
     val customer = CustomerResponse(
-        customerId = customerRow[Customers.id],
-        name = customerRow[Customers.name],
-        phone = customerRow[Customers.phone],
-        address = customerRow[Customers.address],
-        notes = customerRow[Customers.notes],
-        organization = OrganizationResponse(
-            organizationId = customerOrgRow[Organizations.id].value,
-            name = customerOrgRow[Organizations.name],
-            contactInformation = customerOrgRow[Organizations.contactInformation]
-        )
+      customerId = customerRow[Customers.id],
+      name = customerRow[Customers.name],
+      phone = customerRow[Customers.phone],
+      address = customerRow[Customers.address],
+      notes = customerRow[Customers.notes],
+      organization = OrganizationResponse(
+        organizationId = customerOrgRow[Organizations.id].value,
+        name = customerOrgRow[Organizations.name],
+        contactInformation = customerOrgRow[Organizations.contactInformation]
+      )
     )
 
-        return EventResponse(
+    return EventResponse(
       eventId = eventId,
       title = row[Events.title],
       date = row[Events.date],
@@ -111,19 +118,19 @@ class EventDao(
     } get Events.id
 
     createEventRequest.inventoryItems.forEach { item ->
-        EventInventory.insert {
-          it[eventId] = id
-          it[inventoryItemId] = item.inventoryId
-          it[quantity] = item.quantity
-        }
+      EventInventory.insert {
+        it[eventId] = id
+        it[inventoryItemId] = item.inventoryId
+        it[quantity] = item.quantity
       }
-      createEventRequest.staffInvites.specificStaffIds?.forEach { userId ->
-        EventStaff.insert {
-          it[eventId] = id
-          it[EventStaff.userId] = userId
-        }
+    }
+    createEventRequest.staffInvites.specificStaffIds?.forEach { userId ->
+      EventStaff.insert {
+        it[eventId] = id
+        it[EventStaff.userId] = userId
       }
-      
+    }
+
     getEventById(id)!!
   }
 
@@ -139,21 +146,22 @@ class EventDao(
     organizationId?.let { conditions.add(Events.organizationId eq it) }
     startDate?.let { conditions.add(Events.date greaterEq it) }
     endDate?.let { conditions.add(Events.date lessEq it) }
-    
+
     val query = if (conditions.isEmpty()) {
       Events.selectAll()
     } else {
-      val combinedCondition = Op.build { conditions.reduce { acc, op -> acc and op } }
-      Events.select { combinedCondition }
+      val combinedCondition = conditions.reduce { acc, op -> acc and op }
+      Events.selectAll().where { combinedCondition }
     }
-    
+
     val total = query.count()
 
     val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
     query.orderBy(Events.date, sort)
 
-    limit?.let { query.limit(it, offset ?: 0) }
-    
+    offset?.let { query.offset(it) }
+    limit?.let { query.limit(it) }
+
     val events = query.map { toEventResponse(it) }
 
     PaginatedResponse(
@@ -165,7 +173,7 @@ class EventDao(
   }
 
   suspend fun getEventById(eventId: Int): EventResponse? = dbQuery {
-    Events.select { Events.id eq eventId }
+    Events.selectAll().where { Events.id eq eventId }
       .mapNotNull { toEventResponse(it) }
       .singleOrNull()
   }
@@ -233,7 +241,8 @@ class EventDao(
   }
 
   suspend fun rsvpToEvent(eventId: Int, userId: Int, availability: String): Boolean = dbQuery {
-    val existingRsvp = Rsvps.select { (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }.singleOrNull()
+    val existingRsvp =
+      Rsvps.selectAll().where { (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }.singleOrNull()
     if (existingRsvp != null) {
       // User already RSVP'd, update their availability
       Rsvps.update({ (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }) {
@@ -251,8 +260,8 @@ class EventDao(
 
   suspend fun getEventsForInventoryItem(inventoryItemId: Int): List<EventResponse> = dbQuery {
     (EventInventory innerJoin Events)
-      .slice(Events.columns)
-      .select { EventInventory.inventoryItemId eq inventoryItemId }
+      .select(Events.columns)
+      .where { EventInventory.inventoryItemId eq inventoryItemId }
       .map { toEventResponse(it) }
   }
 }

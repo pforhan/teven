@@ -5,14 +5,14 @@ import alphainterplanetary.teven.api.model.role.RoleResponse
 import alphainterplanetary.teven.api.model.role.UpdateRoleRequest
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.data.dbQuery
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 
 class RoleDao {
   private fun toRoleResponse(row: ResultRow): RoleResponse {
@@ -44,13 +44,15 @@ class RoleDao {
   }
 
   suspend fun getRoleById(roleId: Int): RoleResponse? = dbQuery {
-    Roles.select { Roles.id eq roleId }
+    Roles.selectAll()
+      .where { Roles.id eq roleId }
       .mapNotNull { toRoleResponse(it) }
       .singleOrNull()
   }
 
   suspend fun getRoleByName(roleName: String): RoleResponse? = dbQuery {
-    Roles.select { Roles.roleName eq roleName }
+    Roles.selectAll()
+      .where { Roles.roleName eq roleName }
       .mapNotNull { toRoleResponse(it) }
       .singleOrNull()
   }
@@ -83,8 +85,8 @@ class RoleDao {
 
   suspend fun getRolesForUser(userId: Int): List<RoleResponse> = dbQuery {
     (UserRoles innerJoin Roles)
-      .slice(Roles.columns)
-      .select { UserRoles.userId eq userId }
+      .select(Roles.columns)
+      .where { UserRoles.userId eq userId }
       .map { toRoleResponse(it) }
   }
 }

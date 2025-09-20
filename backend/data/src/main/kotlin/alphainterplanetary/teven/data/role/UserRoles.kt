@@ -1,7 +1,7 @@
 package alphainterplanetary.teven.data.role
 
 import alphainterplanetary.teven.data.user.Users
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.v1.core.Table
 
 object UserRoles : Table() {
   val userId = integer("user_id").references(Users.id)

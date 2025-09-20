@@ -7,11 +7,13 @@ import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.inventory.InventoryItems
 import alphainterplanetary.teven.data.inventory.InventoryUsage
 import alphainterplanetary.teven.data.user.Users
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.sum
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.core.sum
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class ReportDao {
   private fun toStaffHoursReportResponse(row: ResultRow): StaffHoursReportResponse {
@@ -26,7 +28,8 @@ class ReportDao {
   suspend fun getStaffHoursReport(staffHoursReportRequest: StaffHoursReportRequest): List<StaffHoursReportResponse> =
     dbQuery {
       (StaffHours innerJoin Users)
-        .select {
+        .selectAll()
+        .where {
           (StaffHours.date greaterEq staffHoursReportRequest.startDate) and
             (StaffHours.date lessEq staffHoursReportRequest.endDate)
         }.map { row: ResultRow -> toStaffHoursReportResponse(row) }
@@ -34,8 +37,7 @@ class ReportDao {
 
   suspend fun getInventoryUsageReport(): List<InventoryUsageReportResponse> = dbQuery {
     (InventoryUsage innerJoin InventoryItems)
-      .slice(InventoryItems.id, InventoryItems.name, InventoryUsage.quantityUsed.sum())
-      .selectAll()
+      .select(InventoryItems.id, InventoryItems.name, InventoryUsage.quantityUsed.sum())
       .groupBy(InventoryItems.id, InventoryItems.name)
       .map { row: ResultRow ->
         InventoryUsageReportResponse(

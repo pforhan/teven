@@ -9,27 +9,29 @@ import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.event.EventInventory
 import alphainterplanetary.teven.data.organization.Organizations
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 
 class InventoryDao {
   private suspend fun toInventoryItemResponse(row: ResultRow): InventoryItemResponse {
     val inventoryId = row[InventoryItems.id].value
-    val events = EventInventory.select { EventInventory.inventoryItemId eq inventoryId }
+    val events = EventInventory.selectAll().where { EventInventory.inventoryItemId eq inventoryId }
       .map { EventSummaryResponse(it[EventInventory.eventId], "", it[EventInventory.quantity]) }
 
-    val organization = Organizations.select { Organizations.id eq row[InventoryItems.organizationId] }.single().let {
-      OrganizationResponse(
-        organizationId = it[Organizations.id].value,
-        name = it[Organizations.name],
-        contactInformation = it[Organizations.contactInformation]
-      )
-    }
+    val organization = Organizations.selectAll()
+      .where { Organizations.id eq row[InventoryItems.organizationId] }
+      .single().let {
+        OrganizationResponse(
+          organizationId = it[Organizations.id].value,
+          name = it[Organizations.name],
+          contactInformation = it[Organizations.contactInformation]
+        )
+      }
 
     return InventoryItemResponse(
       inventoryId = inventoryId,
@@ -45,12 +47,16 @@ class InventoryDao {
     InventoryItems.selectAll().map { toInventoryItemResponse(it) }
   }
 
-  suspend fun getAllInventoryItemsByOrganization(organizationId: Int): List<InventoryItemResponse> = dbQuery {
-    InventoryItems.select { InventoryItems.organizationId eq organizationId }.map { toInventoryItemResponse(it) }
-  }
+  suspend fun getAllInventoryItemsByOrganization(organizationId: Int): List<InventoryItemResponse> =
+    dbQuery {
+      InventoryItems.selectAll()
+        .where { InventoryItems.organizationId eq organizationId }
+        .map { toInventoryItemResponse(it) }
+    }
 
   suspend fun getInventoryItemById(inventoryId: Int): InventoryItemResponse? = dbQuery {
-    InventoryItems.select { InventoryItems.id eq inventoryId }
+    InventoryItems.selectAll()
+      .where { InventoryItems.id eq inventoryId }
       .mapNotNull { toInventoryItemResponse(it) }
       .singleOrNull()
   }
@@ -70,13 +76,15 @@ class InventoryDao {
         description = createInventoryItemRequest.description,
         quantity = createInventoryItemRequest.quantity,
         events = emptyList(),
-        organization = Organizations.select { Organizations.id eq createInventoryItemRequest.organizationId }.single().let {
-          OrganizationResponse(
-            organizationId = it[Organizations.id].value,
-            name = it[Organizations.name],
-            contactInformation = it[Organizations.contactInformation]
-          )
-        },
+        organization = Organizations.selectAll()
+          .where { Organizations.id eq createInventoryItemRequest.organizationId }
+          .single().let {
+            OrganizationResponse(
+              organizationId = it[Organizations.id].value,
+              name = it[Organizations.name],
+              contactInformation = it[Organizations.contactInformation]
+            )
+          },
       )
     }
 
@@ -115,8 +123,8 @@ class InventoryDao {
 
   suspend fun getInventoryItemsForEvent(eventId: Int): List<InventoryItemResponse> = dbQuery {
     (EventInventory innerJoin InventoryItems)
-      .slice(InventoryItems.columns)
-      .select { EventInventory.eventId eq eventId }
+      .select(InventoryItems.columns)
+      .where { EventInventory.eventId eq eventId }
       .map { toInventoryItemResponse(it) }
   }
 }

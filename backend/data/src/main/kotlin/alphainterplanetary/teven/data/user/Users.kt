@@ -1,6 +1,6 @@
 package alphainterplanetary.teven.data.user
 
-import org.jetbrains.exposed.dao.id.IntIdTable
+import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 
 object Users : IntIdTable() {
   val username = varchar("username", 255).uniqueIndex()

@@ -6,23 +6,24 @@ import alphainterplanetary.teven.api.model.customer.UpdateCustomerRequest
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.organization.Organizations
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 
 class CustomerDao {
   private fun toCustomerResponse(row: ResultRow): CustomerResponse {
-    val organization = Organizations.select { Organizations.id eq row[Customers.organizationId] }.single().let {
-      OrganizationResponse(
-        organizationId = it[Organizations.id].value,
-        name = it[Organizations.name],
-        contactInformation = it[Organizations.contactInformation]
-      )
-    }
+    val organization =
+      Organizations.selectAll().where { Organizations.id eq row[Customers.organizationId] }.single()
+        .let {
+          OrganizationResponse(
+            organizationId = it[Organizations.id].value,
+            name = it[Organizations.name],
+            contactInformation = it[Organizations.contactInformation]
+          )
+        }
     return CustomerResponse(
       customerId = row[Customers.id],
       name = row[Customers.name],
@@ -38,11 +39,13 @@ class CustomerDao {
   }
 
   suspend fun getAllCustomersByOrganization(organizationId: Int): List<CustomerResponse> = dbQuery {
-    Customers.select { Customers.organizationId eq organizationId }.map { toCustomerResponse(it) }
+    Customers.selectAll()
+      .where { Customers.organizationId eq organizationId }
+      .map { toCustomerResponse(it) }
   }
 
   suspend fun getCustomerById(customerId: Int): CustomerResponse? = dbQuery {
-    Customers.select { Customers.id eq customerId }
+    Customers.selectAll().where { Customers.id eq customerId }
       .mapNotNull { toCustomerResponse(it) }
       .singleOrNull()
   }
@@ -63,13 +66,15 @@ class CustomerDao {
         phone = createCustomerRequest.phone,
         address = createCustomerRequest.address,
         notes = createCustomerRequest.notes,
-        organization = Organizations.select { Organizations.id eq createCustomerRequest.organizationId!! }.single().let {
-          OrganizationResponse(
-            organizationId = it[Organizations.id].value,
-            name = it[Organizations.name],
-            contactInformation = it[Organizations.contactInformation]
-          )
-        },
+        organization = Organizations.selectAll()
+          .where { Organizations.id eq createCustomerRequest.organizationId!! }
+          .single().let {
+            OrganizationResponse(
+              organizationId = it[Organizations.id].value,
+              name = it[Organizations.name],
+              contactInformation = it[Organizations.contactInformation]
+            )
+          },
       )
     }
 
@@ -82,7 +87,7 @@ class CustomerDao {
       updateCustomerRequest.phone?.let { phone -> it[Customers.phone] = phone }
       updateCustomerRequest.address?.let { address -> it[Customers.address] = address }
       updateCustomerRequest.notes?.let { notes -> it[Customers.notes] = notes }
-      updateCustomerRequest.organizationId?.let { organizationId -> it[Customers.organizationId] = organizationId!! }
+      updateCustomerRequest.organizationId?.let { organizationId -> it[Customers.organizationId] = organizationId }
     } > 0
   }
 

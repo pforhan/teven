@@ -1,7 +1,7 @@
 package alphainterplanetary.teven.data.event
 
 import alphainterplanetary.teven.data.inventory.InventoryItems
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.v1.core.Table
 
 object EventInventory : Table() {
   val eventId = integer("event_id").references(Events.id)

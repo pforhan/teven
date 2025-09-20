@@ -14,11 +14,11 @@ import alphainterplanetary.teven.data.role.UserRoles
 import alphainterplanetary.teven.data.user.UserOrganizations
 import alphainterplanetary.teven.data.user.Users
 import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.Transaction
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.core.Transaction
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 object DatabaseFactory {
   fun init() {
@@ -49,5 +49,7 @@ object DatabaseFactory {
   }
 }
 
+// TODO hook up r2dbc to remove this deprecated call
+@Suppress("DEPRECATION")
 suspend fun <T> dbQuery(block: suspend Transaction.() -> T): T =
   newSuspendedTransaction(Dispatchers.IO) { block() }
