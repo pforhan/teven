@@ -99,6 +99,7 @@ const EventDetails: React.FC = () => {
         {successMessage && <div className="alert alert-success">{successMessage}</div>}
         <p><strong>Date:</strong> {event.date}</p>
         <p><strong>Time:</strong> {event.time}</p>
+        <p><strong>Duration:</strong> {event.durationMinutes} minutes</p>
         <p><strong>Location:</strong> {event.location}</p>
         <p><strong>Description:</strong> {event.description}</p>
         <p><strong>Customer:</strong> {event.customer?.name || 'N/A'}</p>

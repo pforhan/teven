@@ -7,6 +7,7 @@ data class CreateEventRequest(
   val title: String,
   val date: String, // ISO 8601 date string (e.g., "YYYY-MM-DD")
   val time: String, // ISO 8601 time string (e.g., "HH:MM:SS")
+  val durationMinutes: Int,
   val location: String,
   val description: String,
   val inventoryItems: List<EventInventoryItem>,

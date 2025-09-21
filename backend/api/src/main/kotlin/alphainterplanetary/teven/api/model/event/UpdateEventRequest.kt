@@ -7,6 +7,7 @@ data class UpdateEventRequest(
   val title: String? = null,
   val date: String? = null,
   val time: String? = null,
+  val durationMinutes: Int? = null,
   val location: String? = null,
   val description: String? = null,
   val inventoryItems: List<EventInventoryItem>? = null,

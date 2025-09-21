@@ -17,6 +17,7 @@ export interface CreateEventRequest {
   title: string;
   date: string; // ISO 8601 date string (e.g., "YYYY-MM-DD")
   time: string; // ISO 8601 time string (e.g., "HH:MM:SS")
+  durationMinutes: number;
   location: string;
   description: string;
   inventoryItems: EventInventoryItem[];
@@ -37,6 +38,7 @@ export interface EventResponse {
   title: string;
   date: string;
   time: string;
+  durationMinutes: number;
   location?: string;
   description?: string;
   inventoryItems?: EventInventoryItem[];
@@ -51,6 +53,7 @@ export interface UpdateEventRequest {
   title?: string;
   date?: string;
   time?: string;
+  durationMinutes: number;
   location?: string;
   description?: string;
   inventoryItems?: EventInventoryItem[];

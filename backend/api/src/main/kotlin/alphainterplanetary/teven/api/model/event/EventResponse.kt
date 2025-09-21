@@ -10,6 +10,7 @@ data class EventResponse(
   val title: String,
   val date: String,
   val time: String,
+  val durationMinutes: Int,
   val location: String,
   val description: String,
   val inventoryItems: List<EventInventoryItem>,

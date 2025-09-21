@@ -205,6 +205,7 @@ suspend fun populateTestData() {
       it[title] = "Lawn Maintenance"
       it[date] = today.plusDays(1).toString()
       it[time] = "09:00"
+      it[durationMinutes] = 120
       it[location] = "123 Main St"
       it[description] = "Mow, edge, and fertilize"
       it[customerId] = cust1Id
@@ -216,6 +217,7 @@ suspend fun populateTestData() {
       it[title] = "Hedge Trimming"
       it[date] = today.plusDays(2).toString()
       it[time] = "10:00"
+      it[durationMinutes] = 60
       it[location] = "456 Business Ave"
       it[description] = "Trim all hedges"
       it[customerId] = cust2Id
@@ -227,6 +229,7 @@ suspend fun populateTestData() {
       it[title] = "Fall Cleanup"
       it[date] = today.minusDays(1).toString()
       it[time] = "08:00"
+      it[durationMinutes] = 90
       it[location] = "123 Main St"
       it[description] = "Rake leaves and clean up debris"
       it[customerId] = cust1Id
@@ -238,6 +241,7 @@ suspend fun populateTestData() {
       it[title] = "Planting new flowers"
       it[date] = today.plusDays(5).toString()
       it[time] = "09:00"
+      it[durationMinutes] = 180
       it[location] = "789 Park Rd"
       it[description] = "Plant seasonal flowers"
       it[customerId] = cust3Id
@@ -249,6 +253,7 @@ suspend fun populateTestData() {
       it[title] = "Rooftop Garden Maintenance"
       it[date] = today.minusDays(3).toString()
       it[time] = "11:00"
+      it[durationMinutes] = 45
       it[location] = "321 High St"
       it[description] = "Watering and pruning"
       it[customerId] = cust4Id
@@ -260,6 +265,7 @@ suspend fun populateTestData() {
       it[title] = "Soil delivery"
       it[date] = today.plusDays(7).toString()
       it[time] = "14:00"
+      it[durationMinutes] = 30
       it[location] = "789 Park Rd"
       it[description] = "Deliver 20 bags of soil"
       it[customerId] = cust3Id
@@ -275,6 +281,7 @@ suspend fun populateTestData() {
         it[title] = "Event $i"
         it[date] = evtDate.toString()
         it[time] = "12:00"
+        it[durationMinutes] = 60
         it[location] = "Location $i"
         it[description] = "Description for event $i"
         it[customerId] = if (i % 2 == 0) cust1Id else cust3Id

@@ -18,6 +18,7 @@ const EditEventForm: React.FC = () => {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState(60);
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [inventoryItems, setInventoryItems] = useState<EventInventoryItem[]>([]);
@@ -41,6 +42,7 @@ const EditEventForm: React.FC = () => {
         setTitle(fetchedEvent.title);
         setDate(fetchedEvent.date);
         setTime(fetchedEvent.time);
+        setDurationMinutes(fetchedEvent.durationMinutes || 60);
         setLocation(fetchedEvent.location || '');
         setDescription(fetchedEvent.description || '');
         setInventoryItems(fetchedEvent.inventoryItems || []);
@@ -106,6 +108,7 @@ const EditEventForm: React.FC = () => {
         title,
         date,
         time,
+        durationMinutes,
         location,
         description,
         inventoryItems,
@@ -152,6 +155,10 @@ const EditEventForm: React.FC = () => {
             <div className="col-md-6">
               <label htmlFor="time" className="form-label">Time:</label>
               <input type="time" id="time" className="form-control" value={time} onChange={(e) => setTime(e.target.value)} required />
+            </div>
+            <div className="col-md-6">
+              <label htmlFor="durationMinutes" className="form-label">Duration (minutes):</label>
+              <input type="number" id="durationMinutes" className="form-control" value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value))} required />
             </div>
           </div>
           <div className="mb-3">

@@ -17,6 +17,7 @@ const CreateEventForm: React.FC = () => {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState(60);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
@@ -118,6 +119,7 @@ const CreateEventForm: React.FC = () => {
         title,
         date,
         time,
+        durationMinutes,
         location: eventLocation,
         description,
         inventoryItems: inventoryItems,
@@ -160,6 +162,10 @@ const CreateEventForm: React.FC = () => {
             <div className="col-md-6">
               <label htmlFor="time" className="form-label">Time:</label>
               <input type="time" id="time" className="form-control" value={time} onChange={(e) => setTime(e.target.value)} required />
+            </div>
+            <div className="col-md-6">
+              <label htmlFor="durationMinutes" className="form-label">Duration (minutes):</label>
+              <input type="number" id="durationMinutes" className="form-control" value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value))} required />
             </div>
           </div>
           <div className="mb-3">

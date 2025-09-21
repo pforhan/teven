@@ -5,7 +5,7 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useNavigate } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
-import type { EventResponse } from '../../types/events';
+import type { EventResponse, CalendarEvent } from '../../types/events';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 const localizer = momentLocalizer(moment);
@@ -31,7 +31,8 @@ const DateCellWrapper = ({ children, value, onSelectSlot, setPlaceholderEvent, v
         eventId: 'placeholder',
         title: 'Create Event',
         date: moment(value).format('YYYY-MM-DD'),
-        time: '12:00',
+        time: '23:59',
+        durationMinutes: 60,
         isPlaceholder: true,
       };
       setPlaceholderEvent(placeholder);
@@ -135,7 +136,7 @@ const EventCalendar: React.FC = () => {
     };
   };
 
-  const EventComponent = ({ event, leaveTimeoutRef, setPlaceholderEvent }: { event: EventResponse; leaveTimeoutRef: React.MutableRefObject<number | null>; setPlaceholderEvent?: (event: EventResponse | null) => void; }) => {
+  const EventComponent = ({ event, leaveTimeoutRef, setPlaceholderEvent }: { event: CalendarEvent; leaveTimeoutRef: React.MutableRefObject<number | null>; setPlaceholderEvent?: (event: EventResponse | null) => void; }) => {
     const handleMouseEnter = () => {
       if (leaveTimeoutRef.current) {
         clearTimeout(leaveTimeoutRef.current);
@@ -144,7 +145,7 @@ const EventCalendar: React.FC = () => {
     };
 
     const handleMouseLeave = () => {
-      if (event.isPlaceholder && setPlaceholderEvent) {
+      if ('isPlaceholder' in event && event.isPlaceholder && setPlaceholderEvent) {
         leaveTimeoutRef.current = setTimeout(() => {
           setPlaceholderEvent(null);
           console.log('onMouseLeave EventComponent: Clearing placeholder');
@@ -153,14 +154,14 @@ const EventCalendar: React.FC = () => {
     };
 
     if (view === Views.MONTH) {
-      if (event.isPlaceholder) {
+      if ('isPlaceholder' in event && event.isPlaceholder) {
         return (
           <span onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             {event.title}
           </span>
         );
       }
-      return <span>{event.title} {event.time}</span>;
+      return <span>{event.title} {moment(event.start).format('h:mm A')}</span>;
     }
     return <span>{event.title}</span>;
   };
@@ -169,7 +170,7 @@ const EventCalendar: React.FC = () => {
     ...events.map((event: EventResponse) => ({
       ...event,
       start: new Date(event.date + 'T' + event.time),
-      end: new Date(event.date + 'T' + event.time),
+      end: moment(event.date + 'T' + event.time).add(event.durationMinutes || 60, 'minutes').toDate(),
     })),
     ...(placeholderEvent ? [{
       ...placeholderEvent,

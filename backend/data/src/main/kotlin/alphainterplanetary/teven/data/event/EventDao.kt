@@ -94,6 +94,7 @@ class EventDao(
       title = row[Events.title],
       date = row[Events.date],
       time = row[Events.time],
+      durationMinutes = row[Events.durationMinutes],
       location = row[Events.location],
       description = row[Events.description],
       inventoryItems = inventoryItems,
@@ -109,6 +110,7 @@ class EventDao(
       it[title] = createEventRequest.title
       it[date] = createEventRequest.date
       it[time] = createEventRequest.time
+      it[durationMinutes] = createEventRequest.durationMinutes
       it[location] = createEventRequest.location
       it[description] = createEventRequest.description
       it[customerId] = createEventRequest.customerId
@@ -186,6 +188,7 @@ class EventDao(
       updateEventRequest.title?.let { title -> it[Events.title] = title }
       updateEventRequest.date?.let { date -> it[Events.date] = date }
       updateEventRequest.time?.let { time -> it[Events.time] = time }
+      updateEventRequest.durationMinutes?.let { minutes -> it[Events.durationMinutes] = minutes }
       updateEventRequest.location?.let { location -> it[Events.location] = location }
       updateEventRequest.description?.let { description -> it[Events.description] = description }
       updateEventRequest.customerId?.let { customerId -> it[Events.customerId] = customerId }
