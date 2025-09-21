@@ -74,7 +74,7 @@ const EventCalendar: React.FC = () => {
 
   const fetchEvents = useCallback(async (start: Date, end: Date) => {
     try {
-      const eventData = await EventService.getAllEvents(undefined, undefined, undefined, moment(start).format('YYYY-MM-DD'), moment(end).format('YYYY-MM-DD'));
+      const eventData = await EventService.getAllEvents(1000, undefined, undefined, moment(start).format('YYYY-MM-DD'), moment(end).format('YYYY-MM-DD'));
       setEvents(eventData.items);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
@@ -92,10 +92,16 @@ const EventCalendar: React.FC = () => {
     switch (view) {
       case Views.WEEK:
       case Views.WORK_WEEK:
-      case Views.DAY:
-      case Views.AGENDA:
         start = moment(date).startOf('week').toDate();
         end = moment(date).endOf('week').toDate();
+        break;
+      case Views.DAY:
+        start = moment(date).startOf('day').toDate();
+        end = moment(date).endOf('day').toDate();
+        break;
+      case Views.AGENDA:
+        start = moment(date).startOf('day').toDate();
+        end = moment(date).add(1, 'month').endOf('day').toDate();
         break;
       case Views.MONTH:
       default:
@@ -114,17 +120,20 @@ const EventCalendar: React.FC = () => {
     }
   };
 
-  const onSelectEvent = (event: EventResponse) => {
-    if (event.isPlaceholder) {
+  const onSelectEvent = (event: CalendarEvent) => {
+    if ('isPlaceholder' in event && event.isPlaceholder) {
       navigate(`/events/create?date=${moment(event.date).format('YYYY-MM-DD')}`);
       return;
     }
-    navigate(`/events/${event.eventId}`);
+    if ('eventId' in event) {
+      navigate(`/events/${event.eventId}`);
+    }
   };
 
-  const eventStyleGetter = (event: EventResponse) => {
+  const eventStyleGetter = (event: CalendarEvent) => {
+    const isPlaceholder = 'isPlaceholder' in event && event.isPlaceholder;
     const style = {
-      backgroundColor: event.isPlaceholder ? '#d3d3d3' : '#3174ad',
+      backgroundColor: isPlaceholder ? '#d3d3d3' : '#3174ad',
       borderRadius: '5px',
       opacity: 0.8,
       color: 'white',
@@ -148,7 +157,6 @@ const EventCalendar: React.FC = () => {
       if ('isPlaceholder' in event && event.isPlaceholder && setPlaceholderEvent) {
         leaveTimeoutRef.current = setTimeout(() => {
           setPlaceholderEvent(null);
-          console.log('onMouseLeave EventComponent: Clearing placeholder');
         }, 100);
       }
     };
