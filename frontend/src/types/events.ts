@@ -43,7 +43,6 @@ export interface EventResponse {
   description?: string;
   inventoryItems?: EventInventoryItem[];
   customer?: CustomerResponse;
-  assignedStaffIds?: number[];
   rsvps?: RsvpStatus[];
   organization?: OrganizationResponse;
   isPlaceholder?: boolean;

@@ -48,14 +48,6 @@ export class EventService {
     return apiClient<StatusResponse>(`/api/events/${eventId}`, { method: 'DELETE' });
   }
 
-  static async assignStaffToEvent(eventId: number, userId: number): Promise<StatusResponse> {
-    return apiClient<StatusResponse>(`/api/events/${eventId}/staff/${userId}`, { method: 'POST' });
-  }
-
-  static async removeStaffFromEvent(eventId: number, userId: number): Promise<StatusResponse> {
-    return apiClient<StatusResponse>(`/api/events/${eventId}/staff/${userId}`, { method: 'DELETE' });
-  }
-
   static async rsvpToEvent(eventId: number, request: RsvpRequest): Promise<StatusResponse> {
     return apiClient<StatusResponse>(`/api/events/${eventId}/rsvp`, {
       method: 'POST',

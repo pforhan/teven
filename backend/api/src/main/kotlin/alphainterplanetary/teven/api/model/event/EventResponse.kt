@@ -15,7 +15,6 @@ data class EventResponse(
   val description: String,
   val inventoryItems: List<EventInventoryItem>,
   val customer: CustomerResponse,
-  val assignedStaffIds: List<Int>,
   val rsvps: List<RsvpStatus>,
   val organization: OrganizationResponse,
 )

@@ -99,26 +99,6 @@ class EventService(private val eventDao: EventDao) {
     return eventDao.deleteEvent(eventId)
   }
 
-  suspend fun assignStaffToEvent(authContext: AuthContext, eventId: Int, userId: Int): Boolean {
-    val event = eventDao.getEventById(eventId)
-      ?: throw IllegalArgumentException("Event not found")
-
-    if (!authContext.hasPermission(Permission.MANAGE_EVENTS_ORGANIZATION) && event.organization.organizationId != authContext.organizationId) {
-      throw IllegalAccessException("User not authorized to assign staff to events outside their organization")
-    }
-    return eventDao.assignStaffToEvent(eventId, userId)
-  }
-
-  suspend fun removeStaffFromEvent(authContext: AuthContext, eventId: Int, userId: Int): Boolean {
-    val event = eventDao.getEventById(eventId)
-      ?: throw IllegalArgumentException("Event not found")
-
-    if (!authContext.hasPermission(Permission.MANAGE_EVENTS_ORGANIZATION) && event.organization.organizationId != authContext.organizationId) {
-      throw IllegalAccessException("User not authorized to remove staff from events outside their organization")
-    }
-    return eventDao.removeStaffFromEvent(eventId, userId)
-  }
-
   suspend fun rsvpToEvent(
     authContext: AuthContext,
     eventId: Int,

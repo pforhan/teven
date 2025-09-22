@@ -2,7 +2,6 @@ package alphainterplanetary.teven.data
 
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.event.EventInventory
-import alphainterplanetary.teven.data.event.EventStaff
 import alphainterplanetary.teven.data.event.Events
 import alphainterplanetary.teven.data.event.Rsvps
 import alphainterplanetary.teven.data.inventory.InventoryItems
@@ -34,7 +33,6 @@ suspend fun populateTestData() {
       if (eventIds.isNotEmpty()) {
         Rsvps.deleteWhere { Rsvps.eventId inList eventIds }
         EventInventory.deleteWhere { EventInventory.eventId inList eventIds }
-        EventStaff.deleteWhere { EventStaff.eventId inList eventIds }
       }
       Events.deleteWhere { Events.organizationId eq orgId }
       Customers.deleteWhere { Customers.organizationId eq orgId }

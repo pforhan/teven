@@ -75,45 +75,6 @@ fun Route.eventRoutes() {
       }
     }
 
-    // Assign Staff to Event
-    withPermission(ASSIGN_STAFF_TO_EVENTS_ORGANIZATION) {
-      post("{event_id}/staff/{user_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
-        val eventId = call.parameters["event_id"]?.toIntOrNull()
-        val userId = call.parameters["user_id"]?.toIntOrNull()
-        if (eventId == null || userId == null) {
-          call.respond(HttpStatusCode.BadRequest, failure("Invalid event ID or user ID"))
-          return@post
-        }
-        if (eventService.assignStaffToEvent(authContext, eventId, userId)) {
-          call.respond(HttpStatusCode.OK, success("OK"))
-        } else {
-          call.respond(
-            HttpStatusCode.InternalServerError,
-            failure("Failed to assign staff")
-          )
-        }
-      }
-
-      delete("{event_id}/staff/{user_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
-        val eventId = call.parameters["event_id"]?.toIntOrNull()
-        val userId = call.parameters["user_id"]?.toIntOrNull()
-        if (eventId == null || userId == null) {
-          call.respond(HttpStatusCode.BadRequest, failure("Invalid event ID or user ID"))
-          return@delete
-        }
-        if (eventService.removeStaffFromEvent(authContext, eventId, userId)) {
-          call.respond(HttpStatusCode.OK, success("OK"))
-        } else {
-          call.respond(
-            HttpStatusCode.InternalServerError,
-            failure("Failed to remove staff")
-          )
-        }
-      }
-    }
-
     // View Events
     withPermission(VIEW_EVENTS_ORGANIZATION, VIEW_EVENTS_GLOBAL) {
       get {

@@ -43,10 +43,6 @@ class EventDao {
           }
       }
 
-    val assignedStaffIds = EventStaff.selectAll()
-      .where { EventStaff.eventId eq eventId }
-      .map { it[EventStaff.userId].value }
-
     val rsvps = Rsvps.selectAll().where { Rsvps.eventId eq eventId }
       .mapNotNull { rsvpRow ->
         Users.selectAll().where { Users.id eq rsvpRow[Rsvps.userId] }
@@ -97,7 +93,6 @@ class EventDao {
       description = row[Events.description],
       inventoryItems = inventoryItems,
       customer = customer,
-      assignedStaffIds = assignedStaffIds,
       rsvps = rsvps,
       organization = organization,
     )
@@ -240,18 +235,6 @@ class EventDao {
 
   suspend fun deleteEvent(eventId: Int): Boolean = dbQuery {
     Events.deleteWhere { Events.id eq eventId } > 0
-  }
-
-  suspend fun assignStaffToEvent(eventId: Int, userId: Int): Boolean = dbQuery {
-    val insertStatement = EventStaff.insert {
-      it[EventStaff.eventId] = eventId
-      it[EventStaff.userId] = userId
-    }
-    insertStatement.resultedValues?.isNotEmpty() ?: false
-  }
-
-  suspend fun removeStaffFromEvent(eventId: Int, userId: Int): Boolean = dbQuery {
-    EventStaff.deleteWhere { (EventStaff.eventId eq eventId) and (EventStaff.userId eq userId) } > 0
   }
 
   suspend fun rsvpToEvent(eventId: Int, userId: Int, availability: String): Boolean = dbQuery {
