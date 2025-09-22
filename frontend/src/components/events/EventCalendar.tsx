@@ -8,6 +8,8 @@ import { EventService } from '../../api/EventService';
 import type { EventResponse, CalendarEvent } from '../../types/events';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
+import { usePermissions } from '../../AuthContext';
+
 const localizer = momentLocalizer(moment);
 
 interface DateCellWrapperProps {
@@ -65,6 +67,8 @@ const DateCellWrapper = ({ children, value, onSelectSlot, setPlaceholderEvent, v
 
 const EventCalendar: React.FC = () => {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+  const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [placeholderEvent, setPlaceholderEvent] = useState<EventResponse | null>(null);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
@@ -153,6 +157,15 @@ const EventCalendar: React.FC = () => {
     };
   };
 
+  const dayPropGetter = (date: Date) => {
+    const isToday = moment(date).isSame(new Date(), 'day');
+    return {
+      style: {
+        backgroundColor: isToday ? '#e7f0f7' : '',
+      },
+    };
+  };
+
   const EventComponent = ({ event, leaveTimeoutRef, setPlaceholderEvent }: { event: CalendarEvent; leaveTimeoutRef: React.MutableRefObject<number | null>; setPlaceholderEvent?: (event: EventResponse | null) => void; }) => {
     const handleMouseEnter = () => {
       if (leaveTimeoutRef.current) {
@@ -199,6 +212,12 @@ const EventCalendar: React.FC = () => {
     <div className="container-fluid">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Event Calendar</h2>
+        <div>
+          <a href="/events/list" className="btn btn-primary">View All Events</a>
+          {canManageEvents && (
+            <button className="btn btn-primary ms-2" onClick={() => navigate('/events/create')}>Create Event</button>
+          )}
+        </div>
       </div>
       {error && (
         <div className="alert alert-danger">
@@ -220,6 +239,7 @@ const EventCalendar: React.FC = () => {
         date={date}
         onNavigate={date => setDate(date)}
         eventPropGetter={eventStyleGetter}
+        dayPropGetter={dayPropGetter}
         components={{
           event: (props) => <EventComponent {...props} leaveTimeoutRef={leaveTimeoutRef} setPlaceholderEvent={setPlaceholderEvent} />,
           dateCellWrapper: (props) => {

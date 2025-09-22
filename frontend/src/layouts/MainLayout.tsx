@@ -16,8 +16,7 @@ const MainLayout: React.FC = () => {
           </button>
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-              {hasPermission('VIEW_EVENTS_ORGANIZATION') && <li className="nav-item"><NavLink className="nav-link" to="/events">Event List</NavLink></li>}
-              {hasPermission('VIEW_EVENTS_ORGANIZATION') && <li className="nav-item"><NavLink className="nav-link" to="/events/calendar">Event Calendar</NavLink></li>}
+              {hasPermission('VIEW_EVENTS_ORGANIZATION') && <li className="nav-item"><NavLink className="nav-link" to="/events">Events</NavLink></li>}
               {hasPermission('VIEW_CUSTOMERS_ORGANIZATION') && <li className="nav-item"><NavLink className="nav-link" to="/customers">Customers</NavLink></li>}
               {hasPermission('VIEW_INVENTORY_ORGANIZATION') && <li className="nav-item"><NavLink className="nav-link" to="/inventory">Inventory</NavLink></li>}
               {hasPermission('VIEW_REPORTS_ORGANIZATION') && <li className="nav-item"><NavLink className="nav-link" to="/reports">Reports</NavLink></li>}
