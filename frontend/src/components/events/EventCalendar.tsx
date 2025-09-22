@@ -8,7 +8,7 @@ import { EventService } from '../../api/EventService';
 import type { EventResponse, CalendarEvent } from '../../types/events';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
-import { usePermissions } from '../../AuthContext';
+import { usePermissions, useAuth } from '../../AuthContext';
 
 const localizer = momentLocalizer(moment);
 
@@ -68,6 +68,7 @@ const DateCellWrapper = ({ children, value, onSelectSlot, setPlaceholderEvent, v
 const EventCalendar: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
+  const { userContext } = useAuth();
   const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [placeholderEvent, setPlaceholderEvent] = useState<EventResponse | null>(null);
@@ -144,8 +145,10 @@ const EventCalendar: React.FC = () => {
 
   const eventStyleGetter = (event: CalendarEvent) => {
     const isPlaceholder = 'isPlaceholder' in event && event.isPlaceholder;
+    const isRequestedRsvp = !isPlaceholder && 'rsvps' in event && event.rsvps?.some(rsvp => rsvp.userId === userContext?.user?.userId && rsvp.availability === 'requested');
+
     const style = {
-      backgroundColor: isPlaceholder ? '#d3d3d3' : '#3174ad',
+      backgroundColor: isPlaceholder ? '#d3d3d3' : (isRequestedRsvp ? 'orange' : '#3174ad'),
       borderRadius: '5px',
       opacity: 0.8,
       color: 'white',

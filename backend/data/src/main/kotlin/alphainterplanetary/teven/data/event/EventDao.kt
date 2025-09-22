@@ -26,9 +26,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 
-class EventDao(
-  private val userDao: UserDao,
-) {
+class EventDao {
   private suspend fun toEventResponse(row: ResultRow): EventResponse {
     val eventId = row[Events.id]
 
@@ -127,9 +125,10 @@ class EventDao(
       }
     }
     createEventRequest.staffInvites.specificStaffIds?.forEach { userId ->
-      EventStaff.insert {
+      Rsvps.insert {
         it[eventId] = id
-        it[EventStaff.userId] = userId
+        it[Rsvps.userId] = userId
+        it[availability] = "requested"
       }
     }
 
@@ -210,12 +209,22 @@ class EventDao(
         }
       }
       updateEventRequest.staffInvites?.let { staffInvites ->
-        staffInvites.specificStaffIds?.let { staffUserIds ->
-          EventStaff.deleteWhere { EventStaff.eventId eq eventId }
-          staffUserIds.forEach { userId ->
-            EventStaff.insert { aStaff ->
-              aStaff[EventStaff.eventId] = eventId
-              aStaff[EventStaff.userId] = userId
+        // Clear existing 'requested' RSVPs for this event to handle deselections
+        Rsvps.deleteWhere { (Rsvps.eventId eq eventId) and (Rsvps.availability eq "requested") }
+
+        staffInvites.specificStaffIds?.let { specificStaffIds ->
+          for (userId in specificStaffIds) {
+            val existingRsvp = Rsvps.selectAll().where { (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }.singleOrNull()
+            if (existingRsvp != null) {
+              Rsvps.update({ (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }) {
+                it[Rsvps.availability] = "requested"
+              }
+            } else {
+              Rsvps.insert {
+                it[Rsvps.eventId] = eventId
+                it[Rsvps.userId] = userId
+                it[Rsvps.availability] = "requested"
+              }
             }
           }
         }
@@ -225,7 +234,7 @@ class EventDao(
         staffInvites.numberOfStaffNeeded.let { numberOfStaffNeeded ->
           it[Events.numberOfStaffNeeded] = numberOfStaffNeeded
         }
-      }
+    }
     } > 0
   }
 
@@ -268,5 +277,15 @@ class EventDao(
       .select(Events.columns)
       .where { EventInventory.inventoryItemId eq inventoryItemId }
       .map { toEventResponse(it) }
+  }
+
+  suspend fun getRequestedRsvpEventsForUser(userId: Int): List<EventResponse> = dbQuery {
+    val eventIds = Rsvps.selectAll()
+      .where { (Rsvps.userId eq userId) and (Rsvps.availability eq "requested") }
+      .map { it[Rsvps.eventId] }
+
+    eventIds.mapNotNull { eventId ->
+      getEventById(eventId)
+    }
   }
 }

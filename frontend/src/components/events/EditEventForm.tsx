@@ -3,9 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import { OrganizationService } from '../../api/OrganizationService';
 import { CustomerService } from '../../api/CustomerService';
+import { UserService } from '../../api/UserService';
 import type { EventResponse, UpdateEventRequest, EventInventoryItem } from '../../types/events';
 import type { OrganizationResponse } from '../../types/organizations';
 import type { CustomerResponse } from '../../types/customers';
+import type { UserResponse } from '../../types/auth';
 import ErrorDisplay from '../common/ErrorDisplay';
 import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
@@ -29,6 +31,8 @@ const EditEventForm: React.FC = () => {
   const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const [availableCustomers, setAvailableCustomers] = useState<CustomerResponse[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
 
   const { hasPermission } = usePermissions();
   const canManageGlobalEvents = hasPermission('MANAGE_EVENTS_GLOBAL');
@@ -92,6 +96,26 @@ const EditEventForm: React.FC = () => {
     fetchCustomers();
   }, [selectedOrganizationId]);
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (selectedOrganizationId) {
+        try {
+          const users = await UserService.getAllUsers(parseInt(selectedOrganizationId));
+          setAvailableUsers(users);
+        } catch (err: unknown) {
+          if (err instanceof ApiErrorWithDetails) {
+            setError({ message: err.message, details: err.details });
+          } else if (err instanceof Error) {
+            setError({ message: err.message });
+          } else {
+            setError({ message: 'An unknown error occurred while fetching users' });
+          }
+        }
+      }
+    };
+    fetchUsers();
+  }, [selectedOrganizationId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -115,6 +139,7 @@ const EditEventForm: React.FC = () => {
         staffInvites: {
           openInvitation,
           numberOfStaffNeeded,
+          specificStaffIds: selectedUserIds,
         },
         organizationId: organizationIdToUse,
       };
@@ -189,6 +214,23 @@ const EditEventForm: React.FC = () => {
               {availableCustomers.map(customer => (
                 <option key={customer.customerId} value={customer.customerId}>
                   {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="staffInvites" className="form-label">Invite Staff:</label>
+            <select
+              id="staffInvites"
+              className="form-select"
+              multiple
+              value={selectedUserIds.map(String)}
+              onChange={(e) => setSelectedUserIds(Array.from(e.target.selectedOptions, (option) => parseInt(option.value)))}
+            >
+              {availableUsers.map(user => (
+                <option key={user.userId} value={user.userId}>
+                  {user.displayName}
                 </option>
               ))}
             </select>

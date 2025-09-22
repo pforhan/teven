@@ -133,4 +133,8 @@ class EventService(private val eventDao: EventDao) {
     }
     return eventDao.rsvpToEvent(eventId, userId, availability)
   }
+
+  suspend fun getRequestedRsvpEventsForUser(userId: Int): List<EventResponse> {
+    return eventDao.getRequestedRsvpEventsForUser(userId)
+  }
 }

@@ -149,6 +149,14 @@ fun Route.eventRoutes() {
           call.respond(HttpStatusCode.NotFound, failure("Event not found"))
         }
       }
+
+      get("/rsvps/requested") {
+        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val userId = authContext.userId
+
+        val requestedRsvps = eventService.getRequestedRsvpEventsForUser(userId)
+        call.respond(HttpStatusCode.OK, success(requestedRsvps))
+      }
     }
 
     // RSVP to Event

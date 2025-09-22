@@ -2,8 +2,12 @@ import type { UserResponse, CreateUserRequest, UpdateUserRequest } from '../type
 import { apiClient } from './apiClient';
 
 export class UserService {
-  static async getAllUsers(): Promise<UserResponse[]> {
-    return apiClient<UserResponse[]>('/api/users');
+  static async getAllUsers(organizationId?: number): Promise<UserResponse[]> {
+    const url = new URL('/api/users', window.location.origin);
+    if (organizationId) {
+      url.searchParams.append('organizationId', organizationId.toString());
+    }
+    return apiClient<UserResponse[]>(url.toString());
   }
 
   static async getUser(userId: number): Promise<UserResponse> {

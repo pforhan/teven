@@ -27,12 +27,11 @@ import org.koin.dsl.module
 
 val appModule = module {
   single { UserDao() }
-
   single<UserService> { UserServiceImpl(get(), get()) }
   single<AuthService> { AuthServiceImpl(get(), get(), get()) }
   single<RoleService> { RoleServiceImpl(get()) }
   single<PermissionService> { PermissionServiceImpl(get()) }
-  single { EventDao(get()) }
+  single { EventDao() }
   single { InventoryDao() }
   single { EventService(get()) }
   single { InventoryService(get()) }

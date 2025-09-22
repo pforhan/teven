@@ -66,4 +66,8 @@ export class EventService {
   static async joinEvent(eventId: number): Promise<StatusResponse> {
     return apiClient<StatusResponse>(`/api/events/${eventId}/join`, { method: 'POST' });
   }
+
+  static async getRequestedRsvps(): Promise<EventResponse[]> {
+    return apiClient<EventResponse[]>('/api/events/rsvps/requested');
+  }
 }
