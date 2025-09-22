@@ -30,7 +30,6 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
         setAvailableInventory([]);
         return;
       }
-      console.log('Fetching inventory for organizationId:', organizationId);
       try {
         const items = await InventoryService.getAllInventoryItems(
           undefined,

@@ -133,7 +133,7 @@ class EventDao(
       }
     }
 
-    getEventById(id)!!
+    getEventByIdBare(id)!!
   }
 
   suspend fun getEvents(
@@ -174,10 +174,12 @@ class EventDao(
     )
   }
 
+  private suspend fun getEventByIdBare(eventId: Int): EventResponse? = Events.selectAll().where { Events.id eq eventId }
+    .mapNotNull { toEventResponse(it) }
+    .singleOrNull()
+
   suspend fun getEventById(eventId: Int): EventResponse? = dbQuery {
-    Events.selectAll().where { Events.id eq eventId }
-      .mapNotNull { toEventResponse(it) }
-      .singleOrNull()
+    getEventByIdBare(eventId)
   }
 
   suspend fun updateEvent(

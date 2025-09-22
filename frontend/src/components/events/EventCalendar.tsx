@@ -112,11 +112,19 @@ const EventCalendar: React.FC = () => {
     fetchEvents(start, end);
   }, [fetchEvents, date, view]);
 
-  const handleSelectSlot = ({ start, action }: { start: Date, action: string }) => {
-    if (view === Views.WEEK && action === 'click') {
-      navigate(`/events/create?date=${moment(start).format('YYYY-MM-DD')}&time=${moment(start).format('HH:mm')}`);
-    } else if (view === Views.MONTH && action === 'click') {
-      navigate(`/events/create?date=${moment(start).format('YYYY-MM-DD')}`);
+  const handleSelectSlot = ({ start, end, action }: { start: Date, end: Date, action: string }) => {
+    if (action === 'select' || action === 'click') {
+      const startTime = moment(start).format('HH:mm');
+      const endTime = moment(end).format('HH:mm');
+      const date = moment(start).format('YYYY-MM-DD');
+
+      if (view === Views.MONTH) {
+        if (action === 'click') {
+          navigate(`/events/create?date=${date}`);
+        }
+      } else {
+        navigate(`/events/create?date=${date}&startTime=${startTime}&endTime=${endTime}`);
+      }
     }
   };
 

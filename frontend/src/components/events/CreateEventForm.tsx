@@ -22,13 +22,27 @@ const CreateEventForm: React.FC = () => {
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const dateParam = queryParams.get('date');
-    const timeParam = queryParams.get('time');
+    const startTimeParam = queryParams.get('startTime');
+    const endTimeParam = queryParams.get('endTime');
 
     if (dateParam) {
       setDate(dateParam);
     }
-    if (timeParam) {
-      setTime(timeParam);
+
+    if (startTimeParam) {
+      setTime(startTimeParam);
+    }
+
+    if (dateParam && startTimeParam && endTimeParam) {
+      const start = new Date(`${dateParam}T${startTimeParam}`);
+      const end = new Date(`${dateParam}T${endTimeParam}`);
+      const duration = (end.getTime() - start.getTime()) / 60000; // duration in minutes
+      setDurationMinutes(duration);
+    } else {
+      const timeParam = queryParams.get('time');
+      if (timeParam) {
+        setTime(timeParam)
+      }
     }
   }, [location.search]);
   const [eventLocation, setEventLocation] = useState('');
@@ -74,7 +88,6 @@ const CreateEventForm: React.FC = () => {
   useEffect(() => {
     const fetchCustomers = async () => {
       if (selectedOrganizationId) {
-        console.log('Fetching customers for organizationId:', selectedOrganizationId);
         try {
           const customers = await CustomerService.getAllCustomers(
             undefined,
@@ -211,7 +224,6 @@ const CreateEventForm: React.FC = () => {
               value={customerId}
               onChange={(e) => {
                 setCustomerId(e.target.value);
-                console.log('Selected customerId:', e.target.value);
               }}
               required
             >

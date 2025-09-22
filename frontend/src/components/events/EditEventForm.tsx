@@ -71,7 +71,6 @@ const EditEventForm: React.FC = () => {
   useEffect(() => {
     const fetchCustomers = async () => {
       if (selectedOrganizationId) {
-        console.log('Fetching customers for organizationId:', selectedOrganizationId);
         try {
           const customers = await CustomerService.getAllCustomers(
             undefined,
@@ -184,7 +183,6 @@ const EditEventForm: React.FC = () => {
               value={customerId}
               onChange={(e) => {
                 setCustomerId(e.target.value);
-                console.log('Selected customerId:', e.target.value);
               }}
               required
             >

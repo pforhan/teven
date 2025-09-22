@@ -62,8 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchUserContext();
   }, [fetchUserContext]);
 
-  console.log('AuthContext: Rendered with loading:', loading, 'userContext:', userContext);
-
   return (
     <AuthContext.Provider value={{ userContext, loading, refetchUserContext: fetchUserContext, logout }}>
       {children}
