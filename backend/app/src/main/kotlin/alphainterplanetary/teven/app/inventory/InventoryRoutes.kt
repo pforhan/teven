@@ -79,7 +79,8 @@ fun Route.inventoryRoutes() {
 
     // View Inventory Items
     withPermission(VIEW_INVENTORY_ORGANIZATION, VIEW_INVENTORY_GLOBAL) {
-      get { val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+      get {
+        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
         val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
         val inventoryItems = inventoryService.getAllInventoryItems(authContext, organizationId)
         call.respond(HttpStatusCode.OK, success(inventoryItems))

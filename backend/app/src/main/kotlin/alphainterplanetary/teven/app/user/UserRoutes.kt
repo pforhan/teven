@@ -36,7 +36,8 @@ fun Route.userRoutes() {
       get {
         val principal = call.principal<UserPrincipal>()
         val callerId = principal?.userId ?: return@get
-        val users = userService.getAllUsers(callerId)
+        val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
+        val users = userService.getAllUsers(callerId, organizationId)
         call.respond(HttpStatusCode.OK, success(users))
       }
     }

@@ -40,15 +40,20 @@ class UserServiceImpl(
     return toUserResponse(user)
   }
 
-  override suspend fun getAllUsers(callerId: Int): List<UserResponse> {
+  override suspend fun getAllUsers(callerId: Int, organizationId: Int?): List<UserResponse> {
     val callerRoles = roleService.getRolesForUser(callerId)
     val isSuperAdmin = callerRoles.any { it.roleName == Constants.ROLE_SUPERADMIN }
 
-    val users = if (isSuperAdmin) {
-      userDao.getAllUsers()
+    val orgIdToUse = if (isSuperAdmin) {
+      organizationId
     } else {
-      val organizationId = userDao.getOrganizationForUser(callerId).organizationId
-      userDao.getUsersByOrganization(organizationId)
+      userDao.getOrganizationForUser(callerId).organizationId
+    }
+
+    val users = if (orgIdToUse != null) {
+      userDao.getUsersByOrganization(orgIdToUse)
+    } else {
+      userDao.getAllUsers()
     }
     return users.map { toUserResponse(it) }
   }
