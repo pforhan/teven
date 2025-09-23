@@ -4,6 +4,7 @@ import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.event.EventInventory
 import alphainterplanetary.teven.data.event.Events
 import alphainterplanetary.teven.data.event.Rsvps
+import alphainterplanetary.teven.data.invitation.Invitations
 import alphainterplanetary.teven.data.inventory.InventoryItems
 import alphainterplanetary.teven.data.inventory.InventoryUsage
 import alphainterplanetary.teven.data.organization.Organizations
@@ -34,6 +35,7 @@ object DatabaseFactory {
         Events,
         EventInventory,
         Rsvps,
+        Invitations,
         InventoryItems,
         InventoryUsage,
         Organizations,

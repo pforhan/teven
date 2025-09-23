@@ -35,7 +35,7 @@ class UserDao {
 
     UserOrganizations.insert {
       it[userId] = id.value
-      it[organizationId] = registerRequest.organizationId
+      it[UserOrganizations.organizationId] = registerRequest.organizationId
     }
 
     User(

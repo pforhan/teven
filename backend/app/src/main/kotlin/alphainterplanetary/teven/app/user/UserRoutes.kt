@@ -27,7 +27,8 @@ fun Route.userRoutes() {
     withPermission(MANAGE_USERS_ORGANIZATION) {
       post {
         val createUserRequest = call.receive<CreateUserRequest>()
-        val newUser = userService.createUser(createUserRequest)
+        val invitationToken = createUserRequest.invitationToken
+        val newUser = userService.createUser(createUserRequest, invitationToken)
         call.respond(HttpStatusCode.Created, success(newUser))
       }
     }

@@ -9,10 +9,12 @@ import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.core.service.UserService
 import alphainterplanetary.teven.core.user.User
 import alphainterplanetary.teven.data.user.UserDao
+import alphainterplanetary.teven.service.invitation.InvitationService
 
 class UserServiceImpl(
   private val userDao: UserDao,
   private val roleService: RoleService,
+  private val invitationService: InvitationService,
 ) : UserService {
   override suspend fun toUserResponse(user: User): UserResponse {
     val roles = roleService.getRolesForUser(user.userId)
@@ -29,12 +31,30 @@ class UserServiceImpl(
 
   override suspend fun createUser(
     createUserRequest: CreateUserRequest,
+    invitationToken: String?,
   ): UserResponse {
-    val user = userDao.createUser(createUserRequest)
-    val requestedRoles = createUserRequest.roles
-    requestedRoles.forEach {
-      roleService.getRoleByName(it)?.let { role ->
-        roleService.assignRoleToUser(user.userId, role.roleId)
+    val organizationIdToUse = if (invitationToken != null) {
+      val invitation = invitationService.validateInvitation(invitationToken)
+        ?: throw IllegalArgumentException("Invalid or expired invitation token")
+      invitation.organizationId
+    } else {
+      createUserRequest.organizationId
+    }
+
+    val user = userDao.createUser(createUserRequest.copy(organizationId = organizationIdToUse))
+
+    if (invitationToken != null) {
+      val invitation = invitationService.validateInvitation(invitationToken)!! // Already validated above
+      val role = roleService.getRoleById(invitation.roleId)
+        ?: throw Exception("Role not found for this invitation.")
+      roleService.assignRoleToUser(user.userId, role.roleId)
+      invitationService.markInvitationAsUsed(invitationToken, user.userId)
+    } else {
+      val requestedRoles = createUserRequest.roles
+      requestedRoles.forEach {
+        roleService.getRoleByName(it)?.let { role ->
+          roleService.assignRoleToUser(user.userId, role.roleId)
+        }
       }
     }
     return toUserResponse(user)

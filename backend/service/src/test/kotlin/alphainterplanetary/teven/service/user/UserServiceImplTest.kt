@@ -36,7 +36,8 @@ class UserServiceImplTest {
       email = "test@test.com",
       password = "password",
       displayName = "Test User",
-      roles = listOf("User")
+      roles = listOf("User"),
+      organizationId = 1 // Dummy organizationId for test
     )
     val callerId = 1
     val newUser = User(

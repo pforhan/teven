@@ -5,11 +5,16 @@ import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
 import alphainterplanetary.teven.api.model.organization.UpdateOrganizationRequest
 import alphainterplanetary.teven.auth.withPermission
+import alphainterplanetary.teven.core.security.AuthContext
+import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.core.security.Permission.MANAGE_ORGANIZATIONS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.VIEW_ORGANIZATIONS_GLOBAL
+import alphainterplanetary.teven.core.security.UserPrincipal
+import alphainterplanetary.teven.service.invitation.InvitationService
 import alphainterplanetary.teven.service.organization.OrganizationService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.*
+import io.ktor.server.auth.principal
+import io.ktor.server.plugins.origin
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -22,6 +27,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.organizationRoutes() {
   val organizationService by inject<OrganizationService>()
+  val invitationService by inject<InvitationService>()
 
   route("/api/organizations") {
     withPermission(MANAGE_ORGANIZATIONS_GLOBAL) {
@@ -65,6 +71,33 @@ fun Route.organizationRoutes() {
       }
     }
 
+    withPermission(Permission.MANAGE_INVITATIONS_ORGANIZATION) {
+      post("{organization_id}/invitations") {
+        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val inviteOrganizationId = call.parameters["organization_id"]?.toIntOrNull()
+        val roleId = call.request.queryParameters["roleId"]?.toIntOrNull()
+
+        if (inviteOrganizationId == null) {
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid organization ID"))
+          return@post
+        }
+        if (roleId == null) {
+          call.respond(HttpStatusCode.BadRequest, failure("Role ID is required"))
+          return@post
+        }
+
+        // Ensure the user has permission for this organization
+        if (!authContext.hasPermission(MANAGE_ORGANIZATIONS_GLOBAL) && authContext.organizationId != inviteOrganizationId) {
+          call.respond(HttpStatusCode.Forbidden, failure("Not authorized to create invitations for this organization"))
+          return@post
+        }
+
+        val invitation = invitationService.generateInvitation(inviteOrganizationId, roleId)
+        val invitationUrl = "${call.request.origin.scheme}://${call.request.origin.serverHost}:${call.request.origin.serverPort}/register?token=${invitation.token}"
+        call.respond(HttpStatusCode.Created, success(mapOf("invitationUrl" to invitationUrl)))
+      }
+    }
+
     withPermission(VIEW_ORGANIZATIONS_GLOBAL) {
       get {
         val organizations = organizationService.getAllOrganizations()
@@ -86,4 +119,8 @@ fun Route.organizationRoutes() {
       }
     }
   }
+}
+
+private fun UserPrincipal.toAuthContext(): AuthContext {
+  return AuthContext(userId, organizationId, permissions)
 }

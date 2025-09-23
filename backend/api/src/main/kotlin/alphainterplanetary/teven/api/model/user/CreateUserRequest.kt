@@ -12,4 +12,5 @@ data class CreateUserRequest(
   val roles: List<String> = emptyList(),
   // Ignored if the caller is not a superadmin.
   val organizationId: Int,
+  val invitationToken: String? = null,
 )

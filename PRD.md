@@ -268,7 +268,25 @@ graph TD
 
   * User authentication and authorization
 
-  * **Invitation-based user registration flow.**
+  * **User Invitation System:**
+    *   **Purpose:** To enable organizations to invite new staff members to join their organization within the Teven application through a secure, unique, and time-limited invitation URL. This system streamlines the onboarding of new staff by pre-associating them with the inviting organization upon registration.
+    *   **Key Functionality:**
+        *   **Invitation Generation:**
+            *   Authorized organizational users (e.g., roles with `MANAGE_USERS_ORGANIZATION` permission) can generate unique invitation URLs for new staff members.
+            *   Each invitation URL will be associated with a specific organization.
+            *   Invitations can optionally have an expiration date/time.
+        *   **Invitation Distribution:**
+            *   The generated URL can be shared with the prospective staff member (e.g., via email, messaging).
+        *   **Registration via Invitation:**
+            *   When a prospective staff member accesses the invitation URL, they will be directed to a registration page.
+            *   The registration form will be pre-filled or implicitly linked to the inviting organization.
+            *   Upon successful registration, the new user will automatically be associated with the organization that issued the invitation.
+            *   The invitation URL should become invalid after successful registration or expiration.
+        *   **Invitation Management (Optional, Future Scope):**
+            *   View a list of outstanding invitations.
+            *   Revoke unaccepted invitations.
+    *   **Distinction from Event RSVPs:**
+        This User Invitation System is entirely separate from the Event RSVP functionality. Event RSVPs are for existing users to indicate their availability for specific events. The User Invitation System is for bringing *new users* into an organization within the Teven platform.
 
   * Event data storage and retrieval, including inventory data.
 

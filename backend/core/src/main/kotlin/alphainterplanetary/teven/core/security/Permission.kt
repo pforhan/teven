@@ -17,6 +17,11 @@ enum class Permission {
   /** Allows a user to create, edit, and deactivate users across all organizations. Typically for Super Admins. */
   MANAGE_USERS_GLOBAL,
 
+  /** Allows a user to send or delete user invitations for their organization. */
+  MANAGE_INVITATIONS_ORGANIZATION,
+  /** Allows a user to send or delete user invitations for any organization. */
+  MANAGE_INVITATIONS_GLOBAL,
+
   // Role Management
   /** Allows a user to view roles within their own organization. */
   VIEW_ROLES_ORGANIZATION,
