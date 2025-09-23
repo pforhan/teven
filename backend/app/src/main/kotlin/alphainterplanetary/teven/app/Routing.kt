@@ -8,10 +8,12 @@ import alphainterplanetary.teven.app.organization.organizationRoutes
 import alphainterplanetary.teven.app.report.reportRoutes
 import alphainterplanetary.teven.app.role.roleRoutes
 import alphainterplanetary.teven.app.user.userRoutes
+import alphainterplanetary.teven.core.security.AuthContext
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.principal
 import io.ktor.server.http.content.default
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.response.respond
@@ -52,3 +54,6 @@ fun Application.configureRouting() {
     }
   }
 }
+
+fun RoutingContext.maybeAuthContext(): AuthContext? = call.principal<AuthContext>()
+fun RoutingContext.requireAuthContext(): AuthContext = maybeAuthContext()!!

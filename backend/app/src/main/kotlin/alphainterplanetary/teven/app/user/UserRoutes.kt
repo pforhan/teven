@@ -4,13 +4,12 @@ import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.api.model.user.UpdateUserRequest
+import alphainterplanetary.teven.app.maybeAuthContext
 import alphainterplanetary.teven.auth.withPermission
 import alphainterplanetary.teven.core.security.Permission.MANAGE_USERS_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.VIEW_USERS_ORGANIZATION
-import alphainterplanetary.teven.core.security.UserPrincipal
 import alphainterplanetary.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -35,7 +34,7 @@ fun Route.userRoutes() {
 
     withPermission(VIEW_USERS_ORGANIZATION) {
       get {
-        val principal = call.principal<UserPrincipal>()
+        val principal = maybeAuthContext()
         val callerId = principal?.userId ?: return@get
         val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
         val users = userService.getAllUsers(callerId, organizationId)
@@ -44,7 +43,7 @@ fun Route.userRoutes() {
     }
 
     get("/context") {
-      val principal = call.principal<UserPrincipal>()
+      val principal = maybeAuthContext()
       val userId = principal?.userId
 
       if (userId == null) {

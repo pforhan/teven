@@ -1,7 +1,8 @@
 package alphainterplanetary.teven.auth
 
 import alphainterplanetary.teven.core.security.Permission
-import alphainterplanetary.teven.core.security.UserPrincipal
+import alphainterplanetary.teven.core.security.AuthContext
+
 import alphainterplanetary.teven.core.service.PermissionService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin
@@ -16,7 +17,7 @@ val AuthorizationPlugin = createRouteScopedPlugin(
 
   pluginConfig.forEach { permission ->
     onCall { call ->
-      val principal = call.authentication.principal<UserPrincipal>()
+      val principal = call.authentication.principal<AuthContext>()
       val callerId = principal?.userId
 
       if (callerId == null) {

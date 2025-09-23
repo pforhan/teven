@@ -1,12 +1,12 @@
 package alphainterplanetary.teven.auth
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import alphainterplanetary.teven.api.model.common.failure
+import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.JwtConfig
 import alphainterplanetary.teven.core.security.Permission
-import alphainterplanetary.teven.core.security.UserPrincipal
 import alphainterplanetary.teven.core.service.UserService
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -34,7 +34,7 @@ class ApplicationAuth(
               val userId = credential.payload.getClaim("userId").asInt()
               if (userId != null) {
                 val context = userService.getUserContext(userId)
-                UserPrincipal(
+                AuthContext(
                   userId = context.user.userId,
                   organizationId = context.user.organization.organizationId,
                   permissions = context.permissions.map { Permission.valueOf(it) }.toSet()

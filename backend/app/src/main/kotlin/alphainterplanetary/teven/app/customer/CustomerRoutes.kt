@@ -4,20 +4,24 @@ import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.customer.CreateCustomerRequest
 import alphainterplanetary.teven.api.model.customer.UpdateCustomerRequest
+import alphainterplanetary.teven.app.requireAuthContext
 import alphainterplanetary.teven.auth.withPermission
 import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission.MANAGE_CUSTOMERS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.MANAGE_CUSTOMERS_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.VIEW_CUSTOMERS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.VIEW_CUSTOMERS_ORGANIZATION
-import alphainterplanetary.teven.core.security.UserPrincipal
 import alphainterplanetary.teven.service.customer.CustomerService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.*
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 fun Route.customerRoutes() {
@@ -27,7 +31,7 @@ fun Route.customerRoutes() {
     // Create Customer
     withPermission(MANAGE_CUSTOMERS_ORGANIZATION, MANAGE_CUSTOMERS_GLOBAL) {
       post {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val createCustomerRequest = call.receive<CreateCustomerRequest>()
         val newCustomer = customerService.createCustomer(authContext, createCustomerRequest)
         call.respond(HttpStatusCode.Created, success(newCustomer))
@@ -37,7 +41,7 @@ fun Route.customerRoutes() {
     // Update Customer
     withPermission(MANAGE_CUSTOMERS_ORGANIZATION, MANAGE_CUSTOMERS_GLOBAL) {
       put("{customer_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val customerId = call.parameters["customer_id"]?.toIntOrNull()
         if (customerId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid customer ID"))
@@ -58,7 +62,7 @@ fun Route.customerRoutes() {
     // Delete Customer
     withPermission(MANAGE_CUSTOMERS_ORGANIZATION, MANAGE_CUSTOMERS_GLOBAL) {
       delete("{customer_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val customerId = call.parameters["customer_id"]?.toIntOrNull()
         if (customerId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid customer ID"))
@@ -74,14 +78,15 @@ fun Route.customerRoutes() {
 
     // View Customers
     withPermission(VIEW_CUSTOMERS_ORGANIZATION, VIEW_CUSTOMERS_GLOBAL) {
-      get { val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+      get {
+        val authContext = requireAuthContext()
         val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
         val customers = customerService.getAllCustomers(authContext, organizationId)
         call.respond(HttpStatusCode.OK, success(customers))
       }
 
       get("{customer_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = call.principal<AuthContext>()!!
         val customerId = call.parameters["customer_id"]?.toIntOrNull()
         if (customerId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid customer ID"))
@@ -96,8 +101,4 @@ fun Route.customerRoutes() {
       }
     }
   }
-}
-
-private fun UserPrincipal.toAuthContext(): AuthContext {
-  return AuthContext(userId, organizationId, permissions)
 }

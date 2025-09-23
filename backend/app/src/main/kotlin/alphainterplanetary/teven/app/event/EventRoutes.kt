@@ -5,22 +5,22 @@ import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.event.CreateEventRequest
 import alphainterplanetary.teven.api.model.event.RsvpRequest
 import alphainterplanetary.teven.api.model.event.UpdateEventRequest
+import alphainterplanetary.teven.app.requireAuthContext
 import alphainterplanetary.teven.auth.withPermission
-import alphainterplanetary.teven.core.security.AuthContext
-import alphainterplanetary.teven.core.security.Permission.ASSIGN_TO_EVENTS_SELF
-import alphainterplanetary.teven.core.security.Permission.ASSIGN_STAFF_TO_EVENTS_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.MANAGE_EVENTS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.MANAGE_EVENTS_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.VIEW_EVENTS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.VIEW_EVENTS_ORGANIZATION
-import alphainterplanetary.teven.core.security.UserPrincipal
 import alphainterplanetary.teven.service.event.EventService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
-import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.*
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 fun Route.eventRoutes() {
@@ -30,7 +30,7 @@ fun Route.eventRoutes() {
     // Create Event
     withPermission(MANAGE_EVENTS_ORGANIZATION, MANAGE_EVENTS_GLOBAL) {
       post {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val createEventRequest = call.receive<CreateEventRequest>()
         val newEvent = eventService.createEvent(authContext, createEventRequest)
         call.respond(HttpStatusCode.Created, success(newEvent))
@@ -40,7 +40,7 @@ fun Route.eventRoutes() {
     // Update Event
     withPermission(MANAGE_EVENTS_ORGANIZATION, MANAGE_EVENTS_GLOBAL) {
       put("{event_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val eventId = call.parameters["event_id"]?.toIntOrNull()
         if (eventId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid event ID"))
@@ -61,7 +61,7 @@ fun Route.eventRoutes() {
     // Delete Event
     withPermission(MANAGE_EVENTS_ORGANIZATION, MANAGE_EVENTS_GLOBAL) {
       delete("{event_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val eventId = call.parameters["event_id"]?.toIntOrNull()
         if (eventId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid event ID"))
@@ -78,7 +78,7 @@ fun Route.eventRoutes() {
     // View Events
     withPermission(VIEW_EVENTS_ORGANIZATION, VIEW_EVENTS_GLOBAL) {
       get {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val startDate = call.request.queryParameters["startDate"]
         val endDate = call.request.queryParameters["endDate"]
         val limit = call.request.queryParameters["limit"]?.toIntOrNull()
@@ -97,7 +97,7 @@ fun Route.eventRoutes() {
       }
 
       get("{event_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val eventId = call.parameters["event_id"]?.toIntOrNull()
         if (eventId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid event ID"))
@@ -112,7 +112,7 @@ fun Route.eventRoutes() {
       }
 
       get("/rsvps/requested") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val userId = authContext.userId
 
         val requestedRsvps = eventService.getRequestedRsvpEventsForUser(userId)
@@ -122,7 +122,7 @@ fun Route.eventRoutes() {
 
     // RSVP to Event
     post("{event_id}/rsvp") {
-      val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+      val authContext = requireAuthContext()
       val eventId = call.parameters["event_id"]?.toIntOrNull()
       if (eventId == null) {
         call.respond(HttpStatusCode.BadRequest, failure("Invalid event ID"))
@@ -138,8 +138,4 @@ fun Route.eventRoutes() {
       }
     }
   }
-}
-
-private fun UserPrincipal.toAuthContext(): AuthContext {
-  return AuthContext(userId, organizationId, permissions)
 }

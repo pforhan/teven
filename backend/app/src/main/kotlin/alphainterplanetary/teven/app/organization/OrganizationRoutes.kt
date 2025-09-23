@@ -4,16 +4,14 @@ import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
 import alphainterplanetary.teven.api.model.organization.UpdateOrganizationRequest
+import alphainterplanetary.teven.app.requireAuthContext
 import alphainterplanetary.teven.auth.withPermission
-import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.core.security.Permission.MANAGE_ORGANIZATIONS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.VIEW_ORGANIZATIONS_GLOBAL
-import alphainterplanetary.teven.core.security.UserPrincipal
 import alphainterplanetary.teven.service.invitation.InvitationService
 import alphainterplanetary.teven.service.organization.OrganizationService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.principal
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -73,7 +71,7 @@ fun Route.organizationRoutes() {
 
     withPermission(Permission.MANAGE_INVITATIONS_ORGANIZATION) {
       post("{organization_id}/invitations") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val inviteOrganizationId = call.parameters["organization_id"]?.toIntOrNull()
         val roleId = call.request.queryParameters["roleId"]?.toIntOrNull()
 
@@ -119,8 +117,4 @@ fun Route.organizationRoutes() {
       }
     }
   }
-}
-
-private fun UserPrincipal.toAuthContext(): AuthContext {
-  return AuthContext(userId, organizationId, permissions)
 }

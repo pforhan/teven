@@ -1,6 +1,4 @@
 package alphainterplanetary.teven.core.security
-
-// TODO merge UserPrincipal and AuthContext
 data class AuthContext(
   val userId: Int,
   val organizationId: Int,

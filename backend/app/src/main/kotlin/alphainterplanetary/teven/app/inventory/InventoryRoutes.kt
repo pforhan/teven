@@ -5,16 +5,14 @@ import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.inventory.CreateInventoryItemRequest
 import alphainterplanetary.teven.api.model.inventory.TrackInventoryUsageRequest
 import alphainterplanetary.teven.api.model.inventory.UpdateInventoryItemRequest
+import alphainterplanetary.teven.app.requireAuthContext
 import alphainterplanetary.teven.auth.withPermission
-import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission.MANAGE_INVENTORY_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.MANAGE_INVENTORY_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.VIEW_INVENTORY_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.VIEW_INVENTORY_ORGANIZATION
-import alphainterplanetary.teven.core.security.UserPrincipal
 import alphainterplanetary.teven.service.inventory.InventoryService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -32,7 +30,7 @@ fun Route.inventoryRoutes() {
     // Create Inventory Item
     withPermission(MANAGE_INVENTORY_ORGANIZATION, MANAGE_INVENTORY_GLOBAL) {
       post {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val createInventoryItemRequest = call.receive<CreateInventoryItemRequest>()
         val newInventoryItem = inventoryService.createInventoryItem(authContext, createInventoryItemRequest)
         call.respond(HttpStatusCode.Created, success(newInventoryItem))
@@ -42,7 +40,7 @@ fun Route.inventoryRoutes() {
     // Update Inventory Item
     withPermission(MANAGE_INVENTORY_ORGANIZATION, MANAGE_INVENTORY_GLOBAL) {
       put("{inventory_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
         if (inventoryId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid inventory ID"))
@@ -63,7 +61,7 @@ fun Route.inventoryRoutes() {
     // Delete Inventory Item
     withPermission(MANAGE_INVENTORY_ORGANIZATION, MANAGE_INVENTORY_GLOBAL) {
       delete("{inventory_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
         if (inventoryId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid inventory ID"))
@@ -80,14 +78,14 @@ fun Route.inventoryRoutes() {
     // View Inventory Items
     withPermission(VIEW_INVENTORY_ORGANIZATION, VIEW_INVENTORY_GLOBAL) {
       get {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
         val inventoryItems = inventoryService.getAllInventoryItems(authContext, organizationId)
         call.respond(HttpStatusCode.OK, success(inventoryItems))
       }
 
       get("{inventory_id}") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
         if (inventoryId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid inventory ID"))
@@ -105,7 +103,7 @@ fun Route.inventoryRoutes() {
     // Track Inventory Usage
     withPermission(MANAGE_INVENTORY_ORGANIZATION) {
       post("{inventory_id}/usage") {
-        val authContext = call.principal<UserPrincipal>()!!.toAuthContext()
+        val authContext = requireAuthContext()
         val inventoryId = call.parameters["inventory_id"]?.toIntOrNull()
         if (inventoryId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid inventory ID"))
@@ -125,6 +123,3 @@ fun Route.inventoryRoutes() {
   }
 }
 
-private fun UserPrincipal.toAuthContext(): AuthContext {
-  return AuthContext(userId, organizationId, permissions)
-}
