@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { RoleService } from '../../api/RoleService';
 import type { RoleResponse } from '../../types/roles';
-import { InvitationService } from '../../api/InvitationService'; // We'll create this next
+import { InvitationService } from '../../api/InvitationService';
+import { OrganizationService } from '../../api/OrganizationService';
+import type { OrganizationResponse } from '../../types/organizations';
 import { useAuth } from '../../AuthContext';
 import { Permission } from '../../types/permissions';
 
@@ -12,41 +14,65 @@ interface CreateInvitationFormProps {
 
 export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onInvitationCreated, onCancel }) => {
   const [roles, setRoles] = useState<RoleResponse[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<number | null>(null);
   const [invitationLink, setInvitationLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const { userContext } = useAuth();
 
   useEffect(() => {
-    const fetchRoles = async () => {
+    const fetchRolesAndOrgs = async () => {
       try {
         const fetchedRoles = await RoleService.getAllRoles();
         setRoles(fetchedRoles);
         if (fetchedRoles.length > 0) {
           setSelectedRoleId(fetchedRoles[0].roleId);
         }
+
+        if (userContext?.permissions.includes(Permission.MANAGE_INVITATIONS_GLOBAL)) {
+          const fetchedOrgs = await OrganizationService.getAllOrganizations();
+          setOrganizations(fetchedOrgs);
+          if (fetchedOrgs.length > 0) {
+            setSelectedOrganizationId(fetchedOrgs[0].organizationId);
+          }
+        }
       } catch (err) {
-        setError('Failed to fetch roles.');
-        console.error('Failed to fetch roles:', err);
+        setError('Failed to fetch roles or organizations.');
+        console.error('Failed to fetch data:', err);
       }
     };
-    fetchRoles();
-  }, []);
+    fetchRolesAndOrgs();
+  }, [userContext?.permissions]);
 
   const handleCreateInvitation = async () => {
-    if (!selectedRoleId || !userContext?.user.organization.organizationId) {
-      setError('Please select a role and ensure organization ID is available.');
+    if (!selectedRoleId) {
+      setError('Please select a role.');
       return;
     }
+
+    let organizationId: number | undefined;
+    if (userContext?.permissions.includes(Permission.MANAGE_INVITATIONS_GLOBAL)) {
+      organizationId = selectedOrganizationId ?? undefined;
+    } else {
+      organizationId = userContext?.user.organization.organizationId;
+    }
+
+    if (!organizationId) {
+      setError('Organization ID is not available.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setInvitationLink(null);
 
     try {
-      const response = await InvitationService.createInvitation(userContext.user.organization.organizationId, selectedRoleId);
-      setInvitationLink(response.invitationUrl);
-      onInvitationCreated(response.invitationUrl);
+      const response = await InvitationService.createInvitation(selectedRoleId, organizationId);
+      const invitationUrl = `${window.location.origin}/register?token=${response.token}`;
+      setInvitationLink(invitationUrl);
+      onInvitationCreated(invitationUrl);
     } catch (err) {
       setError('Failed to create invitation.');
       console.error('Failed to create invitation:', err);
@@ -55,7 +81,7 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
     }
   };
 
-  if (!userContext?.permissions.includes(Permission.MANAGE_USERS_ORGANIZATION)) {
+  if (!userContext?.permissions.includes(Permission.MANAGE_INVITATIONS_ORGANIZATION) && !userContext?.permissions.includes(Permission.MANAGE_INVITATIONS_GLOBAL)) {
     return <div className="text-red-500">You do not have permission to create invitations.</div>;
   }
 
@@ -81,6 +107,26 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
         </div>
       ) : (
         <div>
+          {userContext?.permissions.includes(Permission.MANAGE_INVITATIONS_GLOBAL) && (
+            <div className="mb-4">
+              <label htmlFor="orgSelect" className="block text-sm font-medium text-gray-700">
+                Select Organization:
+              </label>
+              <select
+                id="orgSelect"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+                value={selectedOrganizationId || ''}
+                onChange={(e) => setSelectedOrganizationId(Number(e.target.value))}
+                disabled={loading}
+              >
+                {organizations.map((org) => (
+                  <option key={org.organizationId} value={org.organizationId}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="mb-4">
             <label htmlFor="roleSelect" className="block text-sm font-medium text-gray-700">
               Select Role:

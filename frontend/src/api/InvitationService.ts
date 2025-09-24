@@ -1,11 +1,8 @@
 import { apiClient } from './apiClient';
 
-interface CreateInvitationResponse {
-  invitationUrl: string;
-}
-
 interface InvitationResponse {
   invitationId: number;
+  organizationId: number;
   roleId: number;
   roleName: string;
   token: string;
@@ -15,18 +12,19 @@ interface InvitationResponse {
 }
 
 export class InvitationService {
-  static async createInvitation(organizationId: number, roleId: number): Promise<CreateInvitationResponse> {
-    return apiClient<CreateInvitationResponse>(`/api/organizations/${organizationId}/invitations?roleId=${roleId}`, {
+  static async createInvitation(roleId: number, organizationId?: number): Promise<InvitationResponse> {
+    return apiClient<InvitationResponse>('/api/invitations', {
       method: 'POST',
+      body: JSON.stringify({ roleId, organizationId }),
     });
   }
 
-  static async getUnusedInvitations(organizationId: number): Promise<InvitationResponse[]> {
-    return apiClient<InvitationResponse[]>(`/api/organizations/${organizationId}/invitations`);
+  static async getUnusedInvitations(): Promise<InvitationResponse[]> {
+    return apiClient<InvitationResponse[]>('/api/invitations');
   }
 
-  static async deleteInvitation(organizationId: number, invitationId: number): Promise<void> {
-    return apiClient<void>(`/api/organizations/${organizationId}/invitations/${invitationId}`, {
+  static async deleteInvitation(invitationId: number): Promise<void> {
+    return apiClient<void>(`/api/invitations/${invitationId}`, {
       method: 'DELETE',
     });
   }

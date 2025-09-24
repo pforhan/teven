@@ -5,7 +5,7 @@ import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { UserService } from '../../api/UserService';
 import { InvitationService } from '../../api/InvitationService';
 import type { UserResponse } from '../../types/auth';
-import { useAuth, usePermissions } from '../../AuthContext';
+import { usePermissions } from '../../AuthContext';
 import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { CreateInvitationForm } from './CreateInvitationForm';
@@ -18,7 +18,6 @@ const UserList: React.FC = () => {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [showCreateInvitationForm, setShowCreateInvitationForm] = useState<boolean>(false);
   const { hasPermission } = usePermissions();
-  const { userContext } = useAuth();
   const canViewUsers = hasPermission('VIEW_USERS_ORGANIZATION') || hasPermission('VIEW_USERS_GLOBAL');
   const canManageUsers = hasPermission('MANAGE_USERS_GLOBAL') || hasPermission('MANAGE_USERS_ORGANIZATION');
   const [hoveredUserId, setHoveredUserId] = useState<number | null>(null);
@@ -39,9 +38,9 @@ const UserList: React.FC = () => {
   }, []);
 
   const fetchInvitations = useCallback(async () => {
-    if (!canManageUsers || !userContext?.user.organization.organizationId) return;
+    if (!canManageUsers) return;
     try {
-      const fetchedInvitations = await InvitationService.getUnusedInvitations(userContext.user.organization.organizationId);
+      const fetchedInvitations = await InvitationService.getUnusedInvitations();
       setInvitations(fetchedInvitations);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
@@ -52,7 +51,7 @@ const UserList: React.FC = () => {
         setError({ message: 'An unknown error occurred' });
       }
     }
-  }, [canManageUsers, userContext?.user.organization.organizationId]);
+  }, [canManageUsers]);
 
   useEffect(() => {
     if (canViewUsers) {
@@ -80,12 +79,8 @@ const UserList: React.FC = () => {
 
   const handleDeleteInvitation = async (invitationId: number) => {
     if (window.confirm('Are you sure you want to delete this invitation?')) {
-      if (!userContext?.user.organization.organizationId) {
-        setError({ message: 'Organization ID not available.' });
-        return;
-      }
       try {
-        await InvitationService.deleteInvitation(userContext.user.organization.organizationId, invitationId);
+        await InvitationService.deleteInvitation(invitationId);
         fetchInvitations(); // Re-fetch invitations after deletion
       } catch (err) {
         if (err instanceof ApiErrorWithDetails) {
@@ -127,7 +122,7 @@ const UserList: React.FC = () => {
   const invitationColumns: Column<InvitationResponse>[] = [
     { key: 'roleName', label: 'Role' },
     { key: 'invitationUrl', label: 'Link', render: (invitation: InvitationResponse) => (
-      <input type="text" value={invitation.token} readOnly className="form-control-plaintext" />
+      <input type="text" value={`${window.location.origin}/register?token=${invitation.token}`} readOnly className="form-control-plaintext" />
     ) },
     { key: 'expiresAt', label: 'Expires', render: (invitation: InvitationResponse) => new Date(invitation.expiresAt).toLocaleDateString() },
     { key: 'actions', label: 'Actions', render: (invitation: InvitationResponse) => (
