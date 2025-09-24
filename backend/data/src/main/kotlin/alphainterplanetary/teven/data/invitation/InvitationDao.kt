@@ -20,6 +20,7 @@ class InvitationDao {
     roleId: Int,
     token: String,
     expiresAt: LocalDateTime,
+    note: String?,
   ): Invitation = dbQuery {
     val result = Invitations.insert {
       it[Invitations.organizationId] = organizationId
@@ -27,6 +28,7 @@ class InvitationDao {
       it[Invitations.token] = token
       it[Invitations.expiresAt] = expiresAt
       it[usedByUserId] = null
+      it[Invitations.note] = note
     }
     Invitation(
       id = result[Invitations.id].value,
@@ -37,6 +39,7 @@ class InvitationDao {
       expiresAt = result[Invitations.expiresAt],
       usedByUserId = null,
       createdAt = result[Invitations.createdAt],
+      note = result[Invitations.note],
     )
   }
 
@@ -58,6 +61,7 @@ class InvitationDao {
         expiresAt = it[Invitations.expiresAt],
         usedByUserId = it[Invitations.usedByUserId]?.value,
         createdAt = it[Invitations.createdAt],
+        note = it[Invitations.note],
       ) }
       .singleOrNull()
   }
@@ -83,6 +87,7 @@ class InvitationDao {
       expiresAt = it[Invitations.expiresAt],
       usedByUserId = it[Invitations.usedByUserId]?.value,
       createdAt = it[Invitations.createdAt],
+      note = it[Invitations.note],
     ) }
   }
 

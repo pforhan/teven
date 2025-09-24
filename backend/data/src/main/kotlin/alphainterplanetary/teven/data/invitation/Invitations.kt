@@ -14,4 +14,5 @@ object Invitations : IntIdTable() {
   val expiresAt = datetime("expires_at")
   val usedByUserId = reference("used_by_user_id", Users.id).nullable()
   val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
+  val note = varchar("note", 255).nullable()
 }

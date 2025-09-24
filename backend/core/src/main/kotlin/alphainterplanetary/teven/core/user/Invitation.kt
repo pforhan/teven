@@ -11,6 +11,7 @@ data class Invitation(
   val expiresAt: LocalDateTime,
   val usedByUserId: Int?,
   val createdAt: LocalDateTime,
+  val note: String?,
 )
 
 enum class DeleteInvitationStatus {

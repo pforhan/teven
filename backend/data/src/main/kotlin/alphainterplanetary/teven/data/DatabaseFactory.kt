@@ -45,7 +45,7 @@ object DatabaseFactory {
         Users,
         UserOrganizations,
       )
-      SchemaUtils.createMissingTablesAndColumns(Events)
+      SchemaUtils.createMissingTablesAndColumns(Events, Invitations)
     }
   }
 }

@@ -12,4 +12,5 @@ data class InvitationResponse(
   val expiresAt: String,
   val usedByUserId: Int?,
   val createdAt: String,
+  val note: String?,
 )

@@ -134,6 +134,7 @@ const UserList: React.FC = () => {
 
   const invitationColumns: Column<InvitationResponse>[] = [
     { key: 'roleName', label: 'Role' },
+    { key: 'note', label: 'Note', render: (invitation: InvitationResponse) => invitation.note || 'N/A' },
     { key: 'invitationUrl', label: 'Link', render: (invitation: InvitationResponse) => (
       <div className="d-flex align-items-center">
         <button

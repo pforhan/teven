@@ -17,6 +17,7 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
   const [organizations, setOrganizations] = useState<OrganizationResponse[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<number | null>(null);
+  const [note, setNote] = useState<string>('');
   const [invitationLink, setInvitationLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -69,7 +70,7 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
     setInvitationLink(null);
 
     try {
-      const response = await InvitationService.createInvitation(selectedRoleId, organizationId);
+      const response = await InvitationService.createInvitation(selectedRoleId, organizationId, note);
       const invitationUrl = `${window.location.origin}/register?token=${response.token}`;
       setInvitationLink(invitationUrl);
       onInvitationCreated(invitationUrl);
@@ -144,6 +145,19 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
                 </option>
               ))}
             </select>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="note" className="block text-sm font-medium text-gray-700">
+              Note (Optional):
+            </label>
+            <input
+              type="text"
+              id="note"
+              className="form-control"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              disabled={loading}
+            />
           </div>
           <div className="flex justify-end space-x-2">
             <button

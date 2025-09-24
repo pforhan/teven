@@ -18,4 +18,5 @@ export interface InvitationResponse {
   expiresAt: string;
   usedByUserId: number | null;
   createdAt: string;
+  note: string | null;
 }

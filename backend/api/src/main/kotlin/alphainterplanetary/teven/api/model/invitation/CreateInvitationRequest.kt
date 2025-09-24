@@ -7,4 +7,5 @@ data class CreateInvitationRequest(
     val roleId: Int,
     val expiresAt: String? = null,
     val organizationId: Int? = null,
+    val note: String? = null,
 )

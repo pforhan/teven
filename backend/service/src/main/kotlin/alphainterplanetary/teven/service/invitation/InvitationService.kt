@@ -29,6 +29,7 @@ class InvitationService(
       expiresAt = expiresAt.toString(),
       usedByUserId = usedByUserId,
       createdAt = createdAt.toString(),
+      note = note,
     )
   }
 
@@ -36,6 +37,7 @@ class InvitationService(
     organizationId: Int,
     roleId: Int,
     expiresAt: LocalDateTime? = null,
+    note: String? = null,
   ): InvitationResponse {
     val role = roleService.getRoleById(roleId) ?: throw IllegalArgumentException("Role not found")
     if (role.roleName !in listOf("Organizer", "Staff")) {
@@ -44,7 +46,7 @@ class InvitationService(
 
     val token = UUID.randomUUID().toString()
     val expiration = expiresAt ?: LocalDateTime.now().plusDays(7) // Default to 7 days
-    val invitation = invitationDao.createInvitation(organizationId, roleId, token, expiration)
+    val invitation = invitationDao.createInvitation(organizationId, roleId, token, expiration, note)
     return invitation.copy(roleName = role.roleName).toInvitationResponse()
   }
 
