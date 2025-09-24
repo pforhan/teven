@@ -11,6 +11,7 @@ import alphainterplanetary.teven.core.security.Permission.MANAGE_ORGANIZATIONS_G
 import alphainterplanetary.teven.core.security.Permission.VIEW_ORGANIZATIONS_GLOBAL
 import alphainterplanetary.teven.service.invitation.InvitationService
 import alphainterplanetary.teven.service.organization.OrganizationService
+import alphainterplanetary.teven.api.model.invitation.InvitationResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.receive
@@ -90,9 +91,49 @@ fun Route.organizationRoutes() {
           return@post
         }
 
-        val invitation = invitationService.generateInvitation(inviteOrganizationId, roleId)
+        val invitation: alphainterplanetary.teven.api.model.invitation.InvitationResponse = invitationService.generateInvitation(inviteOrganizationId, roleId)
         val invitationUrl = "${call.request.origin.scheme}://${call.request.origin.serverHost}:${call.request.origin.serverPort}/register?token=${invitation.token}"
         call.respond(HttpStatusCode.Created, success(mapOf("invitationUrl" to invitationUrl)))
+      }
+
+      get("{organization_id}/invitations") {
+        val authContext = requireAuthContext()
+        val organizationId = call.parameters["organization_id"]?.toIntOrNull()
+
+        if (organizationId == null) {
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid organization ID"))
+          return@get
+        }
+
+        if (!authContext.hasPermission(MANAGE_ORGANIZATIONS_GLOBAL) && authContext.organizationId != organizationId) {
+          call.respond(HttpStatusCode.Forbidden, failure("Not authorized to view invitations for this organization"))
+          return@get
+        }
+
+        val invitations: List<InvitationResponse> = invitationService.getUnusedInvitations(organizationId)
+        call.respond(HttpStatusCode.OK, success(invitations))
+      }
+
+      delete("{organization_id}/invitations/{invitation_id}") {
+        val authContext = requireAuthContext()
+        val organizationId = call.parameters["organization_id"]?.toIntOrNull()
+        val invitationId = call.parameters["invitation_id"]?.toIntOrNull()
+
+        if (organizationId == null || invitationId == null) {
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid organization ID or invitation ID"))
+          return@delete
+        }
+
+        if (!authContext.hasPermission(MANAGE_ORGANIZATIONS_GLOBAL) && authContext.organizationId != organizationId) {
+          call.respond(HttpStatusCode.Forbidden, failure("Not authorized to delete invitations for this organization"))
+          return@delete
+        }
+
+        if (invitationService.deleteInvitation(invitationId)) {
+          call.respond(HttpStatusCode.NoContent)
+        } else {
+          call.respond(HttpStatusCode.NotFound, failure("Invitation not found"))
+        }
       }
     }
 

@@ -23,13 +23,19 @@ export const apiClient = async <T>(url: string, options: RequestInit = {}): Prom
       const apiResponse: ApiResponse<T> = await response.json();
       if (apiResponse.error) {
         throw new ApiErrorWithDetails(apiResponse.error.message, apiResponse.error.details);
+      } else {
+        throw new ApiErrorWithDetails(
+          `API request failed with status ${response.status}`,
+          `Unknown error from API: ${JSON.stringify(apiResponse)}`
+        );
       }
+    } else {
+      const errorText = await response.text();
+      throw new ApiErrorWithDetails(
+        `API request failed with status ${response.status}`,
+        errorText
+      );
     }
-    const errorText = await response.text();
-    throw new ApiErrorWithDetails(
-      `API request failed with status ${response.status}`,
-      errorText
-    );
   }
 
   const contentType = response.headers.get("content-type");

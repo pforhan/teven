@@ -7,7 +7,6 @@ import alphainterplanetary.teven.app.di.appModule
 import alphainterplanetary.teven.auth.ApplicationAuth
 import alphainterplanetary.teven.core.security.AuthorizationException
 import alphainterplanetary.teven.core.service.PermissionService
-import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.data.DatabaseFactory
 import alphainterplanetary.teven.data.populateTestData
 import io.ktor.http.HttpStatusCode

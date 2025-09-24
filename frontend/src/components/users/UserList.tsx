@@ -3,16 +3,22 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { UserService } from '../../api/UserService';
+import { InvitationService } from '../../api/InvitationService';
 import type { UserResponse } from '../../types/auth';
-import { usePermissions } from '../../AuthContext';
+import { useAuth, usePermissions } from '../../AuthContext';
 import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
+import { CreateInvitationForm } from './CreateInvitationForm';
+import type { InvitationResponse } from '../../types/api';
 
 const UserList: React.FC = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserResponse[]>([]);
+  const [invitations, setInvitations] = useState<InvitationResponse[]>([]);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
+  const [showCreateInvitationForm, setShowCreateInvitationForm] = useState<boolean>(false);
   const { hasPermission } = usePermissions();
+  const { userContext } = useAuth();
   const canViewUsers = hasPermission('VIEW_USERS_ORGANIZATION') || hasPermission('VIEW_USERS_GLOBAL');
   const canManageUsers = hasPermission('MANAGE_USERS_GLOBAL') || hasPermission('MANAGE_USERS_ORGANIZATION');
   const [hoveredUserId, setHoveredUserId] = useState<number | null>(null);
@@ -32,11 +38,30 @@ const UserList: React.FC = () => {
     }
   }, []);
 
+  const fetchInvitations = useCallback(async () => {
+    if (!canManageUsers || !userContext?.user.organization.organizationId) return;
+    try {
+      const fetchedInvitations = await InvitationService.getUnusedInvitations(userContext.user.organization.organizationId);
+      setInvitations(fetchedInvitations);
+    } catch (err: unknown) {
+      if (err instanceof ApiErrorWithDetails) {
+        setError({ message: err.message, details: err.details });
+      } else if (err instanceof Error) {
+        setError({ message: err.message });
+      } else {
+        setError({ message: 'An unknown error occurred' });
+      }
+    }
+  }, [canManageUsers, userContext?.user.organization.organizationId]);
+
   useEffect(() => {
     if (canViewUsers) {
       fetchUsers();
     }
-  }, [fetchUsers, canViewUsers]);
+    if (canManageUsers) {
+      fetchInvitations();
+    }
+  }, [fetchUsers, fetchInvitations, canViewUsers, canManageUsers]);
 
   const handleDelete = async (userId: number) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
@@ -45,6 +70,27 @@ const UserList: React.FC = () => {
         fetchUsers(); // Re-fetch users after deletion
       } catch (err) {
         if (err instanceof Error) {
+          setError({ message: err.message });
+        } else {
+          setError({ message: 'An unknown error occurred' });
+        }
+      }
+    }
+  };
+
+  const handleDeleteInvitation = async (invitationId: number) => {
+    if (window.confirm('Are you sure you want to delete this invitation?')) {
+      if (!userContext?.user.organization.organizationId) {
+        setError({ message: 'Organization ID not available.' });
+        return;
+      }
+      try {
+        await InvitationService.deleteInvitation(userContext.user.organization.organizationId, invitationId);
+        fetchInvitations(); // Re-fetch invitations after deletion
+      } catch (err) {
+        if (err instanceof ApiErrorWithDetails) {
+          setError({ message: err.message, details: err.details });
+        } else if (err instanceof Error) {
           setError({ message: err.message });
         } else {
           setError({ message: 'An unknown error occurred' });
@@ -78,14 +124,48 @@ const UserList: React.FC = () => {
     columns.push({ key: 'organization', label: 'Organization', render: (user: UserResponse) => user.organization?.name || 'N/A' });
   }
 
+  const invitationColumns: Column<InvitationResponse>[] = [
+    { key: 'roleName', label: 'Role' },
+    { key: 'invitationUrl', label: 'Link', render: (invitation: InvitationResponse) => (
+      <input type="text" value={invitation.token} readOnly className="form-control-plaintext" />
+    ) },
+    { key: 'expiresAt', label: 'Expires', render: (invitation: InvitationResponse) => new Date(invitation.expiresAt).toLocaleDateString() },
+    { key: 'actions', label: 'Actions', render: (invitation: InvitationResponse) => (
+      <button
+        className="btn btn-sm btn-danger"
+        onClick={() => handleDeleteInvitation(invitation.invitationId)}
+      >
+        Delete
+      </button>
+    ) },
+  ];
+
   return (
     <div className="container-fluid">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Users</h2>
-        {canManageUsers && (
-          <button className="btn btn-primary" onClick={() => navigate('/users/create')}>Create User</button>
-        )}
+        <div className="d-flex">
+          {canManageUsers && (
+            <button className="btn btn-primary me-2" onClick={() => navigate('/users/create')}>Create User</button>
+          )}
+          {canManageUsers && (
+            <button className="btn btn-info" onClick={() => setShowCreateInvitationForm(true)}>Create Invitation</button>
+          )}
+        </div>
       </div>
+
+      {showCreateInvitationForm && (
+        <div className="mb-4">
+          <CreateInvitationForm
+            onInvitationCreated={(link) => {
+              alert(`Invitation created: ${link}`);
+              setShowCreateInvitationForm(false);
+              fetchInvitations(); // Refresh invitations list
+            }}
+            onCancel={() => setShowCreateInvitationForm(false)}
+          />
+        </div>
+      )}
 
       <TableView
         data={users}
@@ -95,6 +175,18 @@ const UserList: React.FC = () => {
         onRowMouseEnter={(user) => setHoveredUserId(user.userId)}
         onRowMouseLeave={() => setHoveredUserId(null)}
       />
+
+      {canManageUsers && (
+        <div className="mt-5">
+          <h2 className="text-2xl font-bold mb-4">Unused Invitations</h2>
+          <TableView
+            data={invitations}
+            columns={invitationColumns}
+            keyField="invitationId"
+            error={error}
+          />
+        </div>
+      )}
     </div>
   );
 };

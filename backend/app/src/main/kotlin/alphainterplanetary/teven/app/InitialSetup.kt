@@ -70,6 +70,7 @@ class InitialSetup(
             Permission.VIEW_INVENTORY_ORGANIZATION.name,
             Permission.MANAGE_INVENTORY_ORGANIZATION.name,
             Permission.VIEW_REPORTS_ORGANIZATION.name,
+            Permission.MANAGE_INVITATIONS_ORGANIZATION.name,
           ),
         ),
       )

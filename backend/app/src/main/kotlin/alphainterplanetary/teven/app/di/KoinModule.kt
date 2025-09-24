@@ -45,7 +45,7 @@ val appModule = module {
   single { CustomerDao() }
   single { CustomerService(get()) }
   single { InvitationDao() }
-  single { InvitationService(get()) }
+  single { InvitationService(get(), get()) }
   single {
     JwtConfig(
       secret = System.getenv("JWT_SECRET")
