@@ -176,8 +176,7 @@ const UserList: React.FC = () => {
       {showCreateInvitationForm && (
         <div className="mb-4">
           <CreateInvitationForm
-            onInvitationCreated={(link) => {
-              alert(`Invitation created: ${link}`);
+            onInvitationCreated={() => {
               setShowCreateInvitationForm(false);
               fetchInvitations(); // Refresh invitations list
             }}
