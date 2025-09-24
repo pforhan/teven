@@ -2,6 +2,7 @@ package alphainterplanetary.teven.data.invitation
 
 import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.data.dbQuery
+import alphainterplanetary.teven.data.role.Roles
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
@@ -19,23 +20,34 @@ class InvitationDao {
     roleId: Int,
     token: String,
     expiresAt: LocalDateTime,
-  ): Int = dbQuery {
-    (Invitations.insert {
+  ): Invitation = dbQuery {
+    val result = Invitations.insert {
       it[Invitations.organizationId] = organizationId
       it[Invitations.roleId] = roleId
       it[Invitations.token] = token
       it[Invitations.expiresAt] = expiresAt
       it[usedByUserId] = null
-    } get Invitations.id).value
+    }
+    Invitation(
+      id = result[Invitations.id].value,
+      organizationId = result[Invitations.organizationId].value,
+      roleId = result[Invitations.roleId].value,
+      roleName = "", // Placeholder, will be set in service
+      token = result[Invitations.token],
+      expiresAt = result[Invitations.expiresAt],
+      usedByUserId = null,
+      createdAt = result[Invitations.createdAt],
+    )
   }
 
   suspend fun getInvitationByToken(token: String): Invitation? = dbQuery {
-    Invitations.selectAll()
+    (Invitations innerJoin Roles).selectAll()
+      .where { Invitations.token eq token }
       .map { Invitation(
         id = it[Invitations.id].value,
         organizationId = it[Invitations.organizationId].value,
         roleId = it[Invitations.roleId].value,
-        roleName = "", // Placeholder, will be set in service
+        roleName = it[Roles.roleName],
         token = it[Invitations.token],
         expiresAt = it[Invitations.expiresAt],
         usedByUserId = it[Invitations.usedByUserId]?.value,
@@ -50,21 +62,22 @@ class InvitationDao {
     } > 0
   }
 
-  suspend fun getUnusedInvitations(organizationId: Int): List<Invitation> = dbQuery {
-    Invitations.selectAll()
+  suspend fun getUnusedInvitations(organizationId: Int?): List<Invitation> = dbQuery {
+    val query = Invitations.selectAll()
       .where {
-        Invitations.organizationId eq organizationId and Invitations.usedByUserId.isNull() and (Invitations.expiresAt greaterEq LocalDateTime.now())
+        val baseCondition = Invitations.usedByUserId.isNull() and (Invitations.expiresAt greaterEq LocalDateTime.now())
+        organizationId?.let { baseCondition and (Invitations.organizationId eq it) } ?: baseCondition
       }
-      .map { Invitation(
-        id = it[Invitations.id].value,
-        organizationId = it[Invitations.organizationId].value,
-        roleId = it[Invitations.roleId].value,
-        roleName = "", // Placeholder, will be set in service
-        token = it[Invitations.token],
-        expiresAt = it[Invitations.expiresAt],
-        usedByUserId = it[Invitations.usedByUserId]?.value,
-        createdAt = it[Invitations.createdAt],
-      ) }
+    query.map { Invitation(
+      id = it[Invitations.id].value,
+      organizationId = it[Invitations.organizationId].value,
+      roleId = it[Invitations.roleId].value,
+      roleName = "", // Placeholder, will be set in service
+      token = it[Invitations.token],
+      expiresAt = it[Invitations.expiresAt],
+      usedByUserId = it[Invitations.usedByUserId]?.value,
+      createdAt = it[Invitations.createdAt],
+    ) }
   }
 
   suspend fun deleteInvitation(invitationId: Int): Boolean = dbQuery {

@@ -2,16 +2,17 @@ package alphainterplanetary.teven.app.organization
 
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
+import alphainterplanetary.teven.api.model.invitation.InvitationResponse
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
 import alphainterplanetary.teven.api.model.organization.UpdateOrganizationRequest
 import alphainterplanetary.teven.app.requireAuthContext
 import alphainterplanetary.teven.auth.withPermission
-import alphainterplanetary.teven.core.security.Permission
+import alphainterplanetary.teven.core.security.Permission.MANAGE_INVITATIONS_GLOBAL
+import alphainterplanetary.teven.core.security.Permission.MANAGE_INVITATIONS_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.MANAGE_ORGANIZATIONS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.VIEW_ORGANIZATIONS_GLOBAL
 import alphainterplanetary.teven.service.invitation.InvitationService
 import alphainterplanetary.teven.service.organization.OrganizationService
-import alphainterplanetary.teven.api.model.invitation.InvitationResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.receive
@@ -70,7 +71,7 @@ fun Route.organizationRoutes() {
       }
     }
 
-    withPermission(Permission.MANAGE_INVITATIONS_ORGANIZATION) {
+    withPermission(MANAGE_INVITATIONS_ORGANIZATION) {
       post("{organization_id}/invitations") {
         val authContext = requireAuthContext()
         val inviteOrganizationId = call.parameters["organization_id"]?.toIntOrNull()
@@ -105,12 +106,12 @@ fun Route.organizationRoutes() {
           return@get
         }
 
-        if (!authContext.hasPermission(MANAGE_ORGANIZATIONS_GLOBAL) && authContext.organizationId != organizationId) {
+        if (!authContext.hasPermission(MANAGE_INVITATIONS_GLOBAL) && authContext.organizationId != organizationId) {
           call.respond(HttpStatusCode.Forbidden, failure("Not authorized to view invitations for this organization"))
           return@get
         }
 
-        val invitations: List<InvitationResponse> = invitationService.getUnusedInvitations(organizationId)
+        val invitations: List<InvitationResponse> = invitationService.getUnusedInvitations(authContext)
         call.respond(HttpStatusCode.OK, success(invitations))
       }
 
@@ -124,7 +125,7 @@ fun Route.organizationRoutes() {
           return@delete
         }
 
-        if (!authContext.hasPermission(MANAGE_ORGANIZATIONS_GLOBAL) && authContext.organizationId != organizationId) {
+        if (!authContext.hasPermission(MANAGE_INVITATIONS_GLOBAL) && authContext.organizationId != organizationId) {
           call.respond(HttpStatusCode.Forbidden, failure("Not authorized to delete invitations for this organization"))
           return@delete
         }
