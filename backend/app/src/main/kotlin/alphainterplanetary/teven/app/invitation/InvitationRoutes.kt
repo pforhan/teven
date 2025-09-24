@@ -1,6 +1,7 @@
 package alphainterplanetary.teven.app.invitation
 
 import alphainterplanetary.teven.api.model.common.failure
+import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.invitation.CreateInvitationRequest
 import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission
@@ -23,7 +24,7 @@ import java.time.LocalDateTime
 fun Route.invitationRoutes() {
   val invitationService by inject<InvitationService>()
 
-  route("/invitations") {
+  route("/api/invitations") {
     post {
       val request = call.receive<CreateInvitationRequest>()
       val authContext = call.authentication.principal<AuthContext>()!!
@@ -43,13 +44,13 @@ fun Route.invitationRoutes() {
         roleId = request.roleId,
         expiresAt = expiresAt,
       )
-      call.respond(invitation)
+      call.respond(success(invitation))
     }
 
     get {
       val authContext = call.authentication.principal<AuthContext>()!!
       val invitations = invitationService.getUnusedInvitations(authContext)
-      call.respond(invitations)
+      call.respond(success(invitations))
     }
 
     delete("/{invitation_id}") {
@@ -61,9 +62,9 @@ fun Route.invitationRoutes() {
 
       val authContext = call.authentication.principal<AuthContext>()!!
       val result = invitationService.deleteInvitation(invitationId, authContext)
-
+      
       when (result) {
-        SUCCESS -> call.respond(HttpStatusCode.NoContent)
+        SUCCESS -> call.respond(success("Created invitation"))
         NOT_FOUND -> call.respond(
           HttpStatusCode.NotFound,
           failure("Invitation not found")

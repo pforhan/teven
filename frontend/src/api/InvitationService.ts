@@ -1,15 +1,5 @@
 import { apiClient } from './apiClient';
-
-interface InvitationResponse {
-  invitationId: number;
-  organizationId: number;
-  roleId: number;
-  roleName: string;
-  token: string;
-  expiresAt: string;
-  usedByUserId: number | null;
-  createdAt: string;
-}
+import type { InvitationResponse } from '../types/api';
 
 export class InvitationService {
   static async createInvitation(roleId: number, organizationId?: number): Promise<InvitationResponse> {

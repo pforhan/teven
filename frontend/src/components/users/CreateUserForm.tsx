@@ -4,6 +4,7 @@ import { UserService } from '../../api/UserService';
 import { RoleService } from '../../api/RoleService';
 import { OrganizationService } from '../../api/OrganizationService';
 import { useAuth, usePermissions } from '../../AuthContext';
+import { Permission } from '../../types/permissions';
 import type { CreateUserRequest } from '../../types/auth';
 import type { RoleResponse } from '../../types/roles';
 import type { OrganizationResponse } from '../../types/organizations';
@@ -24,7 +25,7 @@ const CreateUserForm: React.FC = () => {
 
   const { userContext } = useAuth();
   const { hasPermission } = usePermissions();
-  const canManageGlobalUsers = hasPermission('MANAGE_USERS_GLOBAL');
+  const canManageGlobalUsers = hasPermission(Permission.MANAGE_USERS_GLOBAL);
 
   useEffect(() => {
     const fetchRolesAndOrganizations = async () => {

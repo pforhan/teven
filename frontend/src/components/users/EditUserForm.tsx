@@ -9,6 +9,7 @@ import type { OrganizationResponse } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { useAuth, usePermissions } from '../../AuthContext';
+import { Permission } from '../../types/permissions';
 
 const EditUserForm: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const EditUserForm: React.FC = () => {
 
   const { } = useAuth();
   const { hasPermission } = usePermissions();
-  const canManageGlobalUsers = hasPermission('MANAGE_USERS_GLOBAL');
+  const canManageGlobalUsers = hasPermission(Permission.MANAGE_USERS_GLOBAL);
 
   useEffect(() => {
     const fetchUserAndRolesAndOrganizations = async () => {

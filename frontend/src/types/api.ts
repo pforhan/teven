@@ -11,6 +11,7 @@ export interface ApiErrorResponse {
 
 export interface InvitationResponse {
   invitationId: number;
+  organizationId: number;
   roleId: number;
   roleName: string;
   token: string;

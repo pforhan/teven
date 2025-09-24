@@ -6,6 +6,7 @@ import { UserService } from '../../api/UserService';
 import { InvitationService } from '../../api/InvitationService';
 import type { UserResponse } from '../../types/auth';
 import { usePermissions } from '../../AuthContext';
+import { Permission } from '../../types/permissions';
 import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { CreateInvitationForm } from './CreateInvitationForm';
@@ -18,8 +19,8 @@ const UserList: React.FC = () => {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [showCreateInvitationForm, setShowCreateInvitationForm] = useState<boolean>(false);
   const { hasPermission } = usePermissions();
-  const canViewUsers = hasPermission('VIEW_USERS_ORGANIZATION') || hasPermission('VIEW_USERS_GLOBAL');
-  const canManageUsers = hasPermission('MANAGE_USERS_GLOBAL') || hasPermission('MANAGE_USERS_ORGANIZATION');
+  const canViewUsers = hasPermission(Permission.VIEW_USERS_ORGANIZATION) || hasPermission(Permission.VIEW_USERS_GLOBAL);
+  const canManageUsers = hasPermission(Permission.MANAGE_USERS_GLOBAL) || hasPermission(Permission.MANAGE_USERS_ORGANIZATION);
   const [hoveredUserId, setHoveredUserId] = useState<number | null>(null);
 
   const fetchUsers = useCallback(async () => {
@@ -115,7 +116,7 @@ const UserList: React.FC = () => {
     { key: 'roles', label: 'Roles', render: (user: UserResponse) => user.roles.join(', ') },
   ];
 
-  if (hasPermission('VIEW_USERS_GLOBAL')) {
+  if (hasPermission(Permission.VIEW_USERS_GLOBAL)) {
     columns.push({ key: 'organization', label: 'Organization', render: (user: UserResponse) => user.organization?.name || 'N/A' });
   }
 
