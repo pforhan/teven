@@ -162,7 +162,7 @@ const UserList: React.FC = () => {
   return (
     <div className="container-fluid">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>Users</h2>
+        <h2>User Management</h2>
         <div className="d-flex">
           {canManageUsers && (
             <button className="btn btn-primary me-2" onClick={() => navigate('/users/create')}>Create User</button>
@@ -198,6 +198,7 @@ const UserList: React.FC = () => {
         </div>
       )}
 
+      <h2>Users</h2>
       <TableView
         data={users}
         columns={columns}
