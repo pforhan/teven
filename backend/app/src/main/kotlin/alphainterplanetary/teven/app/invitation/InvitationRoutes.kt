@@ -2,9 +2,11 @@ package alphainterplanetary.teven.app.invitation
 
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
+import alphainterplanetary.teven.api.model.invitation.AcceptInvitationRequest
 import alphainterplanetary.teven.api.model.invitation.CreateInvitationRequest
 import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission
+import alphainterplanetary.teven.core.user.AcceptInvitationResponse
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus.FORBIDDEN
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus.NOT_FOUND
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus.SUCCESS
@@ -43,8 +45,19 @@ fun Route.invitationRoutes() {
         organizationId = organizationId ?: authContext.organizationId,
         roleId = request.roleId,
         expiresAt = expiresAt,
+        note = request.note,
       )
       call.respond(success(invitation))
+    }
+
+    post("/accept") {
+      val request = call.receive<AcceptInvitationRequest>()
+      val response = invitationService.acceptInvitation(request)
+      if (response.success) {
+        call.respond(HttpStatusCode.Created, success(response.message))
+      } else {
+        call.respond(HttpStatusCode.BadRequest, failure(response.message ?: "Failed to accept invitation"))
+      }
     }
 
     get {

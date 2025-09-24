@@ -24,6 +24,7 @@ import UserList from './components/users/UserList';
 import CreateUserForm from './components/users/CreateUserForm';
 import EditUserForm from './components/users/EditUserForm';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import AcceptInvitationPage from './components/auth/AcceptInvitationPage';
 import { Permission } from './types/permissions';
 
 const AppRoutes = () => {
@@ -61,6 +62,7 @@ const AppRoutes = () => {
               <Route path="users/edit/:userId" element={<ProtectedRoute permissions={Permission.MANAGE_USERS_GLOBAL}><EditUserForm /></ProtectedRoute>} />
             </Route>
           )}
+        <Route path="/register" element={<AcceptInvitationPage />} />
         <Route path="*" element={<Navigate to={userContext ? "/" : "/login"} />} />
       </Routes>
   );

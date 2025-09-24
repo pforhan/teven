@@ -8,11 +8,19 @@ import alphainterplanetary.teven.core.user.User
 
 interface UserService {
   suspend fun toUserResponse(user: User): UserResponse
-  suspend fun createUser(createUserRequest: CreateUserRequest, invitationToken: String? = null): UserResponse
+  suspend fun createUser(
+    username: String,
+    password: String,
+    email: String,
+    displayName: String,
+    organizationId: Int,
+    roleId: Int,
+  ): Int
   suspend fun getAllUsers(callerId: Int, organizationId: Int? = null): List<UserResponse>
   suspend fun getUserById(userId: Int): UserResponse?
   suspend fun getUserContext(userId: Int): LoggedInContextResponse
   suspend fun areInSameOrganization(userId1: Int?, userId2: Int?): Boolean
   suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest): UserResponse?
   suspend fun getUserByUsername(username: String): UserResponse?
+  suspend fun getUserByEmail(email: String): UserResponse?
 }

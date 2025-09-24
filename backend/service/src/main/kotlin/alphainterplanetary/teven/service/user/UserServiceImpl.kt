@@ -1,7 +1,6 @@
 package alphainterplanetary.teven.service.user
 
 import alphainterplanetary.teven.api.model.auth.LoggedInContextResponse
-import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.api.model.user.UpdateUserRequest
 import alphainterplanetary.teven.api.model.user.UserResponse
 import alphainterplanetary.teven.core.Constants
@@ -30,34 +29,22 @@ class UserServiceImpl(
   }
 
   override suspend fun createUser(
-    createUserRequest: CreateUserRequest,
-    invitationToken: String?,
-  ): UserResponse {
-    val organizationIdToUse = if (invitationToken != null) {
-      val invitation = invitationService.validateInvitation(invitationToken)
-        ?: throw IllegalArgumentException("Invalid or expired invitation token")
-      invitation.organizationId
-    } else {
-      createUserRequest.organizationId
-    }
-
-    val user = userDao.createUser(createUserRequest.copy(organizationId = organizationIdToUse))
-
-    if (invitationToken != null) {
-      val invitation = invitationService.validateInvitation(invitationToken)!! // Already validated above
-      val role = roleService.getRoleById(invitation.roleId)
-        ?: throw Exception("Role not found for this invitation.")
-      roleService.assignRoleToUser(user.userId, role.roleId)
-      invitationService.markInvitationAsUsed(invitationToken, user.userId)
-    } else {
-      val requestedRoles = createUserRequest.roles
-      requestedRoles.forEach {
-        roleService.getRoleByName(it)?.let { role ->
-          roleService.assignRoleToUser(user.userId, role.roleId)
-        }
-      }
-    }
-    return toUserResponse(user)
+    username: String,
+    password: String,
+    email: String,
+    displayName: String,
+    organizationId: Int,
+    roleId: Int,
+  ): Int {
+    val user = userDao.createUser(
+      username = username,
+      password = password,
+      email = email,
+      displayName = displayName,
+      organizationId = organizationId,
+    )
+    roleService.assignRoleToUser(user.userId, roleId)
+    return user.userId
   }
 
   override suspend fun getAllUsers(callerId: Int, organizationId: Int?): List<UserResponse> {
@@ -83,6 +70,9 @@ class UserServiceImpl(
 
   override suspend fun getUserByUsername(username: String): UserResponse? =
     userDao.getUserByUsername(username)?.let { toUserResponse(it) }
+
+  override suspend fun getUserByEmail(email: String): UserResponse? =
+    userDao.getUserByEmail(email)?.let { toUserResponse(it) }
 
   override suspend fun updateUser(
     userId: Int,

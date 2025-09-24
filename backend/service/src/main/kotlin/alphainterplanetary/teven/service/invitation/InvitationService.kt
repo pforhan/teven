@@ -1,10 +1,13 @@
 package alphainterplanetary.teven.service.invitation
 
+import alphainterplanetary.teven.api.model.invitation.AcceptInvitationRequest
 import alphainterplanetary.teven.api.model.invitation.InvitationResponse
 import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.core.security.Permission.MANAGE_INVITATIONS_GLOBAL
 import alphainterplanetary.teven.core.service.RoleService
+import alphainterplanetary.teven.core.service.UserService
+import alphainterplanetary.teven.core.user.AcceptInvitationResponse
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus.FORBIDDEN
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus.NOT_FOUND
@@ -17,6 +20,7 @@ import java.util.UUID
 class InvitationService(
   private val invitationDao: InvitationDao,
   private val roleService: RoleService,
+  private val userService: UserService,
 ) {
 
   private fun Invitation.toInvitationResponse(): InvitationResponse {
@@ -59,6 +63,42 @@ class InvitationService(
     } else {
       null
     }
+  }
+
+  suspend fun acceptInvitation(request: AcceptInvitationRequest): AcceptInvitationResponse {
+    val invitation = invitationDao.getInvitationByToken(request.token)
+      ?: return AcceptInvitationResponse(success = false, message = "Invalid or expired invitation token.")
+
+    if (invitation.expiresAt.isBefore(LocalDateTime.now())) {
+      return AcceptInvitationResponse(success = false, message = "Invitation has expired.")
+    }
+
+    if (invitation.usedByUserId != null) {
+      return AcceptInvitationResponse(success = false, message = "Invitation has already been used.")
+    }
+
+    // Check if username or email already exists
+    if (userService.getUserByUsername(request.username) != null) {
+      return AcceptInvitationResponse(success = false, message = "Username already taken.")
+    }
+    if (userService.getUserByEmail(request.email) != null) {
+      return AcceptInvitationResponse(success = false, message = "Email already registered.")
+    }
+
+    // Create the user
+    val userId = userService.createUser(
+      username = request.username,
+      password = request.password,
+      email = request.email,
+      displayName = request.displayName,
+      organizationId = invitation.organizationId,
+      roleId = invitation.roleId,
+    )
+
+    // Mark invitation as used
+    invitationDao.markInvitationAsUsed(request.token, userId)
+
+    return AcceptInvitationResponse(success = true, message = "Invitation accepted and user created.")
   }
 
   suspend fun markInvitationAsUsed(token: String, userId: Int): Boolean {

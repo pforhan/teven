@@ -1,7 +1,6 @@
 package alphainterplanetary.teven.data.user
 
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
-import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.api.model.user.UpdateUserRequest
 import alphainterplanetary.teven.core.security.PasswordHasher
 import alphainterplanetary.teven.core.user.User
@@ -25,25 +24,31 @@ class UserDao {
     )
   }
 
-  suspend fun createUser(registerRequest: CreateUserRequest): User = dbQuery {
+  suspend fun createUser(
+    username: String,
+    password: String,
+    email: String,
+    displayName: String,
+    organizationId: Int,
+  ): User = dbQuery {
     val id = Users.insert {
-      it[username] = registerRequest.username
-      it[email] = registerRequest.email
-      it[displayName] = registerRequest.displayName
-      it[passwordHash] = PasswordHasher.hashPassword(registerRequest.password)
+      it[Users.username] = username
+      it[Users.email] = email
+      it[Users.displayName] = displayName
+      it[Users.passwordHash] = PasswordHasher.hashPassword(password)
     } get Users.id
 
     UserOrganizations.insert {
       it[userId] = id.value
-      it[UserOrganizations.organizationId] = registerRequest.organizationId
+      it[UserOrganizations.organizationId] = organizationId
     }
 
     User(
       userId = id.value,
-      username = registerRequest.username,
-      email = registerRequest.email,
-      displayName = registerRequest.displayName,
-      passwordHash = PasswordHasher.hashPassword(registerRequest.password)
+      username = username,
+      email = email,
+      displayName = displayName,
+      passwordHash = PasswordHasher.hashPassword(password)
     )
   }
 
@@ -61,6 +66,13 @@ class UserDao {
   suspend fun getUserByUsername(username: String): User? = dbQuery {
     Users.selectAll()
       .where { Users.username eq username }
+      .mapNotNull { toUser(it) }
+      .singleOrNull()
+  }
+
+  suspend fun getUserByEmail(email: String): User? = dbQuery {
+    Users.selectAll()
+      .where { Users.email eq email }
       .mapNotNull { toUser(it) }
       .singleOrNull()
   }

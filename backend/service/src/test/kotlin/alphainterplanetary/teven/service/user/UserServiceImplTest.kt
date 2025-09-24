@@ -1,7 +1,4 @@
-package alphainterplanetary.teven.service.user
-
 import alphainterplanetary.teven.api.model.role.RoleResponse
-import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.api.model.user.UpdateUserRequest
 import alphainterplanetary.teven.core.Constants
 import alphainterplanetary.teven.core.security.AuthorizationException
@@ -10,8 +7,9 @@ import alphainterplanetary.teven.core.security.UserPermissions
 import alphainterplanetary.teven.core.service.PermissionService
 import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.core.user.User
-import alphainterplanetary.teven.data.organization.OrganizationDao
 import alphainterplanetary.teven.data.user.UserDao
+import alphainterplanetary.teven.service.invitation.InvitationService
+import alphainterplanetary.teven.service.user.UserServiceImpl
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -22,71 +20,57 @@ import org.junit.jupiter.api.assertThrows
 class UserServiceImplTest {
 
   private val userDao: UserDao = mockk()
-  private val organizationDao: OrganizationDao = mockk()
   private val roleService: RoleService = mockk()
+  private val invitationService: InvitationService = mockk()
   private val permissionService: PermissionService = mockk()
 
   private val userService =
-    UserServiceImpl(userDao, organizationDao, roleService, permissionService)
+    UserServiceImpl(userDao, roleService, invitationService)
 
   @Test
-  fun `createUser should create user when caller has permission`() = runBlocking {
-    val createUserRequest = CreateUserRequest(
-      username = "testuser",
-      email = "test@test.com",
-      password = "password",
-      displayName = "Test User",
-      roles = listOf("User"),
-      organizationId = 1 // Dummy organizationId for test
-    )
-    val callerId = 1
+  fun `createUser should create user`() = runBlocking {
+    val username = "testuser"
+    val email = "test@test.com"
+    val password = "password"
+    val displayName = "Test User"
+    val organizationId = 1
+    val roleId = 1
+
     val newUser = User(
       userId = 2,
-      username = "testuser",
-      email = "test@test.com",
-      passwordHash = "password",
-      displayName = "Test User"
+      username = username,
+      email = email,
+      passwordHash = password,
+      displayName = displayName,
     )
-    val roleResponse = mockk<RoleResponse>()
 
-    coEvery { permissionService.getPermissions(callerId) } returns UserPermissions(
-      roles = listOf("Admin"),
-      permissions = listOf(Permission.ASSIGN_ROLES_ORGANIZATION)
-    )
-    coEvery { userDao.createUser(createUserRequest) } returns newUser
-    every { roleResponse.roleId } returns 1
-    every { roleResponse.roleName } returns "User"
-    coEvery { roleService.getRoleByName("User") } returns roleResponse
-    coEvery { roleService.assignRoleToUser(2, 1) } returns true
-    coEvery { roleService.getRolesForUser(2) } returns emptyList()
-    coEvery { userDao.getOrganizationForUser(2) } returns null
+    coEvery { userDao.createUser(username, password, email, displayName, organizationId) } returns newUser
+    coEvery { roleService.assignRoleToUser(newUser.userId, roleId) } returns true
+    coEvery { roleService.getRolesForUser(newUser.userId) } returns emptyList()
+    coEvery { userDao.getOrganizationForUser(newUser.userId) } returns null
 
-    val result = userService.createUser(createUserRequest, callerId)
+    val result = userService.createUser(username, password, email, displayName, organizationId, roleId)
 
-    assert(result.username == "testuser")
+    assert(result == newUser.userId)
   }
 
   @Test
-  fun `createUser should throw exception when creating superadmin without permission`() {
-    runBlocking {
-      val createUserRequest = CreateUserRequest(
-        username = "testuser",
-        email = "test@test.com",
-        password = "password",
-        displayName = "Test User",
-        roles = listOf(Constants.ROLE_SUPERADMIN)
-      )
-      val callerId = 1
+  fun `getUserByEmail should return user when found`() = runBlocking {
+    val email = "test@test.com"
+    val user = User(
+      userId = 1,
+      username = "testuser",
+      email = email,
+      passwordHash = "password",
+      displayName = "Test User"
+    )
+    coEvery { userDao.getUserByEmail(email) } returns user
+    coEvery { roleService.getRolesForUser(user.userId) } returns emptyList()
+    coEvery { userDao.getOrganizationForUser(user.userId) } returns null
 
-      coEvery { permissionService.getPermissions(callerId) } returns UserPermissions(
-        roles = listOf("Admin"),
-        permissions = listOf(Permission.ASSIGN_ROLES_ORGANIZATION)
-      )
+    val result = userService.getUserByEmail(email)
 
-      assertThrows<AuthorizationException> {
-        userService.createUser(createUserRequest, callerId)
-      }
-    }
+    assert(result?.email == email)
   }
 
   @Test
