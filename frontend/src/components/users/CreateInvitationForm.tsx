@@ -96,10 +96,10 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
             type="text"
             value={invitationLink}
             readOnly
-            className="w-full p-2 border rounded bg-gray-100 mb-4"
+            className="form-control mb-4"
           />
           <button
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+            className="btn btn-secondary"
             onClick={onCancel}
           >
             Close
@@ -114,7 +114,7 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
               </label>
               <select
                 id="orgSelect"
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+                className="form-select"
                 value={selectedOrganizationId || ''}
                 onChange={(e) => setSelectedOrganizationId(Number(e.target.value))}
                 disabled={loading}
@@ -133,7 +133,7 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
             </label>
             <select
               id="roleSelect"
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="form-select"
               value={selectedRoleId || ''}
               onChange={(e) => setSelectedRoleId(Number(e.target.value))}
               disabled={loading}
@@ -147,14 +147,14 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
           </div>
           <div className="flex justify-end space-x-2">
             <button
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+              className="btn btn-secondary"
               onClick={onCancel}
               disabled={loading}
             >
               Cancel
             </button>
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className="btn btn-primary"
               onClick={handleCreateInvitation}
               disabled={loading}
             >

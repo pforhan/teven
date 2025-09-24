@@ -62,7 +62,7 @@ fun Route.invitationRoutes() {
 
       val authContext = call.authentication.principal<AuthContext>()!!
       val result = invitationService.deleteInvitation(invitationId, authContext)
-      
+
       when (result) {
         SUCCESS -> call.respond(success("Created invitation"))
         NOT_FOUND -> call.respond(

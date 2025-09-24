@@ -120,10 +120,32 @@ const UserList: React.FC = () => {
     columns.push({ key: 'organization', label: 'Organization', render: (user: UserResponse) => user.organization?.name || 'N/A' });
   }
 
+  const [copiedInvitationId, setCopiedInvitationId] = useState<number | null>(null);
+
+  const handleCopyInvitationLink = (invitation: InvitationResponse) => {
+    const invitationUrl = `${window.location.origin}/register?token=${invitation.token}`;
+    navigator.clipboard.writeText(invitationUrl).then(() => {
+      setCopiedInvitationId(invitation.invitationId);
+      setTimeout(() => setCopiedInvitationId(null), 2000); // Reset after 2 seconds
+    }).catch(err => {
+      console.error('Failed to copy invitation link:', err);
+    });
+  };
+
   const invitationColumns: Column<InvitationResponse>[] = [
     { key: 'roleName', label: 'Role' },
     { key: 'invitationUrl', label: 'Link', render: (invitation: InvitationResponse) => (
-      <input type="text" value={`${window.location.origin}/register?token=${invitation.token}`} readOnly className="form-control-plaintext" />
+      <div className="d-flex align-items-center">
+        <button
+          className="btn btn-sm btn-outline-secondary me-2"
+          onClick={() => handleCopyInvitationLink(invitation)}
+        >
+          {copiedInvitationId === invitation.invitationId ? 'Copied!' : 'Copy Link'}
+        </button>
+        <span className="text-muted text-truncate" style={{ maxWidth: '150px' }}>
+          {`${window.location.origin}/register?token=${invitation.token}`}
+        </span>
+      </div>
     ) },
     { key: 'expiresAt', label: 'Expires', render: (invitation: InvitationResponse) => new Date(invitation.expiresAt).toLocaleDateString() },
     { key: 'actions', label: 'Actions', render: (invitation: InvitationResponse) => (
@@ -163,16 +185,7 @@ const UserList: React.FC = () => {
         </div>
       )}
 
-      <TableView
-        data={users}
-        columns={columns}
-        keyField="userId"
-        error={error}
-        onRowMouseEnter={(user) => setHoveredUserId(user.userId)}
-        onRowMouseLeave={() => setHoveredUserId(null)}
-      />
-
-      {canManageUsers && (
+      {canManageUsers && invitations.length > 0 && (
         <div className="mt-5">
           <h2 className="text-2xl font-bold mb-4">Unused Invitations</h2>
           <TableView
@@ -183,6 +196,15 @@ const UserList: React.FC = () => {
           />
         </div>
       )}
+
+      <TableView
+        data={users}
+        columns={columns}
+        keyField="userId"
+        error={error}
+        onRowMouseEnter={(user) => setHoveredUserId(user.userId)}
+        onRowMouseLeave={() => setHoveredUserId(null)}
+      />
     </div>
   );
 };

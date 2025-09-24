@@ -5,6 +5,7 @@ import alphainterplanetary.teven.data.event.EventInventory
 import alphainterplanetary.teven.data.event.Events
 import alphainterplanetary.teven.data.event.Rsvps
 import alphainterplanetary.teven.data.inventory.InventoryItems
+import alphainterplanetary.teven.data.invitation.Invitations
 import alphainterplanetary.teven.data.organization.Organizations
 import alphainterplanetary.teven.data.user.UserOrganizations
 import alphainterplanetary.teven.data.user.Users
@@ -38,6 +39,7 @@ suspend fun populateTestData() {
       Customers.deleteWhere { Customers.organizationId eq orgId }
       InventoryItems.deleteWhere { InventoryItems.organizationId eq orgId }
       UserOrganizations.deleteWhere { UserOrganizations.organizationId eq orgId }
+      Invitations.deleteWhere { Invitations.organizationId eq orgId }
       // Note: Users themselves are deleted based on email suffix, not organizationId directly
       // because a user might belong to multiple organizations.
       // We assume test user emails are unique to test data.
