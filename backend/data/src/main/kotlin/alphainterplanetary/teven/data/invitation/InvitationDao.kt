@@ -40,6 +40,12 @@ class InvitationDao {
     )
   }
 
+  suspend fun hasOrganizationId(invitationId: Int, organizationId: Int): Boolean = dbQuery {
+    Invitations.selectAll()
+      .where { (Invitations.id eq invitationId) and (Invitations.organizationId eq organizationId) }
+      .count() == 1L
+  }
+
   suspend fun getInvitationByToken(token: String): Invitation? = dbQuery {
     (Invitations innerJoin Roles).selectAll()
       .where { Invitations.token eq token }

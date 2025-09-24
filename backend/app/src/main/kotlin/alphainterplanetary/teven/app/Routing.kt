@@ -1,6 +1,7 @@
 package alphainterplanetary.teven.app
 
 import alphainterplanetary.teven.api.model.common.failure
+import alphainterplanetary.teven.app.invitation.invitationRoutes
 import alphainterplanetary.teven.app.customer.customerRoutes
 import alphainterplanetary.teven.app.event.eventRoutes
 import alphainterplanetary.teven.app.inventory.inventoryRoutes
@@ -30,6 +31,7 @@ fun Application.configureRouting() {
       reportRoutes()
       roleRoutes()
       organizationRoutes()
+      invitationRoutes()
     }
 
     // Catch-all for unmatched API routes

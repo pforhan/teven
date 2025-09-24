@@ -1,6 +1,5 @@
 package alphainterplanetary.teven.core.user
 
-import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
 
 data class Invitation(
@@ -13,3 +12,9 @@ data class Invitation(
   val usedByUserId: Int?,
   val createdAt: LocalDateTime,
 )
+
+enum class DeleteInvitationStatus {
+  SUCCESS,
+  NOT_FOUND,
+  FORBIDDEN,
+}

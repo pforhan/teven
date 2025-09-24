@@ -2,8 +2,13 @@ package alphainterplanetary.teven.service.invitation
 
 import alphainterplanetary.teven.api.model.invitation.InvitationResponse
 import alphainterplanetary.teven.core.security.AuthContext
+import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.core.security.Permission.MANAGE_INVITATIONS_GLOBAL
 import alphainterplanetary.teven.core.service.RoleService
+import alphainterplanetary.teven.core.user.DeleteInvitationStatus
+import alphainterplanetary.teven.core.user.DeleteInvitationStatus.FORBIDDEN
+import alphainterplanetary.teven.core.user.DeleteInvitationStatus.NOT_FOUND
+import alphainterplanetary.teven.core.user.DeleteInvitationStatus.SUCCESS
 import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.data.invitation.InvitationDao
 import java.time.LocalDateTime
@@ -46,7 +51,8 @@ class InvitationService(
   suspend fun validateInvitation(token: String): Invitation? {
     val invitation = invitationDao.getInvitationByToken(token)
     return if (invitation != null && invitation.expiresAt.isAfter(LocalDateTime.now()) && invitation.usedByUserId == null) {
-      val role = roleService.getRoleById(invitation.roleId) ?: throw IllegalStateException("Role not found for invitation")
+      val role = roleService.getRoleById(invitation.roleId)
+        ?: throw IllegalStateException("Role not found for invitation")
       invitation.copy(roleName = role.roleName)
     } else {
       null
@@ -68,7 +74,21 @@ class InvitationService(
     }.map { it.toInvitationResponse() }
   }
 
-  suspend fun deleteInvitation(invitationId: Int): Boolean {
-    return invitationDao.deleteInvitation(invitationId)
+  suspend fun deleteInvitation(
+    invitationId: Int,
+    authContext: AuthContext,
+  ): DeleteInvitationStatus {
+    // If the logged in user has global permission, or the invitation is for the user's
+    // organization, attempt the delete.  Otherwise return FORBIDDEN.
+    return if (authContext.hasPermission(Permission.MANAGE_INVITATIONS_GLOBAL) ||
+      invitationDao.hasOrganizationId(invitationId, authContext.organizationId)
+    ) {
+      if (invitationDao.deleteInvitation(invitationId)) {
+        SUCCESS
+      } else {
+        NOT_FOUND
+      }
+    }
+    else FORBIDDEN
   }
 }
