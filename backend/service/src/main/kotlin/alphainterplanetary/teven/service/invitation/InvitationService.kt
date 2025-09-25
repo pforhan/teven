@@ -86,14 +86,7 @@ class InvitationService(
     }
 
     // Create the user
-    val userId = userService.createUser(
-      username = request.username,
-      password = request.password,
-      email = request.email,
-      displayName = request.displayName,
-      organizationId = invitation.organizationId,
-      roleId = invitation.roleId,
-    )
+    val userId = userService.createUserFromInvitation(request, invitation)
 
     // Mark invitation as used
     invitationDao.markInvitationAsUsed(request.token, userId)

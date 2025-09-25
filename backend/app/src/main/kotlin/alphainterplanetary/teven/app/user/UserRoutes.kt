@@ -5,10 +5,10 @@ import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.api.model.user.UpdateUserRequest
 import alphainterplanetary.teven.app.maybeAuthContext
+import alphainterplanetary.teven.app.requireAuthContext
 import alphainterplanetary.teven.auth.withPermission
 import alphainterplanetary.teven.core.security.Permission.MANAGE_USERS_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.VIEW_USERS_ORGANIZATION
-import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -22,32 +22,22 @@ import org.koin.ktor.ext.inject
 
 fun Route.userRoutes() {
   val userService by inject<UserService>()
-  val roleService by inject<RoleService>()
 
   route("/api/users") {
     withPermission(MANAGE_USERS_ORGANIZATION) {
       post {
         val createUserRequest = call.receive<CreateUserRequest>()
-        val newUser = userService.createUser(
-          username = createUserRequest.username,
-          password = createUserRequest.password,
-          email = createUserRequest.email,
-          displayName = createUserRequest.displayName,
-          organizationId = createUserRequest.organizationId,
-          roleId = createUserRequest.roles.firstOrNull()?.let { roleName ->
-            roleService.getRoleByName(roleName)?.roleId
-          } ?: throw IllegalArgumentException("Role not found")
-        )
+        val authContext = requireAuthContext()
+        val newUser = userService.createUser(createUserRequest, authContext)
         call.respond(HttpStatusCode.Created, success(newUser))
       }
     }
 
     withPermission(VIEW_USERS_ORGANIZATION) {
       get {
-        val principal = maybeAuthContext()
-        val callerId = principal?.userId ?: return@get
+        val principal = requireAuthContext()
         val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
-        val users = userService.getAllUsers(callerId, organizationId)
+        val users = userService.getAllUsers(principal, organizationId)
         call.respond(HttpStatusCode.OK, success(users))
       }
     }

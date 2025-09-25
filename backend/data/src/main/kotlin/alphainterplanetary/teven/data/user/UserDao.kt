@@ -1,6 +1,7 @@
 package alphainterplanetary.teven.data.user
 
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
+import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.api.model.user.UpdateUserRequest
 import alphainterplanetary.teven.core.security.PasswordHasher
 import alphainterplanetary.teven.core.user.User
@@ -24,31 +25,25 @@ class UserDao {
     )
   }
 
-  suspend fun createUser(
-    username: String,
-    password: String,
-    email: String,
-    displayName: String,
-    organizationId: Int,
-  ): User = dbQuery {
+  suspend fun createUser(registerRequest: CreateUserRequest): User = dbQuery {
     val id = Users.insert {
-      it[Users.username] = username
-      it[Users.email] = email
-      it[Users.displayName] = displayName
-      it[Users.passwordHash] = PasswordHasher.hashPassword(password)
+      it[username] = registerRequest.username
+      it[email] = registerRequest.email
+      it[displayName] = registerRequest.displayName
+      it[passwordHash] = PasswordHasher.hashPassword(registerRequest.password)
     } get Users.id
 
     UserOrganizations.insert {
       it[userId] = id.value
-      it[UserOrganizations.organizationId] = organizationId
+      it[UserOrganizations.organizationId] = registerRequest.organizationId
     }
 
     User(
       userId = id.value,
-      username = username,
-      email = email,
-      displayName = displayName,
-      passwordHash = PasswordHasher.hashPassword(password)
+      username = registerRequest.username,
+      email = registerRequest.email,
+      displayName = registerRequest.displayName,
+      passwordHash = PasswordHasher.hashPassword(registerRequest.password)
     )
   }
 

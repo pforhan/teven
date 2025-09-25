@@ -1,6 +1,14 @@
 package alphainterplanetary.teven.core.security
 
 enum class Permission {
+  // Role Assignment Permissions
+  /** Allows a user to assign the SuperAdmin role. */
+  CAN_ASSIGN_SUPERADMIN,
+  /** Allows a user to assign the Organizer role. */
+  CAN_ASSIGN_ORGANIZER,
+  /** Allows a user to assign the Staff role. */
+  CAN_ASSIGN_STAFF,
+
   // User Management
   /** Allows a user to view and edit their own profile information. */
   MANAGE_USERS_SELF,

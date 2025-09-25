@@ -2,6 +2,7 @@ package alphainterplanetary.teven.app
 
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
 import alphainterplanetary.teven.api.model.role.CreateRoleRequest
+import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.core.Constants
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.data.organization.OrganizationDao
@@ -38,11 +39,13 @@ class InitialSetup(
           ),
         )
         val superAdminUser = userDao.createUser(
-          username = superAdminEmail,
-          email = superAdminEmail,
-          password = superAdminPassword,
-          displayName = "Super Admin",
-          organizationId = tevenOrganization.organizationId,
+          CreateUserRequest(
+            username = superAdminEmail,
+            email = superAdminEmail,
+            password = superAdminPassword,
+            displayName = "Super Admin",
+            organizationId = tevenOrganization.organizationId,
+          )
         )
         val superAdminRole = roleDao.getRoleByName(Constants.ROLE_SUPERADMIN)!!
         roleDao.assignRoleToUser(superAdminUser.userId, superAdminRole.roleId)
@@ -68,6 +71,8 @@ class InitialSetup(
             Permission.MANAGE_INVENTORY_ORGANIZATION.name,
             Permission.VIEW_REPORTS_ORGANIZATION.name,
             Permission.MANAGE_INVITATIONS_ORGANIZATION.name,
+            Permission.CAN_ASSIGN_STAFF.name,
+            Permission.CAN_ASSIGN_ORGANIZER.name,
           ),
         ),
       )
