@@ -113,6 +113,7 @@ class UserServiceImpl(
   override suspend fun updateUser(
     userId: Int,
     updateUserRequest: UpdateUserRequest,
+    authContext: AuthContext
   ): UserResponse? {
     val user = userDao.updateUser(userId, updateUserRequest)
     val requestedRoles = updateUserRequest.roles
@@ -127,9 +128,24 @@ class UserServiceImpl(
       }
       // Add newly requested roles
       requestedRoles.filter { it !in currentRoleNames }.forEach { roleName ->
-        roleService.getRoleByName(roleName)?.let { role ->
-          roleService.assignRoleToUser(userId, role.roleId)
+        val role =
+          roleService.getRoleByName(roleName) ?: throw IllegalArgumentException("Role not found: $roleName")
+
+        // Permission check for role assignment
+        val requiredPermission = when (role.roleName) {
+          Constants.ROLE_SUPERADMIN -> Permission.CAN_ASSIGN_SUPERADMIN
+          Constants.ROLE_ORGANIZER -> Permission.CAN_ASSIGN_ORGANIZER
+          Constants.ROLE_STAFF -> Permission.CAN_ASSIGN_STAFF
+          else -> Permission.ASSIGN_ROLES_ORGANIZATION // Default for other roles
         }
+
+        if (!authContext.hasPermission(requiredPermission)) {
+          throw AuthorizationException(
+            code = HttpStatusCode.Forbidden,
+            message = "Not authorized to assign role: $roleName"
+          )
+        }
+        roleService.assignRoleToUser(userId, role.roleId)
       }
     }
     return user?.let { toUserResponse(it) }

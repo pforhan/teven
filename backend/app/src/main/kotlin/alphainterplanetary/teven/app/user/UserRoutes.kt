@@ -70,7 +70,8 @@ fun Route.userRoutes() {
       put("/{userId}") {
         val userId = call.parameters["userId"]?.toIntOrNull() ?: return@put
         val updateUserRequest = call.receive<UpdateUserRequest>()
-        val updatedUser = userService.updateUser(userId, updateUserRequest)
+        val authContext = requireAuthContext()
+        val updatedUser = userService.updateUser(userId, updateUserRequest, authContext)
         if (updatedUser != null) {
           call.respond(HttpStatusCode.OK, success(updatedUser))
         } else {
