@@ -2,6 +2,7 @@ package alphainterplanetary.teven.service.user
 
 import alphainterplanetary.teven.api.model.auth.LoggedInContextResponse
 import alphainterplanetary.teven.api.model.invitation.AcceptInvitationRequest
+import alphainterplanetary.teven.api.model.role.RoleResponse
 import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.api.model.user.UpdateUserRequest
 import alphainterplanetary.teven.api.model.user.UserResponse
@@ -14,9 +15,7 @@ import alphainterplanetary.teven.core.service.UserService
 import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.core.user.User
 import alphainterplanetary.teven.data.user.UserDao
-import alphainterplanetary.teven.service.invitation.InvitationService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.ForbiddenResponse
 
 class UserServiceImpl(
   private val userDao: UserDao,
@@ -52,27 +51,33 @@ class UserServiceImpl(
 
     val requestedRoles = createUserRequest.roles
     requestedRoles.forEach {
-      val role =
-        roleService.getRoleByName(it) ?: throw IllegalArgumentException("Role not found: $it")
-
-      // Permission check for role assignment
-      val requiredPermission = when (role.roleName) {
-        Constants.ROLE_SUPERADMIN -> Permission.CAN_ASSIGN_SUPERADMIN
-        Constants.ROLE_ORGANIZER -> Permission.CAN_ASSIGN_ORGANIZER
-        Constants.ROLE_STAFF -> Permission.CAN_ASSIGN_STAFF
-        else -> Permission.ASSIGN_ROLES_ORGANIZATION // Default for other roles
-      }
-
-      if (!authContext.hasPermission(requiredPermission)) {
-        throw AuthorizationException(
-          code = HttpStatusCode.Forbidden,
-          message = "Not authorized to assign role: $it"
-        )
-      }
+      val role = authContext.verifyAssignableAndGetRole(it)
       roleService.assignRoleToUser(user.userId, role.roleId)
     }
 
     return toUserResponse(user)
+  }
+
+  private suspend fun AuthContext.verifyAssignableAndGetRole(
+    roleName: String,
+  ): RoleResponse {
+    // Permission check for role assignment
+    val requiredPermission = when (roleName) {
+      Constants.ROLE_SUPERADMIN -> Permission.CAN_ASSIGN_SUPERADMIN
+      Constants.ROLE_ORGANIZER -> Permission.CAN_ASSIGN_ORGANIZER
+      Constants.ROLE_STAFF -> Permission.CAN_ASSIGN_STAFF
+      else -> throw IllegalArgumentException("Unknown role: $roleName")
+    }
+
+    if (!hasPermission(requiredPermission)) {
+      throw AuthorizationException(
+        code = HttpStatusCode.Forbidden,
+        message = "Not authorized to assign role: $roleName"
+      )
+    }
+
+    return roleService.getRoleByName(roleName)
+      ?: throw IllegalArgumentException("Role not found: $roleName")
   }
 
   override suspend fun createUserFromInvitation(
@@ -128,23 +133,7 @@ class UserServiceImpl(
       }
       // Add newly requested roles
       requestedRoles.filter { it !in currentRoleNames }.forEach { roleName ->
-        val role =
-          roleService.getRoleByName(roleName) ?: throw IllegalArgumentException("Role not found: $roleName")
-
-        // Permission check for role assignment
-        val requiredPermission = when (role.roleName) {
-          Constants.ROLE_SUPERADMIN -> Permission.CAN_ASSIGN_SUPERADMIN
-          Constants.ROLE_ORGANIZER -> Permission.CAN_ASSIGN_ORGANIZER
-          Constants.ROLE_STAFF -> Permission.CAN_ASSIGN_STAFF
-          else -> Permission.ASSIGN_ROLES_ORGANIZATION // Default for other roles
-        }
-
-        if (!authContext.hasPermission(requiredPermission)) {
-          throw AuthorizationException(
-            code = HttpStatusCode.Forbidden,
-            message = "Not authorized to assign role: $roleName"
-          )
-        }
+        val role = authContext.verifyAssignableAndGetRole(roleName)
         roleService.assignRoleToUser(userId, role.roleId)
       }
     }

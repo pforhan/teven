@@ -19,7 +19,6 @@ This repository contains the core documentation for the Teven project. As the pr
   * Database Schema  
   * Deployment Guide  
   * Testing Strategy  
-  * API Reference
 
 ## **Getting Started**
 
