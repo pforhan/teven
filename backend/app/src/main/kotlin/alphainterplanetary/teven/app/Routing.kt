@@ -2,6 +2,7 @@ package alphainterplanetary.teven.app
 
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.app.invitation.invitationRoutes
+import alphainterplanetary.teven.app.invitation.publicInvitationRoutes
 import alphainterplanetary.teven.app.customer.customerRoutes
 import alphainterplanetary.teven.app.event.eventRoutes
 import alphainterplanetary.teven.app.inventory.inventoryRoutes
@@ -23,6 +24,7 @@ import io.ktor.server.routing.*
 fun Application.configureRouting() {
   routing {
     authRoutes()
+    publicInvitationRoutes()
     authenticate("auth-jwt") {
       userRoutes()
       eventRoutes()

@@ -23,6 +23,28 @@ import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 import java.time.LocalDateTime
 
+fun Route.publicInvitationRoutes() {
+  val invitationService by inject<InvitationService>()
+
+  route("/api/invitations") {
+    post("/accept") {
+      val authContext = call.authentication.principal<AuthContext>()
+      if (authContext != null) {
+        call.respond(HttpStatusCode.BadRequest, failure("Cannot accept invitation while logged in."))
+        return@post
+      }
+
+      val request = call.receive<AcceptInvitationRequest>()
+      val response = invitationService.acceptInvitation(request)
+      if (response.success) {
+        call.respond(HttpStatusCode.Created, success(response.message))
+      } else {
+        call.respond(HttpStatusCode.BadRequest, failure(response.message ?: "Failed to accept invitation"))
+      }
+    }
+  }
+}
+
 fun Route.invitationRoutes() {
   val invitationService by inject<InvitationService>()
 
@@ -48,16 +70,6 @@ fun Route.invitationRoutes() {
         note = request.note,
       )
       call.respond(success(invitation))
-    }
-
-    post("/accept") {
-      val request = call.receive<AcceptInvitationRequest>()
-      val response = invitationService.acceptInvitation(request)
-      if (response.success) {
-        call.respond(HttpStatusCode.Created, success(response.message))
-      } else {
-        call.respond(HttpStatusCode.BadRequest, failure(response.message ?: "Failed to accept invitation"))
-      }
     }
 
     get {
