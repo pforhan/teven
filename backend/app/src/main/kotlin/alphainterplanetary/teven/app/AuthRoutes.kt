@@ -30,25 +30,4 @@ fun Route.authRoutes() {
       }
     }
   }
-
-  route("/api/invitations") {
-    get("/validate") {
-      val token = call.request.queryParameters["token"]
-      if (token == null) {
-        call.respond(HttpStatusCode.BadRequest, failure("Invitation token is missing"))
-
-      } else {
-        val invitation = invitationService.validateInvitation(token)
-        if (invitation != null) {
-          call.respond(
-            HttpStatusCode.OK,
-            success(mapOf("organizationId" to invitation.organizationId))
-          )
-        } else {
-          call.respond(HttpStatusCode.NotFound, failure("Invalid or expired invitation token"))
-        }
-      }
-
-    }
-  }
 }

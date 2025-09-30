@@ -72,10 +72,6 @@ fun Application.module() {
     status(HttpStatusCode.InternalServerError) { call, status ->
       call.respond(status, failure("Internal server error: who knows why"))
     }
-
-    status(HttpStatusCode.BadRequest) { call, status ->
-      call.respond(status, failure("Bad request: who knows why"))
-    }
   }
 
   configureRouting()

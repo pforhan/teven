@@ -32,6 +32,10 @@ export class InvitationService {
     });
   }
 
+  static async validateInvitation(token: string): Promise<{ organizationId: number }> {
+    return apiClient<{ organizationId: number }>(`/api/invitations/validate?token=${token}`);
+  }
+
   static async acceptInvitation(request: AcceptInvitationRequest): Promise<AcceptInvitationResponse> {
     return apiClient<AcceptInvitationResponse>('/api/invitations/accept', {
       method: 'POST',

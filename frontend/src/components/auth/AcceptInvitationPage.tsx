@@ -18,11 +18,20 @@ const AcceptInvitationPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [alreadyLoggedIn, setAlreadyLoggedIn] = useState<boolean>(false);
 
+  const [validationError, setValidationError] = useState<string | null>(null);
+
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const invitationToken = queryParams.get('token');
     if (invitationToken) {
       setToken(invitationToken);
+      InvitationService.validateInvitation(invitationToken)
+        .then(() => {
+          // Token is valid, do nothing
+        })
+        .catch((err) => {
+          setValidationError(err.message || 'Invalid or expired invitation token.');
+        });
     } else {
       setError({ message: 'Invitation token not found in URL.' });
     }
@@ -73,6 +82,7 @@ const AcceptInvitationPage: React.FC = () => {
           <div className="card">
             <div className="card-body">
               <h2 className="card-title text-center mb-4">Accept Invitation</h2>
+              {validationError && <ErrorDisplay error={{ message: validationError }} />}
               {alreadyLoggedIn ? (
                 <AlreadyLoggedInError />
               ) : (
@@ -82,7 +92,7 @@ const AcceptInvitationPage: React.FC = () => {
 
                   {!token && !error ? (
                     <div className="alert alert-info">Loading invitation...</div>
-                  ) : token && !successMessage ? (
+                  ) : token && !successMessage && !validationError ? (
                     <form onSubmit={handleSubmit}>
                       <div className="mb-3">
                         <label htmlFor="username" className="form-label">Username</label>

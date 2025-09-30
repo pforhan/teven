@@ -6,7 +6,6 @@ import alphainterplanetary.teven.api.model.invitation.AcceptInvitationRequest
 import alphainterplanetary.teven.api.model.invitation.CreateInvitationRequest
 import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission
-import alphainterplanetary.teven.core.user.AcceptInvitationResponse
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus.FORBIDDEN
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus.NOT_FOUND
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus.SUCCESS
@@ -27,19 +26,43 @@ fun Route.publicInvitationRoutes() {
   val invitationService by inject<InvitationService>()
 
   route("/api/invitations") {
+    get("/validate") {
+      val token = call.request.queryParameters["token"]
+      if (token == null) {
+        call.respond(HttpStatusCode.BadRequest, failure("Invitation token is missing"))
+      } else {
+        val invitation = invitationService.validateInvitation(token)
+        if (invitation != null) {
+          call.respond(
+            HttpStatusCode.OK,
+            success(mapOf("organizationId" to invitation.organizationId))
+          )
+        } else {
+          call.respond(HttpStatusCode.NotFound, failure("Invalid or expired invitation token"))
+        }
+      }
+
+    }
+
     post("/accept") {
       val authContext = call.authentication.principal<AuthContext>()
       if (authContext != null) {
-        call.respond(HttpStatusCode.BadRequest, failure("Cannot accept invitation while logged in."))
+        call.respond(
+          HttpStatusCode.BadRequest,
+          failure("Cannot accept invitation while logged in.")
+        )
         return@post
       }
 
       val request = call.receive<AcceptInvitationRequest>()
       val response = invitationService.acceptInvitation(request)
       if (response.success) {
-        call.respond(HttpStatusCode.Created, success(response.message))
+        call.respond(HttpStatusCode.Created, success(response))
       } else {
-        call.respond(HttpStatusCode.BadRequest, failure(response.message ?: "Failed to accept invitation"))
+        call.respond(
+          HttpStatusCode.BadRequest,
+          failure(response.message ?: "Failed to accept invitation")
+        )
       }
     }
   }
