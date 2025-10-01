@@ -5,6 +5,7 @@ import java.time.LocalDateTime
 data class Invitation(
   val id: Int,
   val organizationId: Int,
+  val organizationName: String,
   val roleId: Int,
   var roleName: String,
   val token: String,

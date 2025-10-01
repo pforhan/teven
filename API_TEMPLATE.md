@@ -2,6 +2,29 @@
 
 This document outlines the API endpoints for the Teven service, including their purpose, authentication requirements, and the expected request/response data structures. Data structures are presented using Kotlin pseudocode for conciseness.
 
+### Base API Response
+
+All API responses will follow a consistent structure to ensure predictable handling of successes and failures.
+
+```kotlin
+data class ApiResponse<T>(
+  val success: Boolean, 
+  val data: T?, 
+  val error: ApiError?
+)
+
+data class ApiError(
+  val message: String, 
+  val details: String? = null
+)
+```
+
+*   `success`: A boolean indicating if the request was successful.
+*   `data`: The payload of the response. For successful requests, this will contain the requested data. For failed requests, this will be `null`.
+*   `error`: An object containing error details. For successful requests, this will be `null`.
+
+---
+
 **Authentication:**
 Most API endpoints in Teven will require authentication. We will use JSON Web Tokens (JWT) for authentication. The JWT will be included in the `Authorization` header of the HTTP request in the format: `Bearer <token>`. Endpoints not requiring authentication are explicitly marked.
 
@@ -47,7 +70,41 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ---
 
-### II. Event API
+### II. Invitation API
+
+* `POST /api/invitations`: Create a new invitation.
+    * Authentication: Required.
+    * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
+    * Request:
+        <!-- DATA_MODEL_CreateInvitationRequest -->
+    * Response:
+        <!-- DATA_MODEL_InvitationResponse -->
+
+* `GET /api/invitations`: Retrieve all unused invitations for the user's organization.
+    * Authentication: Required.
+    * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
+    * Response: `List<InvitationResponse>`
+
+* `GET /api/invitations/validate?token={token}`: Validates an invitation token.
+    * Authentication: Not required.
+    * Response:
+        <!-- DATA_MODEL_ValidateInvitationResponse -->
+
+* `POST /api/invitations/accept`: Accept an invitation and create a new user account.
+    * Authentication: Not required.
+    * Request:
+        <!-- DATA_MODEL_AcceptInvitationRequest -->
+    * Response:
+        <!-- DATA_MODEL_AcceptInvitationResponse -->
+
+* `DELETE /api/invitations/{invitationId}`: Deletes an unused invitation.
+    * Authentication: Required.
+    * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
+    * Response: `StatusResponse`
+
+---
+
+### III. Event API
 
 * `POST /api/events`: Create a new event.
     * Authentication: Required.
@@ -106,7 +163,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ---
 
-### III. Customer API
+### IV. Customer API
 
 * `GET /api/customers`: Retrieve all customers.
     * Authentication: Required.
@@ -144,7 +201,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ---
 
-### IV. Inventory API
+### V. Inventory API
 
 * `GET /api/inventory`: Retrieve all inventory items.
     * Authentication: Required.
@@ -190,7 +247,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ---
 
-### V. Report API
+### VI. Report API
 
 * `POST /api/reports/staff_hours`: Generate a report of staff hours worked within a date range.
     * Authentication: Required.
@@ -206,7 +263,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ---
 
-### VI. Role Management API
+### VII. Role Management API
 
 * `POST /api/roles`: Create a new role.
     * Authentication: Required.
@@ -255,7 +312,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ---
 
-### VII. Organization Management API (SuperAdmin Only)
+### VIII. Organization Management API (SuperAdmin Only)
 
 * `POST /api/organizations`: Create a new organization.
     * Authentication: Required.

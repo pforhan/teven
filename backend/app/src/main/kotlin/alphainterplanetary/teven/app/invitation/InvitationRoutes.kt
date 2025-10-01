@@ -33,10 +33,7 @@ fun Route.publicInvitationRoutes() {
       } else {
         val invitation = invitationService.validateInvitation(token)
         if (invitation != null) {
-          call.respond(
-            HttpStatusCode.OK,
-            success(mapOf("organizationId" to invitation.organizationId))
-          )
+          call.respond(HttpStatusCode.OK, success(invitation))
         } else {
           call.respond(HttpStatusCode.NotFound, failure("Invalid or expired invitation token"))
         }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { InvitationService } from '../../api/InvitationService';
 import ErrorDisplay from '../common/ErrorDisplay';
+import type { ValidateInvitationResponse } from '../../types/api';
 
 import AlreadyLoggedInError from '../common/AlreadyLoggedInError';
 
@@ -9,6 +10,7 @@ const AcceptInvitationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [token, setToken] = useState<string | null>(null);
+  const [invitationDetails, setInvitationDetails] = useState<ValidateInvitationResponse | null>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -26,8 +28,8 @@ const AcceptInvitationPage: React.FC = () => {
     if (invitationToken) {
       setToken(invitationToken);
       InvitationService.validateInvitation(invitationToken)
-        .then(() => {
-          // Token is valid, do nothing
+        .then((response) => {
+          setInvitationDetails(response);
         })
         .catch((err) => {
           setValidationError(err.message || 'Invalid or expired invitation token.');
@@ -90,62 +92,68 @@ const AcceptInvitationPage: React.FC = () => {
                   {error && <ErrorDisplay error={error} />}
                   {successMessage && <div className="alert alert-success">{successMessage}</div>}
 
-                  {!token && !error ? (
+                  {!invitationDetails && !validationError ? (
                     <div className="alert alert-info">Loading invitation...</div>
-                  ) : token && !successMessage && !validationError ? (
-                    <form onSubmit={handleSubmit}>
-                      <div className="mb-3">
-                        <label htmlFor="username" className="form-label">Username</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="username"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          required
-                          disabled={loading}
-                        />
+                  ) : invitationDetails && !successMessage && !validationError ? (
+                    <>
+                      <div className="alert alert-info">
+                        <p>You have been invited to join <strong>{invitationDetails.organizationName}</strong> as a <strong>{invitationDetails.roleName}</strong>.</p>
+                        <p className="mb-0">Please create your account below.</p>
                       </div>
-                      <div className="mb-3">
-                        <label htmlFor="password" className="form-label">Password</label>
-                        <input
-                          type="password"
-                          className="form-control"
-                          id="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          disabled={loading}
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label htmlFor="email" className="form-label">Email</label>
-                        <input
-                          type="email"
-                          className="form-control"
-                          id="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          disabled={loading}
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label htmlFor="displayName" className="form-label">Display Name</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="displayName"
-                          value={displayName}
-                          onChange={(e) => setDisplayName(e.target.value)}
-                          required
-                          disabled={loading}
-                        />
-                      </div>
-                      <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-                        {loading ? 'Accepting...' : 'Accept Invitation'}
-                      </button>
-                    </form>
+                      <form onSubmit={handleSubmit}>
+                        <div className="mb-3">
+                          <label htmlFor="username" className="form-label">Username</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                            disabled={loading}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label htmlFor="password" className="form-label">Password</label>
+                          <input
+                            type="password"
+                            className="form-control"
+                            id="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            disabled={loading}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label htmlFor="email" className="form-label">Email</label>
+                          <input
+                            type="email"
+                            className="form-control"
+                            id="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            disabled={loading}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label htmlFor="displayName" className="form-label">Display Name</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="displayName"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            required
+                            disabled={loading}
+                          />
+                        </div>
+                        <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+                          {loading ? 'Accepting...' : 'Accept Invitation'}
+                        </button>
+                      </form>
+                    </>
                   ) : null}
                 </>
               )}

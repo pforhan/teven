@@ -2,8 +2,8 @@ package alphainterplanetary.teven.service.invitation
 
 import alphainterplanetary.teven.api.model.invitation.AcceptInvitationRequest
 import alphainterplanetary.teven.api.model.invitation.InvitationResponse
+import alphainterplanetary.teven.api.model.invitation.ValidateInvitationResponse
 import alphainterplanetary.teven.core.security.AuthContext
-import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.core.security.Permission.MANAGE_INVITATIONS_GLOBAL
 import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.core.service.UserService
@@ -14,6 +14,7 @@ import alphainterplanetary.teven.core.user.DeleteInvitationStatus.NOT_FOUND
 import alphainterplanetary.teven.core.user.DeleteInvitationStatus.SUCCESS
 import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.data.invitation.InvitationDao
+import alphainterplanetary.teven.service.organization.OrganizationService
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -21,6 +22,7 @@ class InvitationService(
   private val invitationDao: InvitationDao,
   private val roleService: RoleService,
   private val userService: UserService,
+  private val organizationService: OrganizationService,
 ) {
 
   private fun Invitation.toInvitationResponse(): InvitationResponse {
@@ -48,18 +50,26 @@ class InvitationService(
       throw IllegalArgumentException("Invitations can only be created for Organizer or Staff roles")
     }
 
+    val organization = organizationService.getOrganizationById(organizationId)
+      ?: throw IllegalArgumentException("Organization not found")
+
     val token = UUID.randomUUID().toString()
     val expiration = expiresAt ?: LocalDateTime.now().plusDays(7) // Default to 7 days
     val invitation = invitationDao.createInvitation(organizationId, roleId, token, expiration, note)
-    return invitation.copy(roleName = role.roleName).toInvitationResponse()
+    return invitation.copy(
+      roleName = role.roleName,
+      organizationName = organization.name
+    ).toInvitationResponse()
   }
 
-  suspend fun validateInvitation(token: String): Invitation? {
+  suspend fun validateInvitation(token: String): ValidateInvitationResponse? {
     val invitation = invitationDao.getInvitationByToken(token)
     return if (invitation != null && invitation.expiresAt.isAfter(LocalDateTime.now()) && invitation.usedByUserId == null) {
-      val role = roleService.getRoleById(invitation.roleId)
-        ?: throw IllegalStateException("Role not found for invitation")
-      invitation.copy(roleName = role.roleName)
+      ValidateInvitationResponse(
+        organizationId = invitation.organizationId,
+        organizationName = invitation.organizationName,
+        roleName = invitation.roleName,
+      )
     } else {
       null
     }
@@ -94,36 +104,37 @@ class InvitationService(
     return AcceptInvitationResponse(success = true, message = "Invitation accepted and user created.")
   }
 
-  suspend fun markInvitationAsUsed(token: String, userId: Int): Boolean {
-    return invitationDao.markInvitationAsUsed(token, userId)
-  }
-
   suspend fun getUnusedInvitations(authContext: AuthContext): List<InvitationResponse> {
     val organizationId =
       if (authContext.hasPermission(MANAGE_INVITATIONS_GLOBAL)) null else authContext.organizationId
     val invitations = invitationDao.getUnusedInvitations(organizationId)
 
     val roles = roleService.getAllRoles().associateBy { it.roleId }
+    val organizations = organizationService.getAllOrganizations().associateBy { it.organizationId }
+
     return invitations.map { invitation ->
-      invitation.copy(roleName = roles[invitation.roleId]?.roleName ?: "Unknown")
+      invitation.copy(
+        roleName = roles[invitation.roleId]?.roleName ?: "Unknown",
+        organizationName = organizations[invitation.organizationId]?.name ?: "Unknown"
+      )
     }.map { it.toInvitationResponse() }
   }
 
+  /**
+   * If the logged in user has global permission, or the invitation is for the user's
+   * organization, attempt the delete.  Otherwise return FORBIDDEN.
+   */
   suspend fun deleteInvitation(
     invitationId: Int,
     authContext: AuthContext,
-  ): DeleteInvitationStatus {
-    // If the logged in user has global permission, or the invitation is for the user's
-    // organization, attempt the delete.  Otherwise return FORBIDDEN.
-    return if (authContext.hasPermission(Permission.MANAGE_INVITATIONS_GLOBAL) ||
-      invitationDao.hasOrganizationId(invitationId, authContext.organizationId)
-    ) {
-      if (invitationDao.deleteInvitation(invitationId)) {
-        SUCCESS
-      } else {
-        NOT_FOUND
-      }
+  ): DeleteInvitationStatus = if (authContext.hasPermission(MANAGE_INVITATIONS_GLOBAL) ||
+    invitationDao.hasOrganizationId(invitationId, authContext.organizationId)
+  ) {
+    if (invitationDao.deleteInvitation(invitationId)) {
+      SUCCESS
+    } else {
+      NOT_FOUND
     }
-    else FORBIDDEN
   }
+  else FORBIDDEN
 }

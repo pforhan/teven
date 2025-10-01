@@ -9,6 +9,12 @@ export interface ApiErrorResponse {
   details?: string;
 }
 
+export interface ValidateInvitationResponse {
+  organizationId: number;
+  organizationName: string;
+  roleName: string;
+}
+
 export interface InvitationResponse {
   invitationId: number;
   organizationId: number;

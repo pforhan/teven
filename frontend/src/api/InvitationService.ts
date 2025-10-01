@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
-import type { InvitationResponse } from '../types/api';
+import type { InvitationResponse, ValidateInvitationResponse } from '../types/api';
 
 interface AcceptInvitationRequest {
   token: string;
@@ -32,8 +32,8 @@ export class InvitationService {
     });
   }
 
-  static async validateInvitation(token: string): Promise<{ organizationId: number }> {
-    return apiClient<{ organizationId: number }>(`/api/invitations/validate?token=${token}`);
+  static async validateInvitation(token: string): Promise<ValidateInvitationResponse> {
+    return apiClient<ValidateInvitationResponse>(`/api/invitations/validate?token=${token}`);
   }
 
   static async acceptInvitation(request: AcceptInvitationRequest): Promise<AcceptInvitationResponse> {

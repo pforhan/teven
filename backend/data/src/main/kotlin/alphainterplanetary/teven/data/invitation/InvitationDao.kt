@@ -3,6 +3,7 @@ package alphainterplanetary.teven.data.invitation
 import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.role.Roles
+import alphainterplanetary.teven.data.organization.Organizations
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
@@ -33,6 +34,7 @@ class InvitationDao {
     Invitation(
       id = result[Invitations.id].value,
       organizationId = result[Invitations.organizationId].value,
+      organizationName = "", // Placeholder, will be set in service
       roleId = result[Invitations.roleId].value,
       roleName = "", // Placeholder, will be set in service
       token = result[Invitations.token],
@@ -50,19 +52,22 @@ class InvitationDao {
   }
 
   suspend fun getInvitationByToken(token: String): Invitation? = dbQuery {
-    (Invitations innerJoin Roles).selectAll()
+    (Invitations innerJoin Roles innerJoin Organizations).selectAll()
       .where { Invitations.token eq token }
-      .map { Invitation(
-        id = it[Invitations.id].value,
-        organizationId = it[Invitations.organizationId].value,
-        roleId = it[Invitations.roleId].value,
-        roleName = it[Roles.roleName],
-        token = it[Invitations.token],
-        expiresAt = it[Invitations.expiresAt],
-        usedByUserId = it[Invitations.usedByUserId]?.value,
-        createdAt = it[Invitations.createdAt],
-        note = it[Invitations.note],
-      ) }
+      .map {
+        Invitation(
+          id = it[Invitations.id].value,
+          organizationId = it[Invitations.organizationId].value,
+          organizationName = it[Organizations.name],
+          roleId = it[Invitations.roleId].value,
+          roleName = it[Roles.roleName],
+          token = it[Invitations.token],
+          expiresAt = it[Invitations.expiresAt],
+          usedByUserId = it[Invitations.usedByUserId]?.value,
+          createdAt = it[Invitations.createdAt],
+          note = it[Invitations.note],
+        )
+      }
       .singleOrNull()
   }
 
@@ -81,6 +86,7 @@ class InvitationDao {
     query.map { Invitation(
       id = it[Invitations.id].value,
       organizationId = it[Invitations.organizationId].value,
+      organizationName = "", // Placeholder, will be set in service
       roleId = it[Invitations.roleId].value,
       roleName = "", // Placeholder, will be set in service
       token = it[Invitations.token],
