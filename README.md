@@ -1,6 +1,6 @@
 # **Teven \- Event Scheduling and Management Application**
 
-![Teven Logo](teven.png)
+<img src="teven.png" alt="Teven Logo" width="15%"/>
 
 ## **Project Overview**
 
