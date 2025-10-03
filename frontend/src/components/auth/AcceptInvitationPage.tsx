@@ -5,10 +5,12 @@ import ErrorDisplay from '../common/ErrorDisplay';
 import type { ValidateInvitationResponse } from '../../types/api';
 
 import AlreadyLoggedInError from '../common/AlreadyLoggedInError';
+import { useAuth } from '../../AuthContext';
 
 const AcceptInvitationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { userContext, loading: authLoading } = useAuth();
   const [token, setToken] = useState<string | null>(null);
   const [invitationDetails, setInvitationDetails] = useState<ValidateInvitationResponse | null>(null);
   const [username, setUsername] = useState('');
@@ -21,6 +23,12 @@ const AcceptInvitationPage: React.FC = () => {
   const [alreadyLoggedIn, setAlreadyLoggedIn] = useState<boolean>(false);
 
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && userContext) {
+      setAlreadyLoggedIn(true);
+    }
+  }, [userContext, authLoading]);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
