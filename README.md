@@ -1,5 +1,7 @@
 # **Teven \- Event Scheduling and Management Application**
 
+![Teven Logo](teven.png)
+
 ## **Project Overview**
 
 Teven is a comprehensive event scheduling and management application designed to streamline the process of organizing events, managing staff, and tracking essential resources. It aims to provide a user-friendly platform for event organizers to efficiently create events, invite and manage staff, handle customer data, and gain insights through reporting. Staff members, in turn, can easily view their assigned events, indicate their availability, and understand their roles.
