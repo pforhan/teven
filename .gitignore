@@ -32,3 +32,6 @@ build/
 
 # Environment variables
 .env
+
+# android
+local.properties
