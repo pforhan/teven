@@ -28,7 +28,7 @@ To get started with the Teven application, you can use Docker Compose to set up 
 
 ### Prerequisites
 
-*   Docker Desktop (or Docker Engine and Docker Compose plugin) installed.
+* Docker Desktop (or Docker Engine and Docker Compose plugin) installed.
 
 ### Running with Docker Compose
 
