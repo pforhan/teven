@@ -4,6 +4,7 @@ import alphainterplanetary.teven.api.model.auth.LoginRequest
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.core.service.AuthService
+import alphainterplanetary.teven.core.service.LoginResult
 import alphainterplanetary.teven.service.invitation.InvitationService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -22,11 +23,16 @@ fun Route.authRoutes() {
 
     post("/login") {
       val loginRequest = call.receive<LoginRequest>()
-      val loginResponse = authService.loginUser(loginRequest)
-      if (loginResponse != null) {
-        call.respond(HttpStatusCode.OK, success(loginResponse))
-      } else {
-        call.respond(HttpStatusCode.Unauthorized, failure("Invalid credentials"))
+      call.application.environment.log.info("Received login request for: ${loginRequest.username}")
+      
+      when (val result = authService.loginUser(loginRequest)) {
+        is LoginResult.Success -> {
+          call.respond(HttpStatusCode.OK, success(result.response))
+        }
+        is LoginResult.UserNotFound, is LoginResult.InvalidPassword -> {
+          call.application.environment.log.warn("Login failed (${result::class.simpleName}) for: ${loginRequest.username}")
+          call.respond(HttpStatusCode.Unauthorized, failure("Invalid credentials"))
+        }
       }
     }
   }

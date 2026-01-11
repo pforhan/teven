@@ -12,16 +12,16 @@ export const apiClient = async <T>(url: string, options: RequestInit = {}): Prom
 
   const response = await fetch(url, { ...options, headers });
 
-  if (response.status === 401) {
-    throw new UnauthorizedError('Session expired. Please log in again.');
-  }
-
   // We expect all valid API responses to be JSON, even if the success status is not ok.
+
   if (!response.ok) {
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") !== -1) {
       const apiResponse: ApiResponse<T> = await response.json();
       if (apiResponse.error) {
+        if (response.status === 401) {
+          throw new UnauthorizedError(apiResponse.error.message);
+        }
         throw new ApiErrorWithDetails(apiResponse.error.message, apiResponse.error.details);
       } else {
         throw new ApiErrorWithDetails(
@@ -31,6 +31,9 @@ export const apiClient = async <T>(url: string, options: RequestInit = {}): Prom
       }
     } else {
       const errorText = await response.text();
+      if (response.status === 401) {
+        throw new UnauthorizedError('Session expired. Please log in again.');
+      }
       throw new ApiErrorWithDetails(
         `API request failed with status ${response.status}`,
         errorText
