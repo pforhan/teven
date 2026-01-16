@@ -37,14 +37,15 @@ class EventService(private val eventDao: EventDao) {
     limit: Int?,
     offset: Long?,
     sortOrder: String?,
+    organizationId: Int?,
   ): PaginatedResponse<EventResponse> {
-    val organizationId = if (authContext.hasPermission(Permission.VIEW_EVENTS_GLOBAL)) {
-      null
+    val organizationIdToUse = if (authContext.hasPermission(Permission.VIEW_EVENTS_GLOBAL)) {
+      organizationId
     } else {
       authContext.organizationId
     }
     return eventDao.getEvents(
-      organizationId = organizationId,
+      organizationId = organizationIdToUse,
       startDate = startDate,
       endDate = endDate,
       limit = limit,

@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { CustomerService } from '../../api/CustomerService';
 import type { CustomerResponse } from '../../types/customers';
 import { usePermissions } from '../../AuthContext';
+import { useOrganization } from '../../OrganizationContext';
 import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
@@ -13,8 +14,8 @@ const CustomerList: React.FC = () => {
   const [customers, setCustomers] = useState<CustomerResponse[]>([]);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
+  const { selectedOrganization } = useOrganization();
   const canManageCustomers = hasPermission('MANAGE_CUSTOMERS_ORGANIZATION');
-  const canViewGlobalCustomers = hasPermission('VIEW_CUSTOMERS_GLOBAL');
   const [nameFilter, setNameFilter] = useState('');
   const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
   const [hoveredCustomerId, setHoveredCustomerId] = useState<number | null>(null);
@@ -37,6 +38,13 @@ const CustomerList: React.FC = () => {
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!selectedOrganization) {
+      return customers;
+    }
+    return customers.filter(customer => customer.organization.organizationId === selectedOrganization.organizationId);
+  }, [customers, selectedOrganization]);
 
   const handleDelete = async (customerId: number) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
@@ -72,7 +80,6 @@ const CustomerList: React.FC = () => {
     { key: 'phone', label: 'Phone' },
     { key: 'address', label: 'Address' },
     { key: 'notes', label: 'Notes' },
-    ...(canViewGlobalCustomers ? [{ key: 'organization' as keyof CustomerResponse, label: 'Organization', render: (customer: CustomerResponse) => customer.organization.name }] : []),
   ];
 
   return (
@@ -106,7 +113,7 @@ const CustomerList: React.FC = () => {
       </div>
 
       <TableView
-        data={customers}
+        data={filteredCustomers}
         columns={columns}
         keyField="customerId"
         error={error}

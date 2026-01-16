@@ -1,5 +1,3 @@
-// frontend/src/types/organizations.ts
-
 export interface OrganizationResponse {
   organizationId: number;
   name: string;

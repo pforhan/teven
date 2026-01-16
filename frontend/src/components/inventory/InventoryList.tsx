@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { InventoryService } from '../../api/InventoryService';
 import type { InventoryItemResponse } from '../../types/inventory';
 import { usePermissions } from '../../AuthContext';
+import { useOrganization } from '../../OrganizationContext';
 import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
@@ -13,8 +14,8 @@ const InventoryList: React.FC = () => {
   const [inventoryItems, setInventoryItems] = useState<InventoryItemResponse[]>([]);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
+  const { selectedOrganization } = useOrganization();
   const canManageInventory = hasPermission('MANAGE_INVENTORY_ORGANIZATION');
-  const canViewGlobalInventory = hasPermission('VIEW_INVENTORY_GLOBAL');
   const [nameFilter, setNameFilter] = useState('');
   const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
   const [hoveredItemId, setHoveredItemId] = useState<number | null>(null);
@@ -37,6 +38,13 @@ const InventoryList: React.FC = () => {
   useEffect(() => {
     fetchInventoryItems();
   }, [fetchInventoryItems]);
+
+  const filteredInventoryItems = useMemo(() => {
+    if (!selectedOrganization) {
+      return inventoryItems;
+    }
+    return inventoryItems.filter(item => item.organization.organizationId === selectedOrganization.organizationId);
+  }, [inventoryItems, selectedOrganization]);
 
   const handleDelete = async (inventoryId: number) => {
     if (window.confirm('Are you sure you want to delete this inventory item?')) {
@@ -82,7 +90,6 @@ const InventoryList: React.FC = () => {
         </ul>
       ),
     },
-    ...(canViewGlobalInventory ? [{ key: 'organization' as keyof InventoryItemResponse, label: 'Organization', render: (item: InventoryItemResponse) => item.organization.name }] : []),
   ];
 
   return (
@@ -116,7 +123,7 @@ const InventoryList: React.FC = () => {
       </div>
 
       <TableView
-        data={inventoryItems}
+        data={filteredInventoryItems}
         columns={columns}
         keyField="inventoryId"
         error={error}

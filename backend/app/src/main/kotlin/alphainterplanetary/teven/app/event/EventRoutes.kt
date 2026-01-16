@@ -84,6 +84,7 @@ fun Route.eventRoutes() {
         val limit = call.request.queryParameters["limit"]?.toIntOrNull()
         val offset = call.request.queryParameters["offset"]?.toLongOrNull()
         val sortOrder = call.request.queryParameters["sortOrder"] ?: "asc"
+        val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
 
         val events = eventService.getEvents(
           authContext = authContext,
@@ -92,6 +93,7 @@ fun Route.eventRoutes() {
           limit = limit,
           offset = offset,
           sortOrder = sortOrder,
+          organizationId = organizationId,
         )
         call.respond(HttpStatusCode.OK, success(events))
       }

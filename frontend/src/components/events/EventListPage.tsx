@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import type { EventResponse } from '../../types/events';
 import { usePermissions, useAuth } from '../../AuthContext';
+import { useOrganization } from '../../OrganizationContext';
 import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { FaEdit, FaTrash, FaCheck, FaTimes, FaUndo } from 'react-icons/fa';
@@ -17,8 +18,8 @@ const EventListPage: React.FC = () => {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const { hasPermission } = usePermissions();
   const { userContext } = useAuth();
+  const { selectedOrganization } = useOrganization();
   const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
-  const canViewGlobalEvents = hasPermission('VIEW_EVENTS_GLOBAL');
   const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState(() => {
     const today = new Date();
@@ -45,6 +46,13 @@ const EventListPage: React.FC = () => {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents, offset, startDate, sortOrder]);
+
+  const filteredEvents = useMemo(() => {
+    if (!selectedOrganization) {
+      return events;
+    }
+    return events.filter(event => event.organization?.organizationId === selectedOrganization.organizationId);
+  }, [events, selectedOrganization]);
 
   const handleDelete = async (eventId: number | string) => {
     if (typeof eventId !== 'number') return; // Prevent deleting placeholder events
@@ -102,7 +110,6 @@ const EventListPage: React.FC = () => {
     { key: 'time', label: 'Time' },
     { key: 'description', label: 'Description' },
     { key: 'customer', label: 'Customer', render: (event: EventResponse) => event.customer?.name || 'N/A' },
-    ...(canViewGlobalEvents ? [{ key: 'organization' as keyof EventResponse, label: 'Organization', render: (event: EventResponse) => event.organization?.name || 'N/A' }] : []),
     { key: 'rsvp', label: 'RSVP', render: (event: EventResponse) => {
       const myRsvpStatus = event.rsvps?.find(rsvp => rsvp.userId === userContext?.user?.userId)?.availability;
       return (
@@ -172,7 +179,7 @@ const EventListPage: React.FC = () => {
       </div>
 
       <TableView
-        data={events}
+        data={filteredEvents}
         columns={columns}
         keyField="eventId"
         error={error}

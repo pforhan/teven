@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
@@ -6,6 +6,7 @@ import { UserService } from '../../api/UserService';
 import { InvitationService } from '../../api/InvitationService';
 import type { UserResponse } from '../../types/auth';
 import { usePermissions } from '../../AuthContext';
+import { useOrganization } from '../../OrganizationContext';
 import { Permission } from '../../types/permissions';
 import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
@@ -19,6 +20,7 @@ const UserList: React.FC = () => {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [showCreateInvitationForm, setShowCreateInvitationForm] = useState<boolean>(false);
   const { hasPermission } = usePermissions();
+  const { selectedOrganization } = useOrganization();
   const canViewUsers = hasPermission(Permission.VIEW_USERS_ORGANIZATION) || hasPermission(Permission.VIEW_USERS_GLOBAL);
   const canManageUsers = hasPermission(Permission.MANAGE_USERS_GLOBAL) || hasPermission(Permission.MANAGE_USERS_ORGANIZATION);
   const [hoveredUserId, setHoveredUserId] = useState<number | null>(null);
@@ -63,6 +65,13 @@ const UserList: React.FC = () => {
     }
   }, [fetchUsers, fetchInvitations, canViewUsers, canManageUsers]);
 
+  const filteredUsers = useMemo(() => {
+    if (!selectedOrganization) {
+      return users;
+    }
+    return users.filter(user => user.organization?.organizationId === selectedOrganization.organizationId);
+  }, [users, selectedOrganization]);
+
   const handleDelete = async (userId: number) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
@@ -96,28 +105,38 @@ const UserList: React.FC = () => {
   };
 
   const columns: Column<UserResponse>[] = [
-    { key: 'username', label: 'Username', render: (user: UserResponse) => (
-      <div className="d-flex justify-content-between align-items-center position-relative">
-        <Link to={`/users/${user.userId}`}>{user.username}</Link>
-        {canManageUsers && hoveredUserId === user.userId && (
-          <div className="position-absolute top-0 end-0 z-1">
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${user.userId}`}>Edit</Tooltip>}>
-              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/users/edit/${user.userId}`)}><FaEdit /></button>
-            </OverlayTrigger>
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${user.userId}`}>Delete</Tooltip>}>
-              <button className="btn btn-sm btn-light" onClick={() => handleDelete(user.userId)}><FaTrash /></button>
-            </OverlayTrigger>
-          </div>
-        )}
-      </div>
-    ) },
+    {
+      key: 'username', label: 'Username', render: (user: UserResponse) => (
+        <div className="d-flex justify-content-between align-items-center position-relative">
+          <Link to={`/users/${user.userId}`}>{user.username}</Link>
+          {canManageUsers && hoveredUserId === user.userId && (
+            <div className="position-absolute top-0 end-0 z-1">
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${user.userId}`}>Edit</Tooltip>}>
+                <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/users/edit/${user.userId}`)}><FaEdit /></button>
+              </OverlayTrigger>
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${user.userId}`}>Delete</Tooltip>}>
+                <button className="btn btn-sm btn-light" onClick={() => handleDelete(user.userId)}><FaTrash /></button>
+              </OverlayTrigger>
+            </div>
+          )}
+        </div>
+      )
+    },
     { key: 'displayName', label: 'Display Name' },
     { key: 'email', label: 'Email' },
     { key: 'roles', label: 'Roles', render: (user: UserResponse) => user.roles.join(', ') },
   ];
 
   if (hasPermission(Permission.VIEW_USERS_GLOBAL)) {
-    columns.push({ key: 'organization', label: 'Organization', render: (user: UserResponse) => user.organization?.name || 'N/A' });
+    columns.push({
+      key: 'organization',
+      label: 'Organization',
+      render: (user: UserResponse) => (
+        user.organization
+          ? <Link to={`/organizations/${user.organization.organizationId}`}>{user.organization.name}</Link>
+          : 'N/A'
+      )
+    });
   }
 
   const [copiedInvitationId, setCopiedInvitationId] = useState<number | null>(null);
@@ -135,28 +154,32 @@ const UserList: React.FC = () => {
   const invitationColumns: Column<InvitationResponse>[] = [
     { key: 'roleName', label: 'Role' },
     { key: 'note', label: 'Note', render: (invitation: InvitationResponse) => invitation.note || 'N/A' },
-    { key: 'invitationUrl', label: 'Link', render: (invitation: InvitationResponse) => (
-      <div className="d-flex align-items-center">
-        <button
-          className="btn btn-sm btn-outline-secondary me-2"
-          onClick={() => handleCopyInvitationLink(invitation)}
-        >
-          {copiedInvitationId === invitation.invitationId ? 'Copied!' : 'Copy Link'}
-        </button>
-        <span className="text-muted text-truncate" style={{ maxWidth: '150px' }}>
-          {`${window.location.origin}/register?token=${invitation.token}`}
-        </span>
-      </div>
-    ) },
+    {
+      key: 'invitationUrl', label: 'Link', render: (invitation: InvitationResponse) => (
+        <div className="d-flex align-items-center">
+          <button
+            className="btn btn-sm btn-outline-secondary me-2"
+            onClick={() => handleCopyInvitationLink(invitation)}
+          >
+            {copiedInvitationId === invitation.invitationId ? 'Copied!' : 'Copy Link'}
+          </button>
+          <span className="text-muted text-truncate" style={{ maxWidth: '150px' }}>
+            {`${window.location.origin}/register?token=${invitation.token}`}
+          </span>
+        </div>
+      )
+    },
     { key: 'expiresAt', label: 'Expires', render: (invitation: InvitationResponse) => new Date(invitation.expiresAt).toLocaleDateString() },
-    { key: 'actions', label: 'Actions', render: (invitation: InvitationResponse) => (
-      <button
-        className="btn btn-sm btn-danger"
-        onClick={() => handleDeleteInvitation(invitation.invitationId)}
-      >
-        Delete
-      </button>
-    ) },
+    {
+      key: 'actions', label: 'Actions', render: (invitation: InvitationResponse) => (
+        <button
+          className="btn btn-sm btn-danger"
+          onClick={() => handleDeleteInvitation(invitation.invitationId)}
+        >
+          Delete
+        </button>
+      )
+    },
   ];
 
   return (
@@ -199,7 +222,7 @@ const UserList: React.FC = () => {
 
       <h2>Users</h2>
       <TableView
-        data={users}
+        data={filteredUsers}
         columns={columns}
         keyField="userId"
         error={error}

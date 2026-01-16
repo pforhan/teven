@@ -2,10 +2,12 @@ import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth, usePermissions } from '../AuthContext';
 import { Permission } from '../types/permissions';
+import OrganizationSelector from '../components/common/OrganizationSelector';
 
 const MainLayout: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout, userContext } = useAuth();
   const { hasPermission } = usePermissions();
+  const isSuperAdmin = hasPermission(Permission.VIEW_USERS_GLOBAL);
 
   return (
     <div>
@@ -25,6 +27,15 @@ const MainLayout: React.FC = () => {
               {(hasPermission(Permission.VIEW_USERS_ORGANIZATION) || hasPermission(Permission.VIEW_USERS_GLOBAL)) && <li className="nav-item"><NavLink className="nav-link" to="/users">Users</NavLink></li>}
             </ul>
             <ul className="navbar-nav">
+              {isSuperAdmin ? (
+                <li className="nav-item">
+                  <OrganizationSelector />
+                </li>
+              ) : (
+                <li className="nav-item">
+                  <span className="navbar-text me-3">{userContext?.user?.organization?.name}</span>
+                </li>
+              )}
               <li className="nav-item"><NavLink className="nav-link" to="/profile">Profile</NavLink></li>
               <li className="nav-item"><button className="btn btn-link nav-link" onClick={logout}>Logout</button></li>
             </ul>

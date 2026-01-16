@@ -26,6 +26,7 @@ import EditUserForm from './components/users/EditUserForm';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AcceptInvitationPage from './components/auth/AcceptInvitationPage';
 import { Permission } from './types/permissions';
+import { OrganizationProvider } from "./OrganizationContext";
 
 const AppRoutes = () => {
   const { userContext, loading } = useAuth();
@@ -72,7 +73,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppRoutes />
+        <OrganizationProvider>
+          <AppRoutes />
+        </OrganizationProvider>
       </AuthProvider>
     </Router>
   );

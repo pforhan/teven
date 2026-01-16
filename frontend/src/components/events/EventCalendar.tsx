@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import moment from 'moment';
@@ -9,6 +9,7 @@ import type { EventResponse, CalendarEvent } from '../../types/events';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 import { usePermissions, useAuth } from '../../AuthContext';
+import { useOrganization } from '../../OrganizationContext';
 
 const localizer = momentLocalizer(moment);
 
@@ -45,7 +46,7 @@ const DateCellWrapper = ({ children, value, onSelectSlot, setPlaceholderEvent, v
     if (view === Views.MONTH) {
       leaveTimeoutRef.current = setTimeout(() => {
         setPlaceholderEvent(null);
-      }, 100); // 100ms delay
+      }, 100) as any as number; // 100ms delay
     }
   };
 
@@ -69,6 +70,7 @@ const EventCalendar: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const { userContext } = useAuth();
+  const { selectedOrganization } = useOrganization();
   const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [placeholderEvent, setPlaceholderEvent] = useState<EventResponse | null>(null);
@@ -77,10 +79,11 @@ const EventCalendar: React.FC = () => {
   const [date, setDate] = useState(new Date());
   const leaveTimeoutRef = React.useRef<number | null>(null);
 
-  const fetchEvents = useCallback(async (start: Date, end: Date) => {
-    try {
-      const eventData = await EventService.getAllEvents(1000, undefined, undefined, moment(start).format('YYYY-MM-DD'), moment(end).format('YYYY-MM-DD'));
+  const fetchEvents = async (start: Date, end: Date, organizationId?: number) => {
+        try {
+      const eventData = await EventService.getAllEvents(1000, undefined, organizationId, moment(start).format('YYYY-MM-DD'), moment(end).format('YYYY-MM-DD'));
       setEvents(eventData.items);
+
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
         setError({ message: err.message, details: err.details });
@@ -90,9 +93,10 @@ const EventCalendar: React.FC = () => {
         setError({ message: 'An unknown error occurred' });
       }
     }
-  }, []);
+  };
 
   useEffect(() => {
+  
     let start, end;
     switch (view) {
       case Views.WEEK:
@@ -114,8 +118,8 @@ const EventCalendar: React.FC = () => {
         end = moment(date).endOf('month').toDate();
         break;
     }
-    fetchEvents(start, end);
-  }, [fetchEvents, date, view]);
+    fetchEvents(start, end, selectedOrganization?.organizationId);
+  }, [date, view, selectedOrganization]);
 
   const handleSelectSlot = ({ start, end, action }: { start: Date, end: Date, action: string }) => {
     if (action === 'select' || action === 'click') {
@@ -181,7 +185,7 @@ const EventCalendar: React.FC = () => {
       if ('isPlaceholder' in event && event.isPlaceholder && setPlaceholderEvent) {
         leaveTimeoutRef.current = setTimeout(() => {
           setPlaceholderEvent(null);
-        }, 100);
+        }, 100) as any as number;
       }
     };
 
