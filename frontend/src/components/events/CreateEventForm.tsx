@@ -12,6 +12,7 @@ import ErrorDisplay from '../common/ErrorDisplay';
 import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { useAuth, usePermissions } from '../../AuthContext';
+import { useOrganization } from '../../OrganizationContext';
 
 const CreateEventForm: React.FC = () => {
   const navigate = useNavigate();
@@ -62,11 +63,12 @@ const CreateEventForm: React.FC = () => {
 
   const { userContext } = useAuth();
   const { hasPermission } = usePermissions();
+  const { selectedOrganization } = useOrganization();
   const canManageGlobalEvents = hasPermission('MANAGE_EVENTS_GLOBAL');
 
   useEffect(() => {
     const fetchOrganizations = async () => {
-      if (canManageGlobalEvents) {
+      if (!selectedOrganization && canManageGlobalEvents) {
         try {
           const orgs = await OrganizationService.getAllOrganizations();
           setAvailableOrganizations(orgs);
@@ -82,12 +84,14 @@ const CreateEventForm: React.FC = () => {
             setError({ message: 'An unknown error occurred while fetching organizations' });
           }
         }
+      } else if (selectedOrganization) {
+        setSelectedOrganizationId(selectedOrganization.organizationId.toString());
       } else if (userContext?.user?.organization?.organizationId) {
         setSelectedOrganizationId(userContext.user.organization.organizationId.toString());
       }
     };
     fetchOrganizations();
-  }, [canManageGlobalEvents, userContext]);
+  }, [canManageGlobalEvents, userContext, selectedOrganization]);
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -143,9 +147,14 @@ const CreateEventForm: React.FC = () => {
     setError(null);
 
     try {
-      const organizationIdToUse = canManageGlobalEvents
-        ? (selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined)
-        : userContext?.user?.organization?.organizationId;
+      let organizationIdToUse;
+      if (selectedOrganization) {
+        organizationIdToUse = selectedOrganization.organizationId;
+      } else if (canManageGlobalEvents) {
+        organizationIdToUse = selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined;
+      } else {
+        organizationIdToUse = userContext?.user?.organization?.organizationId;
+      }
 
       if (organizationIdToUse === undefined) {
         setError({ message: 'Organization must be selected.' });
@@ -222,7 +231,7 @@ const CreateEventForm: React.FC = () => {
             />
           </div>
 
-          {canManageGlobalEvents && (
+          {!selectedOrganization && canManageGlobalEvents && (
             <div className="mb-3">
               <label htmlFor="organization" className="form-label">Organization:</label>
               <select

@@ -9,6 +9,7 @@ import type { OrganizationResponse } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { useAuth, usePermissions } from '../../AuthContext';
+import { useOrganization } from '../../OrganizationContext';
 
 const CreateInventoryForm: React.FC = () => {
   const navigate = useNavigate();
@@ -21,11 +22,12 @@ const CreateInventoryForm: React.FC = () => {
 
   const { userContext } = useAuth();
   const { hasPermission } = usePermissions();
+  const { selectedOrganization } = useOrganization();
   const canManageGlobalInventory = hasPermission('MANAGE_INVENTORY_GLOBAL');
 
   useEffect(() => {
     const fetchOrganizations = async () => {
-      if (canManageGlobalInventory) {
+      if (!selectedOrganization && canManageGlobalInventory) {
         try {
           const orgs = await OrganizationService.getAllOrganizations();
           setAvailableOrganizations(orgs);
@@ -41,21 +43,28 @@ const CreateInventoryForm: React.FC = () => {
             setError({ message: 'An unknown error occurred while fetching organizations' });
           }
         }
+      } else if (selectedOrganization) {
+        setSelectedOrganizationId(selectedOrganization.organizationId.toString());
       } else if (userContext?.user?.organization?.organizationId) {
         setSelectedOrganizationId(userContext.user.organization.organizationId.toString());
       }
     };
     fetchOrganizations();
-  }, [canManageGlobalInventory, userContext]);
+  }, [canManageGlobalInventory, userContext, selectedOrganization]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
 
     try {
-      const organizationIdToUse = canManageGlobalInventory
-        ? (selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined)
-        : userContext?.user?.organization?.organizationId;
+      let organizationIdToUse;
+      if (selectedOrganization) {
+        organizationIdToUse = selectedOrganization.organizationId;
+      } else if (canManageGlobalInventory) {
+        organizationIdToUse = selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined;
+      } else {
+        organizationIdToUse = userContext?.user?.organization?.organizationId;
+      }
 
       if (organizationIdToUse === undefined) {
         setError({ message: 'Organization must be selected.' });
@@ -101,7 +110,7 @@ const CreateInventoryForm: React.FC = () => {
             <input type="number" id="quantity" className="form-control" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value))} required />
           </div>
 
-          {canManageGlobalInventory && (
+          {!selectedOrganization && canManageGlobalInventory && (
             <div className="mb-3">
               <label htmlFor="organization" className="form-label">Organization:</label>
               <select

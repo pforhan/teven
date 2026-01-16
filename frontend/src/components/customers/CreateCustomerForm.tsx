@@ -9,6 +9,7 @@ import type { OrganizationResponse } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { useAuth, usePermissions } from '../../AuthContext';
+import { useOrganization } from '../../OrganizationContext';
 
 const CreateCustomerForm: React.FC = () => {
   const navigate = useNavigate();
@@ -22,11 +23,12 @@ const CreateCustomerForm: React.FC = () => {
 
   const { userContext } = useAuth();
   const { hasPermission } = usePermissions();
+  const { selectedOrganization } = useOrganization();
   const canManageGlobalCustomers = hasPermission('MANAGE_CUSTOMERS_GLOBAL');
 
   useEffect(() => {
     const fetchOrganizations = async () => {
-      if (canManageGlobalCustomers) {
+      if (!selectedOrganization && canManageGlobalCustomers) {
         try {
           const orgs = await OrganizationService.getAllOrganizations();
           setAvailableOrganizations(orgs);
@@ -42,21 +44,28 @@ const CreateCustomerForm: React.FC = () => {
             setError({ message: 'An unknown error occurred while fetching organizations' });
           }
         }
+      } else if (selectedOrganization) {
+        setSelectedOrganizationId(selectedOrganization.organizationId.toString());
       } else if (userContext?.user?.organization?.organizationId) {
         setSelectedOrganizationId(userContext.user.organization.organizationId.toString());
       }
     };
     fetchOrganizations();
-  }, [canManageGlobalCustomers, userContext]);
+  }, [canManageGlobalCustomers, userContext, selectedOrganization]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
 
     try {
-      const organizationIdToUse = canManageGlobalCustomers
-        ? (selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined)
-        : userContext?.user?.organization?.organizationId;
+      let organizationIdToUse;
+      if (selectedOrganization) {
+        organizationIdToUse = selectedOrganization.organizationId;
+      } else if (canManageGlobalCustomers) {
+        organizationIdToUse = selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined;
+      } else {
+        organizationIdToUse = userContext?.user?.organization?.organizationId;
+      }
 
       if (organizationIdToUse === undefined) {
         setError({ message: 'Organization must be selected.' });
@@ -107,7 +116,7 @@ const CreateCustomerForm: React.FC = () => {
             <textarea id="notes" className="form-control" value={notes} onChange={(e) => setNotes(e.target.value)} required />
           </div>
 
-          {canManageGlobalCustomers && (
+          {!selectedOrganization && canManageGlobalCustomers && (
             <div className="mb-3">
               <label htmlFor="organization" className="form-label">Organization:</label>
               <select

@@ -10,6 +10,7 @@ import type { RoleResponse } from '../../types/roles';
 import type { OrganizationResponse } from '../../types/organizations';
 import ErrorDisplay from '../common/ErrorDisplay';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
+import { useOrganization } from '../../OrganizationContext';
 
 const CreateUserForm: React.FC = () => {
   const navigate = useNavigate();
@@ -20,11 +21,12 @@ const CreateUserForm: React.FC = () => {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleResponse[]>([]);
   const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
-  const [selectedOrganization, setSelectedOrganization] = useState<string>('');
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const { userContext } = useAuth();
   const { hasPermission } = usePermissions();
+  const { selectedOrganization } = useOrganization();
   const canManageGlobalUsers = hasPermission(Permission.MANAGE_USERS_GLOBAL);
 
   useEffect(() => {
@@ -33,9 +35,16 @@ const CreateUserForm: React.FC = () => {
         const rolesData = await RoleService.getAllRoles();
         setAvailableRoles(rolesData);
 
-        if (canManageGlobalUsers) {
+        if (!selectedOrganization && canManageGlobalUsers) {
           const orgsData = await OrganizationService.getAllOrganizations();
           setAvailableOrganizations(orgsData);
+          if (orgsData.length > 0) {
+            setSelectedOrganizationId(orgsData[0].organizationId.toString());
+          }
+        } else if (selectedOrganization) {
+            setSelectedOrganizationId(selectedOrganization.organizationId.toString());
+        } else if (userContext?.user?.organization?.organizationId) {
+            setSelectedOrganizationId(userContext.user.organization.organizationId.toString());
         }
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {
@@ -48,7 +57,7 @@ const CreateUserForm: React.FC = () => {
       }
     };
     fetchRolesAndOrganizations();
-  }, [canManageGlobalUsers]);
+  }, [canManageGlobalUsers, selectedOrganization, userContext]);
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const options = Array.from(e.target.options);
@@ -61,9 +70,14 @@ const CreateUserForm: React.FC = () => {
     setError(null);
 
     try {
-      const organizationIdToUse = canManageGlobalUsers
-        ? (selectedOrganization ? parseInt(selectedOrganization) : undefined)
-        : userContext?.user?.organization?.organizationId;
+        let organizationIdToUse;
+        if (selectedOrganization) {
+            organizationIdToUse = selectedOrganization.organizationId;
+        } else if (canManageGlobalUsers) {
+            organizationIdToUse = selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined;
+        } else {
+            organizationIdToUse = userContext?.user?.organization?.organizationId;
+        }
 
       if (organizationIdToUse === undefined) {
         setError({ message: 'Organization must be selected.' });
@@ -124,14 +138,14 @@ const CreateUserForm: React.FC = () => {
               ))}
             </select>
           </div>
-          {canManageGlobalUsers && (
+          {!selectedOrganization && canManageGlobalUsers && (
             <div className="mb-3">
               <label htmlFor="organization" className="form-label">Organization:</label>
               <select
                 id="organization"
                 className="form-select"
-                value={selectedOrganization}
-                onChange={(e) => setSelectedOrganization(e.target.value)}
+                value={selectedOrganizationId}
+                onChange={(e) => setSelectedOrganizationId(e.target.value)}
                 required
               >
                 <option value="">Select an Organization</option>
