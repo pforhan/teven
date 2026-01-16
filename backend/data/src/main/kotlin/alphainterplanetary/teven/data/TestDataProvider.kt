@@ -7,6 +7,8 @@ import alphainterplanetary.teven.data.event.Rsvps
 import alphainterplanetary.teven.data.inventory.InventoryItems
 import alphainterplanetary.teven.data.invitation.Invitations
 import alphainterplanetary.teven.data.organization.Organizations
+import alphainterplanetary.teven.data.role.Roles
+import alphainterplanetary.teven.data.role.UserRoles
 import alphainterplanetary.teven.data.user.UserOrganizations
 import alphainterplanetary.teven.data.user.Users
 import org.jetbrains.exposed.v1.core.eq
@@ -20,12 +22,17 @@ import java.time.LocalDate
 suspend fun populateTestData() {
   dbQuery {
     val testOrgPrefix = "TEST_ORG_"
-    val testUserEmailSuffixes = listOf("@greenvistas.com", "@urbanbloom.com")
 
     // Find and delete existing test organizations and their associated data
     val testOrganizationIds = Organizations.selectAll()
       .where { Organizations.name like "$testOrgPrefix%" }
       .map { it[Organizations.id].value }
+
+    // Grab all user IDs associated with these test organizations before we delete the mappings
+    val testUserIds = UserOrganizations.selectAll()
+      .where { UserOrganizations.organizationId inList testOrganizationIds }
+      .map { it[UserOrganizations.userId] }
+      .distinct()
 
     testOrganizationIds.forEach { orgId ->
       // Delete dependent data first
@@ -40,14 +47,12 @@ suspend fun populateTestData() {
       InventoryItems.deleteWhere { InventoryItems.organizationId eq orgId }
       UserOrganizations.deleteWhere { UserOrganizations.organizationId eq orgId }
       Invitations.deleteWhere { Invitations.organizationId eq orgId }
-      // Note: Users themselves are deleted based on email suffix, not organizationId directly
-      // because a user might belong to multiple organizations.
-      // We assume test user emails are unique to test data.
     }
 
-    // Delete users with test email suffixes
-    testUserEmailSuffixes.forEach { suffix ->
-      Users.deleteWhere { Users.email like "%${suffix}" }
+    // Delete the users found in test organizations
+    if (testUserIds.isNotEmpty()) {
+      UserRoles.deleteWhere { UserRoles.userId inList testUserIds }
+      Users.deleteWhere { Users.id inList testUserIds }
     }
 
     // Finally, delete the test organizations
@@ -105,6 +110,27 @@ suspend fun populateTestData() {
     UserOrganizations.insert {
       it[userId] = user4Id
       it[organizationId] = org2Id
+    }
+
+    // Assign Roles
+    val organizerRoleId = Roles.selectAll().where { Roles.roleName eq "Organizer" }.single()[Roles.id].value
+    val staffRoleId = Roles.selectAll().where { Roles.roleName eq "Staff" }.single()[Roles.id].value
+
+    UserRoles.insert {
+      it[userId] = user1Id
+      it[roleId] = organizerRoleId
+    }
+    UserRoles.insert {
+      it[userId] = user2Id
+      it[roleId] = staffRoleId
+    }
+    UserRoles.insert {
+      it[userId] = user3Id
+      it[roleId] = organizerRoleId
+    }
+    UserRoles.insert {
+      it[userId] = user4Id
+      it[roleId] = staffRoleId
     }
 
     // Create Customers
