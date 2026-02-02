@@ -8,6 +8,7 @@ import TableView, { type Column } from '../common/TableView';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { FaEdit, FaTrash, FaCheck, FaTimes, FaUndo } from 'react-icons/fa';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import QuickOrganizationPickerModal from '../common/QuickOrganizationPickerModal';
 
 const EventListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const EventListPage: React.FC = () => {
   const { selectedOrganization } = useOrganization();
   const canManageEvents = hasPermission('MANAGE_EVENTS_ORGANIZATION');
   const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
+  const [showOrgPicker, setShowOrgPicker] = useState(false);
   const [startDate, setStartDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -87,60 +89,64 @@ const EventListPage: React.FC = () => {
   };
 
   const columns: Column<EventResponse>[] = [
-    { key: 'title', label: 'Title', render: (event: EventResponse) => (
-      <div className="d-flex justify-content-between align-items-center position-relative">
-        {typeof event.eventId === 'number' ? (
-          <Link to={`/events/${event.eventId}`}>{event.title}</Link>
-        ) : (
-          <span>{event.title}</span>
-        )}
-        {canManageEvents && typeof event.eventId === 'number' && hoveredEventId === event.eventId && (
-          <div className="position-absolute top-0 end-0 z-1">
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${event.eventId}`}>Edit Event</Tooltip>}>
-              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/events/edit/${event.eventId}`)}><FaEdit /></button>
-            </OverlayTrigger>
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${event.eventId}`}>Delete Event</Tooltip>}>
-              <button className="btn btn-sm btn-light" onClick={() => handleDelete(event.eventId)}><FaTrash /></button>
-            </OverlayTrigger>
-          </div>
-        )}
-      </div>
-    ) },
+    {
+      key: 'title', label: 'Title', render: (event: EventResponse) => (
+        <div className="d-flex justify-content-between align-items-center position-relative">
+          {typeof event.eventId === 'number' ? (
+            <Link to={`/events/${event.eventId}`}>{event.title}</Link>
+          ) : (
+            <span>{event.title}</span>
+          )}
+          {canManageEvents && typeof event.eventId === 'number' && hoveredEventId === event.eventId && (
+            <div className="position-absolute top-0 end-0 z-1">
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${event.eventId}`}>Edit Event</Tooltip>}>
+                <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/events/edit/${event.eventId}`)}><FaEdit /></button>
+              </OverlayTrigger>
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${event.eventId}`}>Delete Event</Tooltip>}>
+                <button className="btn btn-sm btn-light" onClick={() => handleDelete(event.eventId)}><FaTrash /></button>
+              </OverlayTrigger>
+            </div>
+          )}
+        </div>
+      )
+    },
     { key: 'date', label: 'Date' },
     { key: 'time', label: 'Time' },
     { key: 'description', label: 'Description' },
     { key: 'customer', label: 'Customer', render: (event: EventResponse) => event.customer?.name || 'N/A' },
-    { key: 'rsvp', label: 'RSVP', render: (event: EventResponse) => {
-      const myRsvpStatus = event.rsvps?.find(rsvp => rsvp.userId === userContext?.user?.userId)?.availability;
-      return (
-        <div>
-          <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-available-${event.eventId}`}>RSVP Yes</Tooltip>}>
-            <button
-              className={`btn btn-sm me-1 ${myRsvpStatus === 'available' ? 'btn-success' : 'btn-light'}`}
-              onClick={() => handleRsvp(event.eventId, 'available')}
-            >
-              <FaCheck />
-            </button>
-          </OverlayTrigger>
-          <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-unavailable-${event.eventId}`}>RSVP No</Tooltip>}>
-            <button
-              className={`btn btn-sm me-1 ${myRsvpStatus === 'unavailable' ? 'btn-danger' : 'btn-light'}`}
-              onClick={() => handleRsvp(event.eventId, 'unavailable')}
-            >
-              <FaTimes />
-            </button>
-          </OverlayTrigger>
-          <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-clear-${event.eventId}`}>Clear RSVP</Tooltip>}>
-            <button
-              className="btn btn-sm btn-light"
-              onClick={() => handleRsvp(event.eventId, 'no response')}
-            >
-              <FaUndo />
-            </button>
-          </OverlayTrigger>
-        </div>
-      );
-    } },
+    {
+      key: 'rsvp', label: 'RSVP', render: (event: EventResponse) => {
+        const myRsvpStatus = event.rsvps?.find(rsvp => rsvp.userId === userContext?.user?.userId)?.availability;
+        return (
+          <div>
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-available-${event.eventId}`}>RSVP Yes</Tooltip>}>
+              <button
+                className={`btn btn-sm me-1 ${myRsvpStatus === 'available' ? 'btn-success' : 'btn-light'}`}
+                onClick={() => handleRsvp(event.eventId, 'available')}
+              >
+                <FaCheck />
+              </button>
+            </OverlayTrigger>
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-unavailable-${event.eventId}`}>RSVP No</Tooltip>}>
+              <button
+                className={`btn btn-sm me-1 ${myRsvpStatus === 'unavailable' ? 'btn-danger' : 'btn-light'}`}
+                onClick={() => handleRsvp(event.eventId, 'unavailable')}
+              >
+                <FaTimes />
+              </button>
+            </OverlayTrigger>
+            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-rsvp-clear-${event.eventId}`}>Clear RSVP</Tooltip>}>
+              <button
+                className="btn btn-sm btn-light"
+                onClick={() => handleRsvp(event.eventId, 'no response')}
+              >
+                <FaUndo />
+              </button>
+            </OverlayTrigger>
+          </div>
+        );
+      }
+    },
   ];
 
   return (
@@ -148,9 +154,26 @@ const EventListPage: React.FC = () => {
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Events</h2>
         {canManageEvents && (
-          <button className="btn btn-primary" onClick={() => navigate('/events/create')}>Create Event</button>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              if (hasPermission('VIEW_USERS_GLOBAL') && !selectedOrganization) {
+                setShowOrgPicker(true);
+                return;
+              }
+              navigate('/events/create');
+            }}
+          >
+            Create Event
+          </button>
         )}
       </div>
+
+      <QuickOrganizationPickerModal
+        show={showOrgPicker}
+        onHide={() => setShowOrgPicker(false)}
+        onSelect={() => navigate('/events/create')}
+      />
 
       <div className="d-flex justify-content-start mb-3">
         <div className="me-3">
@@ -162,7 +185,7 @@ const EventListPage: React.FC = () => {
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
-          <button className="btn btn-outline-secondary" type="button" onClick={() => {setStartDate(new Date().toISOString().split('T')[0]); setOffset(0);}}>Today</button>
+          <button className="btn btn-outline-secondary" type="button" onClick={() => { setStartDate(new Date().toISOString().split('T')[0]); setOffset(0); }}>Today</button>
         </div>
         <div>
           <label htmlFor="sortOrder" className="form-label">Sort Order</label>

@@ -11,12 +11,14 @@ data class EventResponse(
   val date: String,
   val time: String,
   val durationMinutes: Int,
-  val location: String,
-  val description: String,
+  val location: String? = null,
+  val description: String? = null,
   val inventoryItems: List<EventInventoryItem>,
-  val customer: CustomerResponse,
+  val customer: CustomerResponse? = null,
   val rsvps: List<RsvpStatus>,
   val organization: OrganizationResponse,
+  val openInvitation: Boolean = false,
+  val numberOfStaffNeeded: Int = 0,
 )
 
 @Serializable

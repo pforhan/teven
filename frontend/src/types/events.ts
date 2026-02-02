@@ -18,10 +18,10 @@ export interface CreateEventRequest {
   date: string; // ISO 8601 date string (e.g., "YYYY-MM-DD")
   time: string; // ISO 8601 time string (e.g., "HH:MM:SS")
   durationMinutes: number;
-  location: string;
-  description: string;
+  location?: string;
+  description?: string;
   inventoryItems: EventInventoryItem[];
-  customerId: number; // Single customer ID
+  customerId?: number; // Optional: Single customer ID
   staffInvites: StaffInviteDetails; // Details for staff invitation
   organizationId?: number;
 }
@@ -45,6 +45,8 @@ export interface EventResponse {
   customer?: CustomerResponse;
   rsvps?: RsvpStatus[];
   organization?: OrganizationResponse;
+  openInvitation?: boolean;
+  numberOfStaffNeeded?: number;
   isPlaceholder?: boolean;
 }
 

@@ -10,6 +10,7 @@ import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 
 import { usePermissions, useAuth } from '../../AuthContext';
 import { useOrganization } from '../../OrganizationContext';
+import QuickOrganizationPickerModal from '../common/QuickOrganizationPickerModal';
 
 const localizer = momentLocalizer(moment);
 
@@ -77,10 +78,12 @@ const EventCalendar: React.FC = () => {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
+  const [showOrgPicker, setShowOrgPicker] = useState(false);
+  const [pendingNavigateUrl, setPendingNavigateUrl] = useState<string | null>(null);
   const leaveTimeoutRef = React.useRef<number | null>(null);
 
   const fetchEvents = async (start: Date, end: Date, organizationId?: number) => {
-        try {
+    try {
       const eventData = await EventService.getAllEvents(1000, undefined, organizationId, moment(start).format('YYYY-MM-DD'), moment(end).format('YYYY-MM-DD'));
       setEvents(eventData.items);
 
@@ -96,7 +99,7 @@ const EventCalendar: React.FC = () => {
   };
 
   useEffect(() => {
-  
+
     let start, end;
     switch (view) {
       case Views.WEEK:
@@ -129,17 +132,35 @@ const EventCalendar: React.FC = () => {
 
       if (view === Views.MONTH) {
         if (action === 'click') {
-          navigate(`/events/create?date=${date}`);
+          const url = `/events/create?date=${date}`;
+          if (hasPermission('VIEW_USERS_GLOBAL') && !selectedOrganization) {
+            setPendingNavigateUrl(url);
+            setShowOrgPicker(true);
+            return;
+          }
+          navigate(url);
         }
       } else {
-        navigate(`/events/create?date=${date}&startTime=${startTime}&endTime=${endTime}`);
+        const url = `/events/create?date=${date}&startTime=${startTime}&endTime=${endTime}`;
+        if (hasPermission('VIEW_USERS_GLOBAL') && !selectedOrganization) {
+          setPendingNavigateUrl(url);
+          setShowOrgPicker(true);
+          return;
+        }
+        navigate(url);
       }
     }
   };
 
   const onSelectEvent = (event: CalendarEvent) => {
     if ('isPlaceholder' in event && event.isPlaceholder) {
-      navigate(`/events/create?date=${moment(event.date).format('YYYY-MM-DD')}`);
+      const url = `/events/create?date=${moment(event.date).format('YYYY-MM-DD')}`;
+      if (hasPermission('VIEW_USERS_GLOBAL') && !selectedOrganization) {
+        setPendingNavigateUrl(url);
+        setShowOrgPicker(true);
+        return;
+      }
+      navigate(url);
       return;
     }
     if ('eventId' in event) {
@@ -222,10 +243,37 @@ const EventCalendar: React.FC = () => {
         <div>
           <a href="/events/list" className="btn btn-primary">View All Events</a>
           {canManageEvents && (
-            <button className="btn btn-primary ms-2" onClick={() => navigate('/events/create')}>Create Event</button>
+            <button
+              className="btn btn-primary ms-2"
+              onClick={() => {
+                if (hasPermission('VIEW_USERS_GLOBAL') && !selectedOrganization) {
+                  setPendingNavigateUrl('/events/create');
+                  setShowOrgPicker(true);
+                  return;
+                }
+                navigate('/events/create');
+              }}
+            >
+              Create Event
+            </button>
           )}
         </div>
       </div>
+
+      <QuickOrganizationPickerModal
+        show={showOrgPicker}
+        onHide={() => {
+          setShowOrgPicker(false);
+          setPendingNavigateUrl(null);
+        }}
+        onSelect={() => {
+          if (pendingNavigateUrl) {
+            navigate(pendingNavigateUrl);
+          } else {
+            navigate('/events/create');
+          }
+        }}
+      />
       {error && (
         <div className="alert alert-danger">
           {error.message}

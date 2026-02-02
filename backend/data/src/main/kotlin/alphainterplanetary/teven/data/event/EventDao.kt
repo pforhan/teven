@@ -66,22 +66,24 @@ class EventDao {
         )
       }
 
-    val customerRow = Customers.selectAll().where { Customers.id eq row[Events.customerId] }.single()
-    val customerOrgRow = Organizations.selectAll()
-      .where { Organizations.id eq customerRow[Customers.organizationId] }
-      .single()
-    val customer = CustomerResponse(
-      customerId = customerRow[Customers.id],
-      name = customerRow[Customers.name],
-      phone = customerRow[Customers.phone],
-      address = customerRow[Customers.address],
-      notes = customerRow[Customers.notes],
-      organization = OrganizationResponse(
-        organizationId = customerOrgRow[Organizations.id].value,
-        name = customerOrgRow[Organizations.name],
-        contactInformation = customerOrgRow[Organizations.contactInformation]
+    val customer = row[Events.customerId]?.let { custId ->
+      val customerRow = Customers.selectAll().where { Customers.id eq custId }.single()
+      val customerOrgRow = Organizations.selectAll()
+        .where { Organizations.id eq customerRow[Customers.organizationId] }
+        .single()
+      CustomerResponse(
+        customerId = customerRow[Customers.id],
+        name = customerRow[Customers.name],
+        phone = customerRow[Customers.phone],
+        address = customerRow[Customers.address],
+        notes = customerRow[Customers.notes],
+        organization = OrganizationResponse(
+          organizationId = customerOrgRow[Organizations.id].value,
+          name = customerOrgRow[Organizations.name],
+          contactInformation = customerOrgRow[Organizations.contactInformation]
+        )
       )
-    )
+    }
 
     return EventResponse(
       eventId = eventId,
@@ -95,6 +97,8 @@ class EventDao {
       customer = customer,
       rsvps = rsvps,
       organization = organization,
+      openInvitation = row[Events.openInvitation],
+      numberOfStaffNeeded = row[Events.numberOfStaffNeeded],
     )
   }
 

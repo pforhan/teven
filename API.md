@@ -212,10 +212,10 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val date: String, 
           val time: String, 
           val durationMinutes: Int, 
-          val location: String, 
-          val description: String, 
+          val location: String?, 
+          val description: String?, 
           val inventoryItems: List<EventInventoryItem>, 
-          val customerId: Int, 
+          val customerId: Int?, 
           val staffInvites: StaffInviteDetails, 
           val organizationId: Int
         )
@@ -228,12 +228,14 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val date: String, 
           val time: String, 
           val durationMinutes: Int, 
-          val location: String, 
-          val description: String, 
+          val location: String?, 
+          val description: String?, 
           val inventoryItems: List<EventInventoryItem>, 
-          val customer: CustomerResponse, 
+          val customer: CustomerResponse?, 
           val rsvps: List<RsvpStatus>, 
-          val organization: OrganizationResponse
+          val organization: OrganizationResponse, 
+          val openInvitation: Boolean = false, 
+          val numberOfStaffNeeded: Int = 0
         )
         ```
 
@@ -259,12 +261,14 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val date: String, 
           val time: String, 
           val durationMinutes: Int, 
-          val location: String, 
-          val description: String, 
+          val location: String?, 
+          val description: String?, 
           val inventoryItems: List<EventInventoryItem>, 
-          val customer: CustomerResponse, 
+          val customer: CustomerResponse?, 
           val rsvps: List<RsvpStatus>, 
-          val organization: OrganizationResponse
+          val organization: OrganizationResponse, 
+          val openInvitation: Boolean = false, 
+          val numberOfStaffNeeded: Int = 0
         )
         ```
 
@@ -294,12 +298,14 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val date: String, 
           val time: String, 
           val durationMinutes: Int, 
-          val location: String, 
-          val description: String, 
+          val location: String?, 
+          val description: String?, 
           val inventoryItems: List<EventInventoryItem>, 
-          val customer: CustomerResponse, 
+          val customer: CustomerResponse?, 
           val rsvps: List<RsvpStatus>, 
-          val organization: OrganizationResponse
+          val organization: OrganizationResponse, 
+          val openInvitation: Boolean = false, 
+          val numberOfStaffNeeded: Int = 0
         )
         ```
 
@@ -713,10 +719,10 @@ data class CreateEventRequest(
   val date: String, 
   val time: String, 
   val durationMinutes: Int, 
-  val location: String, 
-  val description: String, 
+  val location: String?, 
+  val description: String?, 
   val inventoryItems: List<EventInventoryItem>, 
-  val customerId: Int, 
+  val customerId: Int?, 
   val staffInvites: StaffInviteDetails, 
   val organizationId: Int
 )
@@ -776,12 +782,14 @@ data class EventResponse(
   val date: String, 
   val time: String, 
   val durationMinutes: Int, 
-  val location: String, 
-  val description: String, 
+  val location: String?, 
+  val description: String?, 
   val inventoryItems: List<EventInventoryItem>, 
-  val customer: CustomerResponse, 
+  val customer: CustomerResponse?, 
   val rsvps: List<RsvpStatus>, 
-  val organization: OrganizationResponse
+  val organization: OrganizationResponse, 
+  val openInvitation: Boolean = false, 
+  val numberOfStaffNeeded: Int = 0
 )
 
 data class EventSummaryResponse(
