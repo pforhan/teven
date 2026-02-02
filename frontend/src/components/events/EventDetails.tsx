@@ -5,6 +5,7 @@ import type { EventResponse } from '../../types/events';
 import ErrorDisplay from '../common/ErrorDisplay';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { useAuth, usePermissions } from '../../AuthContext';
+import OtherEventsPanel from './OtherEventsPanel';
 
 const EventDetails: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -170,6 +171,15 @@ const EventDetails: React.FC = () => {
         </div>
 
         <div className="col-lg-4">
+          {/* Other Events Panel */}
+          {event && (
+            <OtherEventsPanel
+              date={event.date}
+              organizationId={event.organization?.organizationId || ''}
+              excludeEventId={eventId}
+            />
+          )}
+
           {/* RSVP Card */}
           <div className="card shadow-sm mb-4">
             <div className="card-body p-4">

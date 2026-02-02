@@ -12,6 +12,7 @@ import ErrorDisplay from '../common/ErrorDisplay';
 import InventoryAssociationEditor from '../common/InventoryAssociationEditor';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { usePermissions } from '../../AuthContext';
+import OtherEventsPanel from './OtherEventsPanel';
 
 const EditEventForm: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +33,6 @@ const EditEventForm: React.FC = () => {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
 
-  const [nearbyEvents, setNearbyEvents] = useState<EventResponse[]>([]);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
 
   const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
@@ -105,20 +105,6 @@ const EditEventForm: React.FC = () => {
     fetchCustomersAndUsers();
   }, [selectedOrganizationId]);
 
-  useEffect(() => {
-    const fetchNearbyEvents = async () => {
-      if (date && selectedOrganizationId) {
-        try {
-          const response = await EventService.getAllEvents(undefined, undefined, parseInt(selectedOrganizationId), date, date);
-          // Filter out the current event being edited
-          setNearbyEvents(response.items.filter(e => e.eventId.toString() !== eventId));
-        } catch (err) {
-          console.error("Failed to fetch nearby events", err);
-        }
-      }
-    };
-    fetchNearbyEvents();
-  }, [date, selectedOrganizationId, eventId]);
 
   // --- Handlers ---
   const handleCreateCustomer = async () => {
@@ -329,25 +315,11 @@ const EditEventForm: React.FC = () => {
 
         {/* Sidebar: Conflicts/Nearby Events */}
         <div className="col-lg-4">
-          <div className="card border-0 bg-light shadow-sm">
-            <div className="card-body p-4">
-              <h5 className="fw-bold mb-3 text-secondary">Other events on {date}</h5>
-              {nearbyEvents.length === 0 ? (
-                <p className="text-muted small">No other events scheduled for this day.</p>
-              ) : (
-                <div className="list-group list-group-flush bg-transparent">
-                  {[...nearbyEvents].sort((a, b) => a.time.localeCompare(b.time)).map(event => (
-                    <div key={event.eventId} className="list-group-item bg-transparent px-0 py-3">
-                      <div className="d-flex w-100 justify-content-between">
-                        <h6 className="mb-1 fw-bold">{event.title}</h6>
-                        <small className="text-primary">{event.time}</small>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <OtherEventsPanel
+            date={date}
+            organizationId={selectedOrganizationId}
+            excludeEventId={eventId}
+          />
         </div>
       </div>
 

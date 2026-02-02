@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import { CustomerService } from '../../api/CustomerService';
 import { UserService } from '../../api/UserService';
-import type { CreateEventRequest, EventInventoryItem, EventResponse } from '../../types/events';
+import type { CreateEventRequest, EventInventoryItem } from '../../types/events';
 import type { CustomerResponse, CreateCustomerRequest } from '../../types/customers';
 import type { UserResponse } from '../../types/auth';
 import ErrorDisplay from '../common/ErrorDisplay';
@@ -12,6 +12,7 @@ import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
 import { useAuth, usePermissions } from '../../AuthContext';
 import { useOrganization } from '../../OrganizationContext';
 import QuickOrganizationPickerModal from '../common/QuickOrganizationPickerModal';
+import OtherEventsPanel from './OtherEventsPanel';
 
 const CreateEventForm: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +33,6 @@ const CreateEventForm: React.FC = () => {
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
 
   const [showMoreDetails, setShowMoreDetails] = useState(false);
-  const [nearbyEvents, setNearbyEvents] = useState<EventResponse[]>([]);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [showOrgPicker, setShowOrgPicker] = useState(false);
   const [locationManuallyEdited, setLocationManuallyEdited] = useState(false);
@@ -128,19 +128,6 @@ const CreateEventForm: React.FC = () => {
     fetchUsers();
   }, [selectedOrganizationId]);
 
-  useEffect(() => {
-    const fetchNearbyEvents = async () => {
-      if (date && selectedOrganizationId) {
-        try {
-          const response = await EventService.getAllEvents(undefined, undefined, parseInt(selectedOrganizationId), date, date);
-          setNearbyEvents(response.items);
-        } catch (err) {
-          console.error("Failed to fetch nearby events", err);
-        }
-      }
-    };
-    fetchNearbyEvents();
-  }, [date, selectedOrganizationId]);
 
   // --- Handlers ---
   const handleCreateCustomer = async () => {
@@ -393,29 +380,10 @@ const CreateEventForm: React.FC = () => {
 
         {/* Sidebar: Conflicts/Nearby Events */}
         <div className="col-lg-4">
-          <div className="card border-0 bg-light shadow-sm">
-            <div className="card-body p-4">
-              <h5 className="fw-bold mb-3 text-secondary">Events on {date}</h5>
-              {nearbyEvents.length === 0 ? (
-                <p className="text-muted small">No other events scheduled for this day.</p>
-              ) : (
-                <div className="list-group list-group-flush bg-transparent">
-                  {[...nearbyEvents].sort((a, b) => a.time.localeCompare(b.time)).map(event => (
-                    <div key={event.eventId} className="list-group-item bg-transparent px-0 py-3">
-                      <div className="d-flex w-100 justify-content-between">
-                        <h6 className="mb-1 fw-bold">{event.title}</h6>
-                        <small className="text-primary">{event.time}</small>
-                      </div>
-                      <p className="mb-1 small text-muted">
-                        <i className="bi bi-clock me-1"></i> {event.durationMinutes} min
-                        {event.location && <span className="ms-3"><i className="bi bi-geo-alt me-1"></i> {event.location}</span>}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <OtherEventsPanel
+            date={date}
+            organizationId={selectedOrganizationId}
+          />
         </div>
       </div>
 
