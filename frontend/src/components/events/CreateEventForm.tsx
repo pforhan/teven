@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
-import { OrganizationService } from '../../api/OrganizationService';
 import { CustomerService } from '../../api/CustomerService';
 import { UserService } from '../../api/UserService';
 import type { CreateEventRequest, EventInventoryItem, EventResponse } from '../../types/events';
-import type { OrganizationResponse } from '../../types/organizations';
 import type { CustomerResponse, CreateCustomerRequest } from '../../types/customers';
 import type { UserResponse } from '../../types/auth';
 import ErrorDisplay from '../common/ErrorDisplay';
@@ -37,8 +35,8 @@ const CreateEventForm: React.FC = () => {
   const [nearbyEvents, setNearbyEvents] = useState<EventResponse[]>([]);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const [showOrgPicker, setShowOrgPicker] = useState(false);
+  const [locationManuallyEdited, setLocationManuallyEdited] = useState(false);
 
-  const [availableOrganizations, setAvailableOrganizations] = useState<OrganizationResponse[]>([]);
   const [availableCustomers, setAvailableCustomers] = useState<CustomerResponse[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([]);
 
@@ -87,12 +85,6 @@ const CreateEventForm: React.FC = () => {
           setShowOrgPicker(true);
         }
         setSelectedOrganizationId('');
-        try {
-          const orgs = await OrganizationService.getAllOrganizations();
-          setAvailableOrganizations(orgs);
-        } catch (err: unknown) {
-          console.error("Failed to fetch organizations", err);
-        }
       } else if (selectedOrganization) {
         setSelectedOrganizationId(selectedOrganization.organizationId.toString());
         setShowOrgPicker(false);
@@ -168,7 +160,7 @@ const CreateEventForm: React.FC = () => {
       setNewCustomerName('');
       setNewCustomerPhone('');
       setNewCustomerAddress('');
-      if (!eventLocation) setEventLocation(created.address);
+      if (!locationManuallyEdited) setEventLocation(created.address);
     } catch (err) {
       console.error("Failed to create customer", err);
     }
@@ -177,7 +169,7 @@ const CreateEventForm: React.FC = () => {
   const handleCustomerChange = (id: string) => {
     setCustomerId(id);
     const customer = availableCustomers.find(c => c.customerId.toString() === id);
-    if (customer && !eventLocation) {
+    if (customer && !locationManuallyEdited) {
       setEventLocation(customer.address);
     }
   };
@@ -303,26 +295,10 @@ const CreateEventForm: React.FC = () => {
                   </div>
                 ) : (
                   <div className="fade-in">
-                    <hr />
-
                     <div className="row mb-4">
                       <div className="col-md-6">
                         <label htmlFor="durationMinutes" className="form-label fw-bold">Duration (min)</label>
                         <input type="number" id="durationMinutes" className="form-control" value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value))} required />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label fw-bold">Organization</label>
-                        <select
-                          className="form-select"
-                          value={selectedOrganizationId}
-                          onChange={(e) => setSelectedOrganizationId(e.target.value)}
-                          required
-                          disabled={!!selectedOrganization}
-                        >
-                          {availableOrganizations.map(org => (
-                            <option key={org.organizationId} value={org.organizationId}>{org.name}</option>
-                          ))}
-                        </select>
                       </div>
                     </div>
 
@@ -346,7 +322,17 @@ const CreateEventForm: React.FC = () => {
 
                     <div className="mb-4">
                       <label htmlFor="eventLocation" className="form-label fw-bold">Location</label>
-                      <input type="text" id="eventLocation" className="form-control" value={eventLocation} onChange={(e) => setEventLocation(e.target.value)} placeholder="Physical address or venue name" />
+                      <input
+                        type="text"
+                        id="eventLocation"
+                        className="form-control"
+                        value={eventLocation}
+                        onChange={(e) => {
+                          setEventLocation(e.target.value);
+                          setLocationManuallyEdited(true);
+                        }}
+                        placeholder="Physical address or venue name"
+                      />
                     </div>
 
                     <div className="mb-4">
@@ -457,95 +443,100 @@ const CreateEventForm: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* Staff Modal */}
-      {showStaffModal && (
-        <div className="modal fade show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content border-0 shadow">
-              <div className="modal-header border-0 pb-0">
-                <h5 className="modal-title fw-bold">Event Staffing</h5>
-                <button type="button" className="btn-close" onClick={() => setShowStaffModal(false)}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label htmlFor="numberOfStaffNeeded" className="form-label fw-bold small text-uppercase text-muted">Number of Staff Needed</label>
-                  <input
-                    type="number"
-                    id="numberOfStaffNeeded"
-                    className="form-control"
-                    value={numberOfStaffNeeded}
-                    onChange={(e) => setNumberOfStaffNeeded(parseInt(e.target.value) || 0)}
-                  />
+      {
+        showStaffModal && (
+          <div className="modal fade show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content border-0 shadow">
+                <div className="modal-header border-0 pb-0">
+                  <h5 className="modal-title fw-bold">Event Staffing</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowStaffModal(false)}></button>
                 </div>
-                <div className="mb-3 form-check">
-                  <input
-                    type="checkbox"
-                    id="openInvitation"
-                    className="form-check-input"
-                    checked={openInvitation}
-                    onChange={(e) => setOpenInvitation(e.target.checked)}
-                  />
-                  <label htmlFor="openInvitation" className="form-check-label">Open invitation to all staff</label>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label htmlFor="numberOfStaffNeeded" className="form-label fw-bold small text-uppercase text-muted">Number of Staff Needed</label>
+                    <input
+                      type="number"
+                      id="numberOfStaffNeeded"
+                      className="form-control"
+                      value={numberOfStaffNeeded}
+                      onChange={(e) => setNumberOfStaffNeeded(parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="mb-3 form-check">
+                    <input
+                      type="checkbox"
+                      id="openInvitation"
+                      className="form-check-input"
+                      checked={openInvitation}
+                      onChange={(e) => setOpenInvitation(e.target.checked)}
+                    />
+                    <label htmlFor="openInvitation" className="form-check-label">Open invitation to all staff</label>
+                  </div>
+                  <hr />
+                  <div className="mb-3">
+                    <label htmlFor="staffInvites" className="form-label fw-bold small text-uppercase text-muted">Invite Specific Staff</label>
+                    <select
+                      id="staffInvites"
+                      className="form-select"
+                      multiple
+                      size={6}
+                      value={selectedUserIds.map(String)}
+                      onChange={(e) => setSelectedUserIds(Array.from(e.target.selectedOptions, (option) => parseInt(option.value)))}
+                    >
+                      {availableUsers.map(user => (
+                        <option key={user.userId} value={user.userId}>{user.displayName}</option>
+                      ))}
+                    </select>
+                    <div className="form-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple staff members.</div>
+                  </div>
                 </div>
-                <hr />
-                <div className="mb-3">
-                  <label htmlFor="staffInvites" className="form-label fw-bold small text-uppercase text-muted">Invite Specific Staff</label>
-                  <select
-                    id="staffInvites"
-                    className="form-select"
-                    multiple
-                    size={6}
-                    value={selectedUserIds.map(String)}
-                    onChange={(e) => setSelectedUserIds(Array.from(e.target.selectedOptions, (option) => parseInt(option.value)))}
-                  >
-                    {availableUsers.map(user => (
-                      <option key={user.userId} value={user.userId}>{user.displayName}</option>
-                    ))}
-                  </select>
-                  <div className="form-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple staff members.</div>
+                <div className="modal-footer border-0">
+                  <button type="button" className="btn btn-primary w-100" onClick={() => setShowStaffModal(false)}>Done</button>
                 </div>
-              </div>
-              <div className="modal-footer border-0">
-                <button type="button" className="btn btn-primary w-100" onClick={() => setShowStaffModal(false)}>Done</button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Customer Modal */}
-      {showCustomerModal && (
-        <div className="modal fade show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content border-0 shadow">
-              <div className="modal-header border-0 pb-0">
-                <h5 className="modal-title fw-bold">Create New Customer</h5>
-                <button type="button" className="btn-close" onClick={() => setShowCustomerModal(false)}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label fw-bold small text-uppercase text-muted">Name</label>
-                  <input type="text" className="form-control" value={newCustomerName} onChange={(e) => setNewCustomerName(e.target.value)} placeholder="Full name or company" />
+      {
+        showCustomerModal && (
+          <div className="modal fade show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content border-0 shadow">
+                <div className="modal-header border-0 pb-0">
+                  <h5 className="modal-title fw-bold">Create New Customer</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowCustomerModal(false)}></button>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label fw-bold small text-uppercase text-muted">Phone</label>
-                  <input type="text" className="form-control" value={newCustomerPhone} onChange={(e) => setNewCustomerPhone(e.target.value)} placeholder="(555) 000-0000" />
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label className="form-label fw-bold small text-uppercase text-muted">Name</label>
+                    <input type="text" className="form-control" value={newCustomerName} onChange={(e) => setNewCustomerName(e.target.value)} placeholder="Full name or company" />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold small text-uppercase text-muted">Phone</label>
+                    <input type="text" className="form-control" value={newCustomerPhone} onChange={(e) => setNewCustomerPhone(e.target.value)} placeholder="(555) 000-0000" />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold small text-uppercase text-muted">Address</label>
+                    <input type="text" className="form-control" value={newCustomerAddress} onChange={(e) => setNewCustomerAddress(e.target.value)} placeholder="Full street address" />
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label fw-bold small text-uppercase text-muted">Address</label>
-                  <input type="text" className="form-control" value={newCustomerAddress} onChange={(e) => setNewCustomerAddress(e.target.value)} placeholder="Full street address" />
+                <div className="modal-footer border-0">
+                  <button type="button" className="btn btn-outline-secondary" onClick={() => setShowCustomerModal(false)}>Cancel</button>
+                  <button type="button" className="btn btn-primary px-4" onClick={handleCreateCustomer} disabled={!newCustomerName}>Create & Select</button>
                 </div>
-              </div>
-              <div className="modal-footer border-0">
-                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowCustomerModal(false)}>Cancel</button>
-                <button type="button" className="btn btn-primary px-4" onClick={handleCreateCustomer} disabled={!newCustomerName}>Create & Select</button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
     </div>
   );
