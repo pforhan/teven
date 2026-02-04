@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.data.user
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.api.model.user.UpdateUserRequest
@@ -7,9 +8,15 @@ import alphainterplanetary.teven.core.security.PasswordHasher
 import alphainterplanetary.teven.core.user.User
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.organization.Organizations
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.like
+import org.jetbrains.exposed.v1.core.lowerCase
+import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -44,6 +51,55 @@ class UserDao {
       email = registerRequest.email,
       displayName = registerRequest.displayName,
       passwordHash = PasswordHasher.hashPassword(registerRequest.password)
+    )
+  }
+
+  suspend fun getUsers(
+    organizationId: Int?,
+    search: String?,
+    limit: Int?,
+    offset: Long?,
+    sortBy: String?,
+    sortOrder: String?,
+  ): PaginatedResponse<User> = dbQuery {
+    val conditions = mutableListOf<Op<Boolean>>()
+    if (organizationId != null) {
+      val userIdsInOrg = UserOrganizations.selectAll()
+        .where { UserOrganizations.organizationId eq organizationId }
+        .map { it[UserOrganizations.userId] }
+      conditions.add(Users.id inList userIdsInOrg)
+    }
+    search?.let { val s = "%${it.lowercase()}%"
+      conditions.add((Users.username.lowerCase() like s) or (Users.email.lowerCase() like s) or (Users.displayName.lowerCase() like s))
+    }
+
+    val query = if (conditions.isEmpty()) {
+      Users.selectAll()
+    } else {
+      val combinedCondition = conditions.reduce { acc, op -> acc and op }
+      Users.selectAll().where { combinedCondition }
+    }
+
+    val total = query.count()
+
+    val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
+    when (sortBy) {
+      "username" -> query.orderBy(Users.username, sort)
+      "email" -> query.orderBy(Users.email, sort)
+      "displayName" -> query.orderBy(Users.displayName, sort)
+      else -> query.orderBy(Users.id, sort)
+    }
+
+    offset?.let { query.offset(it) }
+    limit?.let { query.limit(it) }
+
+    val users = query.map { toUser(it) }
+
+    PaginatedResponse(
+      items = users,
+      total = total,
+      offset = offset ?: 0,
+      limit = limit ?: 0,
     )
   }
 

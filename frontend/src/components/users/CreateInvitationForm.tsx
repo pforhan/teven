@@ -33,10 +33,10 @@ export const CreateInvitationForm: React.FC<CreateInvitationFormProps> = ({ onIn
         }
 
         if (userContext?.permissions.includes(Permission.MANAGE_INVITATIONS_GLOBAL)) {
-          const fetchedOrgs = await OrganizationService.getAllOrganizations();
-          setOrganizations(fetchedOrgs);
-          if (fetchedOrgs.length > 0) {
-            setSelectedOrganizationId(fetchedOrgs[0].organizationId);
+          const response = await OrganizationService.getAllOrganizations(1000);
+          setOrganizations(response.items);
+          if (response.items.length > 0) {
+            setSelectedOrganizationId(response.items[0].organizationId);
           }
         }
       } catch (err) {

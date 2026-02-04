@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
@@ -16,14 +16,22 @@ const CustomerList: React.FC = () => {
   const { hasPermission } = usePermissions();
   const { selectedOrganization } = useOrganization();
   const canManageCustomers = hasPermission('MANAGE_CUSTOMERS_ORGANIZATION');
-  const [nameFilter, setNameFilter] = useState('');
-  const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [hoveredCustomerId, setHoveredCustomerId] = useState<number | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     try {
-      const customerData = await CustomerService.getAllCustomers(nameFilter, sortByName === '' ? undefined : sortByName);
-      setCustomers(customerData);
+      const response = await CustomerService.getAllCustomers(
+        25,
+        0,
+        search,
+        sortBy,
+        sortOrder,
+        selectedOrganization?.organizationId
+      );
+      setCustomers(response.items);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
         setError({ message: err.message, details: err.details });
@@ -33,18 +41,20 @@ const CustomerList: React.FC = () => {
         setError({ message: 'An unknown error occurred' });
       }
     }
-  }, [nameFilter, sortByName]);
+  }, [search, sortBy, sortOrder, selectedOrganization]);
 
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  const filteredCustomers = useMemo(() => {
-    if (!selectedOrganization) {
-      return customers;
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(key);
+      setSortOrder('asc');
     }
-    return customers.filter(customer => customer.organization.organizationId === selectedOrganization.organizationId);
-  }, [customers, selectedOrganization]);
+  };
 
   const handleDelete = async (customerId: number) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
@@ -62,21 +72,23 @@ const CustomerList: React.FC = () => {
   };
 
   const columns: Column<CustomerResponse>[] = [
-    { key: 'name', label: 'Name', render: (customer: CustomerResponse) => (
-      <div className="d-flex justify-content-between align-items-center position-relative">
-        <Link to={`/customers/${customer.customerId}`}>{customer.name}</Link>
-        {canManageCustomers && hoveredCustomerId === customer.customerId && (
-          <div className="position-absolute top-0 end-0 z-1">
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${customer.customerId}`}>Edit</Tooltip>}>
-              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/customers/edit/${customer.customerId}`)}><FaEdit /></button>
-            </OverlayTrigger>
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${customer.customerId}`}>Delete</Tooltip>}>
-              <button className="btn btn-sm btn-light" onClick={() => handleDelete(customer.customerId)}><FaTrash /></button>
-            </OverlayTrigger>
-          </div>
-        )}
-      </div>
-    ) },
+    {
+      key: 'name', label: 'Name', sortable: true, render: (customer: CustomerResponse) => (
+        <div className="d-flex justify-content-between align-items-center position-relative w-100">
+          <Link to={`/customers/${customer.customerId}`}>{customer.name}</Link>
+          {canManageCustomers && hoveredCustomerId === customer.customerId && (
+            <div className="position-absolute top-0 end-0 z-1">
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${customer.customerId}`}>Edit</Tooltip>}>
+                <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/customers/edit/${customer.customerId}`)}><FaEdit /></button>
+              </OverlayTrigger>
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${customer.customerId}`}>Delete</Tooltip>}>
+                <button className="btn btn-sm btn-light" onClick={() => handleDelete(customer.customerId)}><FaTrash /></button>
+              </OverlayTrigger>
+            </div>
+          )}
+        </div>
+      )
+    },
     { key: 'phone', label: 'Phone' },
     { key: 'address', label: 'Address' },
     { key: 'notes', label: 'Notes' },
@@ -93,32 +105,28 @@ const CustomerList: React.FC = () => {
 
       <div className="row mb-3">
         <div className="col-md-6">
-          <label htmlFor="nameFilter" className="form-label">Filter by Name:</label>
+          <label htmlFor="search" className="form-label">Search:</label>
           <input
             type="text"
-            id="nameFilter"
+            id="search"
             className="form-control"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name..."
           />
-        </div>
-        <div className="col-md-6">
-          <label htmlFor="sortByName" className="form-label">Sort by Name:</label>
-          <select id="sortByName" className="form-select" value={sortByName} onChange={(e) => setSortByName(e.target.value as 'asc' | 'desc' | '')}>
-            <option value="">None</option>
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
         </div>
       </div>
 
       <TableView
-        data={filteredCustomers}
+        data={customers}
         columns={columns}
         keyField="customerId"
         error={error}
         onRowMouseEnter={(customer) => setHoveredCustomerId(customer.customerId)}
         onRowMouseLeave={() => setHoveredCustomerId(null)}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
       />
     </div>
   );

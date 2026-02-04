@@ -12,11 +12,11 @@ interface InventoryAssociationEditorProps {
   organizationId: string | null;
 }
 
-const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({ 
+const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
   initialInventoryItems,
   onInventoryItemsChange,
   organizationId,
- }) => {
+}) => {
   const [availableInventory, setAvailableInventory] = useState<InventoryItemResponse[]>([]);
   const [selectedInventoryId, setSelectedInventoryId] = useState<string>('');
   const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
@@ -31,14 +31,18 @@ const InventoryAssociationEditor: React.FC<InventoryAssociationEditorProps> = ({
         return;
       }
       try {
-        const items = await InventoryService.getAllInventoryItems(
+        const orgId = parseInt(organizationId);
+        const response = await InventoryService.getAllInventoryItems(
+          1000,
+          0,
           undefined,
+          'name',
           'asc',
-          parseInt(organizationId)
+          orgId
         );
-        setAvailableInventory(items);
-        if (items.length > 0 && !selectedInventoryId) {
-          setSelectedInventoryId(items[0].inventoryId.toString());
+        setAvailableInventory(response.items);
+        if (response.items.length > 0 && !selectedInventoryId) {
+          setSelectedInventoryId(response.items[0].inventoryId.toString());
         }
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {

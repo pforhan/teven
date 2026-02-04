@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.service.inventory
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.inventory.CreateInventoryItemRequest
 import alphainterplanetary.teven.api.model.inventory.InventoryItemResponse
 import alphainterplanetary.teven.api.model.inventory.TrackInventoryUsageRequest
@@ -9,6 +10,31 @@ import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.data.inventory.InventoryDao
 
 class InventoryService(private val inventoryDao: InventoryDao) {
+  suspend fun getInventoryItems(
+    authContext: AuthContext,
+    organizationId: Int? = null,
+    search: String? = null,
+    limit: Int? = null,
+    offset: Long? = null,
+    sortBy: String? = null,
+    sortOrder: String? = null,
+  ): PaginatedResponse<InventoryItemResponse> {
+    val orgIdToUse = if (authContext.hasPermission(Permission.VIEW_INVENTORY_GLOBAL)) {
+      organizationId
+    } else {
+      authContext.organizationId
+    }
+
+    return inventoryDao.getInventoryItems(
+      organizationId = orgIdToUse,
+      search = search,
+      limit = limit,
+      offset = offset,
+      sortBy = sortBy,
+      sortOrder = sortOrder
+    )
+  }
+
   suspend fun getAllInventoryItems(authContext: AuthContext, organizationId: Int? = null): List<InventoryItemResponse> {
     val orgIdToUse = if (authContext.hasPermission(Permission.VIEW_INVENTORY_GLOBAL)) {
       organizationId

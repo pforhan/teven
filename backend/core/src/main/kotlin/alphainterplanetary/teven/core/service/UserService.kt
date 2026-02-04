@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.core.service
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.auth.LoggedInContextResponse
 import alphainterplanetary.teven.api.model.invitation.AcceptInvitationRequest
 import alphainterplanetary.teven.api.model.user.CreateUserRequest
@@ -13,6 +14,15 @@ interface UserService {
   suspend fun toUserResponse(user: User): UserResponse
   suspend fun createUser(createUserRequest: CreateUserRequest, authContext: AuthContext): UserResponse
   suspend fun createUserFromInvitation(request: AcceptInvitationRequest, invitation: Invitation): Int
+  suspend fun getUsers(
+    authContext: AuthContext,
+    organizationId: Int? = null,
+    search: String? = null,
+    limit: Int? = null,
+    offset: Long? = null,
+    sortBy: String? = null,
+    sortOrder: String? = null,
+  ): PaginatedResponse<UserResponse>
   suspend fun getAllUsers(authContext: AuthContext, organizationId: Int? = null): List<UserResponse>
   suspend fun getUserById(userId: Int): UserResponse?
   suspend fun getUserContext(userId: Int): LoggedInContextResponse

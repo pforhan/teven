@@ -6,22 +6,28 @@ This document outlines the API endpoints for the Teven service, including their 
 
 All API responses will follow a consistent structure to ensure predictable handling of successes and failures.
 
-```kotlin
-data class ApiResponse<T>(
-  val success: Boolean, 
-  val data: T?, 
-  val error: ApiError?
-)
+<!-- DATA_MODEL_ApiResponse -->
 
-data class ApiError(
-  val message: String, 
-  val details: String? = null
-)
-```
+<!-- DATA_MODEL_ApiError -->
+
+<!-- DATA_MODEL_PaginatedResponse -->
 
 *   `success`: A boolean indicating if the request was successful.
 *   `data`: The payload of the response. For successful requests, this will contain the requested data. For failed requests, this will be `null`.
 *   `error`: An object containing error details. For successful requests, this will be `null`.
+*   `PaginatedResponse`: A standard structure for paginated lists of data.
+
+---
+
+### Common Search, Sort, and Pagination Parameters
+
+Many `GET` list endpoints support the following optional query parameters:
+
+*   `limit` (optional, integer): The maximum number of items to return. Defaults to 10 or 1000 depending on the endpoint.
+*   `offset` (optional, integer): The number of items to skip. Defaults to 0.
+*   `search` (optional, string): A search filter applied to relevant fields (e.g., name, title, description).
+*   `sortBy` (optional, string): The field to sort by. Supported fields vary by endpoint.
+*   `sortOrder` (optional, string, `asc` or `desc`): The sort order. Defaults to `asc`.
 
 ---
 
@@ -53,7 +59,10 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `GET /api/users`: Retrieve all users.
     * Authentication: Required.
     * Permissions: `VIEW_USERS_ORGANIZATION` to view users in your org, or `VIEW_USERS_GLOBAL` to view all users.
-    * Response: `List<UserResponse>`
+    * Query Parameters:
+        * See [Common Search, Sort, and Pagination Parameters](#common-search-sort-and-pagination-parameters)
+        * `organizationId` (optional, integer): Filter users by organization. Requires `VIEW_USERS_GLOBAL` permission.
+    * Response: `PaginatedResponse<UserResponse>`
 
 * `PUT /api/users/{user_id}`: Update user details.
     * Authentication: Required.
@@ -118,12 +127,11 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Authentication: Required.
     * Permissions: `VIEW_EVENTS_ORGANIZATION`
     * Query Parameters:
+        * See [Common Search, Sort, and Pagination Parameters](#common-search-sort-and-pagination-parameters)
         * `startDate` (optional, string, format: YYYY-MM-DD): The start date for the event search.
         * `endDate` (optional, string, format: YYYY-MM-DD): The end date for the event search.
-        * `limit` (optional, integer): The maximum number of events to return.
-        * `offset` (optional, integer): The number of events to skip.
-        * `sortOrder` (optional, string, `asc` or `desc`): The sort order for the events. Defaults to `asc`.
-    * Response: `List<EventResponse>`
+        * `organizationId` (optional, integer): Filter events by organization. Requires `VIEW_EVENTS_GLOBAL` (if not your own org).
+    * Response: `PaginatedResponse<EventResponse>`
 
 * `GET /api/events/{eventId}`: Retrieve a specific event.
     * Authentication: Required.
@@ -169,8 +177,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Authentication: Required.
     * Permissions: `VIEW_CUSTOMERS_ORGANIZATION`
     * Query Parameters:
+        * See [Common Search, Sort, and Pagination Parameters](#common-search-sort-and-pagination-parameters)
         * `organizationId` (optional, integer): Filter customers by organization. Requires `VIEW_CUSTOMERS_GLOBAL` permission.
-    * Response: `List<CustomerResponse>`
+    * Response: `PaginatedResponse<CustomerResponse>`
 
 * `GET /api/customers/{customerId}`: Retrieve a specific customer.
     * Authentication: Required.
@@ -207,8 +216,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Authentication: Required.
     * Permissions: `VIEW_INVENTORY_ORGANIZATION`
     * Query Parameters:
+        * See [Common Search, Sort, and Pagination Parameters](#common-search-sort-and-pagination-parameters)
         * `organizationId` (optional, integer): Filter inventory items by organization. Requires `VIEW_INVENTORY_GLOBAL` permission.
-    * Response: `List<InventoryItemResponse>`
+    * Response: `PaginatedResponse<InventoryItemResponse>`
 
 * `GET /api/inventory/{inventoryId}`: Retrieve a specific inventory item.
     * Authentication: Required.
@@ -325,7 +335,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `GET /api/organizations`: Retrieve all organizations.
     * Authentication: Required.
     * Permissions: `VIEW_ORGANIZATIONS_GLOBAL`
-    * Response: `List<OrganizationResponse>`
+    * Query Parameters:
+        * See [Common Search, Sort, and Pagination Parameters](#common-search-sort-and-pagination-parameters)
+    * Response: `PaginatedResponse<OrganizationResponse>`
 
 * `GET /api/organizations/{organizationId}`: Retrieve a specific organization.
     * Authentication: Required.

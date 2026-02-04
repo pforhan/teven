@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
@@ -16,14 +16,22 @@ const InventoryList: React.FC = () => {
   const { hasPermission } = usePermissions();
   const { selectedOrganization } = useOrganization();
   const canManageInventory = hasPermission('MANAGE_INVENTORY_ORGANIZATION');
-  const [nameFilter, setNameFilter] = useState('');
-  const [sortByName, setSortByName] = useState<'asc' | 'desc' | ''>('');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [hoveredItemId, setHoveredItemId] = useState<number | null>(null);
 
   const fetchInventoryItems = useCallback(async () => {
     try {
-      const inventoryData = await InventoryService.getAllInventoryItems(nameFilter, sortByName === '' ? undefined : sortByName);
-      setInventoryItems(inventoryData);
+      const response = await InventoryService.getAllInventoryItems(
+        25,
+        0,
+        search,
+        sortBy,
+        sortOrder,
+        selectedOrganization?.organizationId
+      );
+      setInventoryItems(response.items);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
         setError({ message: err.message, details: err.details });
@@ -33,18 +41,20 @@ const InventoryList: React.FC = () => {
         setError({ message: 'An unknown error occurred' });
       }
     }
-  }, [nameFilter, sortByName]);
+  }, [search, sortBy, sortOrder, selectedOrganization]);
 
   useEffect(() => {
     fetchInventoryItems();
   }, [fetchInventoryItems]);
 
-  const filteredInventoryItems = useMemo(() => {
-    if (!selectedOrganization) {
-      return inventoryItems;
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(key);
+      setSortOrder('asc');
     }
-    return inventoryItems.filter(item => item.organization.organizationId === selectedOrganization.organizationId);
-  }, [inventoryItems, selectedOrganization]);
+  };
 
   const handleDelete = async (inventoryId: number) => {
     if (window.confirm('Are you sure you want to delete this inventory item?')) {
@@ -62,28 +72,30 @@ const InventoryList: React.FC = () => {
   };
 
   const columns: Column<InventoryItemResponse>[] = [
-    { key: 'name', label: 'Name', render: (item: InventoryItemResponse) => (
-      <div className="d-flex justify-content-between align-items-center position-relative">
-        <Link to={`/inventory/${item.inventoryId}`}>{item.name}</Link>
-        {canManageInventory && hoveredItemId === item.inventoryId && (
-          <div className="position-absolute top-0 end-0 z-1">
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${item.inventoryId}`}>Edit</Tooltip>}>
-              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}><FaEdit /></button>
-            </OverlayTrigger>
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${item.inventoryId}`}>Delete</Tooltip>}>
-              <button className="btn btn-sm btn-light" onClick={() => handleDelete(item.inventoryId)}><FaTrash /></button>
-            </OverlayTrigger>
-          </div>
-        )}
-      </div>
-    ) },
-    { key: 'quantity', label: 'Quantity' },
+    {
+      key: 'name', label: 'Name', sortable: true, render: (item: InventoryItemResponse) => (
+        <div className="d-flex justify-content-between align-items-center position-relative w-100">
+          <Link to={`/inventory/${item.inventoryId}`}>{item.name}</Link>
+          {canManageInventory && hoveredItemId === item.inventoryId && (
+            <div className="position-absolute top-0 end-0 z-1">
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${item.inventoryId}`}>Edit</Tooltip>}>
+                <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/inventory/edit/${item.inventoryId}`)}><FaEdit /></button>
+              </OverlayTrigger>
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${item.inventoryId}`}>Delete</Tooltip>}>
+                <button className="btn btn-sm btn-light" onClick={() => handleDelete(item.inventoryId)}><FaTrash /></button>
+              </OverlayTrigger>
+            </div>
+          )}
+        </div>
+      )
+    },
+    { key: 'quantity', label: 'Quantity', sortable: true },
     { key: 'description', label: 'Description' },
     {
       key: 'events',
       label: 'Used in Events',
       render: (item: InventoryItemResponse) => (
-        <ul>
+        <ul className="mb-0">
           {item.events.map(event => (
             <li key={event.eventId}>ID: {event.eventId} (Qty: {event.quantity})</li>
           ))}
@@ -103,32 +115,28 @@ const InventoryList: React.FC = () => {
 
       <div className="row mb-3">
         <div className="col-md-6">
-          <label htmlFor="nameFilter" className="form-label">Filter by Name:</label>
+          <label htmlFor="search" className="form-label">Search:</label>
           <input
             type="text"
-            id="nameFilter"
+            id="search"
             className="form-control"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name..."
           />
-        </div>
-        <div className="col-md-6">
-          <label htmlFor="sortByName" className="form-label">Sort by Name:</label>
-          <select id="sortByName" className="form-select" value={sortByName} onChange={(e) => setSortByName(e.target.value as 'asc' | 'desc' | '')}>
-            <option value="">None</option>
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
         </div>
       </div>
 
       <TableView
-        data={filteredInventoryItems}
+        data={inventoryItems}
         columns={columns}
         keyField="inventoryId"
         error={error}
         onRowMouseEnter={(item) => setHoveredItemId(item.inventoryId)}
         onRowMouseLeave={() => setHoveredItemId(null)}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
       />
     </div>
   );

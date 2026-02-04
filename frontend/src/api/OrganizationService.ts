@@ -1,10 +1,23 @@
 import type { OrganizationResponse, CreateOrganizationRequest, UpdateOrganizationRequest } from '../types/organizations';
-import type { StatusResponse } from '../types/common';
+import type { StatusResponse, PaginatedResponse } from '../types/common';
 import { apiClient } from './apiClient';
 
 export class OrganizationService {
-  static async getAllOrganizations(): Promise<OrganizationResponse[]> {
-    return apiClient<OrganizationResponse[]>('/api/organizations');
+  static async getAllOrganizations(
+    limit?: number,
+    offset?: number,
+    search?: string,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc'
+  ): Promise<PaginatedResponse<OrganizationResponse>> {
+    const url = new URL('/api/organizations', window.location.origin);
+    if (limit !== undefined) url.searchParams.append('limit', limit.toString());
+    if (offset !== undefined) url.searchParams.append('offset', offset.toString());
+    if (search) url.searchParams.append('search', search);
+    if (sortBy) url.searchParams.append('sortBy', sortBy);
+    if (sortOrder) url.searchParams.append('sortOrder', sortOrder);
+
+    return apiClient<PaginatedResponse<OrganizationResponse>>(url.toString());
   }
 
   static async getOrganization(organizationId: number): Promise<OrganizationResponse> {

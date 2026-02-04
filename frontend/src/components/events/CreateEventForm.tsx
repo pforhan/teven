@@ -100,12 +100,16 @@ const CreateEventForm: React.FC = () => {
     const fetchCustomers = async () => {
       if (selectedOrganizationId) {
         try {
-          const customers = await CustomerService.getAllCustomers(
+          const orgId = parseInt(selectedOrganizationId);
+          const response = await CustomerService.getAllCustomers(
+            1000,
+            0,
             undefined,
+            'name',
             'asc',
-            parseInt(selectedOrganizationId),
+            orgId
           );
-          setAvailableCustomers(customers);
+          setAvailableCustomers(response.items);
         } catch (err: unknown) {
           console.error("Failed to fetch customers", err);
         }
@@ -118,8 +122,9 @@ const CreateEventForm: React.FC = () => {
     const fetchUsers = async () => {
       if (selectedOrganizationId) {
         try {
-          const users = await UserService.getAllUsers(parseInt(selectedOrganizationId));
-          setAvailableUsers(users);
+          const orgId = parseInt(selectedOrganizationId);
+          const response = await UserService.getAllUsers(1000, 0, undefined, 'displayName', 'asc', orgId);
+          setAvailableUsers(response.items);
         } catch (err: unknown) {
           console.error("Failed to fetch users", err);
         }

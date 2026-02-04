@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.service.customer
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.customer.CreateCustomerRequest
 import alphainterplanetary.teven.api.model.customer.CustomerResponse
 import alphainterplanetary.teven.api.model.customer.UpdateCustomerRequest
@@ -8,6 +9,31 @@ import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.data.customer.CustomerDao
 
 class CustomerService(private val customerDao: CustomerDao) {
+  suspend fun getCustomers(
+    authContext: AuthContext,
+    organizationId: Int? = null,
+    search: String? = null,
+    limit: Int? = null,
+    offset: Long? = null,
+    sortBy: String? = null,
+    sortOrder: String? = null,
+  ): PaginatedResponse<CustomerResponse> {
+    val orgIdToUse = if (authContext.hasPermission(Permission.VIEW_CUSTOMERS_GLOBAL)) {
+      organizationId
+    } else {
+      authContext.organizationId
+    }
+
+    return customerDao.getCustomers(
+      organizationId = orgIdToUse,
+      search = search,
+      limit = limit,
+      offset = offset,
+      sortBy = sortBy,
+      sortOrder = sortOrder
+    )
+  }
+
   suspend fun getAllCustomers(authContext: AuthContext, organizationId: Int? = null): List<CustomerResponse> {
     val orgIdToUse = if (authContext.hasPermission(Permission.VIEW_CUSTOMERS_GLOBAL)) {
       organizationId

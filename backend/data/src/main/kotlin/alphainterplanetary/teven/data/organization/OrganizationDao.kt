@@ -1,12 +1,18 @@
 package alphainterplanetary.teven.data.organization
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.api.model.organization.UpdateOrganizationRequest
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.user.UserOrganizations
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.like
+import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -23,6 +29,44 @@ class OrganizationDao {
       insertStatement.resultedValues?.firstOrNull()?.let { toOrganizationResponse(it) }
         ?: throw Exception("Failed to create organization")
     }
+
+  suspend fun getOrganizations(
+    search: String?,
+    limit: Int?,
+    offset: Long?,
+    sortBy: String?,
+    sortOrder: String?,
+  ): PaginatedResponse<OrganizationResponse> = dbQuery {
+    val conditions = mutableListOf<Op<Boolean>>()
+    search?.let { conditions.add(Organizations.name.lowerCase() like "%${it.lowercase()}%") }
+
+    val query = if (conditions.isEmpty()) {
+      Organizations.selectAll()
+    } else {
+      val combinedCondition = conditions.reduce { acc, op -> acc and op }
+      Organizations.selectAll().where { combinedCondition }
+    }
+
+    val total = query.count()
+
+    val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
+    when (sortBy) {
+      "name" -> query.orderBy(Organizations.name, sort)
+      else -> query.orderBy(Organizations.id, sort)
+    }
+
+    offset?.let { query.offset(it) }
+    limit?.let { query.limit(it) }
+
+    val organizations = query.map { toOrganizationResponse(it) }
+
+    PaginatedResponse(
+      items = organizations,
+      total = total,
+      offset = offset ?: 0,
+      limit = limit ?: 0,
+    )
+  }
 
   suspend fun getAllOrganizations(): List<OrganizationResponse> = dbQuery {
     Organizations.selectAll().map { toOrganizationResponse(it) }

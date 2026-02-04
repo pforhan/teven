@@ -80,11 +80,12 @@ const EventCalendar: React.FC = () => {
   const [date, setDate] = useState(new Date());
   const [showOrgPicker, setShowOrgPicker] = useState(false);
   const [pendingNavigateUrl, setPendingNavigateUrl] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const leaveTimeoutRef = React.useRef<number | null>(null);
 
-  const fetchEvents = async (start: Date, end: Date, organizationId?: number) => {
+  const fetchEvents = async (start: Date, end: Date, organizationId?: number, searchFilter?: string) => {
     try {
-      const eventData = await EventService.getAllEvents(1000, undefined, organizationId, moment(start).format('YYYY-MM-DD'), moment(end).format('YYYY-MM-DD'));
+      const eventData = await EventService.getAllEvents(1000, undefined, organizationId, moment(start).format('YYYY-MM-DD'), moment(end).format('YYYY-MM-DD'), searchFilter);
       setEvents(eventData.items);
 
     } catch (err: unknown) {
@@ -121,8 +122,8 @@ const EventCalendar: React.FC = () => {
         end = moment(date).endOf('month').toDate();
         break;
     }
-    fetchEvents(start, end, selectedOrganization?.organizationId);
-  }, [date, view, selectedOrganization]);
+    fetchEvents(start, end, selectedOrganization?.organizationId, search);
+  }, [date, view, selectedOrganization, search]);
 
   const handleSelectSlot = ({ start, end, action }: { start: Date, end: Date, action: string }) => {
     if (action === 'select' || action === 'click') {
@@ -240,7 +241,15 @@ const EventCalendar: React.FC = () => {
     <div className="container-fluid">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Event Calendar</h2>
-        <div>
+        <div className="d-flex align-items-center">
+          <input
+            type="text"
+            className="form-control me-2"
+            style={{ width: '250px' }}
+            placeholder="Search events..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
           <a href="/events/list" className="btn btn-primary">View All Events</a>
           {canManageEvents && (
             <button

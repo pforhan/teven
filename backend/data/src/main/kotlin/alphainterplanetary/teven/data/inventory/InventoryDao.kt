@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.data.inventory
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.event.EventSummaryResponse
 import alphainterplanetary.teven.api.model.inventory.CreateInventoryItemRequest
 import alphainterplanetary.teven.api.model.inventory.InventoryItemResponse
@@ -9,8 +10,13 @@ import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.event.EventInventory
 import alphainterplanetary.teven.data.organization.Organizations
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.like
+import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
@@ -40,6 +46,47 @@ class InventoryDao {
       quantity = row[InventoryItems.quantity],
       events = events,
       organization = organization,
+    )
+  }
+
+  suspend fun getInventoryItems(
+    organizationId: Int?,
+    search: String?,
+    limit: Int?,
+    offset: Long?,
+    sortBy: String?,
+    sortOrder: String?,
+  ): PaginatedResponse<InventoryItemResponse> = dbQuery {
+    val conditions = mutableListOf<Op<Boolean>>()
+    organizationId?.let { conditions.add(InventoryItems.organizationId eq it) }
+    search?.let { conditions.add(InventoryItems.name.lowerCase() like "%${it.lowercase()}%") }
+
+    val query = if (conditions.isEmpty()) {
+      InventoryItems.selectAll()
+    } else {
+      val combinedCondition = conditions.reduce { acc, op -> acc and op }
+      InventoryItems.selectAll().where { combinedCondition }
+    }
+
+    val total = query.count()
+
+    val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
+    when (sortBy) {
+      "name" -> query.orderBy(InventoryItems.name, sort)
+      "quantity" -> query.orderBy(InventoryItems.quantity, sort)
+      else -> query.orderBy(InventoryItems.id, sort)
+    }
+
+    offset?.let { query.offset(it) }
+    limit?.let { query.limit(it) }
+
+    val items = query.map { toInventoryItemResponse(it) }
+
+    PaginatedResponse(
+      items = items,
+      total = total,
+      offset = offset ?: 0,
+      limit = limit ?: 0,
     )
   }
 

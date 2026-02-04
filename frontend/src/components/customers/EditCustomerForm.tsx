@@ -35,8 +35,8 @@ const EditCustomerForm: React.FC = () => {
         setNotes(fetchedCustomer.notes);
 
         if (canManageGlobalCustomers) {
-          const orgs = await OrganizationService.getAllOrganizations();
-          setAvailableOrganizations(orgs);
+          const response = await OrganizationService.getAllOrganizations(1000);
+          setAvailableOrganizations(response.items);
         }
         setSelectedOrganizationId(fetchedCustomer.organization.organizationId.toString());
       } catch (err: unknown) {

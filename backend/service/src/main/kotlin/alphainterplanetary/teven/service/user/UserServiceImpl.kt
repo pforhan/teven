@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.service.user
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.auth.LoggedInContextResponse
 import alphainterplanetary.teven.api.model.invitation.AcceptInvitationRequest
 import alphainterplanetary.teven.api.model.role.RoleResponse
@@ -87,6 +88,39 @@ class UserServiceImpl(
     val user = userDao.createUser(request.toCreateUserRequest(invitation.organizationId))
     roleService.assignRoleToUser(user.userId, invitation.roleId)
     return user.userId
+  }
+
+  override suspend fun getUsers(
+    authContext: AuthContext,
+    organizationId: Int?,
+    search: String?,
+    limit: Int?,
+    offset: Long?,
+    sortBy: String?,
+    sortOrder: String?,
+  ): PaginatedResponse<UserResponse> {
+    val isSuperAdmin = authContext.hasPermission(Permission.VIEW_USERS_GLOBAL)
+    val orgIdToUse = if (isSuperAdmin) {
+      organizationId
+    } else {
+      authContext.organizationId
+    }
+
+    val usersPaginated = userDao.getUsers(
+      organizationId = orgIdToUse,
+      search = search,
+      limit = limit,
+      offset = offset,
+      sortBy = sortBy,
+      sortOrder = sortOrder
+    )
+
+    return PaginatedResponse(
+      items = usersPaginated.items.map { toUserResponse(it) },
+      total = usersPaginated.total,
+      offset = usersPaginated.offset,
+      limit = usersPaginated.limit,
+    )
   }
 
   override suspend fun getAllUsers(authContext: AuthContext, organizationId: Int?): List<UserResponse> {

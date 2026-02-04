@@ -81,7 +81,21 @@ fun Route.customerRoutes() {
       get {
         val authContext = requireAuthContext()
         val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
-        val customers = customerService.getAllCustomers(authContext, organizationId)
+        val search = call.request.queryParameters["search"]
+        val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+        val offset = call.request.queryParameters["offset"]?.toLongOrNull()
+        val sortBy = call.request.queryParameters["sortBy"]
+        val sortOrder = call.request.queryParameters["sortOrder"]
+
+        val customers = customerService.getCustomers(
+          authContext = authContext,
+          organizationId = organizationId,
+          search = search,
+          limit = limit,
+          offset = offset,
+          sortBy = sortBy,
+          sortOrder = sortOrder
+        )
         call.respond(HttpStatusCode.OK, success(customers))
       }
 

@@ -36,15 +36,15 @@ const CreateUserForm: React.FC = () => {
         setAvailableRoles(rolesData);
 
         if (!selectedOrganization && canManageGlobalUsers) {
-          const orgsData = await OrganizationService.getAllOrganizations();
-          setAvailableOrganizations(orgsData);
-          if (orgsData.length > 0) {
-            setSelectedOrganizationId(orgsData[0].organizationId.toString());
+          const response = await OrganizationService.getAllOrganizations(1000);
+          setAvailableOrganizations(response.items);
+          if (response.items.length > 0) {
+            setSelectedOrganizationId(response.items[0].organizationId.toString());
           }
         } else if (selectedOrganization) {
-            setSelectedOrganizationId(selectedOrganization.organizationId.toString());
+          setSelectedOrganizationId(selectedOrganization.organizationId.toString());
         } else if (userContext?.user?.organization?.organizationId) {
-            setSelectedOrganizationId(userContext.user.organization.organizationId.toString());
+          setSelectedOrganizationId(userContext.user.organization.organizationId.toString());
         }
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {
@@ -70,14 +70,14 @@ const CreateUserForm: React.FC = () => {
     setError(null);
 
     try {
-        let organizationIdToUse;
-        if (selectedOrganization) {
-            organizationIdToUse = selectedOrganization.organizationId;
-        } else if (canManageGlobalUsers) {
-            organizationIdToUse = selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined;
-        } else {
-            organizationIdToUse = userContext?.user?.organization?.organizationId;
-        }
+      let organizationIdToUse;
+      if (selectedOrganization) {
+        organizationIdToUse = selectedOrganization.organizationId;
+      } else if (canManageGlobalUsers) {
+        organizationIdToUse = selectedOrganizationId ? parseInt(selectedOrganizationId) : undefined;
+      } else {
+        organizationIdToUse = userContext?.user?.organization?.organizationId;
+      }
 
       if (organizationIdToUse === undefined) {
         setError({ message: 'Organization must be selected.' });

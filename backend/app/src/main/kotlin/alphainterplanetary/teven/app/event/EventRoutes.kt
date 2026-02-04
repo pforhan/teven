@@ -81,6 +81,7 @@ fun Route.eventRoutes() {
         val authContext = requireAuthContext()
         val startDate = call.request.queryParameters["startDate"]
         val endDate = call.request.queryParameters["endDate"]
+        val search = call.request.queryParameters["search"]
         val limit = call.request.queryParameters["limit"]?.toIntOrNull()
         val offset = call.request.queryParameters["offset"]?.toLongOrNull()
         val sortOrder = call.request.queryParameters["sortOrder"] ?: "asc"
@@ -90,6 +91,7 @@ fun Route.eventRoutes() {
           authContext = authContext,
           startDate = startDate,
           endDate = endDate,
+          search = search,
           limit = limit,
           offset = offset,
           sortOrder = sortOrder,

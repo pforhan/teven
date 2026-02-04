@@ -12,8 +12,8 @@ const OrganizationSelector: React.FC = () => {
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const orgs = await OrganizationService.getAllOrganizations();
-        setOrganizations(orgs);
+        const response = await OrganizationService.getAllOrganizations(1000);
+        setOrganizations(response.items);
       } catch (err) {
         if (err instanceof ApiErrorWithDetails) {
           setError(err.message);

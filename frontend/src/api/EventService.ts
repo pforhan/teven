@@ -10,26 +10,24 @@ export class EventService {
     });
   }
 
-  static async getAllEvents(limit?: number, offset?: number, organizationId?: number, startDate?: String, endDate?: String, sortOrder?: string): Promise<PaginatedResponse<EventResponse>> {
+  static async getAllEvents(
+    limit?: number,
+    offset?: number,
+    organizationId?: number,
+    startDate?: string,
+    endDate?: string,
+    search?: string,
+    sortOrder?: string
+  ): Promise<PaginatedResponse<EventResponse>> {
     const url = new URL('/api/events', window.location.origin);
-    if (limit) {
-      url.searchParams.append('limit', limit.toString());
-    }
-    if (offset) {
-      url.searchParams.append('offset', offset.toString());
-    }
-    if (organizationId) {
-      url.searchParams.append('organizationId', organizationId.toString());
-    }
-    if (startDate) {
-      url.searchParams.append('startDate', startDate.toString());
-    }
-    if (endDate) {
-      url.searchParams.append('endDate', endDate.toString());
-    }
-    if (sortOrder) {
-      url.searchParams.append('sortOrder', sortOrder);
-    }
+    if (limit !== undefined) url.searchParams.append('limit', limit.toString());
+    if (offset !== undefined) url.searchParams.append('offset', offset.toString());
+    if (organizationId) url.searchParams.append('organizationId', organizationId.toString());
+    if (startDate) url.searchParams.append('startDate', startDate);
+    if (endDate) url.searchParams.append('endDate', endDate);
+    if (search) url.searchParams.append('search', search);
+    if (sortOrder) url.searchParams.append('sortOrder', sortOrder);
+
     return apiClient<PaginatedResponse<EventResponse>>(url.toString());
   }
 

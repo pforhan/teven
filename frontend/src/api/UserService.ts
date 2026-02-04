@@ -1,13 +1,25 @@
 import type { UserResponse, CreateUserRequest, UpdateUserRequest } from '../types/auth';
+import type { PaginatedResponse } from '../types/common';
 import { apiClient } from './apiClient';
 
 export class UserService {
-  static async getAllUsers(organizationId?: number): Promise<UserResponse[]> {
+  static async getAllUsers(
+    limit?: number,
+    offset?: number,
+    search?: string,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc',
+    organizationId?: number
+  ): Promise<PaginatedResponse<UserResponse>> {
     const url = new URL('/api/users', window.location.origin);
-    if (organizationId) {
-      url.searchParams.append('organizationId', organizationId.toString());
-    }
-    return apiClient<UserResponse[]>(url.toString());
+    if (limit !== undefined) url.searchParams.append('limit', limit.toString());
+    if (offset !== undefined) url.searchParams.append('offset', offset.toString());
+    if (search) url.searchParams.append('search', search);
+    if (sortBy) url.searchParams.append('sortBy', sortBy);
+    if (sortOrder) url.searchParams.append('sortOrder', sortOrder);
+    if (organizationId) url.searchParams.append('organizationId', organizationId.toString());
+
+    return apiClient<PaginatedResponse<UserResponse>>(url.toString());
   }
 
   static async getUser(userId: number): Promise<UserResponse> {

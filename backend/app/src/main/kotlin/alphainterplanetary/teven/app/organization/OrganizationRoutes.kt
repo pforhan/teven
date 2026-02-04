@@ -66,7 +66,19 @@ fun Route.organizationRoutes() {
 
     withPermission(VIEW_ORGANIZATIONS_GLOBAL) {
       get {
-        val organizations = organizationService.getAllOrganizations()
+        val search = call.request.queryParameters["search"]
+        val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+        val offset = call.request.queryParameters["offset"]?.toLongOrNull()
+        val sortBy = call.request.queryParameters["sortBy"]
+        val sortOrder = call.request.queryParameters["sortOrder"]
+
+        val organizations = organizationService.getOrganizations(
+          search = search,
+          limit = limit,
+          offset = offset,
+          sortBy = sortBy,
+          sortOrder = sortOrder
+        )
         call.respond(HttpStatusCode.OK, success(organizations))
       }
 

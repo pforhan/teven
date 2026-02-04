@@ -15,12 +15,21 @@ const OrganizationList: React.FC = () => {
   const { hasPermission } = usePermissions();
   const canViewOrganizations = hasPermission('VIEW_ORGANIZATIONS_GLOBAL');
   const canManageOrganizations = hasPermission('MANAGE_ORGANIZATIONS_GLOBAL');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [hoveredOrgId, setHoveredOrgId] = useState<number | null>(null);
 
   const fetchOrganizations = useCallback(async () => {
     try {
-      const orgData = await OrganizationService.getAllOrganizations();
-      setOrganizations(orgData);
+      const response = await OrganizationService.getAllOrganizations(
+        25,
+        0,
+        search,
+        sortBy,
+        sortOrder
+      );
+      setOrganizations(response.items);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
         setError({ message: err.message, details: err.details });
@@ -30,7 +39,7 @@ const OrganizationList: React.FC = () => {
         setError({ message: 'An unknown error occurred' });
       }
     }
-  }, []);
+  }, [search, sortBy, sortOrder]);
 
   useEffect(() => {
     if (canViewOrganizations) {
@@ -55,22 +64,33 @@ const OrganizationList: React.FC = () => {
     }
   };
 
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(key);
+      setSortOrder('asc');
+    }
+  };
+
   const columns: Column<OrganizationResponse>[] = [
-    { key: 'name', label: 'Name', render: (org: OrganizationResponse) => (
-      <div className="d-flex justify-content-between align-items-center position-relative">
-        <Link to={`/organizations/${org.organizationId}`}>{org.name}</Link>
-        {canManageOrganizations && hoveredOrgId === org.organizationId && (
-          <div className="position-absolute top-0 end-0 z-1">
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${org.organizationId}`}>Edit</Tooltip>}>
-              <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/organizations/edit/${org.organizationId}`)}><FaEdit /></button>
-            </OverlayTrigger>
-            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${org.organizationId}`}>Delete</Tooltip>}>
-              <button className="btn btn-sm btn-light" onClick={() => handleDelete(org.organizationId)}><FaTrash /></button>
-            </OverlayTrigger>
-          </div>
-        )}
-      </div>
-    ) },
+    {
+      key: 'name', label: 'Name', sortable: true, render: (org: OrganizationResponse) => (
+        <div className="d-flex justify-content-between align-items-center position-relative w-100">
+          <Link to={`/organizations/${org.organizationId}`}>{org.name}</Link>
+          {canManageOrganizations && hoveredOrgId === org.organizationId && (
+            <div className="position-absolute top-0 end-0 z-1">
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-edit-${org.organizationId}`}>Edit</Tooltip>}>
+                <button className="btn btn-sm btn-light me-2" onClick={() => navigate(`/organizations/edit/${org.organizationId}`)}><FaEdit /></button>
+              </OverlayTrigger>
+              <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-delete-${org.organizationId}`}>Delete</Tooltip>}>
+                <button className="btn btn-sm btn-light" onClick={() => handleDelete(org.organizationId)}><FaTrash /></button>
+              </OverlayTrigger>
+            </div>
+          )}
+        </div>
+      )
+    },
     { key: 'contactInformation', label: 'Contact Information' },
   ];
 
@@ -83,6 +103,20 @@ const OrganizationList: React.FC = () => {
         )}
       </div>
 
+      <div className="row mb-3">
+        <div className="col-md-6">
+          <label htmlFor="search" className="form-label">Search:</label>
+          <input
+            type="text"
+            id="search"
+            className="form-control"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name..."
+          />
+        </div>
+      </div>
+
       <TableView
         data={organizations}
         columns={columns}
@@ -90,6 +124,9 @@ const OrganizationList: React.FC = () => {
         error={error}
         onRowMouseEnter={(org) => setHoveredOrgId(org.organizationId)}
         onRowMouseLeave={() => setHoveredOrgId(null)}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
       />
     </div>
   );

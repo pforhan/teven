@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.service.organization
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.api.model.organization.UpdateOrganizationRequest
@@ -13,6 +14,22 @@ class OrganizationService(
   private val organizationDao: OrganizationDao,
   private val userService: UserService,
 ) {
+  suspend fun getOrganizations(
+    search: String? = null,
+    limit: Int? = null,
+    offset: Long? = null,
+    sortBy: String? = null,
+    sortOrder: String? = null,
+  ): PaginatedResponse<OrganizationResponse> {
+    return organizationDao.getOrganizations(
+      search = search,
+      limit = limit,
+      offset = offset,
+      sortBy = sortBy,
+      sortOrder = sortOrder
+    )
+  }
+
   suspend fun createOrganization(request: CreateOrganizationRequest): OrganizationResponse {
     return organizationDao.createOrganization(request)
   }

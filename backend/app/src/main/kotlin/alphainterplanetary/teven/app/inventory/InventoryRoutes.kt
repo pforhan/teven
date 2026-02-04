@@ -80,7 +80,21 @@ fun Route.inventoryRoutes() {
       get {
         val authContext = requireAuthContext()
         val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
-        val inventoryItems = inventoryService.getAllInventoryItems(authContext, organizationId)
+        val search = call.request.queryParameters["search"]
+        val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+        val offset = call.request.queryParameters["offset"]?.toLongOrNull()
+        val sortBy = call.request.queryParameters["sortBy"]
+        val sortOrder = call.request.queryParameters["sortOrder"]
+
+        val inventoryItems = inventoryService.getInventoryItems(
+          authContext = authContext,
+          organizationId = organizationId,
+          search = search,
+          limit = limit,
+          offset = offset,
+          sortBy = sortBy,
+          sortOrder = sortOrder
+        )
         call.respond(HttpStatusCode.OK, success(inventoryItems))
       }
 

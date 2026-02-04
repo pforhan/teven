@@ -20,6 +20,8 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.core.like
+import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
@@ -138,6 +140,7 @@ class EventDao {
     organizationId: Int?,
     startDate: String?,
     endDate: String?,
+    search: String?,
     limit: Int?,
     offset: Long?,
     sortOrder: String?,
@@ -146,6 +149,7 @@ class EventDao {
     organizationId?.let { conditions.add(Events.organizationId eq it) }
     startDate?.let { conditions.add(Events.date greaterEq it) }
     endDate?.let { conditions.add(Events.date lessEq it) }
+    search?.let { conditions.add(Events.title.lowerCase() like "%${it.lowercase()}%") }
 
     val query = if (conditions.isEmpty()) {
       Events.selectAll()

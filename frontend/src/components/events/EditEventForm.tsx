@@ -73,8 +73,8 @@ const EditEventForm: React.FC = () => {
         setSelectedOrganizationId(fetchedEvent.organization?.organizationId.toString() || '');
 
         if (canManageGlobalEvents) {
-          const orgs = await OrganizationService.getAllOrganizations();
-          setAvailableOrganizations(orgs);
+          const response = await OrganizationService.getAllOrganizations(1000);
+          setAvailableOrganizations(response.items);
         }
       } catch (err: unknown) {
         if (err instanceof ApiErrorWithDetails) {
@@ -91,12 +91,13 @@ const EditEventForm: React.FC = () => {
     const fetchCustomersAndUsers = async () => {
       if (selectedOrganizationId) {
         try {
-          const [customers, users] = await Promise.all([
-            CustomerService.getAllCustomers(undefined, 'asc', parseInt(selectedOrganizationId)),
-            UserService.getAllUsers(parseInt(selectedOrganizationId))
+          const orgId = parseInt(selectedOrganizationId);
+          const [customersResponse, usersResponse] = await Promise.all([
+            CustomerService.getAllCustomers(1000, 0, undefined, 'name', 'asc', orgId),
+            UserService.getAllUsers(1000, 0, undefined, 'displayName', 'asc', orgId)
           ]);
-          setAvailableCustomers(customers);
-          setAvailableUsers(users);
+          setAvailableCustomers(customersResponse.items);
+          setAvailableUsers(usersResponse.items);
         } catch (err: unknown) {
           console.error("Failed to fetch context", err);
         }

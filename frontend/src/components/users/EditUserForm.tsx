@@ -41,8 +41,8 @@ const EditUserForm: React.FC = () => {
         setAvailableRoles(rolesData);
 
         if (canManageGlobalUsers) {
-          const orgs = await OrganizationService.getAllOrganizations();
-          setAvailableOrganizations(orgs);
+          const response = await OrganizationService.getAllOrganizations(1000);
+          setAvailableOrganizations(response.items);
         }
         setSelectedOrganizationId(fetchedUser.organization?.organizationId?.toString() || '');
       } catch (err: unknown) {

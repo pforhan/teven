@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import type { EventResponse } from '../../types/events';
@@ -27,13 +27,23 @@ const EventListPage: React.FC = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
-  const [sortOrder, setSortOrder] = useState('asc');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const fetchEvents = useCallback(async () => {
     try {
-      const eventData = await EventService.getAllEvents(limit, offset, undefined, startDate, undefined, sortOrder);
-      setEvents(eventData.items);
-      setTotal(eventData.total);
+      const response = await EventService.getAllEvents(
+        limit,
+        offset,
+        selectedOrganization?.organizationId,
+        startDate,
+        undefined,
+        search,
+        sortOrder
+      );
+      setEvents(response.items);
+      setTotal(response.total);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
         setError({ message: err.message, details: err.details });
@@ -43,18 +53,11 @@ const EventListPage: React.FC = () => {
         setError({ message: 'An unknown error occurred' });
       }
     }
-  }, [limit, offset, startDate, sortOrder]);
+  }, [limit, offset, startDate, sortOrder, search, selectedOrganization]);
 
   useEffect(() => {
     fetchEvents();
-  }, [fetchEvents, offset, startDate, sortOrder]);
-
-  const filteredEvents = useMemo(() => {
-    if (!selectedOrganization) {
-      return events;
-    }
-    return events.filter(event => event.organization?.organizationId === selectedOrganization.organizationId);
-  }, [events, selectedOrganization]);
+  }, [fetchEvents]);
 
   const handleDelete = async (eventId: number | string) => {
     if (typeof eventId !== 'number') return; // Prevent deleting placeholder events
@@ -88,10 +91,19 @@ const EventListPage: React.FC = () => {
     }
   };
 
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(key);
+      setSortOrder('asc');
+    }
+  };
+
   const columns: Column<EventResponse>[] = [
     {
-      key: 'title', label: 'Title', render: (event: EventResponse) => (
-        <div className="d-flex justify-content-between align-items-center position-relative">
+      key: 'title', label: 'Title', sortable: true, render: (event: EventResponse) => (
+        <div className="d-flex justify-content-between align-items-center position-relative w-100">
           {typeof event.eventId === 'number' ? (
             <Link to={`/events/${event.eventId}`}>{event.title}</Link>
           ) : (
@@ -110,7 +122,7 @@ const EventListPage: React.FC = () => {
         </div>
       )
     },
-    { key: 'date', label: 'Date' },
+    { key: 'date', label: 'Date', sortable: true },
     { key: 'time', label: 'Time' },
     { key: 'description', label: 'Description' },
     { key: 'customer', label: 'Customer', render: (event: EventResponse) => event.customer?.name || 'N/A' },
@@ -175,39 +187,43 @@ const EventListPage: React.FC = () => {
         onSelect={() => navigate('/events/create')}
       />
 
-      <div className="d-flex justify-content-start mb-3">
-        <div className="me-3">
-          <label htmlFor="startDate" className="form-label">Start Date</label>
+      <div className="row mb-3">
+        <div className="col-md-4">
+          <label htmlFor="search" className="form-label">Search:</label>
           <input
-            type="date"
-            id="startDate"
+            type="text"
+            id="search"
             className="form-control"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search events..."
           />
-          <button className="btn btn-outline-secondary" type="button" onClick={() => { setStartDate(new Date().toISOString().split('T')[0]); setOffset(0); }}>Today</button>
         </div>
-        <div>
-          <label htmlFor="sortOrder" className="form-label">Sort Order</label>
-          <select
-            id="sortOrder"
-            className="form-select"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-          >
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
+        <div className="col-md-4">
+          <label htmlFor="startDate" className="form-label">Start Date:</label>
+          <div className="input-group">
+            <input
+              type="date"
+              id="startDate"
+              className="form-control"
+              value={startDate}
+              onChange={(e) => { setStartDate(e.target.value); setOffset(0); }}
+            />
+            <button className="btn btn-outline-secondary" type="button" onClick={() => { setStartDate(new Date().toISOString().split('T')[0]); setOffset(0); }}>Today</button>
+          </div>
         </div>
       </div>
 
       <TableView
-        data={filteredEvents}
+        data={events}
         columns={columns}
         keyField="eventId"
         error={error}
         onRowMouseEnter={(event) => typeof event.eventId === 'number' && setHoveredEventId(event.eventId)}
         onRowMouseLeave={() => setHoveredEventId(null)}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
       />
 
       <div className="d-flex justify-content-end">

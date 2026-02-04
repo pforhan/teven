@@ -30,10 +30,10 @@ const CreateCustomerForm: React.FC = () => {
     const fetchOrganizations = async () => {
       if (!selectedOrganization && canManageGlobalCustomers) {
         try {
-          const orgs = await OrganizationService.getAllOrganizations();
-          setAvailableOrganizations(orgs);
-          if (orgs.length > 0) {
-            setSelectedOrganizationId(orgs[0].organizationId.toString());
+          const response = await OrganizationService.getAllOrganizations(1000);
+          setAvailableOrganizations(response.items);
+          if (response.items.length > 0) {
+            setSelectedOrganizationId(response.items[0].organizationId.toString());
           }
         } catch (err: unknown) {
           if (err instanceof ApiErrorWithDetails) {

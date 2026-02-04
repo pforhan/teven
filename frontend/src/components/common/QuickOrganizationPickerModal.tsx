@@ -20,8 +20,8 @@ const QuickOrganizationPickerModal: React.FC<QuickOrganizationPickerModalProps> 
       const fetchOrgs = async () => {
         setLoading(true);
         try {
-          const orgs = await OrganizationService.getAllOrganizations();
-          setOrganizations(orgs);
+          const response = await OrganizationService.getAllOrganizations(1000);
+          setOrganizations(response.items);
         } catch (err) {
           console.error('Failed to fetch organizations', err);
         } finally {

@@ -33,8 +33,8 @@ const EditInventoryForm: React.FC = () => {
         setQuantity(fetchedItem.quantity);
 
         if (canManageGlobalInventory) {
-          const orgs = await OrganizationService.getAllOrganizations();
-          setAvailableOrganizations(orgs);
+          const response = await OrganizationService.getAllOrganizations(1000);
+          setAvailableOrganizations(response.items);
         }
         setSelectedOrganizationId(fetchedItem.organization.organizationId.toString());
       } catch (err: unknown) {

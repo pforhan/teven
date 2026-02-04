@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
@@ -23,12 +23,22 @@ const UserList: React.FC = () => {
   const { selectedOrganization } = useOrganization();
   const canViewUsers = hasPermission(Permission.VIEW_USERS_ORGANIZATION) || hasPermission(Permission.VIEW_USERS_GLOBAL);
   const canManageUsers = hasPermission(Permission.MANAGE_USERS_GLOBAL) || hasPermission(Permission.MANAGE_USERS_ORGANIZATION);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('username');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [hoveredUserId, setHoveredUserId] = useState<number | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
-      const userData = await UserService.getAllUsers();
-      setUsers(userData);
+      const response = await UserService.getAllUsers(
+        25,
+        0,
+        search,
+        sortBy,
+        sortOrder,
+        selectedOrganization?.organizationId
+      );
+      setUsers(response.items);
     } catch (err: unknown) {
       if (err instanceof ApiErrorWithDetails) {
         setError({ message: err.message, details: err.details });
@@ -38,7 +48,7 @@ const UserList: React.FC = () => {
         setError({ message: 'An unknown error occurred' });
       }
     }
-  }, []);
+  }, [search, sortBy, sortOrder, selectedOrganization]);
 
   const fetchInvitations = useCallback(async () => {
     if (!canManageUsers) return;
@@ -64,13 +74,6 @@ const UserList: React.FC = () => {
       fetchInvitations();
     }
   }, [fetchUsers, fetchInvitations, canViewUsers, canManageUsers]);
-
-  const filteredUsers = useMemo(() => {
-    if (!selectedOrganization) {
-      return users;
-    }
-    return users.filter(user => user.organization?.organizationId === selectedOrganization.organizationId);
-  }, [users, selectedOrganization]);
 
   const handleDelete = async (userId: number) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
@@ -104,10 +107,19 @@ const UserList: React.FC = () => {
     }
   };
 
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(key);
+      setSortOrder('asc');
+    }
+  };
+
   const columns: Column<UserResponse>[] = [
     {
-      key: 'username', label: 'Username', render: (user: UserResponse) => (
-        <div className="d-flex justify-content-between align-items-center position-relative">
+      key: 'username', label: 'Username', sortable: true, render: (user: UserResponse) => (
+        <div className="d-flex justify-content-between align-items-center position-relative w-100">
           <Link to={`/users/${user.userId}`}>{user.username}</Link>
           {canManageUsers && hoveredUserId === user.userId && (
             <div className="position-absolute top-0 end-0 z-1">
@@ -122,8 +134,8 @@ const UserList: React.FC = () => {
         </div>
       )
     },
-    { key: 'displayName', label: 'Display Name' },
-    { key: 'email', label: 'Email' },
+    { key: 'displayName', label: 'Display Name', sortable: true },
+    { key: 'email', label: 'Email', sortable: true },
     { key: 'roles', label: 'Roles', render: (user: UserResponse) => user.roles.join(', ') },
   ];
 
@@ -221,13 +233,30 @@ const UserList: React.FC = () => {
       )}
 
       <h2>Users</h2>
+      <div className="row mb-3">
+        <div className="col-md-6">
+          <label htmlFor="search" className="form-label">Search:</label>
+          <input
+            type="text"
+            id="search"
+            className="form-control"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by username, email, or name..."
+          />
+        </div>
+      </div>
+
       <TableView
-        data={filteredUsers}
+        data={users}
         columns={columns}
         keyField="userId"
         error={error}
         onRowMouseEnter={(user) => setHoveredUserId(user.userId)}
         onRowMouseLeave={() => setHoveredUserId(null)}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
       />
     </div>
   );

@@ -3,15 +3,21 @@ package alphainterplanetary.teven.data.customer
 import alphainterplanetary.teven.api.model.customer.CreateCustomerRequest
 import alphainterplanetary.teven.api.model.customer.CustomerResponse
 import alphainterplanetary.teven.api.model.customer.UpdateCustomerRequest
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.organization.Organizations
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.core.like
 
 class CustomerDao {
   private fun toCustomerResponse(row: ResultRow): CustomerResponse {
@@ -31,6 +37,46 @@ class CustomerDao {
       address = row[Customers.address],
       notes = row[Customers.notes],
       organization = organization,
+    )
+  }
+
+  suspend fun getCustomers(
+    organizationId: Int?,
+    search: String?,
+    limit: Int?,
+    offset: Long?,
+    sortBy: String?,
+    sortOrder: String?,
+  ): PaginatedResponse<CustomerResponse> = dbQuery {
+    val conditions = mutableListOf<Op<Boolean>>()
+    organizationId?.let { conditions.add(Customers.organizationId eq it) }
+    search?.let { conditions.add(Customers.name.lowerCase() like "%${it.lowercase()}%") }
+
+    val query = if (conditions.isEmpty()) {
+      Customers.selectAll()
+    } else {
+      val combinedCondition = conditions.reduce { acc, op -> acc and op }
+      Customers.selectAll().where { combinedCondition }
+    }
+
+    val total = query.count()
+
+    val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
+    when (sortBy) {
+      "name" -> query.orderBy(Customers.name, sort)
+      else -> query.orderBy(Customers.id, sort)
+    }
+
+    offset?.let { query.offset(it) }
+    limit?.let { query.limit(it) }
+
+    val customers = query.map { toCustomerResponse(it) }
+
+    PaginatedResponse(
+      items = customers,
+      total = total,
+      offset = offset ?: 0,
+      limit = limit ?: 0,
     )
   }
 
