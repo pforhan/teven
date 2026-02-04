@@ -373,13 +373,3 @@ To regenerate the `API.md` file, run the following command from the root of the 
 ```bash
 ./gradlew generateApiDocs
 ```
-
----
-
-**Notes:**
-
-* This is a preliminary design and is subject to change.
-* Error handling (e.g., 400 Bad Request, 404 Not Found, 500 Internal Server Error) is not detailed here but should be implemented for all endpoints.
-* Input validation should be performed for all requests.
-* Pagination should be implemented for endpoints that return large lists of data (e.g., `/api/events`, `/api/customers`, `/api/inventory`).
-* Consider using a more descriptive name for "Availability Functionality" (e.g., "StaffAvailability").
