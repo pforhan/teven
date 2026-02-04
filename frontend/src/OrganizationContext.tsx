@@ -9,7 +9,19 @@ interface OrganizationContextType {
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
 export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [selectedOrganization, setSelectedOrganization] = useState<OrganizationResponse | null>(null);
+  const [selectedOrganization, setSelectedOrganizationState] = useState<OrganizationResponse | null>(() => {
+    const saved = localStorage.getItem('selectedOrganization');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const setSelectedOrganization = (organization: OrganizationResponse | null) => {
+    setSelectedOrganizationState(organization);
+    if (organization) {
+      localStorage.setItem('selectedOrganization', JSON.stringify(organization));
+    } else {
+      localStorage.removeItem('selectedOrganization');
+    }
+  };
 
   const value = useMemo(() => ({
     selectedOrganization,

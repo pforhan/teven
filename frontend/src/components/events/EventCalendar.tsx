@@ -3,7 +3,7 @@ import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { EventService } from '../../api/EventService';
 import type { EventResponse, CalendarEvent } from '../../types/events';
 import { ApiErrorWithDetails } from '../../errors/ApiErrorWithDetails';
@@ -250,7 +250,7 @@ const EventCalendar: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <a href="/events/list" className="btn btn-primary">View All Events</a>
+          <Link to="/events/list" className="btn btn-primary">View All Events</Link>
           {canManageEvents && (
             <button
               className="btn btn-primary ms-2"
