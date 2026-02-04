@@ -7,28 +7,28 @@ This document outlines the API endpoints for the Teven service, including their 
 All API responses will follow a consistent structure to ensure predictable handling of successes and failures.
 
 ```kotlin
-        data class ApiResponse<T>(
-          val success: Boolean, 
-          val data: T?, 
-          val error: ApiError?
-        )
-        ```
+data class ApiResponse<T>(
+  val success: Boolean, 
+  val data: T?, 
+  val error: ApiError?
+)
+```
 
 ```kotlin
-        data class ApiError(
-          val message: String, 
-          val details: String?
-        )
-        ```
+data class ApiError(
+  val message: String, 
+  val details: String?
+)
+```
 
 ```kotlin
-        data class PaginatedResponse<T>(
-          val items: List<T>, 
-          val total: Long, 
-          val offset: Long, 
-          val limit: Int
-        )
-        ```
+data class PaginatedResponse<T>(
+  val items: List<T>, 
+  val total: Long, 
+  val offset: Long, 
+  val limit: Int
+)
+```
 
 *   `success`: A boolean indicating if the request was successful.
 *   `data`: The payload of the response. For successful requests, this will contain the requested data. For failed requests, this will be `null`.
