@@ -1,7 +1,7 @@
 
-# Gemini Code-Gen Assistant Guidelines
+# LLM Agent Guidelines
 
-This document outlines the conventions and best practices to follow when using the Gemini code-generation assistant for the Teven project. Adhering to these guidelines will ensure consistency, maintainability, and high-quality code.
+This document outlines the conventions and best practices to follow when using LLM Agents for the Teven project. Adhering to these guidelines will ensure consistency, maintainability, and high-quality code.
 
 ## General Principles
 
