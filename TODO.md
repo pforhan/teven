@@ -8,6 +8,11 @@ This document tracks design questions and areas that need further clarification.
 - **Frontend Tests:** Implement comprehensive unit and integration tests for all frontend components and services.
 - **Staff Availability:** Consider implementing a dedicated "StaffAvailability" feature or renaming existing availability concepts to be more descriptive if they expand beyond simple event RSVPs.
 - **Inventory checks:** The service should ensure inventory isn't used in the same place at the same time during event creation or editing.
+- **Geographic Features:**
+    - Address lookup and autocomplete for events and customers.
+    - Structured geo-data storage (latitude, longitude) for location-based services.
+    - Simple map display for event and customer details.
+    - New Map View for upcoming events (next X days).
 ---
 
   **Completed:**

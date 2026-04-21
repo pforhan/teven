@@ -19,6 +19,7 @@ import alphainterplanetary.teven.data.invitation.InvitationDao
 import alphainterplanetary.teven.service.customer.CustomerService
 import alphainterplanetary.teven.service.event.EventService
 import alphainterplanetary.teven.service.invitation.InvitationService
+import alphainterplanetary.teven.service.geo.GeoService
 import alphainterplanetary.teven.service.inventory.InventoryService
 import alphainterplanetary.teven.service.organization.OrganizationService
 import alphainterplanetary.teven.service.permission.PermissionServiceImpl
@@ -28,6 +29,7 @@ import alphainterplanetary.teven.service.user.UserServiceImpl
 import org.koin.dsl.module
 
 val appModule = module {
+  single { GeoService() }
   single { UserDao() }
   single<UserService> { UserServiceImpl(get(), get()) }
   single<AuthService> { AuthServiceImpl(get(), get(), get()) }

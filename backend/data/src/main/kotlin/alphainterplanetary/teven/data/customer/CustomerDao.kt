@@ -35,6 +35,9 @@ class CustomerDao {
       name = row[Customers.name],
       phone = row[Customers.phone],
       address = row[Customers.address],
+      latitude = row[Customers.latitude],
+      longitude = row[Customers.longitude],
+      formattedAddress = row[Customers.formattedAddress],
       notes = row[Customers.notes],
       organization = organization,
     )
@@ -102,6 +105,9 @@ class CustomerDao {
         it[name] = createCustomerRequest.name
         it[phone] = createCustomerRequest.phone
         it[address] = createCustomerRequest.address
+        it[latitude] = createCustomerRequest.latitude
+        it[longitude] = createCustomerRequest.longitude
+        it[formattedAddress] = createCustomerRequest.formattedAddress
         it[notes] = createCustomerRequest.notes
         it[organizationId] = createCustomerRequest.organizationId!!
       } get Customers.id
@@ -111,6 +117,9 @@ class CustomerDao {
         name = createCustomerRequest.name,
         phone = createCustomerRequest.phone,
         address = createCustomerRequest.address,
+        latitude = createCustomerRequest.latitude,
+        longitude = createCustomerRequest.longitude,
+        formattedAddress = createCustomerRequest.formattedAddress,
         notes = createCustomerRequest.notes,
         organization = Organizations.selectAll()
           .where { Organizations.id eq createCustomerRequest.organizationId!! }
@@ -132,6 +141,9 @@ class CustomerDao {
       updateCustomerRequest.name?.let { name -> it[Customers.name] = name }
       updateCustomerRequest.phone?.let { phone -> it[Customers.phone] = phone }
       updateCustomerRequest.address?.let { address -> it[Customers.address] = address }
+      updateCustomerRequest.latitude?.let { latitude -> it[Customers.latitude] = latitude }
+      updateCustomerRequest.longitude?.let { longitude -> it[Customers.longitude] = longitude }
+      updateCustomerRequest.formattedAddress?.let { formattedAddress -> it[Customers.formattedAddress] = formattedAddress }
       updateCustomerRequest.notes?.let { notes -> it[Customers.notes] = notes }
       updateCustomerRequest.organizationId?.let { organizationId -> it[Customers.organizationId] = organizationId }
     } > 0

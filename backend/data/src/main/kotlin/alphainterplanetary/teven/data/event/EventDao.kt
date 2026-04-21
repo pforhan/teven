@@ -78,6 +78,9 @@ class EventDao {
         name = customerRow[Customers.name],
         phone = customerRow[Customers.phone],
         address = customerRow[Customers.address],
+        latitude = customerRow[Customers.latitude],
+        longitude = customerRow[Customers.longitude],
+        formattedAddress = customerRow[Customers.formattedAddress],
         notes = customerRow[Customers.notes],
         organization = OrganizationResponse(
           organizationId = customerOrgRow[Organizations.id].value,
@@ -94,6 +97,9 @@ class EventDao {
       time = row[Events.time],
       durationMinutes = row[Events.durationMinutes],
       location = row[Events.location],
+      latitude = row[Events.latitude],
+      longitude = row[Events.longitude],
+      formattedAddress = row[Events.formattedAddress],
       description = row[Events.description],
       inventoryItems = inventoryItems,
       customer = customer,
@@ -111,6 +117,9 @@ class EventDao {
       it[time] = createEventRequest.time
       it[durationMinutes] = createEventRequest.durationMinutes
       it[location] = createEventRequest.location
+      it[latitude] = createEventRequest.latitude
+      it[longitude] = createEventRequest.longitude
+      it[formattedAddress] = createEventRequest.formattedAddress
       it[description] = createEventRequest.description
       it[customerId] = createEventRequest.customerId
       it[openInvitation] = createEventRequest.staffInvites.openInvitation
@@ -194,6 +203,9 @@ class EventDao {
       updateEventRequest.time?.let { time -> it[Events.time] = time }
       updateEventRequest.durationMinutes?.let { minutes -> it[Events.durationMinutes] = minutes }
       updateEventRequest.location?.let { location -> it[Events.location] = location }
+      updateEventRequest.latitude?.let { latitude -> it[Events.latitude] = latitude }
+      updateEventRequest.longitude?.let { longitude -> it[Events.longitude] = longitude }
+      updateEventRequest.formattedAddress?.let { formattedAddress -> it[Events.formattedAddress] = formattedAddress }
       updateEventRequest.description?.let { description -> it[Events.description] = description }
       updateEventRequest.customerId?.let { customerId -> it[Events.customerId] = customerId }
       updateEventRequest.organizationId?.let { organizationId ->
