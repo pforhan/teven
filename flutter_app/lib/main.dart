@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'core/config/url_strategy.dart';
 import 'core/theme/teven_theme.dart';
 import 'screens/home_screen.dart';
 
 void main() {
+  // Must run before `runApp`. See `configureUrlStrategy`.
+  configureUrlStrategy();
   runApp(const TevenApp());
 }
 

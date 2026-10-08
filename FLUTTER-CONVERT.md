@@ -86,9 +86,9 @@ Establishes that a Flutter web build runs locally and survives the Docker + Ktor
 - [x] **0.6** Add `ApiConfig` with a `baseUrl` that is **empty (relative) on web** and from `--dart-define=API_BASE_URL` on native. Document this asymmetry in a comment.
 - [x] **0.7** Add `web/index.html` customization: app title `Teven`, theme color, and the `teven.png` favicon copied from `frontend/public/teven.png`. Also set the PWA distribution ID: `web/manifest.json` gets `"id": "alphainterplanetary.teven"`. `flutter build web` has no `--application-id` flag, so the manifest `id` is where a web distribution ID belongs.
 - [x] **0.8** Add a placeholder `HomeScreen` rendering app name + build version. Wire `flutter run -d chrome` and confirm it renders.
-- [ ] **0.9** **Call `usePathUrlStrategy()`** from `flutter_web_plugins` in `main.dart` so paths stay `/login`, `/register` instead of `/#/login`. Without this, invite links break.
-- [ ] **0.10** Build with `--no-web-resources-cdn` to self-host CanvasKit. Optional for local dev — the gstatic fetch resolves on a normal connection — but it removes a third-party runtime dependency and makes the build fully self-contained. Confirm the built page renders from `build/web` served over plain HTTP on `localhost`.
-- [ ] **0.11** Measure `build/web` bundle size. Compare against the React baseline (596 KB JS + 246 KB CSS) and record the number in this file. Expect a regression.
+- [x] **0.9** **Call `usePathUrlStrategy()`** from `flutter_web_plugins` in `main.dart` so paths stay `/login`, `/register` instead of `/#/login`. Without this, invite links break.
+- [x] **0.10** Build with `--no-web-resources-cdn` to self-host CanvasKit. Optional for local dev — the gstatic fetch resolves on a normal connection — but it removes a third-party runtime dependency and makes the build fully self-contained. Confirm the built page renders from `build/web` served over plain HTTP on `localhost`.
+- [x] **0.11** Measure `build/web` bundle size. Compare against the React baseline (596 KB JS + 246 KB CSS) and record the number in this file. Expect a regression.
 - [ ] **0.12** Add a Flutter stage to `Dockerfile`, replacing `node:20-slim` at lines 20–37. Use an official `ghcr.io/cirruslabs/flutter` image.
 - [ ] **0.13** Parameterize the frontend source with `ARG WEB_SOURCE` (`react` | `flutter`) so **both** pipelines remain buildable during the migration.
 - [ ] **0.14** Verify both `docker build` variants succeed and that the Flutter variant serves correctly through Ktor `staticResources("/", "static")` (`backend/app/src/main/kotlin/.../Routing.kt:56`).
@@ -333,3 +333,49 @@ Append a dated entry per completed phase. Record measured bundle sizes, known li
 **Bundle size (partial, task 0.11).** `flutter build web --release --no-web-resources-cdn` produces **41 MB**: `canvaskit/` 36 MB, `main.dart.js` 1.8 MB, `assets/` 1.5 MB, icons 808 KB, favicon 388 KB. React baseline was 596 KB JS + 246 KB CSS. CanvasKit is ~87% of the total and is fetched separately from app code; it also includes `.symbols` files that need not ship. `--no-web-resources-cdn` confirmed working — `canvaskit/` is written locally and `index.html` contains **zero** gstatic/googleapis references. Two follow-ups for 0.11: drop the 388 KB favicon duplication (the same `teven.png` is currently used for favicon, Icon-192, and Icon-512 rather than real resized icons) and decide whether to strip `.symbols` from the shipped image.
 
 **Distribution ID.** Set to `alphainterplanetary.teven`, matching the backend's Kotlin root package. On web this is `web/manifest.json` `"id"` — `flutter build web` exposes no `--application-id` flag. The Dart package name remains `teven_app`, which is a source identifier rather than a distribution one. Phase 11.1 reuses the same value for native `applicationId` / bundle id.
+
+### 2026-10-08 — Phase 0, tasks 0.9–0.11
+
+**Done.** Path URL strategy installed, self-hosted CanvasKit verified over plain HTTP, bundle measured. See the table below for 0.11 numbers.
+
+**Task 0.9 — ordering constraint, load-bearing for Phase 2.** `usePathUrlStrategy()` must be called **before** the `GoRouter` instance is *constructed*, not merely before `runApp`. `configureUrlStrategy()` runs first in `main()`, which is what makes this hold. Verified by building the same probe both ways, starting at `/register?token=abc123` and navigating to `/login`:
+
+| Call order | Resulting browser URL |
+|---|---|
+| strategy **before** router construction | `pathname=/register`, `hash=` **(empty)** — path strategy in effect |
+| strategy **after** router construction | `pathname=/register`, `hash=#/register?token=abc123` — **fell back to the hash strategy** |
+
+`go_router` captures the URL strategy at construction time. Phase 2 must therefore not hoist the router to a top-level `final` that initializes before `main()` runs, and must not construct it lazily in a `ProviderScope` that could race `main()`.
+
+Wrapped in a conditional import (`lib/core/config/url_strategy.dart` + `_stub`/`_web`) rather than importing `flutter_web_plugins` directly, so adding native platforms in Phase 11 is not a compile error. `flutter_web_plugins` is now declared as an SDK dependency in `pubspec.yaml`.
+
+**Verified that `?token=` survives.** This is the actual premise of task 0.9, so it was tested rather than assumed: loading `/register?token=abc123` with the path strategy installed yields `pathname=/register` and `search=?token=abc123`, and the app boots. Invite links (tasks 2.10, 5.10) depend on this.
+
+**Open question, flagged for Phase 2 — not a claim of correctness.** In the headless harness the in-app route reached `/login` while the address bar stayed at `/register`, in *both* configurations. The distinction between "strategy before" and "strategy after" showed up only in the hash, never as a synchronized path update. This is most likely an artifact of headless Chromium under `--virtual-time-budget` (timers advance without real frames, and go_router's history write may never be flushed), but it was **not** confirmed either way. Before relying on path URLs in production, re-verify in a real browser: navigate between two routes and confirm the address bar follows. Task 2.6 is the natural place, since it is the first phase that ships real navigation.
+
+**Task 0.10 — verified.** Built with `--no-web-resources-cdn` and served from `build/web` over plain HTTP on `localhost`, including a deep path (`/register?token=abc123`) served through an SPA fallback that mimics Ktor's `staticResources("/", "static") { default("index.html") }`. Renders correctly (verified via headless-browser screenshot, not just an HTTP 200).
+
+`index.html` contains no third-party references. Two gstatic/googleapis strings remain in the bundle but are **inert**: `flutter_bootstrap.js` holds `https://www.gstatic.com/flutter-canvaskit` behind a `useLocalCanvasKit` check, and `main.dart.js` holds `https://fonts.gstatic.com/s/` behind a `fontFallbackBaseUrl` null check. Confirmed empirically — a real page load requested **zero** third-party origins. Everything came from localhost.
+
+**Task 0.11 — bundle size.** Two numbers matter, and conflating them is misleading.
+
+| | raw | gzipped |
+|---|---|---|
+| **React** `frontend/dist` (total) | 1.2 MB | 593 KB |
+| **Flutter** `build/web` (total on disk) | 40 MB | 13 MB |
+| **Flutter** first-load transfer | 7.3 MB | **2.6 MB** |
+
+The 40 MB on disk is **not** what a user downloads. It includes 6.1 MB of `.symbols` files and five CanvasKit builds (`chromium/`, `wimp`, `skwasm`, `skwasm_heavy`, `webparagraph/`) of which the browser fetches exactly one. Verified against actual HTTP request logs for a page load: **11 files requested**, `.symbols` never among them. First-load transfer is **7.3 MB raw / 2.6 MB gzipped**.
+
+Breakdown of the 2.6 MB gzipped first load: `canvaskit.wasm` 2.0 MB, `main.dart.js` 540 KB, `canvaskit.js` 27 KB, fonts 47 KB, rest negligible.
+
+**Regression vs React, stated plainly.** React's first load is **593 KB gzipped**; Flutter's is **2.6 MB gzipped** — roughly **4.5×**, or +2.0 MB. This is the expected regression and it is CanvasKit, not app code: `main.dart.js` at 540 KB gzipped is comparable to React's 178 KB JS + 33 KB CSS = 211 KB, and will grow with the ported screens. Note the React figure is flattered by `teven.png` (388 KB) shipping at 396 KB gzipped; excluding that favicon, React is ~206 KB gzipped.
+
+**Resolving the two follow-ups the earlier log flagged.** One done, one deliberately deferred:
+
+- **Icons — done.** `Icon-192.png` and `Icon-512.png` were byte-identical 397 KB copies of the 746×693 source, as was `favicon.png` — 1.58 MB of the same image four times. Regenerated as real square icons (192, 512, plus maskable variants with the logo inside the 80% safe zone, and a 32 px favicon). `web/icons/` went 1.58 MB → 388 KB.
+- **`.symbols` — investigated, not removed.** Confirmed never fetched at runtime: absent from the page-load request log, and no runtime reference to `.symbols` exists anywhere in the build (grepped). They exist for DevTools stack-trace symbolication. Removing them trades production debuggability for image size, which is a judgment call rather than a cleanup — deferred to 0.12, where the image size actually matters and the choice becomes concrete. Stripping is a one-line `rm` if taken.
+
+**Note for 0.12.** The Flutter build output is 40 MB on disk versus React's 1.2 MB. Since `Dockerfile:61` bundles this into the backend jar, expect a substantially larger image. Stripping `canvaskit/*.symbols` and the four unused CanvasKit variants at build time would cut roughly 30 MB, but that trades away production debuggability — decide deliberately rather than by default.
+
+**Unverified.** No Chrome/Chromium browser is installed on this machine; rendering was confirmed with Brave (Chromium-based) in headless mode. `flutter run -d chrome` was not exercised, since the exit criterion for it is task 0.14's territory.
