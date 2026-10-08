@@ -16,6 +16,9 @@ This repository contains the core documentation for the Teven project. As the pr
 * Backend Engineering Design Specifications:  
   This document details the proposed backend architecture for Teven, including technology choices (Ktor, Exposed, Kotlin Coroutines), modular structure, and API design principles.  
   See [the backend Eng Design](BACKEND-DESIGN.md) and [API specification](API.md) for more.
+* Flutter Conversion Plan:  
+  The React frontend in `frontend/` is being rewritten in Flutter, web-first. The plan tracks every task, the parity matrix against the React source, and decisions made along the way.  
+  See [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for progress and [the Flutter app README](flutter_app/README.md) for development setup.
 * **Future Documents:**  
   * Frontend Design Specifications  
   * Database Schema  
@@ -90,6 +93,31 @@ DEV_MODE=true
 ```
 
 When this variable is set, the application will be populated with a set of test data on startup, including organizations, users, customers, inventory items, and events. This is useful for development and testing purposes.
+
+## **Frontend**
+
+The frontend is in the middle of a rewrite. Two implementations currently exist in this repository:
+
+| Location | Stack | Status |
+|---|---|---|
+| `frontend/` | React 19, Vite, TypeScript, Bootstrap | **Live.** Served by the backend, unmodified |
+| `flutter_app/` | Flutter (Dart), Riverpod, go_router | In progress — scaffold only so far |
+
+The React app remains the production frontend until the conversion reaches cutover. It is not to be modified or removed during the conversion; see the ground rules in [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md).
+
+### Developing the Flutter app
+
+```bash
+cd flutter_app
+flutter pub get
+flutter run -d chrome
+```
+
+Requires the Flutter SDK.
+
+> **Status: early scaffolding.** Running this today shows a placeholder screen, not a working app. The conversion is in progress and this app is not yet wired to the API. To use Teven right now, run the React frontend via Docker as described above.
+
+See [flutter_app/README.md](flutter_app/README.md) for analysis, tests, and code generation commands, and [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for the full task list and current progress.
 
 ## **Contributing**
 

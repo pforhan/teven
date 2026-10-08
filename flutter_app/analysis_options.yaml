@@ -1,0 +1,27 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-raw-types: true
+  errors:
+    # Generated files are excluded from `exclude` below, but the analyzer still
+    # reads them transitively for some rules.
+    todo: ignore
+  exclude:
+    - build/**
+    - web/**
+
+linter:
+  rules:
+    # Project conventions, per AGENTS.md.
+    require_trailing_commas: true
+    prefer_final_locals: true
+
+    # Dart 3 idioms worth enforcing from the start.
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
+    avoid_print: true
+    unnecessary_parenthesis: true
+    use_super_parameters: true
