@@ -52,10 +52,24 @@ The project is configured to run out-of-the-box using default environment variab
     Navigate to the root directory of the project and run:
 
     ```bash
-    docker compose up --build -d
+    ./teven up
     ```
 
-    This command will build and start the services in detached mode, meaning it will run in the background.
+    This builds the Flutter web bundle, then builds and starts the services in
+    detached mode (equivalent to `docker compose up --build -d`, with the
+    Flutter prebuild step included). Run `./teven help` for all commands.
+
+    To use the React frontend instead — it builds inside Docker and needs no
+    prebuild step:
+
+    ```bash
+    ./teven up-react
+    ```
+
+    The raw `docker compose up --build -d` still works, and defaults to the
+    React frontend. Prefer `./teven up`: with `WEB_SOURCE=flutter` the Dockerfile
+    copies a **prebuilt** bundle, so calling Docker directly can silently package
+    a stale build.
 
 3.  Once the services are up and running, the backend API will be accessible at `http://localhost:2022` (or your custom port if you set one).
 
@@ -64,13 +78,13 @@ The project is configured to run out-of-the-box using default environment variab
 To stop the running Docker containers, run:
 
 ```bash
-docker compose down
+./teven down
 ```
 
 To stop and remove the containers, networks, and volumes (for a clean slate), use:
 
 ```bash
-docker compose down -v
+./teven down -v
 ```
 
 ### Database Configuration
@@ -113,9 +127,14 @@ flutter pub get
 flutter run -d chrome
 ```
 
-Requires the Flutter SDK.
+Requires the Flutter SDK. Or, from the repo root, `./teven dev`.
 
-> **Status: early scaffolding.** Running this today shows a placeholder screen, not a working app. The conversion is in progress and this app is not yet wired to the API. To use Teven right now, run the React frontend via Docker as described above.
+> **Status: scaffold only.** Running this today shows a placeholder screen, not a
+> working app. The conversion is in progress and this app is not yet wired to
+> the API. To use Teven right now, run the React frontend via `./teven up-react`
+> as described above.
+
+Run `./teven verify` to analyze, format-check, and test the Flutter app.
 
 See [flutter_app/README.md](flutter_app/README.md) for analysis, tests, and code generation commands, and [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for the full task list and current progress.
 

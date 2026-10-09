@@ -89,12 +89,14 @@ Establishes that a Flutter web build runs locally and survives the Docker + Ktor
 - [x] **0.9** **Call `usePathUrlStrategy()`** from `flutter_web_plugins` in `main.dart` so paths stay `/login`, `/register` instead of `/#/login`. Without this, invite links break.
 - [x] **0.10** Build with `--no-web-resources-cdn` to self-host CanvasKit. Optional for local dev — the gstatic fetch resolves on a normal connection — but it removes a third-party runtime dependency and makes the build fully self-contained. Confirm the built page renders from `build/web` served over plain HTTP on `localhost`.
 - [x] **0.11** Measure `build/web` bundle size. Compare against the React baseline (596 KB JS + 246 KB CSS) and record the number in this file. Expect a regression.
-- [ ] **0.12** Add a Flutter stage to `Dockerfile`, replacing `node:20-slim` at lines 20–37. Use an official `ghcr.io/cirruslabs/flutter` image.
-- [ ] **0.13** Parameterize the frontend source with `ARG WEB_SOURCE` (`react` | `flutter`) so **both** pipelines remain buildable during the migration.
-- [ ] **0.14** Verify both `docker build` variants succeed and that the Flutter variant serves correctly through Ktor `staticResources("/", "static")` (`backend/app/src/main/kotlin/.../Routing.kt:56`).
-- [ ] **0.15** Version-manage the Flutter web service worker. Flutter registers one by default that caches aggressively, which serves stale bundles after a rebuild even locally. Set a cache name derived from the build version.
+- [x] **0.12** Add a Flutter stage to `Dockerfile`. **Deviation:** no Flutter SDK runs in Docker at all. The registry has no image new enough, and Flutter publishes no `linux/arm64` SDK, so the stage copies a bundle built on the host. See progress log.
+- [x] **0.13** Parameterize the frontend source with `ARG WEB_SOURCE` (`react` | `flutter`) so **both** pipelines remain buildable during the migration.
+- [x] **0.14** Verify both `docker build` variants succeed and that the Flutter variant serves correctly through Ktor `staticResources("/", "static")` (`backend/app/src/main/kotlin/.../Routing.kt:56`). **Verified** — see progress log.
+- [x] **0.15** **Premise did not hold — no work needed.** Flutter 3.47.2's default service worker is a 784-byte stub that unregisters itself; there is no aggressive cache to version. `--pwa-strategy` is hidden and deprecated. Verified against the SDK source; see progress log.
 
 **Exit criterion:** `docker compose up --build` serves a Flutter page from Ktor on `localhost`, with correct path-based URLs, and `flutter run -d chrome` works against the same backend.
+
+**Status: met,** with two caveats. `docker compose up --build` with `WEB_SOURCE=flutter` serves the Flutter app from Ktor on `localhost:2022`, deep paths and `?token=` included, with API routing still taking precedence (task 0.14). Not verified: `flutter run -d chrome`, and whether the address bar actually follows in-app navigation under the path strategy — the open question from the 0.9–0.11 entry, which needs a real browser. Both are Phase 1 work; Phase 1.1 can proceed regardless.
 
 ---
 
@@ -379,3 +381,73 @@ Breakdown of the 2.6 MB gzipped first load: `canvaskit.wasm` 2.0 MB, `main.dart.
 **Note for 0.12.** The Flutter build output is 40 MB on disk versus React's 1.2 MB. Since `Dockerfile:61` bundles this into the backend jar, expect a substantially larger image. Stripping `canvaskit/*.symbols` and the four unused CanvasKit variants at build time would cut roughly 30 MB, but that trades away production debuggability — decide deliberately rather than by default.
 
 **Unverified.** No Chrome/Chromium browser is installed on this machine; rendering was confirmed with Brave (Chromium-based) in headless mode. `flutter run -d chrome` was not exercised, since the exit criterion for it is task 0.14's territory.
+
+### 2026-10-08 — Phase 0, tasks 0.12, 0.13, 0.15 (0.14 partial)
+
+**Task 0.12 — deviation: the Flutter SDK does not run in Docker at all.** The task specified an official `ghcr.io/cirruslabs/flutter` image. Two independent blockers make that impossible, both verified rather than assumed:
+
+1. **No image is new enough.** The registry's newest tag is **3.44.0** (Dart 3.12.0); `flutter_app` requires **Dart ^3.13.2**, and `freezed` 4.0.2 requires **>=3.13.0**. Running `flutter pub get` inside the image:
+
+```
+The current Dart SDK version is 3.12.0.
+Because teven_app requires SDK version ^3.13.2, version solving failed.
+```
+
+Downgrading the app to fit the image was rejected: relaxing the SDK floor to 3.12 then fails on `freezed` (needs >=3.13.0), and dropping to `freezed` 3.x fails again on an `analyzer`/`meta` conflict with `build_runner`. The app's toolchain and the local toolchain are the same version by design; the image is what had to give.
+
+2. **No native `linux/arm64` SDK exists at all.** Not just for 3.47.2 — the arm64 tarball URL 404s for 3.47.2, 3.44.0, 3.38.0 and 3.27.0. Flutter ships Linux SDKs for x86_64 only. So there is no combination that is both current and native on Apple Silicon.
+
+**Resolution: the Flutter SDK does not run in Docker.** The Flutter stage no longer installs an SDK or compiles anything. It copies a bundle built on the host:
+
+```bash
+(cd flutter_app && flutter build web --release --no-web-resources-cdn)
+WEB_SOURCE=flutter docker compose up --build
+```
+
+Measured effect: the `flutter` variant went from **~30 min** (1.5 GB SDK download plus an emulated dart2js under QEMU) to **1.2 seconds**.
+
+**The trade-off, stated plainly.** The image is no longer self-contained — the Docker build cannot produce the bundle by itself, and a stale bundle is now possible: change code, run `docker compose up --build` without rebuilding, and the image ships the old bundle. Mitigated on both sides:
+
+- **Missing bundle fails loudly.** The stage asserts `index.html`, `main.dart.js` and `flutter_bootstrap.js` are present, because Docker will happily copy a nonexistent source directory as an empty one and produce an image whose backend serves nothing. Verified that the assertion fails the build when `main.dart.js` is removed.
+- **Stale bundle is prevented by the `./teven` script.** `up` always rebuilds before packaging, so the two-step cannot be forgotten. `set -euo pipefail` means a failed Flutter build aborts before Docker runs.
+
+**Tooling choice: a shell script, not Gradle or Make.** Wrapping the workflow was considered against Gradle and Make. Gradle was rejected: `generateApiDocs` in the root `build.gradle.kts` is a real precedent for non-JVM work, but it is not an equivalent one — it consumes Gradle's own task output and stays inside the build graph, whereas these commands shell out to Docker and Flutter, where Gradle's up-to-date checks and configuration cache do not apply and where `flutter run` (a long-running interactive process) does not fit the task model at all. Gradle would also add 1–3s of daemon startup to commands that are otherwise instant. Make was viable but macOS ships GNU Make 3.81 (2006), which constrained the target syntax for no benefit over a plain script. `./teven` is a dependency-free bash script.
+
+**Dead ends, so they are not retried.** In-container SDK install via the official tarball was implemented and worked, but is strictly worse than the host build; it also needed `git config --global --add safe.directory /opt/flutter` (the tarball carries a foreign uid, so git refuses it as "dubious ownership" and `flutter pub get` exits 128) and `FROM --platform=linux/amd64` (an arm64 container has no amd64 loader, so the x86_64 `dart` binary dies with `rosetta error: failed to open elf at /lib64/ld-linux-x86-64.so.2`). Those fixes are recorded here because the emulation path may become the right one if Flutter ever publishes an arm64 SDK.
+
+**Also added: `.dockerignore`.** The repo had none, so the build context was **589 MB** — `frontend/node_modules` (228 MB) and `flutter_app/.dart_tool` (89 MB) included. Now **41.7 MB**, with `flutter_app/build/web` explicitly re-included since the Flutter stage needs it. Verified the bundle still arrives intact (40 MB) and that the react variant is unaffected.
+
+**Flutter version pinning.** There is no longer a `FLUTTER_VERSION` build arg — the version lives only in the local toolchain. `environment: sdk: ^3.13.2` in `pubspec.yaml` is a *Dart* constraint and contains no Flutter version, so nothing in the repo records which Flutter is expected. That is a real gap: nothing enforces that the local Flutter satisfies the Dart constraint. Worth a `tool/` check script at some point; for now it is noted in `flutter_app/README.md`.
+
+**Task 0.13 — `ARG WEB_SOURCE`.** Both pipelines stay buildable. The two builder stages are named `frontend-react` and `frontend-flutter`, each normalizing its output to `/web-dist`, and a selector stage picks between them:
+
+```dockerfile
+FROM frontend-${WEB_SOURCE} AS web-assets
+```
+
+Docker only substitutes build args into `FROM` when they are in the **global** scope, so `ARG WEB_SOURCE` is declared before the first `FROM` — declaring it inline at the selector fails with `UndefinedArgInFrom`. Because Docker skips unreferenced stages, the unselected pipeline is never built at all. Verified: the `react` build contains zero Flutter steps and produces the correct `dist`. Selectable via `WEB_SOURCE=flutter docker compose up --build`, wired through `docker-compose.yml`.
+
+**Task 0.15 — premise did not hold; no work needed.** The task assumed Flutter registers a service worker that "caches aggressively, which serves stale bundles after a rebuild". On 3.47.2 it does not. The generated `flutter_service_worker.js` is a **784-byte stub that unregisters itself** on activate. There is no cache, and nothing to version.
+
+Confirmed against the SDK source rather than by inspection alone: `--pwa-strategy` is marked `hide: true` and *"deprecated and will be removed in a future Flutter release"*, and the only remaining template (`flutter_tools/.../js/flutter_service_worker.js`) is the unregistering stub — no `RESOURCES` map or `caches.open` call exists anywhere in `flutter_tools/lib/src`. Building with `--pwa-strategy=none` produces a **0-byte** worker.
+
+So the stale-bundle failure mode this task was written to prevent does not exist on the current toolchain. Flagging rather than inventing a cache name for a worker that caches nothing. **If a caching worker is ever reintroduced upstream, revisit this** — the mitigation would be a cache name derived from the build version.
+
+**Task 0.14 — verified.** `WEB_SOURCE=flutter docker compose up --build` serves the Flutter app from Ktor on `localhost:2022`. Confirmed independently of the browser, by fetching from the running container:
+
+| Check | Result |
+|---|---|
+| `GET /` | 200, serves `flutter_bootstrap.js` + `<base href="/">` + `manifest.json` — Flutter's `index.html`, not React's |
+| `flutter_bootstrap.js`, `main.dart.js` | 200 `text/javascript` |
+| `manifest.json` | 200 `application/json` |
+| `canvaskit/chromium/canvaskit.wasm` | 200 `application/wasm` (correct MIME, so streaming compilation works) |
+| `favicon.png` | 200 `image/png` |
+| `/register?token=abc123` | 200 — SPA fallback works, `?token=` preserved through the deep path |
+| `/events` | 200 — same |
+| `GET /api/nonexistent` | **404 JSON envelope**, not `index.html` |
+
+That last row is the one worth keeping. It confirms API routes still win over the SPA catch-all, which is the condition task 1.12 depends on — if unmatched API paths returned `index.html` with HTTP 200, the defensive content-type sniffing planned for 1.12 would be load-bearing rather than belt-and-braces. Currently `Routing.kt:40-53` handles it correctly for GET/POST/PUT/DELETE.
+
+Both build variants confirmed earlier: `react` yields `assets/index.html/teven.png` (1.2 MB), `flutter` yields `main.dart.js` + `canvaskit/` + `manifest.json` (40 MB), and the selector never builds the unselected pipeline.
+
+**Pre-existing local issue, unrelated to the conversion.** The first `docker compose up --build` failed with exit 126 at `./gradlew --status`: `gradlew` had lost its executable bit in the working tree, and `COPY` preserves that mode. Git records the file as `100755`, so the committed state is correct and a fresh clone is unaffected. Fixed with `chmod +x gradlew`. Worth noting this repo has `core.fileMode=false`, so git cannot warn about a lost exec bit — `git config core.fileMode true` would surface it.

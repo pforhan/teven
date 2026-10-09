@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+#
+# teven — task runner for the Teven stack.
+#
+# Wraps the Docker Compose workflow so the Flutter prebuild step can't be
+# forgotten. `up` always rebuilds the web bundle before packaging, which removes
+# the silent-staleness failure mode of calling `docker compose up --build`
+# directly.
+#
+# POSIX-ish bash; avoids bash 4+ features so it runs on the macOS system bash.
+# Run `./teven help` for available commands.
+
+set -euo pipefail
+
+readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly FLUTTER_DIR="${ROOT}/flutter_app"
+
+# Build flags for the host-side Flutter build. --no-web-resources-cdn self-hosts
+# CanvasKit, removing a third-party runtime fetch (FLUTTER-CONVERT.md task 0.10).
+readonly FLUTTER_BUILD_ARGS=(
+  build
+  web
+  --release
+  --no-web-resources-cdn
+)
+
+die() {
+  printf 'teven: %s\n' "$1" >&2
+  exit "${2:-1}"
+}
+
+# Print a command's leading words without executing it, for dry-run support.
+show() {
+  printf '  $ %s\n' "$*"
+}
+
+run() {
+  show "$@"
+  "$@"
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 ||
+    die "'$1' not found on PATH. ${2:-}"
+}
+
+usage() {
+  cat <<'EOF'
+teven — task runner for the Teven stack
+
+Usage: ./teven <command> [options]
+
+Commands:
+  up                 Build the Flutter web bundle, then start the stack
+                     in the background (docker compose -d).
+  up -f | --foreground
+                     Same, but stream logs in the foreground instead.
+  up-react           Start the stack with the React frontend. No prebuild
+                     needed: React builds inside Docker.
+  build              Build the Flutter web bundle only, no Docker.
+  dev                Run the Flutter app against a local backend
+                     (flutter run -d chrome).
+  verify             Analyze, format-check, and test the Flutter app.
+  clean              Remove built web bundles (Flutter and React).
+  down               Stop the containers.
+  down -v | --volumes
+                     Stop containers and delete volumes (drops the DB).
+  status             Show container status.
+  logs               Tail container logs.
+  help               Show this help. Default when no command is given.
+
+Options:
+  -f, --foreground   Stream logs instead of detaching (for `up`).
+  -v, --volumes      Also delete volumes (for `down`).
+  -n, --dry-run      Print the commands that would run, without running them.
+  -h, --help         Show this help.
+
+Environment:
+  WEB_SOURCE         Which frontend to package: react | flutter.
+                     `up` forces flutter; `up-react` forces react.
+                     (Default: flutter.)
+
+Examples:
+  ./teven up                    # build Flutter, then start in background
+  ./teven up -f                 # build Flutter, then stream logs
+  ./teven up --dry-run          # show what would run
+  ./teven up-react              # start with the React frontend
+  ./teven verify                # analyze + format check + test
+  ./teven down -v               # full reset, including the database
+EOF
+}
+
+main() {
+  local command="${1:-help}"
+  shift || true
+
+  local foreground=0 volumes=0 dry_run=0
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -f | --foreground) foreground=1 ;;
+      -v | --volumes) volumes=1 ;;
+      -n | --dry-run) dry_run=1 ;;
+      -h | --help)
+        usage
+        return 0
+        ;;
+      *)
+        printf 'teven: unknown option: %s\n\n' "$1" >&2
+        usage >&2
+        return 2
+        ;;
+    esac
+    shift
+  done
+
+  case "$command" in
+    up) cmd_up "$foreground" "$dry_run" ;;
+    up-react) cmd_up_react "$foreground" "$dry_run" ;;
+    build) cmd_build "$dry_run" ;;
+    dev) cmd_dev "$dry_run" ;;
+    verify) cmd_verify "$dry_run" ;;
+    clean) cmd_clean "$dry_run" ;;
+    down) cmd_down "$volumes" "$dry_run" ;;
+    status) cmd_simple status "$dry_run" ;;
+    logs) cmd_simple logs "$dry_run" ;;
+    help) usage ;;
+    *)
+      printf 'teven: unknown command: %s\n\n' "$command" >&2
+      usage >&2
+      return 2
+      ;;
+  esac
+}
+
+# Build the Flutter web bundle. This must run before any `flutter` compose
+# build, because the Dockerfile copies flutter_app/build/web rather than
+# building it (FLUTTER-CONVERT.md task 0.12: Flutter publishes no linux/arm64
+# SDK, so building in Docker means amd64 emulation).
+cmd_build() {
+  local dry_run="$1"
+  need flutter "Install the Flutter SDK, or use ./teven up-react." || return 1
+  printf '==> Building Flutter web bundle\n'
+  if [ "$dry_run" -eq 1 ]; then
+    (cd "$FLUTTER_DIR" && show flutter "${FLUTTER_BUILD_ARGS[@]}")
+  else
+    (cd "$FLUTTER_DIR" && flutter "${FLUTTER_BUILD_ARGS[@]}")
+  fi
+}
+
+cmd_up() {
+  local foreground="$1" dry_run="$2"
+  cmd_build "$dry_run" || return 1
+  printf '==> Starting the stack (frontend: flutter)\n'
+  local -a compose=(docker compose up --build)
+  [ "$foreground" -eq 1 ] || compose+=(-d)
+  if [ "$dry_run" -eq 1 ]; then
+    show "${compose[@]}"
+  else
+    WEB_SOURCE=flutter "${compose[@]}"
+  fi
+}
+
+cmd_up_react() {
+  local foreground="$1" dry_run="$2"
+  printf '==> Starting the stack (frontend: react)\n'
+  printf '    React builds inside Docker; no prebuild step needed.\n'
+  local -a compose=(docker compose up --build)
+  [ "$foreground" -eq 1 ] || compose+=(-d)
+  if [ "$dry_run" -eq 1 ]; then
+    show "${compose[@]}"
+  else
+    WEB_SOURCE=react "${compose[@]}"
+  fi
+}
+
+cmd_dev() {
+  local dry_run="$1"
+  need flutter "Install the Flutter SDK first." || return 1
+  printf '==> Running the Flutter app against http://localhost:2022\n'
+  printf '    The backend must already be running (./teven up-react).\n'
+  if [ "$dry_run" -eq 1 ]; then
+    (cd "$FLUTTER_DIR" && show flutter run -d chrome)
+  else
+    (cd "$FLUTTER_DIR" && flutter run -d chrome)
+  fi
+}
+
+cmd_verify() {
+  local dry_run="$1"
+  need flutter "Install the Flutter SDK first." || return 1
+  printf '==> Verifying the Flutter app\n'
+  if [ "$dry_run" -eq 1 ]; then
+    (cd "$FLUTTER_DIR" && show flutter analyze && show dart format --output=none --set-exit-if-changed . && show flutter test)
+  else
+    (
+      cd "$FLUTTER_DIR" &&
+        flutter analyze &&
+        dart format --output=none --set-exit-if-changed . &&
+        flutter test
+    )
+  fi
+}
+
+cmd_clean() {
+  local dry_run="$1"
+  printf '==> Removing built web bundles\n'
+  local target
+  for target in "${FLUTTER_DIR}/build/web" "${ROOT}/frontend/dist"; do
+    if [ -e "$target" ]; then
+      printf '  - %s\n' "${target#"${ROOT}"/}"
+      [ "$dry_run" -eq 1 ] || rm -rf "$target"
+    fi
+  done
+}
+
+cmd_down() {
+  local volumes="$1" dry_run="$2"
+  local -a compose=(docker compose down)
+  [ "$volumes" -eq 1 ] && compose+=(-v)
+  if [ "$dry_run" -eq 1 ]; then
+    show "${compose[@]}"
+  else
+    "${compose[@]}"
+  fi
+}
+
+cmd_simple() {
+  local sub="$1" dry_run="$2"
+  if [ "$dry_run" -eq 1 ]; then
+    show docker compose "$sub"
+  else
+    docker compose "$sub"
+  fi
+}
+
+main "$@"

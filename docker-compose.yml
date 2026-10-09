@@ -20,6 +20,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Which web bundle to compile into the backend jar: `react` (the live
+        # app until Phase 10) or `flutter`. Both pipelines stay buildable during
+        # the migration; the unselected one is never built.
+        # Override with WEB_SOURCE=flutter docker compose up --build
+        WEB_SOURCE: ${WEB_SOURCE:-react}
+        # The flutter variant does NOT build inside Docker: it copies a
+        # prebuilt bundle. Run this first, or the build fails:
+        #   (cd flutter_app && flutter build web --release --no-web-resources-cdn)
     container_name: teven_backend
     ports:
       - "${TEVEN_BACKEND_PORT:-2022}:8080"

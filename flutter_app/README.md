@@ -23,8 +23,35 @@ flutter run -d chrome
 The web build is served from the same origin as the API, so requests use
 relative URLs and no configuration is needed. See `lib/core/config/api_config.dart`.
 
-Note that Docker still builds the React frontend, not this one. Flutter enters
-the Docker pipeline in Phase 0, tasks 0.12–0.14.
+## Building for Docker
+
+**The Docker image does not build this app.** It copies a bundle you build
+first. This is deliberate — Flutter publishes no `linux/arm64` SDK, so an
+in-container build means emulating amd64 (a ~1.5 GB SDK download plus a slow
+emulated compile). See task 0.12 in [`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md).
+
+**Prefer the wrapper.** `./teven up` from the repo root builds the bundle and
+then packages it, so the prebuild step can't be forgotten:
+
+```bash
+./teven up          # build Flutter, then start the stack
+./teven up -f       # same, but stream logs in the foreground
+./teven up-react    # start with the React frontend (builds inside Docker)
+```
+
+The build fails loudly if the prebuilt bundle is missing, rather than silently
+producing an image that serves nothing. The trade-off is the reverse hazard: the
+image can contain a **stale** bundle if you skip the rebuild after changing code.
+`./teven up` prevents that by always rebuilding first.
+
+`WEB_SOURCE` defaults to `react`, which builds the React app in `../frontend`
+inside Docker and needs no prebuild step.
+
+## Flutter version
+
+Pinned to **3.47.2** locally. `environment: sdk: ^3.13.2` in `pubspec.yaml` is
+a *Dart* constraint; the Flutter version is recorded only by your local install,
+so keep the two in step when upgrading.
 
 ## Analysis and tests
 
@@ -33,6 +60,8 @@ flutter analyze
 dart format .
 flutter test
 ```
+
+Or run `./teven verify` from the repo root to do all three.
 
 Code generation (`freezed`, `json_serializable`, `riverpod_generator`):
 
