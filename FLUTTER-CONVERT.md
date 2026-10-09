@@ -18,6 +18,7 @@ Responsive layout is in scope throughout, because the site will be viewed in mob
 - 2-space indentation, per `AGENTS.md`.
 - Run `dart format .` and `flutter analyze` before every commit in `flutter_app/`.
 - New Flutter packages must be justified in the commit message.
+- **Generated code is not committed.** `*.freezed.dart` and `*.g.dart` are gitignored (`flutter_app/.gitignore`), so `dart run build_runner build` is a required setup step after every clone, not an optional one. This is a deliberate departure from the freezed default of committing generated output.
 
 ---
 
@@ -104,14 +105,14 @@ Establishes that a Flutter web build runs locally and survives the Docker + Ktor
 
 Ports `src/api/*` (425 lines) and `src/types/*` (316 lines). Mechanical, but must model the envelope defensively.
 
-- [ ] **1.1** Port `ApiResponse<T>` / `ApiError` from `src/types/api.ts`. **Note:** the server's `failure()` helper sets `data = Unit`, so error bodies carry `data: {}` rather than `data: null` — see `backend/api/.../common/ApiResponse.kt:5`. Make `data` nullable.
-- [ ] **1.2** Port `PaginatedResponse<T>`. Offset/limit only — **no page numbers, no cursor, no total-page count**.
-- [ ] **1.3** Port `src/types/common.ts`, `roles.ts`, `permissions.ts`.
-- [ ] **1.4** Port `src/types/auth.ts` (83 lines) — includes `UserContextResponse` with `permissions: List<String>`, the UI gating source.
-- [ ] **1.5** Port `src/types/customers.ts`, `inventory.ts`, `organizations.ts`.
-- [ ] **1.6** Port `src/types/events.ts` (77 lines) — largest type file, includes `rsvps`, `inventoryItems`, nested `customer`/`organization`.
-- [ ] **1.7** Port `src/types/reports.ts`.
-- [ ] **1.8** Port all model classes to `freezed` + `json_serializable`. Run `build_runner`.
+- [x] **1.1** Port `ApiResponse<T>` / `ApiError` from `src/types/api.ts`. **Note:** the server's `failure()` helper sets `data = Unit`, so error bodies carry `data: {}` rather than `data: null` — see `backend/api/.../common/ApiResponse.kt:5`. Make `data` nullable.
+- [x] **1.2** Port `PaginatedResponse<T>`. Offset/limit only — **no page numbers, no cursor, no total-page count**.
+- [x] **1.3** Port `src/types/common.ts`, `roles.ts`, `permissions.ts`.
+- [x] **1.4** Port `src/types/auth.ts` (83 lines) — includes `UserContextResponse` with `permissions: List<String>`, the UI gating source.
+- [x] **1.5** Port `src/types/customers.ts`, `inventory.ts`, `organizations.ts`.
+- [x] **1.6** Port `src/types/events.ts` (77 lines) — largest type file, includes `rsvps`, `inventoryItems`, nested `customer`/`organization`.
+- [x] **1.7** Port `src/types/reports.ts`.
+- [x] **1.8** Port all model classes to `freezed` + `json_serializable`. Run `build_runner`.
 - [ ] **1.9** Add `ApiException` hierarchy replacing `src/errors/*`: `UnauthorizedException`, `ApiException(message, details)`, `NetworkException`. **Consolidate** the ~20 copy-pasted `try/catch` unwrapping blocks into these rather than porting the duplication.
 - [ ] **1.10** Implement `ApiClient` on `dio` with: auth header injection, JSON envelope unwrapping, 401 → `UnauthorizedException`.
 - [ ] **1.11** Handle the two non-conforming server responses: bare-string bodies from `AuthorizationPlugin.kt:24,31` (e.g. `"User does not have the required permission"`), and 204 empty bodies. Model as nullable.
@@ -451,3 +452,59 @@ That last row is the one worth keeping. It confirms API routes still win over th
 Both build variants confirmed earlier: `react` yields `assets/index.html/teven.png` (1.2 MB), `flutter` yields `main.dart.js` + `canvaskit/` + `manifest.json` (40 MB), and the selector never builds the unselected pipeline.
 
 **Pre-existing local issue, unrelated to the conversion.** The first `docker compose up --build` failed with exit 126 at `./gradlew --status`: `gradlew` had lost its executable bit in the working tree, and `COPY` preserves that mode. Git records the file as `100755`, so the committed state is correct and a fresh clone is unaffected. Fixed with `chmod +x gradlew`. Worth noting this repo has `core.fileMode=false`, so git cannot warn about a lost exec bit — `git config core.fileMode true` would surface it.
+### 2026-10-09 — Phase 1, tasks 1.1–1.8 (data layer)
+
+**Done.** All eleven model files ported to `freezed` + `json_serializable`; `build_runner` clean; `flutter analyze` clean; `dart format` clean; `flutter build web --release` succeeds.
+
+**Task grouping.** These nine tasks went in as one commit, deviating from one-task-per-commit. 1.8 ("port all model classes to freezed") applies to everything 1.1–1.7 define, so splitting them would mean generating twice and would leave the intermediate commits in a state where the model layer was half-converted between `json_serializable` styles.
+
+**The envelope is the load-bearing decision.** `ApiResponse<T>.fromJson` takes a `T Function(Object?)` decode callback and invokes it **only when `success` is true**. A generated `fromJson` would attempt to decode `data` on every response — and since `failure()` sets `data = Unit`, every error body carries `data: {}`, not `null`. Decoding `{}` into `List<EventResponse>` throws, and the throw destroys the error message the caller needs to show. Verified directly: a failure envelope decodes with `data == null`, `error` intact, and the decode callback provably never invoked. Task 1.10 depends on this shape.
+
+**Not ported, deliberately.** `RegisterRequest` (`types/auth.ts:3`) — the endpoint it targets, `POST /api/users/register`, does not exist; already on the discrepancy table. `UserDetailsResponse` — a near-duplicate of `UserResponse` missing `organization`, used only by the profile screens; folding it into `UserResponse` would have been a behaviour change, so task 5.6 re-decides. `VirtualEvent` / `CalendarEvent` — client-only calendar view types with no server counterpart; they belong to Phase 7's `table_calendar` port, not the data layer. `StatusResponse` is kept but is close to vestigial: deletes return `204 No Content` with an empty body, not `{status, message}`.
+
+**Fixed a Phase 0 mistake.** `freezed_annotation` was listed under `dev_dependencies` in task 0.4, but it is imported by `lib/` code and referenced by every generated `.freezed.dart`. It only surfaced once models existed, as ten `depend_on_referenced_packages` lint hits. Moved to `dependencies`. The bug was only possible because no `lib/` file imported it before now.
+
+**freezed 4.0 gotcha.** Classes with getters need an explicit private constructor (`const EventResponse._();`), or the generator fails with "Getters require a MyClass._() constructor". This is why `EventResponse.startAt`/`endAt` exist as methods rather than a `VirtualEvent` wrapper type.
+
+**Fields the React types omit, included here.** Modelled from the Kotlin DTOs rather than from `src/types/*`, since the server is the source of truth for the wire format and dropping these would lose data silently:
+
+| Field | On the wire | In the React type |
+|---|---|---|
+| `latitude` / `longitude` / `formattedAddress` on customer + event | yes | **no** |
+| `displayName` on `StaffHoursReportResponse` | yes | **no** |
+| `latitude` / `longitude` / `formattedAddress` on create/update requests | yes | **no** |
+
+The geo fields are always null in practice — the backend's geo service is dead code — but task 6.4 (auto-fill event location from a customer's address) will want them present rather than absent.
+
+**`eventId` is `int`, not `int | String`.** `types/events.ts:38` declares `number | string`. The server type is `Int` (`EventResponse.kt:9`), so the union is a workaround for something that does not occur. Modelled as `int`.
+
+**Timezone handling.** `date` and `time` stay `String` (`"YYYY-MM-DD"`, `"HH:MM:SS"`). `EventResponse.startAt` builds a `DateTime` from components explicitly instead of the React app's `DateTime.parse(event.date + 'T' + event.time)` (`EventCalendar.tsx:230`) — that expression silently depends on `DateTime.parse` treating a zone-less string as local. Component-wise construction keeps naive-local semantics (task 7.9) but makes the assumption visible and fails loudly on malformed input. Verified: `"2026-03-04"` + `"09:30:00"` + 90 min yields `2026-03-04 09:30` → `11:00` local, no UTC shift.
+
+**OR-semantics for permissions** are captured now, in `Permissions.hasAny`, because 1.3 was the natural place and 2.5 depends on it: an empty list grants access (reproducing `ProtectedRoute.tsx:20`), and multiple permissions are `.any()` (`ProtectedRoute.tsx:22-25`). `UserContextResponse.permissions` stays `List<String>` rather than `List<Permission>` so an unrecognized permission from a newer server does not fail the whole context fetch.
+
+**One correction to the plan's own assumptions.** The plan's task 2.11 implies `/api/invitations/accept` returns a non-enveloped `{success, message}`. It does not — the route wraps the service result in `success(...)` (`InvitationRoutes.kt:62`). The two `success` fields are distinct: the service's own flag is converted into an envelope-level `failure(...)` with HTTP 400 (`InvitationRoutes.kt:64`), so a client never sees `success: false` from the DTO, only the message. Task 2.11's `AlreadyLoggedInError` comes from a separate earlier branch (`InvitationRoutes.kt:49`). Corrected in the model doc comment; the task itself is unaffected.
+
+**Verification.** Analyser and formatter are clean and the web build succeeds, but per the plan's decision to defer tests, no test files were kept. Behaviour was checked with a temporary probe covering: failure envelope with `data: {}` (decode provably not invoked), success envelope, list decoding into `EventResponse`, `PaginatedResponse` with nested items, and the naive-local `startAt`/`endAt` arithmetic. All five passed; the probe was then deleted. Task 1.19 is still the first durable test coverage.
+
+**Generated files are gitignored — decided, not open.** `*.freezed.dart` and `*.g.dart` are ignored in `flutter_app/.gitignore`, grouped with Flutter's own template rules. This is a departure from the freezed default of committing generated output.
+
+The tradeoff is a real cost, not a free win: **a fresh clone does not compile until `dart run build_runner build` has run.** Verified by reconstructing a clean tree — 11 model sources, no generated files — and confirming `flutter analyze` reports 101 errors before codegen and is clean after (30 outputs, 21s).
+
+The alternative — committing the 11 generated files — would keep a fresh clone buildable with no extra step, at the cost of ~2000 lines of generated code in every diff. Chosen against that because the diff noise compounds as the port adds ~40 more model classes through Phases 4–8, and because `build_runner` is a single command. Reverting is a two-line `.gitignore` change plus a re-commit of the generated files if the noise proves worse than the setup step.
+
+Consequences to remember:
+- `./teven up` already runs `flutter build web`, which runs codegen implicitly, so the Docker path is unaffected.
+- Any command in a fresh clone — `flutter analyze`, `flutter run`, `flutter build web`, `flutter test` — needs codegen first. Documented in `flutter_app/README.md` under "Running locally".
+- `*.g.dart` is unanchored, so it matches at any depth within `flutter_app/`. Confined in practice: all 20 currently-matching files are under `flutter_app/lib/models/`. Worth remembering if a `.g.dart` ever shows up elsewhere for an unrelated reason.
+
+**These rules live in `flutter_app/.gitignore`, not the repo root.** Consolidation was considered and rejected. The reason is that Flutter's own entries are **root-anchored** — `/build/`, `/coverage/`, `/android/app/debug` — and that anchoring is relative to whichever `.gitignore` declares it. Moved to the repo root, `/build/` would start matching `backend/build/` and the top-level `build/`, and `/android/app/debug` would match a root-level `android/` that does not exist, never `flutter_app/android/app/debug`. Each would need hand-rewriting as `flutter_app/…` — the kind of quiet breakage that surfaces later rather than at the change. The two codegen rules need no such prefix, so placing them at root bought nothing and splitting them was dropped.
+
+**`flutter create` does not manage `.gitignore` on an existing project — verified, not assumed.** Phase 11.1 runs `flutter create --platforms=android,ios .`, which raised the question of whether Flutter would clobber local edits. Three cases tested against a scratch project:
+
+| Action, then re-run `flutter create` | Result |
+|---|---|
+| Append a custom rule | Rule **survived** |
+| Replace the file with `only-this` | **Not restored** — file left alone |
+| Reduce the file to 3 lines | Still 3 lines |
+
+So the file is only written when creating into an empty or non-Dart directory. Custom rules are safe, and nothing will be restored or removed underneath us when platforms are added in Phase 11.

@@ -17,8 +17,18 @@ screen. The app is not wired to the API yet, and the React frontend in
 
 ```bash
 flutter pub get
+dart run build_runner build   # required after every clone; see below
 flutter run -d chrome
 ```
+
+**`build_runner` is a required setup step.** Generated files (`*.freezed.dart`,
+`*.g.dart`) are gitignored, so they are absent from a fresh clone. Until
+`build_runner` has run, `flutter analyze` reports unresolved constructors and
+`flutter run` will not compile — every model class redirects to a constructor
+that exists only in generated code.
+
+Re-run it after changing anything in `lib/models/`, or after pulling commits
+that add or modify a model.
 
 The web build is served from the same origin as the API, so requests use
 relative URLs and no configuration is needed. See `lib/core/config/api_config.dart`.

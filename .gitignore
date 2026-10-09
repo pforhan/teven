@@ -37,8 +37,8 @@ build/
 local.properties
 
 # Dart / Flutter
-# flutter_app/.gitignore covers its own .dart_tool/ and build/; these guard
-# against stray artifacts at the repo root.
+# flutter_app/.gitignore covers its own .dart_tool/, build/, and the
+# build_runner output; these guard against stray artifacts at the repo root.
 .dart_tool/
 .flutter-plugins*
 *.iml
