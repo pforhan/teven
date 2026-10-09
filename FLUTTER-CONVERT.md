@@ -113,11 +113,11 @@ Ports `src/api/*` (425 lines) and `src/types/*` (316 lines). Mechanical, but mus
 - [x] **1.6** Port `src/types/events.ts` (77 lines) — largest type file, includes `rsvps`, `inventoryItems`, nested `customer`/`organization`.
 - [x] **1.7** Port `src/types/reports.ts`.
 - [x] **1.8** Port all model classes to `freezed` + `json_serializable`. Run `build_runner`.
-- [ ] **1.9** Add `ApiException` hierarchy replacing `src/errors/*`: `UnauthorizedException`, `ApiException(message, details)`, `NetworkException`. **Consolidate** the ~20 copy-pasted `try/catch` unwrapping blocks into these rather than porting the duplication.
-- [ ] **1.10** Implement `ApiClient` on `dio` with: auth header injection, JSON envelope unwrapping, 401 → `UnauthorizedException`.
-- [ ] **1.11** Handle the two non-conforming server responses: bare-string bodies from `AuthorizationPlugin.kt:24,31` (e.g. `"User does not have the required permission"`), and 204 empty bodies. Model as nullable.
-- [ ] **1.12** **Do not treat non-JSON 200 as success.** An unmatched route with a verb other than GET/POST/PUT/DELETE falls through to the SPA handler and returns `index.html` with HTTP 200 (`Routing.kt:40-58`). Sniff `content-type` before decoding, as `apiClient.ts:44` already does.
-- [ ] **1.13** Use `flutter_secure_storage` directly for the token. Its web backend *"only works on HTTPS or localhost environments"*, which covers all local verification. Add a brief comment noting the container is served over plain HTTP on port 2022, so a non-localhost host will need either TLS or a `shared_preferences` fallback — deferred, not handled here.
+- [x] **1.9** Add `ApiException` hierarchy replacing `src/errors/*`: `UnauthorizedException`, `ApiException(message, details)`, `NetworkException`. **Consolidate** the ~20 copy-pasted `try/catch` unwrapping blocks into these rather than porting the duplication.
+- [x] **1.10** Implement `ApiClient` on `dio` with: auth header injection, JSON envelope unwrapping, 401 → `UnauthorizedException`.
+- [x] **1.11** Handle the two non-conforming server responses: bare-string bodies from `AuthorizationPlugin.kt:24,31` (e.g. `"User does not have the required permission"`), and 204 empty bodies. Model as nullable.
+- [x] **1.12** **Do not treat non-JSON 200 as success.** An unmatched route with a verb other than GET/POST/PUT/DELETE falls through to the SPA handler and returns `index.html` with HTTP 200 (`Routing.kt:40-58`). Sniff `content-type` before decoding, as `apiClient.ts:44` already does.
+- [x] **1.13** Use `flutter_secure_storage` directly for the token. Its web backend *"only works on HTTPS or localhost environments"*, which covers all local verification. Add a brief comment noting the container is served over plain HTTP on port 2022, so a non-localhost host will need either TLS or a `shared_preferences` fallback — deferred, not handled here.
 - [ ] **1.14** Port `AuthService` (`src/api/AuthService.ts`): login, logout, getToken, getUserContext, getUserDetails, updateUserDetails.
 - [ ] **1.15** Port `UserService`, `OrganizationService`, `CustomerService`, `InventoryService`.
 - [ ] **1.16** Port `EventService` — note `GET /api/events` **ignores `sortBy`** server-side despite being documented. Do not rely on it.
@@ -269,6 +269,54 @@ Once the Flutter web app is verified working locally against the real backend. T
 - [ ] **10.5** Update `AGENTS.md`, `README.md`, and `BACKEND-DESIGN.md` for Flutter conventions.
 - [ ] **10.6** Update `API.md` for the drift found during the port (below) — regenerate rather than hand-edit, per `build.gradle.kts:23-87`.
 - [ ] **10.7** Remove dead `backend/service/geo/` code if the Flutter app does client-side geocoding, or wire up `GeoRoutes` if it does.
+- [ ] **10.8** **Strip dangling `frontend/` references from `flutter_app/lib/`.** 10.3 deletes the directory these comments point at, leaving paths like ``frontend/src/api/apiClient.ts`` that resolve to nothing — a comment that looks like a citation a reader could follow but cannot. 10.4 covers React *dependencies* and node tooling; it does not reach prose in doc comments.
+
+  **Do not delete these references wholesale — they carry the rationale for non-obvious decisions.** Most of the 10 current occurrences explain *why* something is shaped the way it is, and that reasoning is the durable value. Reword to keep the explanation and drop the path, e.g. rather than "Replaces `apiClient` in `frontend/src/api/apiClient.ts`", say "Replaces the React app's hand-rolled `apiClient`, which wrapped `fetch`".
+
+  Known occurrences at time of writing (verify with `grep -rn 'frontend/src' flutter_app/lib/`):
+
+  | File | What it explains |
+  |---|---|
+  | `core/api/api_client.dart` | Replaces the React `apiClient` and its ~20 duplicated `try/catch` sites |
+  | `core/api/api_exception.dart` | Why an exception hierarchy exists at all |
+  | `core/api/token_store.dart` | Replaces `localStorage` |
+  | `core/theme/teven_theme.dart` (×2) | Bootstrap `#f8f9fa` / `#3174ad` carry-over values |
+  | `models/permissions.dart` | OR-semantics of the permission guard |
+  | `models/role.dart` | Role names as strings, not ids |
+  | `models/common.dart` | Why `StatusResponse` is near-vestigial |
+  | `models/customer.dart` | Geo fields absent from the old types |
+  | `models/report.dart` | Missing `displayName` column |
+
+  Also check `frontend/public` references (favicon provenance in `web/`) and run the same grep across `flutter_app/test/`, `Dockerfile`, `docker-compose.yml`, and `./teven`.
+
+- [ ] **10.9** **Make the server's error responses conform to the envelope, then remove the client's compensating branches.** The client currently carries permanent defensive code for a server inconsistency that is a two-line fix. `AuthorizationPlugin.kt:24,31` responds with a bare string while every other route uses `failure(...)`; the Flutter client therefore special-cases bare strings in `ApiClient._tryDecode` / `_NonJsonBody`.
+
+  **Ordering is load-bearing.** This must come *after* 10.3. Until `frontend/` is deleted both pipelines are live, and the React `apiClient.ts` unwraps `data` unconditionally — changing these responses now breaks the React app. That is the real reason the Phase 0–8 "do not modify the backend" rule exists, and it is why this is not a Phase 1 task.
+
+  Two commits:
+  1. `AuthorizationPlugin.kt` — replace both bare-string `call.respond` calls with `failure(...)`, matching every other error path.
+  2. Delete the now-dead branches in `ApiClient`: `_NonJsonBody`, the bare-string path in `_unwrap`, and the bare-string branch in `_errorFor`. Kept separate so it is clear the defensive code was **temporary**, not left behind by oversight.
+
+  **Keep the content-type sniff even after this.** Task 1.12's `index.html`-at-HTTP-200 case is not a server bug — it is a structural consequence of serving the SPA from the same origin as the API (`Routing.kt:56`), and will outlive any change to error formatting. Only the *bare-string* handling is contingent.
+
+  Verify after: a 403 from a permission failure arrives as a normal envelope, and the client still throws `ApiRequestException` carrying the server's message.
+
+- [ ] **10.10** **Give the remaining non-conforming *success* responses a real DTO.** Distinct from 10.9, which covers **error** responses only. These are successes whose envelope is intact but whose `data` is a bare string, so callers get `String` where they expect an object. Counted from the source, there are **11 call sites**:
+
+  | Pattern | Sites |
+  |---|---|
+  | `success("... with ID N updated")` | customer, inventory, organization, event, role (5) |
+  | `success("OK")` | role ×2, inventory, event (4) |
+  | `success("Created invitation")` | invitation ×1 |
+  | 204 `NoContent` with no envelope at all | customer, inventory, organization, event, role (5) |
+
+  The second and third rows are the ones that actually cost the client something: `PUT /api/events/{id}` returning `"Event with ID N updated"` is why task 6.9 exists, and `StatusResponse` in `common.dart` is near-vestigial because deletes return 204 rather than the `{status, message}` shape the React types claimed.
+
+  **This is a bigger change than 10.9 and should be scoped deliberately.** Options, in increasing order of effort: introduce a `MessageDto { message: String }` and wrap; return the updated entity instead of a string; or leave as-is and document. `success("OK")` in particular carries no information — `data: {}` or `204` would be equivalent. Whichever is chosen, the client-side fallout is deleting `ResponseBody.bareString`, `ApiClient.deleteWithBody`, and possibly `StatusResponse`, so that task must land too.
+
+  Verify after: every `success()` response carries a typed payload, and `grep -rn 'success("' backend/app` returns nothing.
+
+  **Already covered elsewhere, do not duplicate:** `Dockerfile:32-47` (the `frontend-react` builder stage, including its `COPY frontend/src` and `COPY frontend/public` lines) disappears with 10.1. Those are functional build instructions, not comments, so they are not this task's concern. `FLUTTER-CONVERT.md` itself is *expected* to reference `frontend/` paths throughout — it is a historical record and keeps them deliberately; exclude it.
 
 ---
 
@@ -313,7 +361,9 @@ Documented here so task 10.6 can address them. **Do not fix these during the por
 | Geo fields absent from docs | `latitude`/`longitude`/`formattedAddress` exist on customer/event DTOs but not in `API.md` |
 | Geo service is dead code | `service/geo/GeoService.kt:9-19` falls through to a mock; no `GeoRoutes` file exists; no PostGIS |
 | `RsvpRequest.availability` is a free-form `String` | No enum validation server-side |
-| Permission failures return bare strings, not the envelope | `auth/PermissionInterceptor.kt:24,31` |
+| Permission failures return bare strings, not the envelope | `auth/AuthorizationPlugin.kt:24,31` (note: the file is `AuthorizationPlugin.kt`, not `PermissionInterceptor.kt`) |
+| **11 success responses carry a bare-string `data`** instead of a DTO | 5 × `success("... with ID N updated")`, 4 × `success("OK")`, 1 × `success("Created invitation")` |
+| **5 deletes return `204 NoContent`** with no envelope, though React types claim `StatusResponse` | customer, inventory, organization, event, role route files |
 
 ---
 
@@ -508,3 +558,43 @@ Consequences to remember:
 | Reduce the file to 3 lines | Still 3 lines |
 
 So the file is only written when creating into an empty or non-Dart directory. Custom rules are safe, and nothing will be restored or removed underneath us when platforms are added in Phase 11.
+
+### 2026-10-09 — Phase 1, tasks 1.9–1.13 (HTTP layer)
+
+**Done.** `ApiException` hierarchy, `ApiClient` on dio, and `TokenStore`. `flutter analyze` clean, `dart format` clean, web build succeeds.
+
+**Two bugs found by running the client against a real HTTP server, not by reading it.** Both were in the same family — "a body that is not the envelope" — and neither was visible from the source alone.
+
+1. **`index.html` with HTTP 200 was parsed as a successful bare-string response** (task 1.12's exact scenario). `_tryDecode` caught the `FormatException` from `jsonDecode` and returned the raw text, which then sailed through the bare-string branch and reached `decode()`. A request to a nonexistent route would have "succeeded" with a web page in hand. Fixed by sniffing `content-type` before decoding and tagging non-JSON bodies in a private `_NonJsonBody` wrapper, so they cannot be confused with the genuine bare strings `AuthorizationPlugin.kt` returns.
+
+2. **A bare JSON string was decoded twice.** Ktor's `ContentNegotiation` serializes `AuthorizationPlugin.kt`'s `"User does not have the required permission"` as a JSON string — quoted, `application/json`. dio parses JSON bodies by default, so that arrived as a Dart `String`; the code then called `jsonDecode` on it *again*, which fails, and it got misclassified as non-JSON. Fixed with `responseType: ResponseType.plain`, so dio never decodes and this class owns all parsing.
+
+Bug 2 is the more interesting one, because the ambiguity is **not resolvable from the value**: a JSON string body and raw non-JSON text both arrive as `String`, so no amount of inspection of the decoded value can tell them apart. The only sound fix is to prevent the double decode rather than detect it after the fact. Worth remembering for any later client code.
+
+**Verified against a throwaway `HttpServer` serving the backend's real response shapes**, not mocks: normal envelope, `failure()` envelope with `data: {}` (message and details both survive), 401 inside an envelope, 403 bare string, `index.html` at 200, 204 with no body, 2xx bare-string acknowledgement, and connection-refused. All 8 passed. Per the plan's deferral of tests to Phase 12, the file was then deleted — **task 1.19 remains the first durable coverage** and can lift this probe nearly verbatim.
+
+**`validateStatus` is set per-request, not only on `BaseOptions`.** Caught by the probe: an injected `Dio` with default options rejects 4xx before any of our handling runs, so a 400 became `NetworkException` instead of a message-carrying `ApiRequestException`. `_send` now also inspects `DioException.response` defensively, so even a caller-supplied stricter `Dio` still yields the server's message.
+
+**Exception hierarchy.** `sealed class ApiException` with `UnauthorizedException`, `ApiRequestException`, and `NetworkException` — sealed so a `switch` over the three is exhaustive, which is what lets task 9.8's error boundary handle every case without a default arm. `NetworkException` is split out from `ApiRequestException` because retrying is plausible there and the user-facing message differs ("could not reach the server" vs "the server rejected this"). `UnauthorizedException` is produced from 401 **whether or not** the body is an envelope, so task 2.2's single-flight redirect has one type to match on regardless of which path 401 arrived by.
+
+**`ApiRequestException` covers both 4xx-with-envelope and 2xx-with-`success: false`.** The React client treats these in one place (`apiClient.ts:19-38` handles non-ok, then again at `:57`), so one Dart type matches; the message is what differs, not the handling.
+
+**Token storage: two claims from an earlier draft of this log were wrong, corrected after reading the package source.**
+
+1. **The token does *not* carry over from the React app.** An earlier note here claimed preserving `TOKEN_KEY` meant "a redeploy mid-migration does not sign everyone out". False. The web backend namespaces keys as `publicKey.<key>` and stores **AES-GCM ciphertext** (`flutter_secure_storage_web-2.1.1/lib/flutter_secure_storage_web.dart:50`), where the React app wrote plaintext under a bare key. Different key *and* different encoding — the old token is unreadable.
+
+   **This has no practical consequence: the app has no users yet**, so there are no React sessions to preserve and nobody to ask to log in again. Worth recording only so nobody later assumes a session carries over, or spends effort trying to make it.
+
+2. **Writes throw; only reads degrade.** `isSecureContext` is evaluated on *every* operation, not once at init, and throws `UnsupportedError` when false (`flutter_secure_storage_web.dart:26`). So `TokenStore.read` catches and returns `null` — a boot-time read failure degrades to "logged out" instead of crashing before a login screen renders. But `write` deliberately propagates: a login must not report success if the token was not persisted. `clear` swallows, since failing to clear should not block reaching the login screen.
+
+The practical consequence is sharper than the plan's "The one deployment consideration" states. The plan says the gap is that secure storage *"does not work"* off-localhost; in fact it means **login breaks outright** over plain HTTP on port 2022 — reads quietly return no token, writes throw. Not a silent degradation, a visible failure. Still a deployment concern, still deferred, but worth knowing that task 1.13's comment should say "login fails" rather than "guarantees do not hold".
+
+**Inventory of non-conforming responses, for tasks 10.9/10.10.** Counted from source rather than estimated, since these tasks are only worth doing if the scope is known:
+
+- **Error responses bypassing the envelope: 2 sites.** `AuthorizationPlugin.kt:24,31` only. A two-line fix — the entirety of 10.9.
+- **Success responses with bare-string `data`: 11 sites.** 5 × `success("... with ID N updated")` (customer, inventory, organization, event, role), 4 × `success("OK")` (role ×2, inventory, event), 1 × `success("Created invitation")`. Wider than the plan implied — task 1.11 described this as an `AuthorizationPlugin` problem, but that is only the error case; these successes are the ones forcing `ResponseBody.bareString` and `ApiClient.deleteWithBody` to exist.
+- **`204 NoContent` with no envelope: 5 sites.** One per deletable resource. This is why `StatusResponse` is near-vestigial — the React types declared it but the server never sent it.
+
+The three are genuinely different problems: 10.9 is a two-line consistency fix, 10.10 is an API-design decision with three reasonable answers and no obviously correct one. Splitting them was worth it precisely because lumping them together would have made the cheap fix wait on the expensive one.
+
+**Not yet wired.** Nothing constructs `ApiClient` — `main.dart` still shows the placeholder `HomeScreen`. Services (1.14–1.17) are what give it callers, and Riverpod wiring belongs with them. `ResponseBody` is declared on `ApiClient` but currently unused by any caller; it documents the four response shapes and is the natural home for a per-endpoint override once 1.16 hits `PUT /api/events/{id}` and its bare-string `data`.
