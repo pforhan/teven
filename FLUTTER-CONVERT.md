@@ -14,7 +14,7 @@ Responsive layout is in scope throughout, because the site will be viewed in mob
 - **Do not modify the backend** during Phases 0–8. Backend work is confined to Phases 9–10 and is called out explicitly in those tasks (9.9, 10.6, 10.7).
 - **Do not plan for deployment.** Docker is the deployment mechanism and it is sufficient; do not add hosting, TLS, proxy, or CI/CD work to any task. Verification is local. The single known gap is noted under *The one deployment consideration*.
 - Every task must leave the repo in a **buildable** state (`npm run build --prefix frontend` and `flutter analyze` both clean).
-- One task per commit. Conventional commit prefix: `feat(flutter):`, `chore(flutter):`, `fix(flutter):`.
+- One task per commit. Commit message conventions live in `AGENTS.md`; there is no commit-message tooling in this repo, and a conventional-commit prefix is optional rather than required.
 - 2-space indentation, per `AGENTS.md`.
 - Run `dart format .` and `flutter analyze` before every commit in `flutter_app/`.
 - New Flutter packages must be justified in the commit message.
