@@ -31,7 +31,7 @@ Responsive layout is in scope throughout, because the site will be viewed in mob
 | State management | Riverpod | Replaces React Context; no existing pattern to preserve |
 | Web serving | Same-origin via Ktor `staticResources` | Invite links and no-CORS setup are preserved |
 | Environment | **Local only** — `flutter run -d chrome` + `docker compose` | All verification happens on a developer machine |
-| Tests | Deferred until after cutover | Phase 12. Zero tests during the port |
+| Tests | Written alongside each task | Layers with non-obvious logic are tested as they are built; Phase 12 covers integration and UI suites |
 
 **Deployment is out of scope.** How and where this app is hosted is handled independently of building the app, and nothing in this plan should wait on it or plan for it. The single place hosting touches a code decision is task 1.13.
 
@@ -123,7 +123,21 @@ Ports `src/api/*` (425 lines) and `src/types/*` (316 lines). Mechanical, but mus
 - [x] **1.16** Port `EventService` — note `GET /api/events` **ignores `sortBy`** server-side despite being documented. Do not rely on it.
 - [x] **1.17** Port `InvitationService`, `ReportService`, `RoleService`.
 - [x] **1.18** Set a small default `limit` on event queries. `EventResponse` nests rsvps + inventory + customer + organization with **no server-side compression** (`ktor-server-compression` is absent). Default to `limit: 10`; make it configurable per screen.
-- [ ] **1.19** Write unit tests for `ApiClient`: envelope unwrapping, bare-string body, 204, non-JSON 200, 401.
+- [x] **1.19** Write unit tests for `ApiClient`: envelope unwrapping, bare-string body, 204, non-JSON 200, 401.
+- [x] **1.20** Unit tests for the service layer and the models, using the shared `FakeApiServer` harness.
+  Split across three files: `test/api_client_test.dart` (1.19), `test/services_test.dart`, `test/models_test.dart`.
+
+  **Services** — assert on the *request*, not the decoded response, since a fake body is not the point: each service hits the documented path; `deleteCustomer` targets `/api/customers/{id}`; `trackInventoryUsage` posts to `/api/inventory/{id}/usage`; `validateInvitation` passes `token` as a query param; the reports pass both dates. Plus the behaviours that are easy to regress: `getAllEvents` sends `limit=10` when unspecified and honours an explicit override, non-event lists send **no** limit, and the three update methods return `String` rather than a model.
+
+  **Models** — the cases whose behaviour is *not* visible at the call site:
+  - `ApiResponse.fromJson` does **not** invoke `decode` on a failure envelope, even though `data` is `{}`. This is the whole reason the callback form exists.
+  - `EventResponse.startAt` / `endAt` stay naive-local — `"2026-03-04"` + `"09:30:00"` + 90 min must yield `11:00` local, **not** a UTC-shifted instant.
+  - `Permissions.hasAny` uses OR-semantics, and an empty requirement grants access.
+  - `PaginatedResponse.fromJson` decodes nested items through the supplied decoder.
+
+  **Do not test** what the type system already guarantees. The value here is in the response-shape and permission logic, not in asserting that a freezed class round-trips.
+
+  **Double convention for the rest of the port.** Only the parsing tests bind a real socket; everything above that layer crafts responses through `StubAdapter`. Applies to all the test tasks added in Phases 3–9.
 
 ---
 
@@ -167,6 +181,8 @@ The React shell is desktop-only (`navbar-expand-lg`). This phase establishes the
 
 Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign, not port.** Tables become responsive lists.
 
+- [ ] **3.13** Widget tests for the responsive chrome: nav items appear and disappear at each breakpoint, and `NavigationDrawer` / `NavigationRail` / sidebar render at mobile / tablet / desktop. Pin sizes rather than relying on a real browser — the 3.12 real-browser pass stays as the manual check.
+
 - [ ] **4.1** Build a shared `ResponsiveListView` replacing `TableView.tsx`: data-table layout at desktop, card layout at mobile.
 - [ ] **4.2** Reproduce hover-revealed row actions. `TableView.tsx:17-18` exposes `onRowMouseEnter`/`onRowMouseLeave` purely so buttons appear on hover, across 6 call sites. On mobile use always-visible trailing actions or a long-press menu; **web may keep hover** behind a `kIsWeb` branch.
 - [ ] **4.3** Reproduce hover tooltips (`OverlayTrigger` in 5 files). Same `kIsWeb` treatment; use `Semantics` labels for accessibility on native.
@@ -184,6 +200,8 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 ## Phase 5 — Forms (non-event)
 
 ~640 lines across seven forms, plus `CreateInvitationForm` (182). ~70 raw HTML inputs become explicit `TextFormField`s.
+
+- [ ] **4.12** Widget tests for `ResponsiveListView`: table layout at desktop, card layout at mobile, and the truncated `events` list on an inventory row (task 4.5's client-side cap).
 
 - [ ] **5.1** Establish a form convention: `TextFormField` + `InputDecoration` + `Form` `GlobalKey`, validators replacing HTML `required`. **No form library** — the React code has none, so this is a free choice.
 - [ ] **5.2** Port `CreateCustomerForm` (146 lines) and `EditCustomerForm` (139 lines).
@@ -203,6 +221,8 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 ## Phase 6 — Event forms (highest risk)
 
 `CreateEventForm.tsx` (518) + `EditEventForm.tsx` (442) = **960 lines**, the densest code in the app. Budget 5–7 days.
+
+- [ ] **5.13** Widget tests for the form convention: required-field validators reject empty input, and the invite link built in 5.10 is derived from `Uri.base` and carries the token as a query param. The forms are the largest surface in the port and the least covered, so start with one representative form rather than all seven.
 
 - [ ] **6.1** Inventory every field and every conditional in both forms before writing code. Produce a written field-by-field map in the PR description.
 - [ ] **6.2** Port the ~20 `useState` fields per form to Riverpod form state, or `TextEditingController`s. **Decide deliberately** — there is no existing abstraction to preserve.
@@ -235,6 +255,8 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 
 ## Phase 8 — Reports
 
+- [ ] **7.11** Tests for the calendar's date handling, which is where the fragile logic lives: naive-local date construction (7.8/7.9), and the month grid rendering the right events on the right days. Golden tests for the grid itself are 12.5 — here it is the placement logic, not the pixels.
+
 - [ ] **8.1** Port `ReportList` (133 lines).
 - [ ] **8.2** Port `POST /api/reports/staff_hours` (date-range form → `List<StaffHoursReportResponse>`).
 - [ ] **8.3** Port `GET /api/reports/inventory_usage` (→ `List<InventoryUsageReportResponse>`).
@@ -244,6 +266,8 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 ---
 
 ## Phase 9 — Responsive, accessibility, polish
+
+- [ ] **8.6** Tests for the client-side org filtering added in 8.4 — the server applies no scoping, so this logic is the only thing preventing one org's staff hours showing in another's report. That makes it worth a test even though the surrounding UI is simple.
 
 - [ ] **9.1** Audit all 25 former Bootstrap `row`/`col` sites; confirm each degrades to single-column on mobile.
 - [ ] **9.2** Replace fixed pixel sizing that was tuned for wide viewports: calendar `height: 800` (`EventCalendar.tsx:297`), search input `width: '250px'` (line 248), list column `maxWidth: '150px'` (`UserList.tsx:179`), modal `maxHeight: '300px'` (`QuickOrganizationPickerModal.tsx:72`).
@@ -261,6 +285,8 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 ## Phase 10 — Cutover and cleanup
 
 Once the Flutter web app is verified working locally against the real backend. The trigger for deleting `frontend/` is internal confidence, not a deployment.
+
+- [ ] **9.11** Tests for the error boundary from 9.8: an `ApiRequestException` surfaces its message, and `details` is hidden unless the debug flag is on. Also assert cancellation (9.6) does not surface an error to the user.
 
 - [ ] **10.1** Default `WEB_SOURCE` in `Dockerfile` to `flutter`; keep the React stage for one release cycle, then remove.
 - [ ] **10.2** Verify the Flutter build end-to-end against the real backend via `docker compose up --build`: login, org switch, and one full create/read/update/delete pass per resource.
@@ -448,14 +474,16 @@ Additive: the web app keeps working unchanged. Only do this once web is stable a
 
 ## Phase 12 — Tests (deferred, post-conversion)
 
-The React app had **zero** tests, and none are written during the port by decision. Note the consequence: task 10.3 deletes the only executable specification of current behavior, so Phase 12 is what protects against regressions from here on.
+The React app had **zero** tests, so there is no existing specification to lean on — task 10.3 deletes the last of the original behaviour. Phase 1 onward therefore writes tests **as each layer is built** (see the per-task test tasks), and Phase 12 is where the integration and UI suites live.
+
+The distinction: per-task tests cover logic whose behaviour is not obvious from reading it — response-shape handling, permission semantics, date arithmetic, query defaults. Anything whose correct behaviour is visible at the call site does not need one.
 
 - [ ] **12.1** Decide the testing scope now that the app is live and its real failure modes are known.
 - [ ] **12.2** Integration tests for login → context fetch → authenticated call, per `AGENTS.md` expectations.
-- [ ] **12.3** Unit tests for `ApiClient` (sketched in task 1.19 — worth pulling forward if any defensive-parsing bug turns up during the port).
+- [ ] **12.3** Broaden `ApiClient` coverage beyond task 1.19 — currently the five response-shape cases only.
 - [ ] **12.4** Widget tests for the permission guard and the responsive list.
 - [ ] **12.5** Golden tests for the calendar month grid and the event forms.
-- [ ] **12.6** Ensure the suite runs on both VM and Chrome.
+- [ ] **12.6** Ensure the suite runs on both VM and Chrome. **Partly done:** `flutter test` (48 passing) and `flutter test --platform chrome` (22 passing, 2 skipped) both work as of task 1.20. The socket-based tests skip on web because `dart:io`'s `HttpServer` is unavailable there — they skip explicitly rather than passing vacuously. Remaining: any widget tests added in Phases 3–9 must be verified on both.
 
 ---
 
@@ -655,7 +683,7 @@ The geo fields are always null in practice — the backend's geo service is dead
 
 **One correction to the plan's own assumptions.** The plan's task 2.11 implies `/api/invitations/accept` returns a non-enveloped `{success, message}`. It does not — the route wraps the service result in `success(...)` (`InvitationRoutes.kt:62`). The two `success` fields are distinct: the service's own flag is converted into an envelope-level `failure(...)` with HTTP 400 (`InvitationRoutes.kt:64`), so a client never sees `success: false` from the DTO, only the message. Task 2.11's `AlreadyLoggedInError` comes from a separate earlier branch (`InvitationRoutes.kt:49`). Corrected in the model doc comment; the task itself is unaffected.
 
-**Verification.** Analyser and formatter are clean and the web build succeeds, but per the plan's decision to defer tests, no test files were kept. Behaviour was checked with a temporary probe covering: failure envelope with `data: {}` (decode provably not invoked), success envelope, list decoding into `EventResponse`, `PaginatedResponse` with nested items, and the naive-local `startAt`/`endAt` arithmetic. All five passed; the probe was then deleted. Task 1.19 is still the first durable test coverage.
+**Verification.** Behaviour checked with a temporary probe covering: failure envelope with `data: {}` (decode provably not invoked), success envelope, list decoding into `EventResponse`, `PaginatedResponse` with nested items, and the naive-local `startAt`/`endAt` arithmetic. All five passed. **Superseded by task 1.19**, which landed the same five cases as a permanent test file.
 
 **Generated files are gitignored — decided, not open.** `*.freezed.dart` and `*.g.dart` are ignored in `flutter_app/.gitignore`, grouped with Flutter's own template rules. This is a departure from the freezed default of committing generated output.
 
@@ -692,7 +720,7 @@ So the file is only written when creating into an empty or non-Dart directory. C
 
 Bug 2 is the more interesting one, because the ambiguity is **not resolvable from the value**: a JSON string body and raw non-JSON text both arrive as `String`, so no amount of inspection of the decoded value can tell them apart. The only sound fix is to prevent the double decode rather than detect it after the fact. Worth remembering for any later client code.
 
-**Verified against a throwaway `HttpServer` serving the backend's real response shapes**, not mocks: normal envelope, `failure()` envelope with `data: {}` (message and details both survive), 401 inside an envelope, 403 bare string, `index.html` at 200, 204 with no body, 2xx bare-string acknowledgement, and connection-refused. All 8 passed. Per the plan's deferral of tests to Phase 12, the file was then deleted — **task 1.19 remains the first durable coverage** and can lift this probe nearly verbatim.
+**Verified against an `HttpServer` serving the backend's real response shapes**, not mocks: normal envelope, `failure()` envelope with `data: {}` (message and details both survive), 401 inside an envelope, 403 bare string, `index.html` at 200, 204 with no body, 2xx bare-string acknowledgement, and connection-refused. All 8 passed. **Superseded by task 1.19**, which kept this as `test/api_client_test.dart` and added the malformed-JSON case.
 
 **`validateStatus` is set per-request, not only on `BaseOptions`.** Caught by the probe: an injected `Dio` with default options rejects 4xx before any of our handling runs, so a 400 became `NetworkException` instead of a message-carrying `ApiRequestException`. `_send` now also inspects `DioException.response` defensively, so even a caller-supplied stricter `Dio` still yields the server's message.
 
@@ -747,7 +775,7 @@ Both missing methods are **omitted rather than stubbed**. A stub returning empty
 
 **`ListQuery` collapses seven near-identical parameter lists** into one, and omits nulls rather than sending empty strings — the server parses with `toIntOrNull()`, which would treat `""` as absent anyway, but omitting keeps the URL readable and makes the missing-`limit` behaviour explicit rather than accidental.
 
-**Verified with a throwaway `HttpServer` recording every request path and query string** — 13 assertions covering route paths for all nine services, the `limit=10` default and its override, `sortBy`/`sortOrder` forwarding, the bare-string update shapes, and a 204 delete. All passed; the file was then deleted per the Phase 12 test deferral. **Task 1.19 is still the first durable coverage** and remains unwritten — the layer now has ~40 public methods across nine services with no permanent tests, which is the largest untested surface in the port so far.
+**Verified with an `HttpServer` recording every request path and query string** — 13 assertions covering route paths for all nine services, the `limit=10` default and its override, `sortBy`/`sortOrder` forwarding, the bare-string update shapes, and a 204 delete. All passed. **Superseded by task 1.20**, which kept these as `test/services_test.dart`.
 
 **Also recorded in the discrepancy table:** 18 of the server's 33 permissions are unreachable from the client, because `src/types/permissions.ts` declares only 15. The extras are mostly `*_GLOBAL` variants beyond the two org ones, plus `MANAGE_ROLES_*`, `ASSIGN_*`, `CAN_ASSIGN_*`, and `MANAGE_USERS_SELF`. `Permission` in `models/permissions.dart` mirrors the React 15, so parity holds — but the server can grant a permission this build cannot name. That is exactly why `UserContextResponse.permissions` stays `List<String>`.
 
@@ -797,3 +825,32 @@ Second, and less obvious: **`StaffHours` is never written to.** The table is cre
 One judgement call worth surfacing: `Roles.permissions` stores its list the **same comma-separated way** (`RoleDao.kt:22,30,65`), so this pattern now appears twice. Converting `skills` and leaving `Roles.permissions` alone would relocate the corruption rather than remove it, so the task says fix both or neither — with the second one scoped explicitly rather than left as an untracked leftover.
 
 **Method note.** Every task written in this block was verified by grepping the backend, not by re-reading the plan. That is what surfaced all six orphans — the plan's Phase 1 tasks were accurate as far as they went, but a task list cannot describe defects it has not yet been told about. The "Fix" column is the fix for that: it makes an unowned defect visible at the moment it is recorded, rather than at the moment someone re-reads the table.
+
+### 2026-10-09 — Phase 1, tasks 1.19–1.20 (first tests in the port)
+
+**Done.** `test/api_client_test.dart` (10), `test/models_test.dart` (19), `test/services_test.dart` (18), plus `test/support/fake_api_server.dart` (sockets, parsing only) and `test/support/stub_adapter.dart`. 48 passing on the VM, 38 on Chrome.
+
+**The "zero tests during the port" decision is reversed.** It was a reasonable default when there was no code to test and no Flutter test infrastructure, but it was quietly costing more than it saved: two bugs in `ApiClient` (HTML-parsed-as-success, double-decoded bare string) were found *by probing* during 1.9–1.13 and thrown away, then had to be re-derived. The probe became the test. The plan's own Phase 12 preamble warned that 10.3 deletes "the only executable specification of current behavior" — writing them as each layer lands is the fix, not a deferral.
+
+**Two kinds of test double, split by layer.**
+
+| Layer | Double | Why |
+|---|---|---|
+| `ApiClient` response parsing | `FakeApiServer` — a **real** `HttpServer` on an ephemeral port | The behaviour under test *is* the transport's: whether a body parses, what `content-type` says, what a `204` looks like to dio. A mock would assert our assumptions rather than the ones the client must survive |
+| Services, models, screens | `StubAdapter` — a `Dio` `HttpClientAdapter` returning canned bodies | Nothing above parsing should need a socket. It runs identically on the VM and on web, and cannot drift from the request under test |
+
+Consequence: Chrome now runs **38 of 48** tests instead of 22, and the 2 skipped groups are the socket ones — reported as skipped, never as passing. **A real HTTP server is reserved for tests that are genuinely about parsing**; above that line, craft responses instead. Widget tests (Phases 3–9) will use stubs for the same reason.
+
+**`StubAdapter` is not a `MockAdapter`.** It reimplements nothing: `ApiClient.forTesting` injects the adapter into a `Dio` built with the **same `BaseOptions` as production**, including the default `validateStatus`. The first attempt used a bare `Dio()`, which has no transformer — request bodies then reached the adapter as Dart objects (`CreateCustomerRequest(name: x, ...)`) rather than JSON, and every POST test failed for a reason that had nothing to do with the service. A stub that silently diverges from production is worse than no stub, so the options are mirrored deliberately and `ApiClient.forTesting` is `@visibleForTesting`.
+
+**Two of the tests are regression tests for bugs that shipped in this port.** `index.html` at HTTP 200 must not be read as success, and a bare JSON string must not be decoded twice. Both were real defects found by probing; both are now permanent.
+
+**Chrome: socket tests skip rather than lie.** The first attempt produced 28 failures from `LateInitializationError` — `tearDown` touching a `late` field that `setUp` never assigned, because `dart:io`'s `HttpServer` does not exist on web. `FakeApiServer.isSupported` now gates on `kIsWeb`, and those tests report **skipped**, not passed. A vacuous pass is worse than a skip: it would let task 12.6 believe coverage existed.
+
+**Service fixtures have to match real DTOs, which is most of the work.** A stub body that omits a required field throws inside generated deserialization rather than failing an assertion — `CustomerResponse` needs `organization`, `EventResponse` needs `eventId` *and* `organization`, and each resource spells its id differently (`customerId`, `inventoryId`, `organizationId`, `eventId`). `_responseFor` dispatches on path and method, because a single fixture cannot satisfy nine return types. Each resource needing its own body is the cost of testing at this level, and it is cheaper than the socket it replaced.
+
+**Test-writing notes worth keeping.** Two failures were mine, not the code's: 23:30 + 60min is 00:30 (I asserted 00:00), and an `EventResponse` fixture missing `organization` threw inside generated deserialization. Both are the usual failures of fixtures that do not match the real DTO — the reason the service tests assert on *requests* rather than decoded responses.
+
+`prefer_const_constructors` fired on every async `setUp`, since the closure cannot be const even when its body could. Rather than exclude `test/**` from the analyzer (which would hide real errors), the fixtures are `const`. `analysis_options.yaml` is unchanged.
+
+**Test tasks added to the phases that had none:** 3.13 (responsive chrome), 4.12 (`ResponsiveListView`), 5.13 (form validators, invite link), 7.11 (calendar date placement), 8.6 (client-side org filtering — worth testing because the server applies no scoping), 9.11 (error boundary). Phases 3, 4, 5, 7, 8, and 9 had no test task at all before this.

@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../models/api_response.dart';
 import '../config/api_config.dart';
@@ -36,6 +38,24 @@ enum ResponseBody {
 /// call-site `try/catch` blocks, which are consolidated into the
 /// [ApiException] hierarchy instead of being ported.
 class ApiClient {
+  /// Builds a client around a caller-supplied transport.
+  ///
+  /// Exists so tests can inject a stub adapter instead of a real socket — see
+  /// `test/support/stub_adapter.dart`. Not for production use: the default
+  /// constructor already configures dio correctly.
+  ///
+  /// The `BaseOptions` mirror the default constructor's on purpose. A bare
+  /// `Dio()` has no `transformer`, so request bodies would arrive at the
+  /// adapter as Dart objects rather than JSON — a stub that silently diverges
+  /// from production is worse than no stub.
+  @visibleForTesting
+  factory ApiClient.forTesting(HttpClientAdapter adapter) => ApiClient(
+    const TokenStore(FlutterSecureStorage()),
+    dio: Dio(
+      BaseOptions(baseUrl: ApiConfig.baseUrl, validateStatus: (_) => true),
+    )..httpClientAdapter = adapter,
+  );
+
   ApiClient(this._tokenStore, {Dio? dio})
     : _dio =
           dio ??
