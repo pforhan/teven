@@ -118,11 +118,11 @@ Ports `src/api/*` (425 lines) and `src/types/*` (316 lines). Mechanical, but mus
 - [x] **1.11** Handle the two non-conforming server responses: bare-string bodies from `AuthorizationPlugin.kt:24,31` (e.g. `"User does not have the required permission"`), and 204 empty bodies. Model as nullable.
 - [x] **1.12** **Do not treat non-JSON 200 as success.** An unmatched route with a verb other than GET/POST/PUT/DELETE falls through to the SPA handler and returns `index.html` with HTTP 200 (`Routing.kt:40-58`). Sniff `content-type` before decoding, as `apiClient.ts:44` already does.
 - [x] **1.13** Use `flutter_secure_storage` directly for the token. Its web backend *"only works on HTTPS or localhost environments"*, which covers all local verification. Add a brief comment noting the container is served over plain HTTP on port 2022, so a non-localhost host will need either TLS or a `shared_preferences` fallback — deferred, not handled here.
-- [ ] **1.14** Port `AuthService` (`src/api/AuthService.ts`): login, logout, getToken, getUserContext, getUserDetails, updateUserDetails.
-- [ ] **1.15** Port `UserService`, `OrganizationService`, `CustomerService`, `InventoryService`.
-- [ ] **1.16** Port `EventService` — note `GET /api/events` **ignores `sortBy`** server-side despite being documented. Do not rely on it.
-- [ ] **1.17** Port `InvitationService`, `ReportService`, `RoleService`.
-- [ ] **1.18** Set a small default `limit` on event queries. `EventResponse` nests rsvps + inventory + customer + organization with **no server-side compression** (`ktor-server-compression` is absent). Default to `limit: 10`; make it configurable per screen.
+- [x] **1.14** Port `AuthService` (`src/api/AuthService.ts`): login, logout, getToken, getUserContext, getUserDetails, updateUserDetails.
+- [x] **1.15** Port `UserService`, `OrganizationService`, `CustomerService`, `InventoryService`.
+- [x] **1.16** Port `EventService` — note `GET /api/events` **ignores `sortBy`** server-side despite being documented. Do not rely on it.
+- [x] **1.17** Port `InvitationService`, `ReportService`, `RoleService`.
+- [x] **1.18** Set a small default `limit` on event queries. `EventResponse` nests rsvps + inventory + customer + organization with **no server-side compression** (`ktor-server-compression` is absent). Default to `limit: 10`; make it configurable per screen.
 - [ ] **1.19** Write unit tests for `ApiClient`: envelope unwrapping, bare-string body, 204, non-JSON 200, 401.
 
 ---
@@ -316,6 +316,118 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   Verify after: every `success()` response carries a typed payload, and `grep -rn 'success("' backend/app` returns nothing.
 
+- [ ] **10.11** **Implement `sortBy` on `GET /api/events`, or delete the parameter.** Confirmed dead: `EventRoutes.kt` never reads `sortBy` (zero occurrences) and neither does `EventDao`. Every other list DAO honours it — `CustomerDao` switches on `"name"` and falls back to id — so events are the outlier. `API.md` documents it as working.
+
+  `sortOrder` **does** work and defaults to `asc`, which is the more surprising half: callers expecting "newest first" get the earliest event unless they pass `sortOrder=desc`. Worth fixing alongside, or at minimum correcting in `API.md`.
+
+  Task 4.11 tells the UI to verify sort controls; this is the task that makes that verification pass.
+
+- [ ] **10.12** **Implement hard `DELETE /api/users/{id}`, deleting dependent rows explicitly.** **Decision made: hard delete, not soft.** The button exists in the React UI (`UserList.tsx:81`) and has never worked.
+
+  **The database will not cascade on its own.** Verified against the running dev database rather than inferred from the Kotlin — all five FKs onto `users(id)` are **`ON DELETE RESTRICT`**:
+
+  | Table | Column | Actual `delete_rule` |
+  |---|---|---|
+  | `rsvps` | `user_id` | RESTRICT |
+  | `staffhours` | `user_id` | RESTRICT |
+  | `userroles` | `user_id` | RESTRICT |
+  | `userorganizations` | `user_id` | RESTRICT |
+  | `invitations` | `used_by_user_id` (nullable) | RESTRICT |
+
+  So `DELETE FROM users` fails with an FK violation if any dependent row exists. **There are five, not one** — an earlier draft of this task claimed `StaffDetails` would cascade; that table is not in `DatabaseFactory.kt`'s `SchemaUtils.create` list, so it **does not exist** in the database (confirmed: `\dt` returns 13 tables, no `staffdetails`) and is never queried anywhere. The one table that declared `CASCADE` is a phantom.
+
+  **The dev database can be regenerated, so add `ReferenceOption.CASCADE` to the five FKs** in `Rsvps.kt`, `StaffHours.kt`, `UserRoles.kt`, `UserOrganizations.kt`, and `Invitations.kt`. Then the DAO needs no manual ordering and the schema documents its own intent.
+
+  **One exception:** `Invitations.usedByUserId` should stay `RESTRICT`/nullable and be **nulled explicitly, not cascaded** — the invitation is audit-relevant and should outlive the user who accepted it. So: cascade the four genuinely-dependent tables, null the invitation.
+
+  **Schema regeneration:** `DatabaseFactory` uses `SchemaUtils.create`, which is **create-if-missing and never alters existing tables** — it will not add a CASCADE to an already-created FK. Since the schema comes entirely from Exposed (no `.sql` files, no Flyway/Liquibase), recreating the dev database is the correct and supported path: drop and recreate, then let `init()` rebuild. Confirm nothing of value lives in the dev database before doing so.
+
+  If instead the ordering is done manually in the DAO, follow the precedent already in `TestDataProvider.kt:52-55`:
+
+  ```kotlin
+  Rsvps.deleteWhere { Rsvps.userId eq userId }
+  StaffHours.deleteWhere { StaffHours.userId eq userId }
+  UserRoles.deleteWhere { UserRoles.userId eq userId }
+  UserOrganizations.deleteWhere { UserOrganizations.userId eq userId }
+  Invitations.update({ Invitations.usedByUserId eq userId }) {
+    it[usedByUserId] = null   // nullable — preserve the invite record
+  }
+  Users.deleteWhere { Users.id eq userId }
+  ```
+
+  **Ordering is load-bearing** — `Invitations.usedByUserId` is nullable and the invite should survive with the link cleared, since the invitation itself is audit-relevant. Everything else is genuinely dependent and goes.
+
+  **Prefer adding `CASCADE` over manual deletes** — it removes a whole class of future bug where a new dependent table is added and silently forgotten. The five FKs to change are listed above.
+
+  **Guard rails.** Reject deleting the **last** super-admin, and reject self-deletion (a user who can delete themselves can lock themselves out mid-session). Check `VIEW_USERS_GLOBAL`/`MANAGE_USERS_GLOBAL` scoping so one org's admin cannot delete another's user — mirror the permission model on `PUT /api/users/{id}` (`UserRoutes.kt:84`).
+
+  Add the route to `API.md`, where it is currently documented as if it exists.
+
+- [ ] **10.13** **Restore the staff-details feature: create `staff_details`, store `skills` as a proper list, and fix the silent-discard path.** **Decision made: fix it, do not delete it.** Staff profiles are a real feature the app presents, so the table and its read/write path get built properly rather than removed.
+
+  **The bug today.** `StaffDetails.kt` defines the table but `DatabaseFactory.kt` omits it from `SchemaUtils.create`, and there is no DAO — nothing in `data/`, `core/`, `service/`, or `app/` references it. With no `.sql` files and no migration tool, the table is simply never made (confirmed: `\dt` returns 13 tables, no `staffdetails`). So `UserResponse.staffDetails` is **always null**, and:
+
+  - `Profile.tsx:61` guards on `userDetails.staffDetails &&` — the block never renders, so the fields silently vanish from the profile screen.
+  - `EditProfileForm.tsx:28` sends `staffDetails` on **every** save and `UpdateUserRequest` accepts it on the wire, but nothing reads it. **The user's edits are discarded with no error.** This silent-discard path is the actual defect and must be closed regardless of the rest.
+
+  **Work items, in order:**
+
+  1. Add `StaffDetails` to `SchemaUtils.create` in `DatabaseFactory.kt`. The `CASCADE` on its `userId` FK is already declared and correct — it is currently the only well-formed part of this feature.
+  2. Write a `StaffDetailsDao`: fetch by `userId`, insert, and update-merge. Follow `UserDao`'s shape.
+  3. Wire `staffDetails` into `toUserResponse` (`UserDao.kt:27`) so it populates, and into the update path so `UpdateStaffDetails` is applied rather than dropped.
+  4. **Populate `hoursWorked` from `StaffHours`**, do not trust the column on `staff_details` — see below.
+  5. Create the row lazily: a user has no staff details until something writes them, so reads must treat "no row" as `null` rather than erroring. This is why the DTO field is nullable.
+
+  **`skills` becomes a real list — and the wire format already is one.** `StaffDetails` (the DTO) declares `skills: List<String>`; only the *storage* is wrong — a comma-separated `text` column, annotated "for simplicity". So this is a backend-only change: the JSON contract does not move. Choose one:
+
+  - **Separate join table** (`staff_skills(user_id, skill)`) — normalized, no escaping concerns, queryable. Most work.
+  - **JSON/array column** (`text` holding a serialized `List<String>`) — least work, still no comma corruption.
+
+  Precedent to weigh: `Roles.permissions` stores a list the same comma-separated way (`RoleDao.kt:22,30,65`), so the codebase already has this pattern twice over. **Fix both or neither** — leaving `Roles.permissions` comma-joined while making `skills` a real array just relocates the same corruption. Add `Roles.permissions` to this task if that scope is acceptable, or file it separately; do not leave them half-converted.
+
+  **Do not use a comma join at all.** Any skill containing a comma — "Forklift, electric" — silently corrupts into two entries. There is no data to migrate (no users yet, and no test data creates staff details), so there is no reason to preserve the format.
+
+  **`hoursWorked` has no source today.** `StaffDetails.hoursWorked` is a stored column, but **nothing ever writes `StaffHours` rows** — `EventService` never inserts them. So the staff-hours *report* (`ReportDao.kt:19`) reads a table that is always empty, and the `hoursWorked` on `staff_details` would be a dead value. Decide whether hours are accumulated from event attendance (RSVP `available` plus event duration) or the column is dropped from the DTO. Do not ship a column that reads 0 forever.
+
+  **`dateOfBirth` is `varchar(20)`** with an "ISO 8601" comment but no validation anywhere (`StaffDetails.kt:12`). Leave as a string for parity, or convert to a real date type — a decision, not an accident.
+
+  **Add `staff_details` to the schema check** so a missing table fails at boot rather than surfacing later as vanished profile fields. That class of bug — a table defined but never created — is exactly what let this ship, and it cost a whole phase to notice.
+
+- [ ] **10.14** **Delete the dead `POST /api/events/{id}/join` route and `EventService.joinEvent` from the React app.** **Confirmed leftover from before the RSVP system** — this is settled, not an open question.
+
+  The git history is unambiguous, and all four commits land on **2025-09-14**:
+
+  | Commit | Message |
+  |---|---|
+  | `f2ca476` | wip users can join events |
+  | `13d3ef6` | view joined users on an event |
+  | `a6b28e7` | use existing rsvps class |
+  | `fdaf271` | **remove the join route, use only the rsvp route** |
+
+  So `join` was built first, then RSVP was introduced alongside it, then `join` was deleted the same afternoon. In `a6b28e7` both routes coexist — `post("{event_id}/rsvp")` at line 142 and `post("{event_id}/join")` at line 161 — and `fdaf271` removes `join`, changing 4 files and −69 lines.
+
+  **The permission is vestigial too.** The deleted route was gated on `ASSIGN_TO_EVENTS_SELF`, which still exists in `Permission.kt` and is now unreachable. Clean it up in the same change, or note in task 10.16 why it is retained.
+
+  **The React client was never updated.** `EventService.joinEvent` (`EventService.ts:56`) still calls the removed route — the commit removed the server side and `EventDetails.tsx`, but not the service method. Nothing calls it, so it 404s silently if ever invoked.
+
+  Remaining work: delete `joinEvent` from `frontend/src/api/EventService.ts` (before 10.3 removes the directory), and confirm nothing referenced it. `EventService` in `flutter_app` already omits the method for the same reason as 10.12.
+
+- [ ] **10.15** **Give list endpoints a real default `limit` instead of returning every row.** Every DAO does `limit?.let { query.limit(it) }` — `CustomerDao.kt:73`, `EventDao.kt:180`, plus `UserDao`, `InventoryDao`, `OrganizationDao`. Omitting `limit` therefore applies **no cap**, and the `limit: 0` echoed in the response is cosmetic. An unfiltered `GET /api/customers` returns the entire customer table.
+
+  The client already defends itself (task 1.18 defaults events to `limit: 10`), but that is a mitigation in one caller, not a fix — any other client, or a caller that forgets the parameter, still gets everything. Note the interaction with `total`: the count query is computed before the limit is applied, so `total` is already the unpaginated figure and a server-side default would not break the pagination UI.
+
+  Pick a sane default per resource, or one global default, and return it in the `limit` field so clients can see what was applied rather than inferring it from a `0` that means nothing. Then drop the matching client-side defaults where they become redundant.
+
+- [ ] **10.16** **Close the permission gap: 33 server permissions, 15 client-known.** `core/security/Permission.kt` defines 33; `src/types/permissions.ts` declared only 15. The 18 unreachable ones are mostly `*_GLOBAL` variants beyond organizations (`MANAGE_EVENTS_GLOBAL`, `MANAGE_CUSTOMERS_GLOBAL`, `MANAGE_INVENTORY_GLOBAL`, `MANAGE_ROLES_GLOBAL`, …) plus `MANAGE_ROLES_*`, `ASSIGN_*`, `CAN_ASSIGN_*`, and `MANAGE_USERS_SELF`.
+
+  The backend enforces all 33, so a super-admin *can* hold a permission the client cannot name — meaning the UI cannot gate anything on it, and a nav item or route guard for that capability simply cannot be built. Confirm each of the 18 is intentional and either: (a) grant it a client constant and gate the corresponding UI, or (b) remove it from the server enum if nothing should ever use it. `RoleService` currently exposes read-only access, so `MANAGE_ROLES_*` has no UI at all.
+
+  `Permission` in `flutter_app/lib/models/permissions.dart` mirrors the React 15 for parity. Extend it in the same commit, and re-check the role-assignment path discrepancy already in the table (`API.md:632` is wrong; see `RoleRoutes.kt:86`).
+
+- [ ] **10.17** **Decide whether `RsvpRequest.availability` stays a free-form `String`.** The server type is `String` with no validation (`RsvpRequest.kt`) and the app posts `"available"`, `"unavailable"`, and server-initiated `"requested"`. Any string is accepted, so a typo is stored silently and only shows up as a filter that never matches.
+
+  An enum on the server would catch that at the boundary. The cost is a migration for existing rows holding values outside any chosen set — check the data first (`SELECT DISTINCT availability FROM rsvps`) before deciding, since that query is cheap and the answer determines whether this is a small change or a data migration. Client-side, `RsvpAvailability` in `models/event.dart` already names the three values in use; tighten it once the server agrees on a set.
+
   **Already covered elsewhere, do not duplicate:** `Dockerfile:32-47` (the `frontend-react` builder stage, including its `COPY frontend/src` and `COPY frontend/public` lines) disappears with 10.1. Those are functional build instructions, not comments, so they are not this task's concern. `FLUTTER-CONVERT.md` itself is *expected* to reference `frontend/` paths throughout — it is a historical record and keeps them deliberately; exclude it.
 
 ---
@@ -351,20 +463,29 @@ The React app had **zero** tests, and none are written during the port by decisi
 
 Documented here so task 10.6 can address them. **Do not fix these during the port** — parity first, corrections after.
 
-| Discrepancy | Evidence |
-|---|---|
-| `POST /api/users/register` documented, **does not exist** | `API.md:57` vs `app/user/UserRoutes.kt:28` |
-| Staff endpoints documented, **do not exist** | `API.md:343-351`; staffing is via `staffInvites` on event create/update |
-| `GET /api/events/rsvps/requested` **undocumented** but real | `app/event/EventRoutes.kt:118` |
-| Role-assignment path is wrong | `API.md:632` says `/api/users/{userId}/roles`; actual is `/api/users/{user_id}/roles/{role_id}` (`app/role/RoleRoutes.kt:86`) |
-| `sortBy` ignored on `GET /api/events` | `app/event/EventRoutes.kt:80` does not read it |
-| Geo fields absent from docs | `latitude`/`longitude`/`formattedAddress` exist on customer/event DTOs but not in `API.md` |
-| Geo service is dead code | `service/geo/GeoService.kt:9-19` falls through to a mock; no `GeoRoutes` file exists; no PostGIS |
-| `RsvpRequest.availability` is a free-form `String` | No enum validation server-side |
-| Permission failures return bare strings, not the envelope | `auth/AuthorizationPlugin.kt:24,31` (note: the file is `AuthorizationPlugin.kt`, not `PermissionInterceptor.kt`) |
-| **11 success responses carry a bare-string `data`** instead of a DTO | 5 × `success("... with ID N updated")`, 4 × `success("OK")`, 1 × `success("Created invitation")` |
-| **5 deletes return `204 NoContent`** with no envelope, though React types claim `StatusResponse` | customer, inventory, organization, event, role route files |
+**Every row now has an owning task** in the "Fix" column. A row with no task was documentation nobody would act on, which is how five real defects sat here unowned for the first three phases. If you find a new one during the port, give it a task in the same change — otherwise add it to this table and note in the progress log that it is unowned.
 
+| Discrepancy | Evidence | Fix |
+|---|---|---|
+| `POST /api/users/register` documented, **does not exist** | `API.md:57` vs `app/user/UserRoutes.kt:28` | 10.6 (drop from docs) |
+| Staff endpoints documented, **do not exist** | `API.md:343-351`; staffing is via `staffInvites` on event create/update | 10.6 (drop from docs) |
+| `GET /api/events/rsvps/requested` **undocumented** but real | `app/event/EventRoutes.kt:118` | 7.10, 10.6 (document) |
+| Role-assignment path is wrong | `API.md:632` says `/api/users/{userId}/roles`; actual is `/api/users/{user_id}/roles/{role_id}` (`app/role/RoleRoutes.kt:86`) | **10.16** |
+| `sortBy` ignored on `GET /api/events` | `app/event/EventRoutes.kt:80` does not read it | **10.11** |
+| Geo fields absent from docs | `latitude`/`longitude`/`formattedAddress` exist on customer/event DTOs but not in `API.md` | 10.6 (regenerate) |
+| Geo service is dead code | `service/geo/GeoService.kt:9-19` falls through to a mock; no `GeoRoutes` file exists; no PostGIS | **10.7** |
+| `RsvpRequest.availability` is a free-form `String` | No enum validation server-side | **10.17** |
+| Permission failures return bare strings, not the envelope | `auth/AuthorizationPlugin.kt:24,31` (note: the file is `AuthorizationPlugin.kt`, not `PermissionInterceptor.kt`) | **10.9** |
+| **11 success responses carry a bare-string `data`** instead of a DTO | 5 × `success("... with ID N updated")`, 4 × `success("OK")`, 1 × `success("Created invitation")` | **10.10** |
+| **5 deletes return `204 NoContent`** with no envelope, though React types claim `StatusResponse` | customer, inventory, organization, event, role route files | **10.10** |
+| **`DELETE /api/users/{id}` does not exist** | `UserService.deleteUser` calls it (`UserService.ts:36`); `UserRoutes.kt` defines no `delete`. Reaches the `/api` catch-all → 404 JSON envelope. **Decided: hard delete** | **10.12** |
+| **`POST /api/events/{id}/join` does not exist** | `EventService.joinEvent` calls it (`EventService.ts:56`); `EventRoutes.kt` has no `join` route | **10.14** |
+| **`ASSIGN_TO_EVENTS_SELF` permission is unreachable** | Was used only by the deleted `join` route; still in `Permission.kt` | **10.14**, 10.16 |
+| **`staff_details` table is never created** | `DatabaseFactory.kt` omits it from `SchemaUtils.create`; confirmed absent via `\dt` (13 tables). No DAO either. `UserResponse.staffDetails` is always null, so `EditProfileForm` **silently discards** every staff-field edit | **10.13** (restoring) |
+| **`StaffHours` is never written to** | Created and queried by the report (`ReportDao.kt:19`), but nothing inserts rows — the staff-hours report is always empty, and `staff_details.hours_worked` has no source | **10.13** |
+| **All 5 user FKs are `ON DELETE RESTRICT`** | Queried from the running dev DB. No cascade anywhere, so user deletion fails outright | **10.12** (add CASCADE) |
+| **Omitting `limit` returns the entire table** | Every DAO does `limit?.let { query.limit(it) }` (`CustomerDao.kt:73`, `EventDao.kt:180`, +3). The `limit: 0` in the response is cosmetic, **not** a real cap | **10.15** |
+| **18 of 33 server permissions are unreachable from the client** | `core/security/Permission.kt` defines 33; `src/types/permissions.ts` declares only 15. The `*_GLOBAL` variants beyond the two org ones, plus `MANAGE_ROLES_*`, `ASSIGN_*`, `CAN_ASSIGN_*`, `MANAGE_USERS_SELF` | **10.16** |
 ---
 
 ## Progress log
@@ -598,3 +719,81 @@ The practical consequence is sharper than the plan's "The one deployment conside
 The three are genuinely different problems: 10.9 is a two-line consistency fix, 10.10 is an API-design decision with three reasonable answers and no obviously correct one. Splitting them was worth it precisely because lumping them together would have made the cheap fix wait on the expensive one.
 
 **Not yet wired.** Nothing constructs `ApiClient` — `main.dart` still shows the placeholder `HomeScreen`. Services (1.14–1.17) are what give it callers, and Riverpod wiring belongs with them. `ResponseBody` is declared on `ApiClient` but currently unused by any caller; it documents the four response shapes and is the natural home for a per-endpoint override once 1.16 hits `PUT /api/events/{id}` and its bare-string `data`.
+
+### 2026-10-09 — Phase 1, tasks 1.14–1.18 (service layer)
+
+**Done.** `AuthService`, `UserService`, `OrganizationService`, `CustomerService`, `InventoryService`, `EventService`, `InvitationService`, `ReportService`, `RoleService`, plus a shared `ListQuery`/`SortOrder`. Analyze and format clean, web build succeeds. This is the block that finally gives `ApiClient` callers, so it was checked hard against the backend source rather than the React client.
+
+**Three React-called endpoints do not exist server-side.** Each was found by grepping the route definitions, not by reading the plan:
+
+| React call | Status |
+|---|---|
+| `DELETE /api/users/{id}` (`UserService.ts:36`) | `UserRoutes.kt` defines **no `delete` route** — 404s at the `/api` catch-all |
+| `POST /api/events/{id}/join` (`EventService.ts:56`) | **No `join` route** in `EventRoutes.kt` |
+| `UserService.getUserDetails` / `updateUserDetails` | Exist, but as `GET`/`PUT /api/users/{id}` — folded into [AuthService] |
+
+Both missing methods are **omitted rather than stubbed**. A stub returning empty data would compile, pass review, and fail silently at runtime; an absent method is a compile error at the point someone ports `UserList`'s delete button (`UserList.tsx:81`) or `EventService.joinEvent`. Task 4.8 covers the UI side. Whether to *add* the endpoints or *drop* the buttons is a product decision, not a porting one.
+
+**Task 1.18 is more load-bearing than the task description implies.** The stated reason was payload size, which is true — but the mechanism is worse than "large responses". Every DAO does `limit?.let { query.limit(it) }` (`CustomerDao.kt:73`, `EventDao.kt:180`, +3), so **omitting `limit` applies no cap at all** and returns the entire matching table. The `limit: 0` in the response is cosmetic and does *not* mean zero rows. So `getAllEvents` merges `defaultLimit = 10` over whatever the caller passed, and a caller cannot accidentally request everything by forgetting a parameter. Verified: unspecified → `limit=10`; explicit 25 → `limit=25`; non-event lists send no limit, preserving React behaviour.
+
+**`sortBy` on events is forwarded but useless.** `EventRoutes.kt` accepts the parameter and `EventDao` never reads it — always orders by date. The service forwards it (so the URL stays honest) and the doc comment says not to depend on it. Note `sortOrder` *does* work and **defaults to `asc`**, so the first event returned is the earliest, not the most recent.
+
+**Three update methods return `String`, not a model.** `updateCustomer`, `updateEvent`, `updateRole` all receive `success("... with ID N updated")`. The React `EventService.updateEvent` is typed `Promise<EventResponse>` and hands callers an object the server never sends — a type lie that would surface as a null-check crash deep in a screen. Returning `String` is what the server actually does. Task 6.9 depends on this; task 10.10 would fix it server-side.
+
+**Two smaller corrections, caught by the analyzer and by re-reading the React source:**
+
+- `RoleService.updateRole` was written, then removed. The React `RoleService` only ever calls `getAllRoles`; `CreateRoleRequest`/`UpdateRoleRequest` exist server-side but were never needed. Adding role *management* is new feature work, not a port. The compiler caught the invented type; the fix was deletion, not importing a DTO.
+- `AuthService.getUserDetails`/`updateUserDetails` duplicate `UserService.getUser`/`updateUser`. The React `UserDetailsResponse` was a near-duplicate of `UserResponse` missing `organization`, so both collapse onto `UserResponse` and the `UserService` copies are gone. Task 5.6 can revisit if the profile screen needs the distinction.
+
+**`ListQuery` collapses seven near-identical parameter lists** into one, and omits nulls rather than sending empty strings — the server parses with `toIntOrNull()`, which would treat `""` as absent anyway, but omitting keeps the URL readable and makes the missing-`limit` behaviour explicit rather than accidental.
+
+**Verified with a throwaway `HttpServer` recording every request path and query string** — 13 assertions covering route paths for all nine services, the `limit=10` default and its override, `sortBy`/`sortOrder` forwarding, the bare-string update shapes, and a 204 delete. All passed; the file was then deleted per the Phase 12 test deferral. **Task 1.19 is still the first durable coverage** and remains unwritten — the layer now has ~40 public methods across nine services with no permanent tests, which is the largest untested surface in the port so far.
+
+**Also recorded in the discrepancy table:** 18 of the server's 33 permissions are unreachable from the client, because `src/types/permissions.ts` declares only 15. The extras are mostly `*_GLOBAL` variants beyond the two org ones, plus `MANAGE_ROLES_*`, `ASSIGN_*`, `CAN_ASSIGN_*`, and `MANAGE_USERS_SELF`. `Permission` in `models/permissions.dart` mirrors the React 15, so parity holds — but the server can grant a permission this build cannot name. That is exactly why `UserContextResponse.permissions` stays `List<String>`.
+
+**Audited the discrepancy table and found it was mostly documentation, not a work list.** Of the 16 entries, only 3 had a task that would actually fix them (10.7 geo, 10.9 bare strings, 10.10 success payloads). The rest were *described* and never actioned — which is how five real defects sat in the file for three phases. Added a **Fix** column mapping every row to its owning task, and tasks **10.11–10.16** for the orphans. All 16 rows now have an owner.
+
+The previously-unowned ones, each re-verified against source before writing the task:
+
+| Orphan | Verified how |
+|---|---|
+| `sortBy` dead on `/api/events` | `grep sortBy EventDao.kt` → **zero matches**. Not read by the DAO *or* the route. Every other list DAO honours it; events are the outlier |
+| `DELETE /api/users/{id}` | `UserRoutes.kt` registers only post/get/get-context/get-id/put-id. `UserService` has neither `delete` nor `deactivate`. The React delete button has never worked |
+| `POST /api/events/{id}/join` | No `join` route; only `joinToString` matches in the backend. Also **nothing in the React app calls `joinEvent`** — doubly dead |
+| Omitting `limit` returns everything | `limit?.let { query.limit(it) }` in all five DAOs. `total` is counted before the limit applies |
+| 18 unreachable permissions | 33 in the server enum vs 15 in the React types; the 18 enumerated |
+| Free-form `RsvpRequest.availability` | `String`, no validation. Flagged the data-migration question rather than assuming it's cheap |
+
+Two of these are **product decisions, not porting fixes**, and are written that way. 10.12 (delete user) needs an answer on hard-vs-soft delete — users are the one resource referenced from elsewhere, so deleting them orphans RSVPs and `staffInvites`. 10.13 (event join) needs a check of intent first: `Permission.ASSIGN_TO_EVENTS_SELF` exists server-side, which suggests self-assignment was meant to exist and was never wired up. Either could turn out to be "delete the dead code", which is why neither is pre-decided.
+
+**Two decisions taken on the Phase 10 orphans, and one hypothesis confirmed from git history.**
+
+**Users: hard delete — but the database will not do it for us.** Six tables reference `Users.id` and only `StaffDetails` declares `onDelete = CASCADE`. The other five (`UserRoles`, `UserOrganizations`, `Rsvps`, `StaffHours`, `Invitations`) have a plain FK, so `Users.deleteWhere { ... }` fails on the first dependent row. This makes task 10.12 more than "add a route" — the schema has to be either cleaned up explicitly or given real cascades. `TestDataProvider.kt:52-55` already does the manual ordering for test teardown, so there is a precedent to follow. Recorded the exact deletion order in the task, with the note that `Invitations.usedByUserId` is nullable and should be **nulled rather than deleted** — the invite is audit-relevant and outliving its user.
+
+**Events join: confirmed a leftover, exactly as suspected.** `git log -S "join"` gave four commits, all on **2025-09-14**: `f2ca476` "wip users can join events" → `13d3ef6` "view joined users on an event" → `a6b28e7` "use existing rsvps class" → `fdaf271` **"remove the join route, use only the rsvp route"**. In the parent of that last commit both routes coexist — `post("{event_id}/rsvp")` at line 142, `post("{event_id}/join")` at line 161 — and the removal was −69 lines across 4 files. So RSVP was introduced alongside `join`, then superseded it the same afternoon, and `join` was never revived.
+
+Two follow-ons from that: the deleted route was gated on `ASSIGN_TO_EVENTS_SELF`, which **still exists** in `Permission.kt` and is now unreachable — another instance of the 10.15 gap. And the React `EventService.joinEvent` was never removed; the commit cleaned up `EventDetails.tsx` but left the service method calling a route that no longer exists. Nothing calls it, so it has been dead ever since.
+
+**Checked the cascade question against the running database rather than the Kotlin, and the Kotlin was misleading.** `StaffDetails.kt` is the one file that declares `onDelete = ReferenceOption.CASCADE`, so reading the table definitions alone suggests a cascade exists. It does not:
+
+- **`StaffDetails` is not in `DatabaseFactory.kt`'s `SchemaUtils.create` list.** No `.sql` files and no migration tool exist, so the table is simply never created. `\dt` against the dev DB returns **13 tables, no `staffdetails`**. It is also never queried anywhere in the codebase.
+- **Every FK that does exist is `ON DELETE RESTRICT`** — queried `information_schema.referential_constraints` rather than trusting the source: `rsvps`, `staffhours`, `userroles`, `userorganizations`, `invitations` all `RESTRICT`.
+
+So there are **five** blocking FKs, not one, and the single declared cascade belongs to a phantom table. Two knock-on defects worth noting: `UserResponse.staffDetails` is therefore **always null** — the staff-profile feature the DTO models has no storage behind it, so `StaffDetails` in the client is dead weight — and `DELETE FROM users` fails outright today.
+
+**The dev database can be regenerated, which makes the clean fix viable.** The schema comes entirely from Exposed's `SchemaUtils.create`, so adding `ReferenceOption.CASCADE` to the four genuinely-dependent FKs and regenerating is supported and needs no migration tooling. One caveat: `SchemaUtils.create` is create-if-missing and **never alters an existing table**, so it will not retrofit a CASCADE onto an already-created FK — the database has to actually be dropped and recreated for the change to take effect.
+
+**`staff_details` is worse than a missing table — it is a silent data-loss bug.** Chasing the phantom `CASCADE` from 10.12 turned up a second, independent defect, so it got its own task (10.13) rather than riding along. The table is never created (absent from `SchemaUtils.create`, confirmed absent via `\dt`, no DAO anywhere), so `UserResponse.staffDetails` is **always null**. Two consequences in the React app:
+
+- `Profile.tsx:61` guards on `userDetails.staffDetails &&` — the block never renders, so the staff fields quietly vanish from the profile screen.
+- `EditProfileForm.tsx:28` sends `staffDetails` on **every** save, and `UpdateUserRequest` accepts it on the wire — but nothing reads it. **The user's edits are discarded with no error.** They type a phone number, hit save, and it is gone.
+
+That second one is the reason this is worth a task rather than a note. The feature has never worked, so "restore or delete" is a genuine product call — but the *silent discard* is a bug either way and should not survive the cutover regardless of which way it goes.
+
+**Staff details: decision is to restore, not delete — and the scope is larger than the missing table.** Rewriting task 10.13 surfaced two adjacent gaps. First, `skills` is stored as a comma-separated `text` column annotated "for simplicity" (`StaffDetails.kt:9`), so a skill like "Forklift, electric" silently becomes two entries. Making it a real list is **backend-only** — the DTO already declares `skills: List<String>`, so the JSON contract does not move. Since there are no users and no test data creates staff details, there is no format to migrate and no reason to keep the comma join.
+
+Second, and less obvious: **`StaffHours` is never written to.** The table is created (`DatabaseFactory.kt:42`) and read by the staff-hours report (`ReportDao.kt:19`), but nothing inserts rows — `EventService` does not. So the report is permanently empty, and the `hoursWorked` column on `staff_details` would be a value that always reads 0. Restoring staff profiles without deciding where hours come from would ship a number that is quietly wrong, so the task now requires deciding between accumulating hours from RSVP attendance and dropping the field.
+
+One judgement call worth surfacing: `Roles.permissions` stores its list the **same comma-separated way** (`RoleDao.kt:22,30,65`), so this pattern now appears twice. Converting `skills` and leaving `Roles.permissions` alone would relocate the corruption rather than remove it, so the task says fix both or neither — with the second one scoped explicitly rather than left as an untracked leftover.
+
+**Method note.** Every task written in this block was verified by grepping the backend, not by re-reading the plan. That is what surfaced all six orphans — the plan's Phase 1 tasks were accurate as far as they went, but a task list cannot describe defects it has not yet been told about. The "Fix" column is the fix for that: it makes an unowned defect visible at the moment it is recorded, rather than at the moment someone re-reads the table.
