@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.1.0"
+kotlin = "2.4.20"
 ktor = "3.2.3"
 koin = "4.1.0"
 exposed = "1.0.0-rc-1"
@@ -9,6 +9,7 @@ kotlinxSerializationJson = "1.6.0"
 dokka = "1.9.20"
 jbcrypt = "0.4"
 junit = "5.10.0"
+junitPlatform = "1.10.0"
 mockk = "1.13.8"
 
 [libraries]
@@ -41,6 +42,7 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 
 [plugins]
