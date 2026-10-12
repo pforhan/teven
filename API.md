@@ -240,6 +240,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val time: String, 
           val durationMinutes: Int, 
           val location: String?, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val description: String?, 
           val inventoryItems: List<EventInventoryItem>, 
           val customerId: Int?, 
@@ -256,6 +259,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val time: String, 
           val durationMinutes: Int, 
           val location: String?, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val description: String?, 
           val inventoryItems: List<EventInventoryItem>, 
           val customer: CustomerResponse?, 
@@ -288,6 +294,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val time: String, 
           val durationMinutes: Int, 
           val location: String?, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val description: String?, 
           val inventoryItems: List<EventInventoryItem>, 
           val customer: CustomerResponse?, 
@@ -309,6 +318,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val time: String?, 
           val durationMinutes: Int?, 
           val location: String?, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val description: String?, 
           val inventoryItems: List<EventInventoryItem>?, 
           val customerId: Int?, 
@@ -325,6 +337,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val time: String, 
           val durationMinutes: Int, 
           val location: String?, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val description: String?, 
           val inventoryItems: List<EventInventoryItem>, 
           val customer: CustomerResponse?, 
@@ -387,6 +402,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val phone: String, 
           val address: String, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val notes: String, 
           val organization: OrganizationResponse
         )
@@ -401,6 +419,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val phone: String, 
           val address: String, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val notes: String, 
           val organizationId: Int?
         )
@@ -412,6 +433,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val phone: String, 
           val address: String, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val notes: String, 
           val organization: OrganizationResponse
         )
@@ -426,6 +450,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String?, 
           val phone: String?, 
           val address: String?, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val notes: String?, 
           val organizationId: Int?
         )
@@ -437,6 +464,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val phone: String, 
           val address: String, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
           val notes: String, 
           val organization: OrganizationResponse
         )
@@ -740,6 +770,9 @@ data class CreateCustomerRequest(
   val name: String, 
   val phone: String, 
   val address: String, 
+  val latitude: Double?, 
+  val longitude: Double?, 
+  val formattedAddress: String?, 
   val notes: String, 
   val organizationId: Int?
 )
@@ -750,6 +783,9 @@ data class CreateEventRequest(
   val time: String, 
   val durationMinutes: Int, 
   val location: String?, 
+  val latitude: Double?, 
+  val longitude: Double?, 
+  val formattedAddress: String?, 
   val description: String?, 
   val inventoryItems: List<EventInventoryItem>, 
   val customerId: Int?, 
@@ -796,6 +832,9 @@ data class CustomerResponse(
   val name: String, 
   val phone: String, 
   val address: String, 
+  val latitude: Double?, 
+  val longitude: Double?, 
+  val formattedAddress: String?, 
   val notes: String, 
   val organization: OrganizationResponse
 )
@@ -813,6 +852,9 @@ data class EventResponse(
   val time: String, 
   val durationMinutes: Int, 
   val location: String?, 
+  val latitude: Double?, 
+  val longitude: Double?, 
+  val formattedAddress: String?, 
   val description: String?, 
   val inventoryItems: List<EventInventoryItem>, 
   val customer: CustomerResponse?, 
@@ -826,6 +868,12 @@ data class EventSummaryResponse(
   val eventId: Int, 
   val title: String, 
   val quantity: Int
+)
+
+data class GeoLocation(
+  val latitude: Double, 
+  val longitude: Double, 
+  val formattedAddress: String?
 )
 
 data class InventoryItemResponse(
@@ -939,6 +987,9 @@ data class UpdateCustomerRequest(
   val name: String?, 
   val phone: String?, 
   val address: String?, 
+  val latitude: Double?, 
+  val longitude: Double?, 
+  val formattedAddress: String?, 
   val notes: String?, 
   val organizationId: Int?
 )
@@ -949,6 +1000,9 @@ data class UpdateEventRequest(
   val time: String?, 
   val durationMinutes: Int?, 
   val location: String?, 
+  val latitude: Double?, 
+  val longitude: Double?, 
+  val formattedAddress: String?, 
   val description: String?, 
   val inventoryItems: List<EventInventoryItem>?, 
   val customerId: Int?, 
