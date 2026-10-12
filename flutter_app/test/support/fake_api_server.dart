@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:teven_app/core/api/api_client.dart';
 import 'package:teven_app/core/api/token_store.dart';
 
@@ -160,16 +159,12 @@ const String notFoundEnvelope =
 ///
 /// The base URL is only known at runtime once the ephemeral port is bound, so
 /// neither `Dio` nor its `BaseOptions` can be const.
-ApiClient clientFor(FakeApiServer server) => ApiClient(
-  // ignore: prefer_const_constructors
-  TokenStore(const FlutterSecureStorage()),
-  dio: _dioFor(server.baseUrl),
-);
+ApiClient clientFor(FakeApiServer server) =>
+    ApiClient(const TokenStore.secure(), dio: _dioFor(server.baseUrl));
 
 /// An [ApiClient] pointed at [port], for connection-failure tests.
 ApiClient clientForPort(int port) => ApiClient(
-  // ignore: prefer_const_constructors
-  TokenStore(const FlutterSecureStorage()),
+  const TokenStore.secure(),
   dio: _dioFor('http://127.0.0.1:$port'),
 );
 

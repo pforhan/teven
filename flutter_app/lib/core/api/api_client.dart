@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../models/api_response.dart';
 import '../config/api_config.dart';
@@ -50,7 +49,7 @@ class ApiClient {
   /// from production is worse than no stub.
   @visibleForTesting
   factory ApiClient.forTesting(HttpClientAdapter adapter) => ApiClient(
-    const TokenStore(FlutterSecureStorage()),
+    const TokenStore.secure(),
     dio: Dio(
       BaseOptions(baseUrl: ApiConfig.baseUrl, validateStatus: (_) => true),
     )..httpClientAdapter = adapter,
@@ -71,6 +70,32 @@ class ApiClient {
 
   final Dio _dio;
   final TokenStore _tokenStore;
+
+  /// Releases the underlying socket pool.
+  ///
+  /// Called when the provider that owns this client is disposed, so a test
+  /// that overrides [apiClientProvider] does not leak a dio per case.
+  void close() => _dio.close(force: true);
+
+  /// Invoked once per 401, before the [UnauthorizedException] propagates.
+  ///
+  /// The client has no knowledge of navigation, so it cannot decide where a
+  /// lost session should send the user. The provider layer supplies a callback
+  /// that owns that decision and collapses concurrent 401s into a single
+  /// redirect — see `UnauthorizedRedirect` in `providers/auth_controller.dart`.
+  ///
+  /// Set on the default-constructed client; [forTesting] leaves it null so
+  /// tests observe the exception rather than a redirect.
+  void Function(UnauthorizedException error)? onUnauthorized;
+
+  /// Reports a 401 to [onUnauthorized], then throws [error].
+  Never _fail(Response<dynamic> response, int status) {
+    final error = _errorFor(response, status);
+    if (error is UnauthorizedException) {
+      onUnauthorized?.call(error);
+    }
+    throw error;
+  }
 
   /// Fetches [path] and returns the unwrapped `data`.
   ///
@@ -199,7 +224,7 @@ class ApiClient {
       // envelope body, not the status line.
       final status = response.statusCode ?? 0;
       if (status >= 400) {
-        throw _errorFor(response, status);
+        _fail(response, status);
       }
 
       return response;
@@ -210,7 +235,7 @@ class ApiClient {
       // yields the server's message instead of a generic network error.
       final response = error.response;
       if (response != null) {
-        throw _errorFor(response, response.statusCode ?? 0);
+        _fail(response, response.statusCode ?? 0);
       }
       if (CancelToken.isCancel(error)) {
         throw NetworkException('Request cancelled', details: error.message);

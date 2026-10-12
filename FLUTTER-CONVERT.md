@@ -143,18 +143,34 @@ Ports `src/api/*` (425 lines) and `src/types/*` (316 lines). Mechanical, but mus
 
 ## Phase 2 — Auth, permissions, routing
 
-- [ ] **2.1** Port `AuthProvider` → `authControllerProvider` (`AsyncNotifier`). Reproduce the boot sequence from `AuthContext.tsx:29-59`: read token → fetch `/api/users/context` → set or clear.
-- [ ] **2.2** Reproduce the single-flight 401 redirect. `AuthContext.tsx:16` uses a module-level `isRedirecting` flag; in Riverpod use a provider guard so concurrent 401s don't trigger repeated navigation.
-- [ ] **2.3** Add `hasPermission(permission)` and `permissions` as a Riverpod provider derived from `authControllerProvider`, replacing `usePermissions()` (`AuthContext.tsx:80-92`).
-- [ ] **2.4** Port `OrganizationProvider` (`src/OrganizationContext.tsx`): super-admin selected-org scope, persisted under key `selectedOrganization`.
-- [ ] **2.5** Port `ProtectedRoute` → `go_router` route guard. **Preserve OR-semantics** for array permissions: `App.tsx:62` passes `[MANAGE_USERS_GLOBAL, MANAGE_USERS_ORGANIZATION]` and `ProtectedRoute.tsx:22-25` treats it as `.some()`.
-- [ ] **2.6** Port all 21 routes from `App.tsx:38-68` with matching paths and param names (`eventId`, `customerId`, `inventoryId`, `organizationId`, `userId`).
-- [ ] **2.7** Reproduce the unauthorized redirect target. `ProtectedRoute.tsx:27` sends users to `/events`; the catch-all `App.tsx:67` sends to `/` or `/login`.
-- [ ] **2.8** Reproduce the branching behavior in `App.tsx:40-65`: when `userContext` is null **only** `/login` and `/register` exist. Otherwise the `/` subtree mounts.
-- [ ] **2.9** Port the login screen (`src/Auth.tsx`, 71 lines). Note the current `width: '25rem'` card is desktop-tuned.
+- [x] **2.1** Port `AuthProvider` → `authControllerProvider` (`AsyncNotifier`). Reproduce the boot sequence from `AuthContext.tsx:29-59`: read token → fetch `/api/users/context` → set or clear.
+- [x] **2.2** Reproduce the single-flight 401 redirect. `AuthContext.tsx:16` uses a module-level `isRedirecting` flag; in Riverpod use a provider guard so concurrent 401s don't trigger repeated navigation.
+- [x] **2.3** Add `hasPermission(permission)` and `permissions` as a Riverpod provider derived from `authControllerProvider`, replacing `usePermissions()` (`AuthContext.tsx:80-92`).
+- [x] **2.4** Port `OrganizationProvider` (`src/OrganizationContext.tsx`): super-admin selected-org scope, persisted under key `selectedOrganization`.
+- [x] **2.5** Port `ProtectedRoute` → `go_router` route guard. **Preserve OR-semantics** for array permissions: `App.tsx:62` passes `[MANAGE_USERS_GLOBAL, MANAGE_USERS_ORGANIZATION]` and `ProtectedRoute.tsx:22-25` treats it as `.some()`.
+- [x] **2.6** Port all 21 routes from `App.tsx:38-68` with matching paths and param names (`eventId`, `customerId`, `inventoryId`, `organizationId`, `userId`).
+- [x] **2.7** Reproduce the unauthorized redirect target. `ProtectedRoute.tsx:27` sends users to `/events`; the catch-all `App.tsx:67` sends to `/` or `/login`.
+- [x] **2.8** Reproduce the branching behavior in `App.tsx:40-65`: when `userContext` is null **only** `/login` and `/register` exist. Otherwise the `/` subtree mounts.
+- [x] **2.9** Port the login screen (`src/Auth.tsx`, 71 lines). Note the current `width: '25rem'` card is desktop-tuned.
 - [ ] **2.10** Port `AcceptInvitationPage` (176 lines). Must read the `?token=` query param **on web via path strategy** — this is the reason for task 0.9.
 - [ ] **2.11** Port `AlreadyLoggedInError` (16 lines), rendered when `POST /api/invitations/accept` rejects a logged-in caller with 400.
-- [ ] **2.12** Tests: permission OR-semantics, both unauthenticated route branches, 401 single-flight redirect.
+- [x] **2.12** Tests: permission OR-semantics, both unauthenticated route branches, 401 single-flight redirect.
+
+### Phase 2 progress log
+
+Tasks 2.1–2.9 and 2.12 are done. The route table is complete but every screen is a `PlaceholderScreen` naming its own path — each is replaced as its phase lands, and `grep PlaceholderScreen` is the checklist. `HomeScreen` (task 0.8) and `widget_test.dart` are gone, superseded by the router.
+
+**Three deliberate deviations from the React original**, each because go_router behaves differently rather than for tidiness:
+
+1. **`router.refresh()` is deferred to a microtask.** Riverpod notifies a provider's own listeners *before* recomputing the providers that depend on it. Calling `refresh()` synchronously from the auth listener re-runs the redirects against the previous context, and `/login` silently stays put after a successful login. This one was found by the test suite, not by reading.
+
+2. **The unauthorized fallback falls back to `/profile` when the user cannot see events.** `ProtectedRoute.tsx:27` sends users to `/events` without checking they may see it. A user lacking `VIEW_EVENTS_ORGANIZATION` is redirected to a route that denies them in turn; React Router re-renders in place, but go_router resolves it as a redirect loop. `/profile` is the one authenticated route with no permission requirement (`App.tsx:59`), so it is always somewhere the user can land. Covered by `router_test.dart`.
+
+3. **The 401 latch resets on login.** The React flag at `AuthContext.tsx:16` is never cleared, so a *second* 401 later in the session is silently ignored. Reproduced faithfully for the concurrent case; not reproduced for the sequential one.
+
+**Two things about the guard's plumbing worth knowing.** The 401 hook is wired in `apiClientProvider` rather than inside `ApiClient`, so the client stays free of routing and tests can override only the transport (`dioProvider`) — a test that built its own `ApiClient` would be asserting against wiring it wrote itself. And `TokenStore` now takes a three-method `TokenStorage` instead of `FlutterSecureStorage` directly: mirroring the plugin means re-declaring signatures with per-platform option objects against a version we do not control, and a plugin stand-in has to implement all eighteen methods.
+
+**Unverified:** `flutter run -d chrome` against the real backend, and whether the address bar follows in-app navigation under the path strategy. Both are still open from 0.9–0.11 and neither is answerable from a widget test.
 
 ---
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Reads and writes the auth token.
@@ -37,14 +38,21 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class TokenStore {
   const TokenStore(this._storage);
 
-  /// Storage key.
+  /// The real store, backed by `flutter_secure_storage`.
+  const TokenStore.secure() : this(const _SecureTokenStorage());
+
+  /// A process-local store, for tests.
   ///
-  /// Matches the React `TOKEN_KEY` for continuity, but see the class doc:
-  /// the stored value is encrypted and namespaced, so the token does **not**
-  /// carry over.
+  /// The plugin reaches a platform channel that a widget test has no answer
+  /// for: reads throw (and would be swallowed into "logged out") while writes
+  /// throw outright. A test could therefore never arrange a signed-in user.
+  @visibleForTesting
+  factory TokenStore.inMemory({String? token}) =>
+      TokenStore(_MemoryTokenStorage(token));
+
   static const String storageKey = 'teven-auth-token';
 
-  final FlutterSecureStorage _storage;
+  final TokenStorage _storage;
 
   /// The token, or `null` when absent **or when the store is unavailable**.
   ///
@@ -53,7 +61,7 @@ class TokenStore {
   /// render a login screen.
   Future<String?> read() async {
     try {
-      return await _storage.read(key: storageKey);
+      return await _storage.read();
     } catch (_) {
       return null;
     }
@@ -63,8 +71,7 @@ class TokenStore {
   ///
   /// **Propagates failure.** A login must not appear to succeed if the token
   /// was not persisted.
-  Future<void> write(String token) =>
-      _storage.write(key: storageKey, value: token);
+  Future<void> write(String token) => _storage.write(token);
 
   /// Clears the token. Called on logout and on an unauthorized response.
   ///
@@ -72,9 +79,56 @@ class TokenStore {
   /// should not prevent the user from reaching the login screen.
   Future<void> clear() async {
     try {
-      await _storage.delete(key: storageKey);
+      await _storage.clear();
     } catch (_) {
       // Best-effort.
     }
   }
+}
+
+/// Where a token actually lives.
+///
+/// Narrower than [FlutterSecureStorage] on purpose. The plugin's own interface
+/// carries per-platform option objects on every method, so mirroring it means
+/// re-declaring its signature against a version we do not control — and a
+/// `FlutterSecureStorage` stand-in has to implement all eighteen methods to
+/// satisfy `implements`. Three methods keyed by nothing but the token is all
+/// this app needs.
+abstract interface class TokenStorage {
+  Future<String?> read();
+  Future<void> write(String token);
+  Future<void> clear();
+}
+
+/// The production backend. See [TokenStore] for the TLS caveat, which is why
+/// reads degrade and writes propagate.
+class _SecureTokenStorage implements TokenStorage {
+  const _SecureTokenStorage();
+
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
+
+  @override
+  Future<String?> read() => _storage.read(key: TokenStore.storageKey);
+
+  @override
+  Future<void> write(String token) =>
+      _storage.write(key: TokenStore.storageKey, value: token);
+
+  @override
+  Future<void> clear() => _storage.delete(key: TokenStore.storageKey);
+}
+
+class _MemoryTokenStorage implements TokenStorage {
+  _MemoryTokenStorage(this._token);
+
+  String? _token;
+
+  @override
+  Future<String?> read() async => _token;
+
+  @override
+  Future<void> write(String token) async => _token = token;
+
+  @override
+  Future<void> clear() async => _token = null;
 }
