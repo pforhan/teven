@@ -7,7 +7,28 @@
 ARG WEB_SOURCE=react
 
 # Stage 1: Gradle setup
-FROM cimg/openjdk:19.0-node AS gradle-setup
+#
+# JDK 21 (LTS), on Eclipse Temurin rather than cimg/openjdk for two reasons:
+#
+# 1. ARCHITECTURE. cimg/openjdk is published amd64-only, so on Apple Silicon
+#    every Gradle invocation ran under QEMU emulation. Measured on this repo,
+#    the emulated `:backend:app:assemble` took 384.9s where the identical
+#    assembly against the same dependency cache took 20s natively -- roughly
+#    19x, far more than a CPU microbenchmark suggests, because kotlinc is a
+#    JIT-compiling workload and emulation compounds it. Temurin publishes a
+#    real arm64 variant, so Docker selects it with no arch pin needed.
+# 2. The `final` stage only runs the jar. Node was never needed outside the
+#    separate `frontend-react` stage; dropping it shrinks the runtime image.
+#
+# Changing the base image invalidates every cached layer below, so the first
+# build re-downloads Gradle and all dependencies. Subsequent builds are cached.
+FROM eclipse-temurin:21-jdk-jammy AS gradle-setup
+
+# Temurin ships no `circleci` user -- cimg/openjdk did. Recreate it with the
+# same uid and gid so the existing `--chown=circleci:circleci` COPY flags and
+# the `/home/circleci/.gradle` cache path below keep working unchanged.
+RUN groupadd --gid 1000 circleci \
+  && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash circleci
 
 WORKDIR /app
 
@@ -86,29 +107,107 @@ RUN set -eux; \
 # the other pipeline's stage is never pulled in.
 FROM frontend-${WEB_SOURCE} AS web-assets
 
-# Stage 3: Build the backend and create the final image
-FROM cimg/openjdk:19.0-node AS final
+# Stage 3: Compile the backend.
+#
+# Split out from `final` so the expensive Kotlin compile (measured at ~265s
+# cold on a native arm64 JDK) is cached independently of the web bundle. It
+# depends only on backend sources, so a Flutter-only change -- the common case
+# for the rest of this port -- reuses this layer untouched and skips the
+# compile entirely. Previously the web bundle was copied *before* the assemble,
+# so every frontend edit invalidated and repeated the whole Kotlin build.
+#
+# Only `classes` is compiled here. Packaging into the fat jar happens in
+# `final`, after the web bundle lands in the jar's static resources.
+FROM eclipse-temurin:21-jdk-jammy AS backend-compile
+
+RUN groupadd --gid 1000 circleci \
+  && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash circleci
 
 WORKDIR /app
 
-# Switch to the 'circleci' user
+# See the note in the `final` stage on why this is explicit rather than
+# inherited from the base image.
+RUN chown circleci:circleci /app
+
 USER circleci
 
-# Copy the Gradle files from the gradle-setup stage
 COPY --chown=circleci:circleci --from=gradle-setup /app/ /app/
 COPY --chown=circleci:circleci --from=gradle-setup /home/circleci/.gradle/ /home/circleci/.gradle/
 
-# Create backend directory and copy build.gradle.kts files for caching
-RUN mkdir -p backend && find backend -name "build.gradle.kts" -exec cp --parents {} . \;
-
-# Download dependencies for caching
-RUN ./gradlew dependencies --no-daemon
-
-# Copy the entire backend source code with correct ownership
+# Compile, with the Gradle user home on a BuildKit cache mount rather than in
+# an image layer.
+#
+# This replaces two things that used to fight each other:
+#
+# 1. A separate "copy the build scripts, then resolve dependencies" step. Its
+#    purpose was to populate a cache that source changes would not invalidate,
+#    which required naming every module's build.gradle.kts by hand -- Docker
+#    cannot copy a set of files recursively while preserving their directory
+#    structure (`COPY backend/*/build.gradle.kts backend/` flattens them into
+#    one directory, where they collide). The copy-then-delete alternative
+#    (`COPY backend ./backend` then `find ... -delete`) avoids the list but
+#    reintroduces the original bug, because that COPY's cache key spans all
+#    backend source, so any .kt edit invalidates the dependency cache.
+# 2. Re-downloading the Gradle distribution and dependencies whenever the
+#    layer above them was invalidated.
+#
+# A cache mount solves the underlying problem instead of working around it: it
+# persists across builds independently of any layer, so nothing needs to be
+# kept out of the source tree to protect it. The hand-maintained list and the
+# separate dependency step both disappear.
+#
+# The `id` is what ties the stages together -- `final` mounts the same one and
+# reuses both the wrapper distribution and the resolved dependencies.
+#
+# The previous `find`-based version of the dependency step matched nothing at
+# all, because `backend/` did not exist yet at that point in the stage, so it
+# silently resolved nothing and every build re-downloaded. Gradle 8 tolerated
+# the missing project directories; Gradle 9 rejects them, which is how the bug
+# surfaced.
 COPY --chown=circleci:circleci backend ./backend
+
+# Compile only -- do not assemble. Produces the class files and, importantly,
+# the Gradle task history under /app/.gradle that lets the `final` stage see
+# these tasks as UP-TO-DATE and skip straight to packaging.
+RUN --mount=type=cache,id=teven-gradle,target=/home/circleci/.gradle,uid=1000,gid=1000 \
+    ./gradlew :backend:app:classes --no-daemon
+
+# Stage 4: Build the backend and create the final image
+#
+# JDK 21 to match the build stages. This is also the image's *runtime* JDK, so
+# it is not only a build-tool choice -- 21 is an LTS release, which is why it
+# was preferred over the 25/26 that Gradle would also accept.
+FROM eclipse-temurin:21-jdk-jammy AS final
+
+RUN groupadd --gid 1000 circleci \
+  && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash circleci
+
+WORKDIR /app
+
+# Give the build user ownership of its own working directory.
+#
+# This was previously true by accident, and swapping the base image broke it:
+# cimg/openjdk defaults to `USER circleci`, so `WORKDIR /app` created the
+# directory circleci-owned. Temurin defaults to root, so it created it
+# root-owned, and the dependency-caching step failed with
+# "mkdir: cannot create directory 'backend': Permission denied".
+#
+# Set explicitly rather than inherited, so the next base-image swap does not
+# silently take this with it.
+RUN chown circleci:circleci /app
+
+USER circleci
+
+# Take the whole compiled tree, including /app/.gradle. The task history is
+# what makes the compile below a no-op: without it Gradle has no record that
+# compileKotlin already ran and would redo the full build.
+COPY --chown=circleci:circleci --from=backend-compile /app /app
 
 # Copy the selected web bundle into the backend's static resources, where Ktor
 # serves it from "/" (backend/.../app/Routing.kt, staticResources).
+#
+# This is the only input that changes on a frontend-only edit, so it is placed
+# after the compile deliberately.
 #
 # `web-assets` resolves to frontend-react or frontend-flutter per WEB_SOURCE, and
 # both normalize their output to /web-dist. Referencing only `web-assets` is
@@ -116,8 +215,13 @@ COPY --chown=circleci:circleci backend ./backend
 # nothing references would drag that stage in.
 COPY --chown=circleci:circleci --from=web-assets /web-dist /app/backend/app/src/main/resources/static
 
-# Build the application
-RUN ./gradlew :backend:app:assemble --no-daemon
+# Package. compileKotlin and friends are UP-TO-DATE here, so this re-runs only
+# resource processing and jar assembly -- seconds, not minutes.
+#
+# The same cache mount as the compile stage, so the wrapper distribution and
+# resolved dependencies come from it rather than being downloaded again.
+RUN --mount=type=cache,id=teven-gradle,target=/home/circleci/.gradle,uid=1000,gid=1000 \
+    ./gradlew :backend:app:assemble --no-daemon
 
 # Expose the port the application runs on
 EXPOSE 8080
