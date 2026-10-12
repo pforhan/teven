@@ -134,41 +134,35 @@ USER circleci
 COPY --chown=circleci:circleci --from=gradle-setup /app/ /app/
 COPY --chown=circleci:circleci --from=gradle-setup /home/circleci/.gradle/ /home/circleci/.gradle/
 
-# Compile, with the Gradle user home on a BuildKit cache mount rather than in
-# an image layer.
-#
-# This replaces two things that used to fight each other:
-#
-# 1. A separate "copy the build scripts, then resolve dependencies" step. Its
-#    purpose was to populate a cache that source changes would not invalidate,
-#    which required naming every module's build.gradle.kts by hand -- Docker
-#    cannot copy a set of files recursively while preserving their directory
-#    structure (`COPY backend/*/build.gradle.kts backend/` flattens them into
-#    one directory, where they collide). The copy-then-delete alternative
-#    (`COPY backend ./backend` then `find ... -delete`) avoids the list but
-#    reintroduces the original bug, because that COPY's cache key spans all
-#    backend source, so any .kt edit invalidates the dependency cache.
-# 2. Re-downloading the Gradle distribution and dependencies whenever the
-#    layer above them was invalidated.
-#
-# A cache mount solves the underlying problem instead of working around it: it
-# persists across builds independently of any layer, so nothing needs to be
-# kept out of the source tree to protect it. The hand-maintained list and the
-# separate dependency step both disappear.
-#
-# The `id` is what ties the stages together -- `final` mounts the same one and
-# reuses both the wrapper distribution and the resolved dependencies.
-#
-# The previous `find`-based version of the dependency step matched nothing at
-# all, because `backend/` did not exist yet at that point in the stage, so it
-# silently resolved nothing and every build re-downloaded. Gradle 8 tolerated
-# the missing project directories; Gradle 9 rejects them, which is how the bug
-# surfaced.
 COPY --chown=circleci:circleci backend ./backend
 
 # Compile only -- do not assemble. Produces the class files and, importantly,
 # the Gradle task history under /app/.gradle that lets the `final` stage see
 # these tasks as UP-TO-DATE and skip straight to packaging.
+#
+# The Gradle user home is mounted from a BuildKit cache rather than baked into
+# a layer, because it has to survive a layer it cannot be allowed to invalidate.
+# The distribution and the resolved dependencies cost minutes to fetch and
+# depend on nothing but the build scripts, but as a layer that cache would sit
+# behind the COPY above, whose cache key spans all backend source -- so any .kt
+# edit would re-download everything. Working round that meant copying only the
+# build scripts, which Docker cannot do: a recursive copy does not preserve
+# directory structure (`COPY backend/*/build.gradle.kts backend/` flattens every
+# module's script into one path, where they collide), so each module had to be
+# named individually. Copy-then-delete fails the same way by a different route,
+# since its COPY still covers all the source.
+#
+# A cache mount persists across builds independently of any layer, so no source
+# has to be held out of the tree to protect it and the module list disappears.
+# `id=teven-gradle` is what makes it shared: `final` mounts the same one and
+# reuses the distribution and the dependencies resolved here.
+#
+# This replaces a "copy the build scripts, then resolve dependencies" step that
+# never worked. It ran `mkdir -p backend && find backend -name
+# "build.gradle.kts" ...`, but `backend/` did not exist yet at that point in the
+# stage, so find matched nothing, `dependencies` resolved nothing, and every
+# build re-downloaded. Gradle 8 tolerated the project directories that were then
+# missing; Gradle 9 rejects them, which is how it surfaced.
 RUN --mount=type=cache,id=teven-gradle,target=/home/circleci/.gradle,uid=1000,gid=1000 \
     ./gradlew :backend:app:classes --no-daemon
 
@@ -218,8 +212,7 @@ COPY --chown=circleci:circleci --from=web-assets /web-dist /app/backend/app/src/
 # Package. compileKotlin and friends are UP-TO-DATE here, so this re-runs only
 # resource processing and jar assembly -- seconds, not minutes.
 #
-# The same cache mount as the compile stage, so the wrapper distribution and
-# resolved dependencies come from it rather than being downloaded again.
+# Mounts the same cache as the compile stage; see the note there.
 RUN --mount=type=cache,id=teven-gradle,target=/home/circleci/.gradle,uid=1000,gid=1000 \
     ./gradlew :backend:app:assemble --no-daemon
 
