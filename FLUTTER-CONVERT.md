@@ -201,26 +201,27 @@ The last one is the load-bearing observation: login → `/events` is *in-app* na
 
 The React shell is desktop-only (`navbar-expand-lg`). This phase establishes the responsive scaffold both targets share.
 
-- [ ] **3.1** Port `MainLayout` (52 lines) to a `go_router` `ShellRoute`. Reproduce the `loading` → "Loading..." gate from `App.tsx:34-36`.
-- [ ] **3.2** Define breakpoints: mobile `< 700`, tablet `700–1100`, desktop `> 1100`. Use `LayoutBuilder`, not device checks, so web resizing behaves.
-- [ ] **3.3** Build the responsive chrome: `NavigationDrawer` on mobile, `NavigationRail` at tablet, extended rail or sidebar at desktop.
-- [ ] **3.4** Reproduce the conditional nav items from `MainLayout.tsx:22-27` — each link gated on its `VIEW_*` permission. Six items, two of which are OR-gated (`VIEW_USERS_ORGANIZATION || VIEW_USERS_GLOBAL`, line 27).
-- [ ] **3.5** Reproduce `isSuperAdmin` determination: `MainLayout.tsx:10` derives it from `hasPermission(VIEW_USERS_GLOBAL)`.
-- [ ] **3.6** Port `OrganizationSelector` (64 lines) — super-admin org switcher in the chrome.
-- [ ] **3.7** Port `QuickOrganizationPickerModal` (102 lines) — becomes a bottom sheet on mobile, dialog on desktop.
-- [ ] **3.8** Build the non-super-admin variant of the org display (`MainLayout.tsx:36`): a static org name label, no picker.
-- [ ] **3.9** Port the Profile nav link and Logout action.
-- [ ] **3.10** Replace the Bootstrap `#f8f9fa` page background and `#3174ad` primary with a Flutter `ColorScheme`, so screens land close to the current visual weight. Record chosen hex values in a comment for traceability.
-- [ ] **3.11** Replace icons. `react-icons/fa` gives ~6 glyphs; **the `bi bi-*` Bootstrap Icons were never installed** and currently render as empty `<i>` tags — do not attempt parity, use Material icons throughout.
-- [ ] **3.12** Confirm the shell renders at all three breakpoints on web and on a device.
+- [x] **3.1** Port `MainLayout` (52 lines) to a `go_router` `ShellRoute`. Reproduce the `loading` → "Loading..." gate from `App.tsx:34-36`. **Already done in Phase 2** — the `_AuthGate` in `main.dart` plus the redirect's loading short-circuit; nothing to add here.
+- [x] **3.2** Define breakpoints: mobile `< 700`, tablet `700–1100`, desktop `> 1100`. Use `LayoutBuilder`, not device checks, so web resizing behaves.
+- [x] **3.3** Build the responsive chrome: `NavigationDrawer` on mobile, `NavigationRail` at tablet, extended rail or sidebar at desktop.
+- [x] **3.4** Reproduce the conditional nav items from `MainLayout.tsx:22-27` — each link gated on its `VIEW_*` permission. Six items, two of which are OR-gated (`VIEW_USERS_ORGANIZATION || VIEW_USERS_GLOBAL`, line 27).
+- [x] **3.5** Reproduce `isSuperAdmin` determination: `MainLayout.tsx:10` derives it from `hasPermission(VIEW_USERS_GLOBAL)`.
+- [x] **3.6** Port `OrganizationSelector` (64 lines) — super-admin org switcher in the chrome.
+- [x] **3.7** Port `QuickOrganizationPickerModal` (102 lines) — becomes a bottom sheet on mobile, dialog on desktop.
+- [x] **3.8** Build the non-super-admin variant of the org display (`MainLayout.tsx:36`): a static org name label, no picker.
+- [x] **3.9** Port the Profile nav link and Logout action.
+- [x] **3.10** Replace the Bootstrap `#f8f9fa` page background and `#3174ad` primary with a Flutter `ColorScheme`, so screens land close to the current visual weight. Record chosen hex values in a comment for traceability.
+- [x] **3.11** Replace icons. `react-icons/fa` gives ~6 glyphs; **the `bi bi-*` Bootstrap Icons were never installed** and currently render as empty `<i>` tags — do not attempt parity, use Material icons throughout.
+- [x] **3.12** Confirm the shell renders at all three breakpoints **in a web browser**. Screenshotted at 500 / 900 / 1400 px against the live backend, signed in as a seeded user. **This pass found a layout bug every widget test had missed** — see the 2026-10-13 progress entry.
+- [x] **3.13** Widget tests for the responsive chrome: nav items appear and disappear at each breakpoint, and `NavigationDrawer` / `NavigationRail` / sidebar render at mobile / tablet / desktop. Pin sizes rather than relying on a real browser — 3.12's real-browser pass stays as the manual check, and it earns its place: it caught a positional bug that no presence assertion here could see.
+- [ ] 3.14 fix organization display in side bar -- currently only a chevron is visible.  This seems to be because the foreground and background colors are very close to each other.
+- [ ] 3.15 double check against react: this has a vertical menu side bar.  Didn't react have an across-the-top bar?  It's not necessarily wrong, just different.  On mobile we'll want this to collapse to a hamburger and be a flyout I suspect.
 
 ---
 
 ## Phase 4 — CRUD list screens
 
 Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign, not port.** Tables become responsive lists.
-
-- [ ] **3.13** Widget tests for the responsive chrome: nav items appear and disappear at each breakpoint, and `NavigationDrawer` / `NavigationRail` / sidebar render at mobile / tablet / desktop. Pin sizes rather than relying on a real browser — the 3.12 real-browser pass stays as the manual check.
 
 - [ ] **4.1** Build a shared `ResponsiveListView` replacing `TableView.tsx`: data-table layout at desktop, card layout at mobile.
 - [ ] **4.2** Reproduce hover-revealed row actions. `TableView.tsx:17-18` exposes `onRowMouseEnter`/`onRowMouseLeave` purely so buttons appear on hover, across 6 call sites. On mobile use always-visible trailing actions or a long-press menu; **web may keep hover** behind a `kIsWeb` branch.
@@ -233,14 +234,13 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [ ] **4.9** Port pagination controls against offset/limit. Per-endpoint default limits vary (10 or 1000) — verify each.
 - [ ] **4.10** Port the search-debounce pattern. The React lists use plain `useState`; pick a deliberate debounce and note the interval.
 - [ ] **4.11** Verify sort controls against each endpoint. **`sortBy` is silently ignored on `/api/events`**, and `GET /api/events` defaults `sortOrder` to `asc`.
+- [ ] **4.12** Widget tests for `ResponsiveListView`: table layout at desktop, card layout at mobile, and the truncated `events` list on an inventory row (task 4.5's client-side cap).
 
 ---
 
 ## Phase 5 — Forms (non-event)
 
 ~640 lines across seven forms, plus `CreateInvitationForm` (182). ~70 raw HTML inputs become explicit `TextFormField`s.
-
-- [ ] **4.12** Widget tests for `ResponsiveListView`: table layout at desktop, card layout at mobile, and the truncated `events` list on an inventory row (task 4.5's client-side cap).
 
 - [ ] **5.1** Establish a form convention: `TextFormField` + `InputDecoration` + `Form` `GlobalKey`, validators replacing HTML `required`. **No form library** — the React code has none, so this is a free choice.
 - [ ] **5.2** Port `CreateCustomerForm` (146 lines) and `EditCustomerForm` (139 lines).
@@ -254,14 +254,13 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [ ] **5.10** **Fix the invite-link bug surface.** `UserList.tsx:157` and `CreateInvitationForm.tsx:74` build `${window.location.origin}/register?token=`. Derive the origin from `Uri.base` — no native path needed, since invitees receive a link they open in a browser. Ensure the link is not token-dependent on any in-app state.
 - [ ] **5.11** Two-column `col-lg-*` layouts become single-column scrolls on mobile; modals become bottom sheets. Apply to all seven forms.
 - [ ] **5.12** Verify `EditUserForm` gating. `App.tsx:63` gates it on `MANAGE_USERS_GLOBAL` only, while `App.tsx:62` gates create on either global or org — this asymmetry is likely a bug; confirm intent before porting.
+- [ ] **5.13** Widget tests for the form convention: required-field validators reject empty input, and the invite link built in 5.10 is derived from `Uri.base` and carries the token as a query param. The forms are the largest surface in the port and the least covered, so start with one representative form rather than all seven.
 
 ---
 
 ## Phase 6 — Event forms (highest risk)
 
 `CreateEventForm.tsx` (518) + `EditEventForm.tsx` (442) = **960 lines**, the densest code in the app. Budget 5–7 days.
-
-- [ ] **5.13** Widget tests for the form convention: required-field validators reject empty input, and the invite link built in 5.10 is derived from `Uri.base` and carries the token as a query param. The forms are the largest surface in the port and the least covered, so start with one representative form rather than all seven.
 
 - [ ] **6.1** Inventory every field and every conditional in both forms before writing code. Produce a written field-by-field map in the PR description.
 - [ ] **6.2** Port the ~20 `useState` fields per form to Riverpod form state, or `TextEditingController`s. **Decide deliberately** — there is no existing abstraction to preserve.
@@ -289,24 +288,22 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [ ] **7.8** Replace `moment` with `intl` + `DateTime`. The existing parsing is fragile — `new Date(event.date + 'T' + event.time)` at `EventCalendar.tsx:230` — so use explicit `DateTime` construction.
 - [ ] **7.9** Handle timezone-naive timestamps. The API returns `"YYYY-MM-DD"` / `"HH:MM:SS"` strings with **no timezone**. Do not silently re-interpret as UTC; keep naive local semantics to match current behavior, and note this as a known limitation.
 - [ ] **7.10** Route `/events/rsvps/requested` into the UI. It is **undocumented in `API.md`** but real (`EventRoutes.kt:118`). Confirm whether the React app uses it — if not, decide whether to expose it.
+- [ ] **7.11** Tests for the calendar's date handling, which is where the fragile logic lives: naive-local date construction (7.8/7.9), and the month grid rendering the right events on the right days. Golden tests for the grid itself are 12.5 — here it is the placement logic, not the pixels.
 
 ---
 
 ## Phase 8 — Reports
-
-- [ ] **7.11** Tests for the calendar's date handling, which is where the fragile logic lives: naive-local date construction (7.8/7.9), and the month grid rendering the right events on the right days. Golden tests for the grid itself are 12.5 — here it is the placement logic, not the pixels.
 
 - [ ] **8.1** Port `ReportList` (133 lines).
 - [ ] **8.2** Port `POST /api/reports/staff_hours` (date-range form → `List<StaffHoursReportResponse>`).
 - [ ] **8.3** Port `GET /api/reports/inventory_usage` (→ `List<InventoryUsageReportResponse>`).
 - [ ] **8.4** **Client-side org filtering is required.** `ReportService` receives no `AuthContext`, so `_GLOBAL`/org scoping is not applied server-side. Decide whether to filter in the UI or fix the backend — flagged, not silently replicated.
 - [ ] **8.5** Both report endpoints return **unpaginated** lists over the whole org. Virtualize the tables.
+- [ ] **8.6** Tests for the client-side org filtering added in 8.4 — the server applies no scoping, so this logic is the only thing preventing one org's staff hours showing in another's report. That makes it worth a test even though the surrounding UI is simple.
 
 ---
 
 ## Phase 9 — Responsive, accessibility, polish
-
-- [ ] **8.6** Tests for the client-side org filtering added in 8.4 — the server applies no scoping, so this logic is the only thing preventing one org's staff hours showing in another's report. That makes it worth a test even though the surrounding UI is simple.
 
 - [ ] **9.1** Audit all 25 former Bootstrap `row`/`col` sites; confirm each degrades to single-column on mobile.
 - [ ] **9.2** Replace fixed pixel sizing that was tuned for wide viewports: calendar `height: 800` (`EventCalendar.tsx:297`), search input `width: '250px'` (line 248), list column `maxWidth: '150px'` (`UserList.tsx:179`), modal `maxHeight: '300px'` (`QuickOrganizationPickerModal.tsx:72`).
@@ -318,6 +315,7 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [ ] **9.8** Add an app-level error boundary surfacing `ApiException.details`. **Note:** `Application.kt:55-75` returns `cause.stackTraceToString()` in `error.details` on 500s, so server internals reach the client. Consider rendering `details` only behind a debug flag.
 - [ ] **9.9** Fix the known 500 stack-trace leak server-side, or suppress `details` in the UI.
 - [ ] **9.10** Full pass at all three breakpoints, plus mobile browser widths and touch input.
+- [ ] **9.11** Tests for the error boundary from 9.8: an `ApiRequestException` surfaces its message, and `details` is hidden unless the debug flag is on. Also assert cancellation (9.6) does not surface an error to the user.
 
 ---
 
@@ -325,8 +323,7 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 
 Once the Flutter web app is verified working locally against the real backend. The trigger for deleting `frontend/` is internal confidence, not a deployment.
 
-- [ ] **9.11** Tests for the error boundary from 9.8: an `ApiRequestException` surfaces its message, and `details` is hidden unless the debug flag is on. Also assert cancellation (9.6) does not surface an error to the user.
-
+- [ ] **10.0** Strip out comments referencing conversion tasks or filename/linenumber combos.  If dart has javadoc-like capabilities for linking use those, otherwise use File.member type references.
 - [ ] **10.1** Default `WEB_SOURCE` in `Dockerfile` to `flutter`; keep the React stage for one release cycle, then remove.
 - [ ] **10.2** Verify the Flutter build end-to-end against the real backend via `docker compose up --build`: login, org switch, and one full create/read/update/delete pass per resource.
 - [ ] **10.3** **Delete `frontend/`.** The last commit touching it is the deletion commit.
@@ -495,12 +492,37 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   **Already covered elsewhere, do not duplicate:** `Dockerfile:32-47` (the `frontend-react` builder stage, including its `COPY frontend/src` and `COPY frontend/public` lines) disappears with 10.1. Those are functional build instructions, not comments, so they are not this task's concern. `FLUTTER-CONVERT.md` itself is *expected* to reference `frontend/` paths throughout — it is a historical record and keeps them deliberately; exclude it.
 
+- [x] **10.18** **Make the seeded test users loggable in.** Found while trying to discharge task 3.12's real-browser check.
+
+  `TestDataProvider.kt` writes `it[passwordHash] = "password"` into `users.password` — a plaintext string in a column that `AuthServiceImpl.loginUser` passes straight to `BCrypt.checkpw`. That call **throws** `IllegalArgumentException: Invalid salt version` on the first character, and nothing catches it, so the request escapes to the generic 500 handler. Every seeded account (`alice`, `bob`, `charlie`, `diana`) answers:
+
+  ```
+  {"success":false,"data":{},"error":{"message":"Internal server error",
+   "details":"java.lang.IllegalArgumentException: Invalid salt version
+    at org.mindrot.jbcrypt.BCrypt.hashpw(BCrypt.java:659) ..."}}
+  ```
+
+  Not a 401, not a 400 — a 500 carrying the stack trace, which is task 9.9's leak arriving through a different door. Two things worth fixing, and the first is the one that matters:
+
+  1. **Seed a real hash.** `BCrypt.hashpw("password", BCrypt.gensalt())` at seed time. `PasswordHasher` already exists in `core` and `UserDao.createUser` already used it — only the seed was bypassing it.
+  2. **Do not let a malformed hash become a 500.** `checkpw` throwing `IllegalArgumentException` should be a failed login, not an unhandled error. A stored value that is not a hash is corrupt data; the response should say "these credentials are wrong" (401) and log the corruption, not serialize a stack trace to the caller.
+
+  Verify after: `POST /api/users/login` with `alice` / `password` returns a token and a 200, and a deliberately corrupted `users.password` returns 401 rather than 500. Note that jbcrypt rejects `$2y$` as well as plaintext (`Invalid salt revision`), so anything producing the hash — `htpasswd` included — must be `$2a$`.
+
+  **Done — see the 2026-10-13 progress entry.** Two things beyond the above surfaced while fixing it: `checkpw` throws `StringIndexOutOfBoundsException` for short inputs as well as `IllegalArgumentException` for `$2y$`, and `UserDao.createUser` was hashing the password twice.
+
 ---
 
 ## Phase 11 — Native packaging (deferred, not required for cutover)
 
 Additive: the web app keeps working unchanged. Only do this once web is stable and signing is arranged.
 
+- [ ] **11.0** Confirm things run on a **simulator or physical device**. The device half of what 3.12 used to be. **Not started — no simulator or device is available on this machine.** Native platforms do not exist yet either; they arrive with Phase 11's `flutter create --platforms=android,ios .`, so this is really a **Phase 11 prerequisite** and should be run against that build rather than scheduled ahead of it. What to check, beyond "it renders":
+  - **Touch.** Tap a rail destination, tap the hamburger, swipe the drawer closed, pick an organization in the sheet, tap Logout. The browser pass was pointer-driven at fixed widths and exercised none of this. Task 9.4 covers target *sizes*; this covers the gestures.
+  - **Safe areas.** A notch or a home indicator is the most likely thing to be wrong. `AppBar` handles the top inset itself and `NavigationRail` wraps itself in a `SafeArea`, but the extended rail's trailing group and the drawer's bottom items are hand-placed — check the last item clears the home indicator.
+  - **Rotation.** A device is the only place the breakpoints change *without* a window resize. Confirm a phone in landscape crosses into the tablet layout and the rail does not jump on the transition.
+  - **The organization sheet with a keyboard.** It uses `MediaQuery.viewInsetsOf` under `isScrollControlled`, and the search field is `autofocus` — so the keyboard is up the moment it opens. That is the case least likely to have been thought about and the first thing likely to look wrong.
+  - **Session persistence.** `flutter_secure_storage` behaves differently off-localhost, and `TokenStore.write` propagates failure deliberately, so a device build on plain HTTP is *expected* to fail loudly at login. That is task 1.13's known limitation rather than a new defect — confirm it fails the same way and not differently.
 - [ ] **11.1** Add iOS and Android platforms to `flutter_app/` (`flutter create --platforms=android,ios .`). Set `applicationId` to `alphainterplanetary.teven` in `android/app/build.gradle.kts` and the matching bundle identifier in the iOS project, matching the web manifest `id` from task 0.7.
 - [ ] **11.2** Set up the API base URL for native via `--dart-define=API_BASE_URL=<host>`, since relative URLs cannot work off-browser. Revisit task 0.6. A reachable host value is a prerequisite for native work and is out of this plan's control.
 - [ ] **11.3** Revisit token storage for native. `flutter_secure_storage` works on both platforms already, so this may be a no-op — verify rather than assume.
@@ -553,6 +575,7 @@ Documented here so task 10.6 can address them. **Do not fix these during the por
 | **All 5 user FKs are `ON DELETE RESTRICT`** | Queried from the running dev DB. No cascade anywhere, so user deletion fails outright | **10.12** (add CASCADE) |
 | **Omitting `limit` returns the entire table** | Every DAO does `limit?.let { query.limit(it) }` (`CustomerDao.kt:73`, `EventDao.kt:180`, +3). The `limit: 0` in the response is cosmetic, **not** a real cap | **10.15** |
 | **18 of 33 server permissions are unreachable from the client** | `core/security/Permission.kt` defines 33; `src/types/permissions.ts` declares only 15. The `*_GLOBAL` variants beyond the two org ones, plus `MANAGE_ROLES_*`, `ASSIGN_*`, `CAN_ASSIGN_*`, `MANAGE_USERS_SELF` | **10.16** |
+| **Seeded users cannot log in — `TestDataProvider` writes a plaintext password** | `TestDataProvider.kt` set `it[passwordHash] = "password"` and the column is `users.password`. `BCrypt.checkpw("password", "password")` throws `IllegalArgumentException: Invalid salt version`, which `AuthServiceImpl.loginUser` did not catch — so **every seeded login answered HTTP 500 with a stack trace**, not 401. Found during task 3.12's verification attempt; the seeded `alice`/`bob`/`charlie`/`diana` accounts were unreachable until the seed stored a real hash | **10.18** ✅ |
 ---
 
 ## Progress log
@@ -892,4 +915,296 @@ Consequence: Chrome now runs **38 of 48** tests instead of 22, and the 2 skipped
 
 `prefer_const_constructors` fired on every async `setUp`, since the closure cannot be const even when its body could. Rather than exclude `test/**` from the analyzer (which would hide real errors), the fixtures are `const`. `analysis_options.yaml` is unchanged.
 
-**Test tasks added to the phases that had none:** 3.13 (responsive chrome), 4.12 (`ResponsiveListView`), 5.13 (form validators, invite link), 7.11 (calendar date placement), 8.6 (client-side org filtering — worth testing because the server applies no scoping), 9.11 (error boundary). Phases 3, 4, 5, 7, 8, and 9 had no test task at all before this.
+**Test tasks added to the phases that had none:** 3.14 (responsive chrome), 4.12 (`ResponsiveListView`), 5.13 (form validators, invite link), 7.11 (calendar date placement), 8.6 (client-side org filtering — worth testing because the server applies no scoping), 9.11 (error boundary). Phases 3, 4, 5, 7, 8, and 9 had no test task at all before this.
+
+### 2026-10-13 — Phase 3, tasks 3.1–3.11 and 3.14 (responsive shell)
+
+**Done.** `MainLayout` as a `go_router` `ShellRoute`, three breakpoints, the
+permission-gated nav, the organization control, and 16 widget tests. 111 tests
+pass on the VM. **The browser half of 3.12 was not done at this point** — see
+the end of this entry for why it was harder than it looked. It was completed
+later the same day, once 10.18 made the seeded accounts usable; see the two
+entries after this one.
+
+**One commit for eleven tasks.** They are not separable in any useful way: the
+chrome cannot render without the breakpoints, cannot gate its items without the
+permission list, and the organization control is part of the chrome the nav
+lives in. Splitting them would produce intermediate commits where the shell is
+structurally present and visually wrong.
+
+**Task 3.1 was already done in Phase 2.** The `loading` → "Loading..." gate is
+the `_AuthGate` in `main.dart` plus the redirect's loading short-circuit, both
+written for task 2.12's tests. Nothing was added for it; the checkbox is ticked
+because the requirement is met, not because work happened. Worth recording,
+because a reader counting eleven tasks against a Phase 2 commit would be wrong.
+
+**The breakpoint numbers are this app's, not Material's.** Material 3 ships
+`Breakpoints` at 600/840; those are a *second* source of truth for the same
+decision, so `AppBreakpoints` is a plain function of a `double` and the context
+extension reads `MediaQuery.sizeOf` rather than Flutter's enum. A pure function
+is also the only version that can be unit-tested — `responsive_chrome_test.dart`
+asserts the three thresholds directly, because a wrong number would still
+produce a passing widget test at every width.
+
+`1100` rather than a rounder number because the extended rail plus a content
+column stops being readable below it; `700` because that is where a list of
+six labelled items stops fitting as icons. Neither is derived from the React
+app, which had exactly one breakpoint (992) and collapsed into a hamburger.
+
+**Three layouts, one nav list.** The six `<li>` blocks at
+`MainLayout.tsx:22-27` each carried a label, a path and a permission test.
+Collecting them into `kPrimaryNavDestinations` is what lets drawer, rail and
+extended rail all render from one filtered list instead of three copies of the
+permission logic. OR-semantics come free from `Permissions.hasAny`, which
+Phase 1 already had.
+
+**Longest-prefix, not equality — a real bug, caught before it shipped.** The
+rail highlights a destination by matching the current path. `/events` is a
+prefix of `/events/list` and of `/events/42`, so an equality match leaves the
+rail with nothing selected on every detail screen. It is pinned by a test
+asserting `/events/42` selects index 0.
+
+**`NavigationRail`'s trailing slot gets *loose* width constraints.** The rail
+lays its internal `Column` out with `CrossAxisAlignment.center`, so a child
+that wants to stretch is handed `maxWidth: Infinity` and throws "BoxConstraints
+forces an infinite width" at layout. The fix is to set `minWidth`/`minExtendedWidth`
+on the rail **and** reuse the same two constants to bound the trailing group —
+deriving the width from the theme instead would make a theme change an
+infinite-width crash rather than a narrower rail.
+
+**Task 3.6 is a redesign at two of the three sizes, and the reason is the React
+original was broken there.** `OrganizationSelector.tsx` is a `<select>` in the
+navbar, and the navbar is *inside* the collapse — so below Bootstrap's 992px the
+super-admin's org switcher was unreachable from a phone. `QuickOrganizationPickerModal`
+was never wired to it at all; only the event forms used that. The port keeps the
+`<select>` at desktop (a real dropdown) and gives tablet and mobile the picker
+as a bottom sheet. Same state, same persistence, same "All Organizations" — a
+control that only exists at the size where the original was already broken is
+not worth preserving as broken.
+
+**One place the port refuses to reproduce a React bug.** `OrganizationSelector`
+sets `<select value={selected.organizationId}>` with options built in a
+`useEffect`. On the first render the value names an option that does not exist.
+A browser quietly shows the first option; `DropdownButton` **asserts**, and the
+assertion takes the screen down. `_including` appends the current selection to
+the list when it is absent, so the control always has an item for whatever it
+says is selected. Found by a test written for a different reason — the
+"remembers a selection across a reload" case seeds the store and then fails,
+which is how it surfaced.
+
+**Tablet counts as desktop for the picker.** The plan says "bottom sheet on
+mobile, dialog on desktop" and leaves tablet unsaid. A 700px window has room for
+the centred dialog, and the sheet's drag-to-dismiss would fight the rail's own
+scrolling. Documented at `showOrganizationPicker`.
+
+**Task 3.10 corrects the record on `#3174ad`.** The plan calls it "the primary".
+It is not: `frontend/src/index.css` sets only the body background, so
+`btn-primary` really did render Bootstrap's stock `#0d6efd`, and `#3174ad` is
+the colour the app uses *explicitly*, for event pills at
+`EventCalendar.tsx:177`. The plan's wording was adopted anyway — a single
+coherent accent beats a palette of two nearly identical blues, and Phase 0's
+theme file had already declared it — but the doc comment now says which is
+which rather than asserting something false. Every hex in the new `ColorScheme`
+carries its provenance: `$dark` for `navbar-dark bg-dark`, `$secondary`,
+`$danger`, `$gray-500`, `$gray-200`.
+
+**The chrome uses Material icons throughout (3.11), with no attempt at parity.**
+The React `bi bi-*` tags render as empty `<i>` elements — there is no glyph to
+match. Worth noting for later: there is also **no logo asset in the navbar at
+all**, just the text "Teven", so the collapsed rail's icon has no counterpart
+either.
+
+**Two test-harness changes, both forced by the shell.** `contextAdapter` now
+answers `/api/organizations`, because the super-admin branch of the org
+selector builds a switcher that fetches immediately — without it the stub
+returns 401, the client raises `UnauthorizedException`, and the single-flight
+redirect signs the test out mid-assertion. And `pumpApp` gained `width` (to pin
+the surface) and `prefs` (to seed `selectedOrganization`); it also resolves the
+organization controller inside `runAsync` alongside the auth controller, for
+the same reason the Phase 2 log gives — real async hops do not advance under a
+widget test's fake clock.
+
+**Chrome: no new failures, and one honest note.** All 16 new tests pass on both
+VM and Chrome. The Chrome run still reports **9 pre-existing failures**, all in
+`accept_invitation_screen_test.dart`, present before this change (verified by
+stashing and re-running). Task 12.6's claim that the suite runs on both
+platforms is true for the VM and partly untrue for web widget tests; those nine
+are unowned and worth a look before 12.6 is ticked.
+
+**The browser half of 3.12 could not be discharged at the time, and the reason
+is worth recording.** A real-browser check needs a signed-in session, and the seeded accounts cannot
+log in: `TestDataProvider.kt` writes `passwordHash = "password"` — plaintext —
+into a column that goes straight to `BCrypt.checkpw`, which **throws** on the
+first character. Nothing catches it, so every seeded login is a **500 with a
+stack trace**, not a 401. Found by hitting it, given task **10.18**.
+
+For this entry the dev database was patched by hand with a real `$2a$` hash, the
+screenshot taken, and the database then **reverted to what it was found as** —
+the plaintext value. The defect was real and is now fixed; see the entry below.
+
+What *was* verified in a real browser at this point: the app builds, boots from
+Ktor's `staticResources`, and the login screen renders under the new
+`ColorScheme` against `#f8f9fa` with a `#3174ad` primary.
+
+**Files added:** `lib/core/layout/breakpoints.dart`,
+`lib/widgets/app_shell.dart`, `lib/widgets/nav_destinations.dart`,
+`lib/widgets/organization_selector.dart`, `lib/widgets/organization_picker.dart`,
+`lib/providers/organization_list.dart`, `test/responsive_chrome_test.dart`.
+
+**No new packages.** The chrome is `NavigationRail`, `NavigationDrawer`,
+`Drawer` and `showModalBottomSheet` — all in the framework. Task 4.2 will be the
+first to argue for one, and it should argue on its own merits.
+
+### 2026-10-13 — Task 10.18 (seeded users could not log in), unblocking 3.12
+
+**Done.** Two lines of seed data, one boundary, one adjacent defect, seven
+tests. All four seeded accounts now authenticate; a corrupted `users.password`
+returns 401 instead of a 500 with a stack trace.
+
+**The defect, confirmed rather than inferred.** `TestDataProvider.kt` wrote
+`it[passwordHash] = "password"` — the literal string — into `users.password`,
+which `AuthServiceImpl.loginUser` handed straight to `BCrypt.checkpw`. Observed
+against the running backend:
+
+```
+{"success":false,"data":{},"error":{"message":"Internal server error",
+ "details":"java.lang.IllegalArgumentException: Invalid salt version
+  at org.mindrot.jbcrypt.BCrypt.hashpw(BCrypt.java:659)
+  at org.mindrot.jbcrypt.BCrypt.checkpw(BCrypt.java:764)
+  at alphainterplanetary.teven.auth.AuthServiceImpl.loginUser(...)"}}
+```
+
+A 500 carrying `cause.stackTraceToString()`, which is **task 9.9's stack-trace
+leak arriving through a second door** — a row of seed data reaching the client
+as an exception, with nothing about the request being unusual to cause it.
+
+**`PasswordHasher` already existed.** `core/security/PasswordHasher.kt` wraps
+jbcrypt, and `UserDao.createUser` already used it for both create and update.
+Only the seed was bypassing it, and only `AuthServiceImpl` called `BCrypt`
+directly rather than through the wrapper. So the fix was smaller than the task
+assumed: point the seed at the helper that was already there, and route the
+login through it too. No new abstraction, no new dependency.
+
+**`AuthServiceImpl` no longer imports jbcrypt, and neither does its
+`build.gradle.kts`.** Removing that one call removed the module's only reason to
+depend on a hashing library directly — which is the point of having a wrapper.
+`PasswordHasher` is now the single place that knows jbcrypt exists.
+
+**The tests found a second exception type, which is the interesting part.** The
+first version of `checkPassword` caught `IllegalArgumentException`, and two of
+the seven tests failed against the live library:
+
+```
+PasswordHasherTest > a stored value that is not a hash at all is rejected FAILED
+    java.lang.StringIndexOutOfBoundsException at PasswordHasherTest.kt:64
+```
+
+`checkpw` validates its salt by **indexing the string without bounds checks**, so
+an empty or short stored value raises `StringIndexOutOfBoundsException` while a
+`$2y$` hash raises `IllegalArgumentException` — two types from one call site.
+Catching the first would have left every empty `users.password` row still
+returning 500. The method now catches `RuntimeException`, with the reasoning
+written down: enumerating a library's parse-failure modes is how this happens,
+and every one of them means the same thing, which is that the row is not a hash.
+
+**The `$2y$` case is not hypothetical.** It is what `htpasswd`, PHP's
+`password_hash` and most tooling emit, and it is what I personally used to patch
+the database while diagnosing this — which produced a *second* 500, with a
+different message, before I understood it. jbcrypt only accepts the `$2a$`
+revision. There is a test for it and a comment saying why.
+
+**One more defect found in the same family, fixed here.** `UserDao.createUser`
+called `PasswordHasher.hashPassword` **twice** — once for the row, once for the
+returned `User`. The object handed back carried a second hash that was never
+stored: a different salt, the same password, and a value that verifies against
+nothing. Harmless today because login re-reads the row, and a landmine the first
+time something checks a candidate password against that object's `passwordHash`.
+Now hashed once and shared. The local is named `hashedPassword` rather than
+`passwordHash` for a non-obvious reason: inside `Users.insert { it[passwordHash]
+= ... }` the bare name resolves to the local instead of the column, and Exposed
+fails to compile rather than writing somewhere else quietly. That cost a build
+cycle to find, so it is commented at the declaration.
+
+**Verified against the running backend, not against the tests.** `./teven up`,
+then:
+
+| Case | Before | After |
+|---|---|---|
+| `alice` / `bob` / `charlie` / `diana`, correct password | **500 + stack trace** | **200 + token** |
+| wrong password | 401 | 401 (unchanged) |
+| `users.password` = `'password'` (plaintext) | 500 + stack trace | **401**, no `details` |
+| `users.password` = `''` (empty) | 500 + stack trace | **401**, no `details` |
+| `users.password` = a `$2y$` hash | 500 + stack trace | **401**, no `details` |
+| `users.password` = a truncated hash | 500 + stack trace | **401**, no `details** |
+
+All four corrupted rows log `WARN ... Stored password hash is not a valid bcrypt
+hash` from the server, so the corruption is visible to an operator without being
+visible to the caller. After a restart the seed recreates all four accounts with
+`$2a$10$` hashes and every one of them authenticates.
+
+**The four seeded accounts share one hash, deliberately.** bcrypt costs ~100ms
+at cost 10, and hashing four times adds ~300ms to every dev boot. Unique salts
+only matter when the password is real, and `PasswordHasher.checkPassword` is now
+what protects the login path — not salt uniqueness in the seed. Recorded here
+because a reviewer counting `count(distinct password)` would otherwise flag it,
+and it would be correct to.
+
+---
+
+### 2026-10-13 — Task 3.12 (web pass), and the layout bug it found
+
+**3.12 is done. 3.13 is not.** The shell is screenshotted at all three
+breakpoints in a real browser, signed in, against the live backend.
+
+The original 3.12 was one task covering web *and* a device. It is now two: 3.12
+(web, done) and 3.13 (device, not started). Splitting them is not bookkeeping —
+there is no simulator or device on this machine, and no native platform either
+until Phase 11 adds one, so the device half is a *Phase 11 prerequisite* rather
+than work that belongs in Phase 3. A single box covering both could only be
+honestly ticked as half-done, which is the one state worth avoiding: it reads as
+progress while hiding that a whole category of verification has never run.
+
+**How the session was obtained, since Flutter paints to a canvas and a headless
+harness cannot type a username.** `flutter_secure_storage_web` 2.1.1 is entirely
+reproducible from the page's own JS: the key is a raw AES-GCM-256 blob in
+`localStorage["FlutterSecureStorage"]`, and the value is
+`base64(iv).base64(ciphertext)` in
+`localStorage["FlutterSecureStorage.teven-auth-token"]`. So the verification
+served a **copy** of `build/web` with a small injected `<script>` that performs
+that encryption with `crypto.subtle` before `flutter_bootstrap.js` runs. No app
+code changed, nothing in the repo was touched, and the copy was thrown away
+afterwards.
+
+**One non-obvious trap, worth the whole exercise.** The first attempt served the
+app on `127.0.0.1:3000` and every screenshot came back as the login screen —
+the seeded token was seeded correctly and simply not being used, because
+`ApiConfig.baseUrl` is relative on web so every API call is cross-origin.
+`Application.kt`'s `installDevCors` allow-lists `localhost:$port` as **exact
+host strings**, and `127.0.0.1` is not `localhost`:
+
+```
+OPTIONS /api/users/context   Origin: http://127.0.0.1:3000   ->  403, no CORS headers
+OPTIONS /api/users/context   Origin: http://localhost:3000   ->  200, Allow-Origin set
+```
+
+The app's own failure mode for a CORS rejection is to look *signed out*
+(`AuthController.build` catches everything and returns null, per
+`AuthContext.tsx:47`), so the symptom is a silent redirect to `/login` with
+nothing in the UI or the console to connect it to an origin string. Serving on
+the `localhost` origin fixed it immediately.
+
+**The layout bug the widget tests could not see.** `NavigationRail` gives its
+`trailing` slot an `Expanded`, but the `MainAxisSize.min` column inside it still
+hugs the **top** of that space — so Profile and Logout rendered directly
+beneath the destinations instead of at the foot of the rail, which is where
+`MainLayout.tsx:29-41` puts them. Every one of the 16 chrome tests passed with
+the bug present, because they assert that a control *exists*, not where.
+
+Added a positional assertion, and confirmed it is one that bites: with the fix
+reverted it fails `Expected: greater than <800.0> Actual: <562.0>`, and passes
+with it. The general lesson is the one Phase 1's testing notes keep
+reaching — **assert the behaviour that is not visible from the call site**, and
+"the widget exists" is not that.
+
+**Still not verified:** touch input, the drawer opened by a real tap, and any
+device. All three are now task 3.13, and all three need hardware.

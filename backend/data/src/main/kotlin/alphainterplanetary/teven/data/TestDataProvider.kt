@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.data
 
+import alphainterplanetary.teven.core.security.PasswordHasher
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.event.EventInventory
 import alphainterplanetary.teven.data.event.Events
@@ -18,6 +19,14 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.LocalDate
+
+/**
+ * The plaintext password every seeded account is created with.
+ *
+ * Named so it appears once rather than four times, and so a reader looking for
+ * "how do I log in as alice" finds it in one place.
+ */
+const val SEEDED_PASSWORD = "password"
 
 suspend fun populateTestData() {
   dbQuery {
@@ -69,29 +78,44 @@ suspend fun populateTestData() {
     } get Organizations.id).value
 
     // Create Users
+    //
+    // The password goes through `PasswordHasher`, as `UserDao.createUser` does.
+    // It used to be written as the literal string `"password"`, which
+    // `BCrypt.checkpw` throws `IllegalArgumentException: Invalid salt version`
+    // on -- so every seeded account answered HTTP 500 with a stack trace
+    // instead of logging in. The accounts existed and looked right in the
+    // database; nothing could authenticate as any of them.
+    //
+    // Hashed once and shared rather than per user: bcrypt is deliberately slow
+    // (~100ms at cost 10), four hashes at boot is a third of a second of
+    // startup in dev, and the cost is only worthwhile if a seeded password is
+    // ever a real one. `PasswordHasher.checkPassword` is what protects the
+    // login path now, not the salt being unique.
+    val seededPasswordHash = PasswordHasher.hashPassword(SEEDED_PASSWORD)
+
     val user1Id = (Users.insert {
       it[username] = "alice"
       it[displayName] = "Alice"
       it[email] = "alice@greenvistas.com"
-      it[passwordHash] = "password"
+      it[passwordHash] = seededPasswordHash
     } get Users.id).value
     val user2Id = (Users.insert {
       it[username] = "bob"
       it[displayName] = "Bob"
       it[email] = "bob@greenvistas.com"
-      it[passwordHash] = "password"
+      it[passwordHash] = seededPasswordHash
     } get Users.id).value
     val user3Id = (Users.insert {
       it[username] = "charlie"
       it[displayName] = "Charlie"
       it[email] = "charlie@urbanbloom.com"
-      it[passwordHash] = "password"
+      it[passwordHash] = seededPasswordHash
     } get Users.id).value
     val user4Id = (Users.insert {
       it[username] = "diana"
       it[displayName] = "Diana"
       it[email] = "diana@urbanbloom.com"
-      it[passwordHash] = "password"
+      it[passwordHash] = seededPasswordHash
     } get Users.id).value
 
     // Associate Users with Organizations

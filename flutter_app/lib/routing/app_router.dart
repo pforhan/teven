@@ -9,6 +9,7 @@ import '../providers/auth_controller.dart';
 import '../screens/accept_invitation_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/placeholder_screen.dart';
+import '../widgets/app_shell.dart';
 
 /// Every path in the app, in one place.
 ///
@@ -165,15 +166,16 @@ GoRoute _guarded(
 /// precede `/events/:eventId`, or every "create" and "edit" link would render
 /// the details screen with `eventId` set to `"create"`.
 ///
-/// Screens land in Phases 3–8. Until then each one resolves to a
+/// The authenticated branch is a [ShellRoute] — task 3.1, replacing
+/// `MainLayout`. `/login` and `/register` sit outside it for the same reason
+/// they sit outside the `MainLayout` element in `App.tsx:40-66`: the React
+/// chrome assumes a session (it renders the user's organization and a Logout
+/// button), and an invitee following an emailed link has none.
+///
+/// Screens land in Phases 4–8. Until then each one resolves to a
 /// [PlaceholderScreen] carrying its route path, so the table is complete and
 /// testable rather than half-built.
 List<RouteBase> _routes(Ref ref) => [
-  GoRoute(
-    path: '/',
-    // `App.tsx:41`: the index route redirects to `/events`.
-    redirect: (context, state) => AppRoutes.events,
-  ),
   GoRoute(
     path: AppRoutes.login,
     builder: (context, state) => const LoginScreen(),
@@ -191,6 +193,37 @@ List<RouteBase> _routes(Ref ref) => [
       onReturnToApp: () => context.go(AppRoutes.events),
       onAccepted: () => context.go(AppRoutes.login),
     ),
+  ),
+
+  ShellRoute(
+    builder: (context, state, child) => AppShell(child: child),
+    routes: _shellRoutes(ref),
+  ),
+
+  // Catch-all, replacing `<Route path="*">` (`App.tsx:67`).
+  //
+  // Registered last so it cannot shadow a real path. The React original
+  // redirects to `/` when signed in and `/login` when not; `/` itself
+  // redirects to `/events`, so the signed-in destination is spelled out here
+  // rather than chained through a second redirect.
+  GoRoute(
+    path: '/:unmatched(.*)',
+    redirect: (context, state) => ref.read(userContextProvider) == null
+        ? AppRoutes.login
+        : AppRoutes.events,
+  ),
+];
+
+/// Everything under the shell: the authenticated branch of `App.tsx:43-64`.
+///
+/// Nested one level down so the declaration order within it stays adjacent,
+/// which is what makes the static-before-dynamic ordering above reviewable at
+/// a glance.
+List<RouteBase> _shellRoutes(Ref ref) => [
+  GoRoute(
+    path: '/',
+    // `App.tsx:41`: the index route redirects to `/events`.
+    redirect: (context, state) => AppRoutes.events,
   ),
 
   _guarded(ref, AppRoutes.events, [
@@ -300,18 +333,5 @@ List<RouteBase> _routes(Ref ref) => [
     AppRoutes.profile,
     const [],
     (_) => const PlaceholderScreen.route(AppRoutes.profile),
-  ),
-
-  // Catch-all, replacing `<Route path="*">` (`App.tsx:67`).
-  //
-  // Registered last so it cannot shadow a real path. The React original
-  // redirects to `/` when signed in and `/login` when not; `/` itself
-  // redirects to `/events`, so the signed-in destination is spelled out here
-  // rather than chained through a second redirect.
-  GoRoute(
-    path: '/:unmatched(.*)',
-    redirect: (context, state) => ref.read(userContextProvider) == null
-        ? AppRoutes.login
-        : AppRoutes.events,
   ),
 ];

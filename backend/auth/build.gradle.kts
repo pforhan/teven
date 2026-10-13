@@ -8,7 +8,8 @@ dependencies {
   implementation(project(":backend:data"))
   implementation(libs.ktor.server.auth.jvm)
   implementation(libs.ktor.server.auth.jwt.jvm)
-  implementation(libs.jbcrypt)
+  // No `jbcrypt`: password hashing goes through `core`'s `PasswordHasher`, which
+  // is the only place that needs to know which library is behind it.
   implementation(libs.ktor.server.core.jvm)
   implementation(libs.koin.ktor)
 }

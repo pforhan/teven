@@ -5,11 +5,11 @@ import com.auth0.jwt.algorithms.Algorithm
 import alphainterplanetary.teven.api.model.auth.LoginRequest
 import alphainterplanetary.teven.api.model.auth.LoginResponse
 import alphainterplanetary.teven.core.security.JwtConfig
+import alphainterplanetary.teven.core.security.PasswordHasher
 import alphainterplanetary.teven.core.service.AuthService
 import alphainterplanetary.teven.core.service.LoginResult
 import alphainterplanetary.teven.core.service.UserService
 import alphainterplanetary.teven.data.user.UserDao
-import org.mindrot.jbcrypt.BCrypt
 import java.util.Date
 
 import org.slf4j.LoggerFactory
@@ -28,7 +28,11 @@ class AuthServiceImpl(
       logger.warn("User not found: {}", loginRequest.username)
       return LoginResult.UserNotFound
     }
-    val passwordMatches = BCrypt.checkpw(loginRequest.password, user.passwordHash)
+    // Through `PasswordHasher`, not `BCrypt.checkpw` directly. A stored value
+    // that is not a bcrypt hash throws inside jBCrypt; the hasher turns that
+    // into `false`, so a corrupted row is an invalid password rather than the
+    // HTTP 500 with a stack trace it used to be.
+    val passwordMatches = PasswordHasher.checkPassword(loginRequest.password, user.passwordHash)
     if (!passwordMatches) {
       logger.warn("Password mismatch for user: {}", loginRequest.username)
       return LoginResult.InvalidPassword

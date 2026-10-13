@@ -33,11 +33,24 @@ class UserDao {
   }
 
   suspend fun createUser(registerRequest: CreateUserRequest): User = dbQuery {
+    // Hashed once and reused for both the row and the returned `User`. This
+    // used to call `hashPassword` twice, so the `User` handed back carried a
+    // *second* hash that was never stored — different salt, same password, and
+    // nothing that verifies against the database. Harmless today because login
+    // re-reads the row, and a landmine the first time something checks a
+    // candidate password against this object's `passwordHash`.
+    //
+    // Named `hashedPassword` rather than `passwordHash` on purpose: inside
+    // `Users.insert { it[passwordHash] = ... }` the bare name `passwordHash`
+    // resolves to this local rather than to the `Users.passwordHash` column,
+    // and Exposed fails to compile rather than writing somewhere else quietly.
+    val hashedPassword = PasswordHasher.hashPassword(registerRequest.password)
+
     val id = Users.insert {
       it[username] = registerRequest.username
       it[email] = registerRequest.email
       it[displayName] = registerRequest.displayName
-      it[passwordHash] = PasswordHasher.hashPassword(registerRequest.password)
+      it[passwordHash] = hashedPassword
     } get Users.id
 
     UserOrganizations.insert {
@@ -50,7 +63,7 @@ class UserDao {
       username = registerRequest.username,
       email = registerRequest.email,
       displayName = registerRequest.displayName,
-      passwordHash = PasswordHasher.hashPassword(registerRequest.password)
+      passwordHash = hashedPassword
     )
   }
 
