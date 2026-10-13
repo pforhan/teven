@@ -174,15 +174,36 @@ cmd_up_react() {
   fi
 }
 
+# The web dev server origin the backend's dev CORS allows. Kept here and in
+# Application.kt (devCorsPorts); if you change one, change the other.
+readonly DEV_WEB_PORT=3000
+
 cmd_dev() {
   local dry_run="$1"
   need flutter "Install the Flutter SDK first." || return 1
   printf '==> Running the Flutter app against http://localhost:2022\n'
-  printf '    The backend must already be running (./teven up-react).\n'
+  printf '    Serving on http://localhost:%s\n' "$DEV_WEB_PORT"
+  printf '    The backend must already be running with DEV_MODE=true (./teven up).\n'
+  printf '\n'
+  printf '    Hot reload is live. Press "q" to quit.\n'
+  printf '\n'
+  # API_BASE_URL is required here, not optional. The app uses relative URLs on
+  # web by default, which resolve against whatever origin served the page -- so
+  # without this, `flutter run` calls its own dev server for /api and gets a
+  # 404 instead of reaching the backend. The dev server picks a random port
+  # otherwise, which the backend's CORS allow-list cannot name, hence
+  # --web-port.
+  local -a dev_cmd=(
+    run
+    -d
+    chrome
+    --web-port="$DEV_WEB_PORT"
+    --dart-define=API_BASE_URL=http://localhost:2022
+  )
   if [ "$dry_run" -eq 1 ]; then
-    (cd "$FLUTTER_DIR" && show flutter run -d chrome)
+    (cd "$FLUTTER_DIR" && show flutter "${dev_cmd[@]}")
   else
-    (cd "$FLUTTER_DIR" && flutter run -d chrome)
+    (cd "$FLUTTER_DIR" && flutter "${dev_cmd[@]}")
   fi
 }
 
