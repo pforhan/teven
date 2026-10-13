@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/permissions.dart';
 import '../providers/auth_controller.dart';
+import '../screens/accept_invitation_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/placeholder_screen.dart';
 
@@ -179,9 +180,17 @@ List<RouteBase> _routes(Ref ref) => [
   ),
   GoRoute(
     path: AppRoutes.register,
-    // Task 2.10. It is reachable signed out, since an invitee has no session.
-    builder: (context, state) =>
-        const PlaceholderScreen.route(AppRoutes.register),
+    // Reachable signed out — an invitee has no session (`App.tsx:66`).
+    //
+    // The token is read off the URI rather than passed through a prop by
+    // something that already had it, because under the path strategy this *is*
+    // the URL the invitee was emailed: `/register?token=...`. Navigation
+    // callbacks come in from here so the screen never imports this file.
+    builder: (context, state) => AcceptInvitationScreen(
+      token: state.uri.queryParameters['token'],
+      onReturnToApp: () => context.go(AppRoutes.events),
+      onAccepted: () => context.go(AppRoutes.login),
+    ),
   ),
 
   _guarded(ref, AppRoutes.events, [

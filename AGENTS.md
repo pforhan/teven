@@ -8,6 +8,7 @@ This document outlines the conventions and best practices to follow when using L
 - **Follow Existing Conventions:** Before generating or modifying code, always analyze the surrounding files to understand and adopt the existing coding style, formatting, and architectural patterns.
 - **Modular Architecture:** The backend is designed with a modular structure. Ensure that new code is placed in the appropriate module (`app`, `core`, `data`, `service`, `api`, `auth`).
 - **2-Space Indentation:** Use 2 spaces for indentation in all code files.
+- **No whitespace inside link text:** A link's label must never begin or end with a space. The underline starts in blank space and the hit area extends past the word, which looks broken and is trivially avoidable. Put the separating space in the surrounding sentence, not in the link — `"clicking here."` is three spans (`"clicking "`, `"here"`, `"."`), not one. Applies to both Flutter `TextSpan`s and React/HTML `<a>`.
 - **Confirmation of changes:** Always run the build and tests to confirm any changes.
 - **Do not check in code:** Unless specifically instructed to do so, don't set up any git commands.
 

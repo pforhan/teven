@@ -152,15 +152,14 @@ Ports `src/api/*` (425 lines) and `src/types/*` (316 lines). Mechanical, but mus
 - [x] **2.7** Reproduce the unauthorized redirect target. `ProtectedRoute.tsx:27` sends users to `/events`; the catch-all `App.tsx:67` sends to `/` or `/login`.
 - [x] **2.8** Reproduce the branching behavior in `App.tsx:40-65`: when `userContext` is null **only** `/login` and `/register` exist. Otherwise the `/` subtree mounts.
 - [x] **2.9** Port the login screen (`src/Auth.tsx`, 71 lines). Note the current `width: '25rem'` card is desktop-tuned.
-- [ ] **2.10** Port `AcceptInvitationPage` (176 lines). Must read the `?token=` query param **on web via path strategy** — this is the reason for task 0.9.
-- [ ] **2.11** Port `AlreadyLoggedInError` (16 lines), rendered when `POST /api/invitations/accept` rejects a logged-in caller with 400.
+- [x] **2.10** Port `AcceptInvitationPage` (176 lines). Must read the `?token=` query param **on web via path strategy** — this is the reason for task 0.9.
+- [x] **2.11** Port `AlreadyLoggedInError` (16 lines), rendered when `POST /api/invitations/accept` rejects a logged-in caller with 400.
 - [x] **2.12** Tests: permission OR-semantics, both unauthenticated route branches, 401 single-flight redirect.
-
 ### Phase 2 progress log
 
-Tasks 2.1–2.9 and 2.12 are done. The route table is complete but every screen is a `PlaceholderScreen` naming its own path — each is replaced as its phase lands, and `grep PlaceholderScreen` is the checklist. `HomeScreen` (task 0.8) and `widget_test.dart` are gone, superseded by the router.
+Tasks 2.1–2.12 are done, which closes the phase. The route table is complete but every screen below Phase 2 is still a `PlaceholderScreen` naming its own path — each is replaced as its phase lands, and `grep PlaceholderScreen` is the checklist. `HomeScreen` (task 0.8) and `widget_test.dart` are gone, superseded by the router.
 
-**Three deliberate deviations from the React original**, each because go_router behaves differently rather than for tidiness:
+**Four deliberate deviations from the React original**, three of them because go_router behaves differently rather than for tidiness:
 
 1. **`router.refresh()` is deferred to a microtask.** Riverpod notifies a provider's own listeners *before* recomputing the providers that depend on it. Calling `refresh()` synchronously from the auth listener re-runs the redirects against the previous context, and `/login` silently stays put after a successful login. This one was found by the test suite, not by reading.
 
@@ -168,9 +167,33 @@ Tasks 2.1–2.9 and 2.12 are done. The route table is complete but every screen 
 
 3. **The 401 latch resets on login.** The React flag at `AuthContext.tsx:16` is never cleared, so a *second* 401 later in the session is silently ignored. Reproduced faithfully for the concurrent case; not reproduced for the sequential one.
 
+4. **The acceptance screen's loading box tracks the request, not the absence of an invitation** (task 2.10). `AcceptInvitationPage.tsx:103-104` picks the loading box on `!invitationDetails && !validationError`, and a URL with no `?token=` sets neither — it sets the ordinary `error` (`:46`). The original therefore renders *"Invitation token not found in URL."* stacked above an indefinite *"Loading invitation..."*, for a page that will never load anything. A boolean tracks the in-flight `validateInvitation` call instead, so the spinner appears only while a request is genuinely pending. Every other render state matches the React ternaries.
+
+**Two notes on task 2.10, both about the same screen.** The `alreadyLoggedIn` flag has two triggers in the original — the `userContext` effect at `:27-31` and the `"Cannot accept invitation while logged in."` catch at `:78-79` — but only the first is reproduced, because the second cannot fire without the first: `InvitationRoutes.kt:46` rejects on the strength of an `AuthContext` principal, which only exists for a token `userContextProvider` has already resolved. Deriving the flag rather than storing it also means it cannot go stale. Separately, the `response.success` check at `:71` is kept with its `else` unreachable: a service-level rejection is converted by `InvitationRoutes.kt:60-62` into an envelope-level failure that `ApiClient` raises as an exception, so a `success: false` DTO never reaches the client (the correction recorded at line ~699 applies).
+
+**Inline links are `TextSpan` + `TapGestureRecognizer`, not `TextButton`.** Applies to every link-shaped control in the port, not just `AlreadyLoggedInError`. A `TextButton` dropped into a sentence brings its own chrome — a circular hover/splash blob over the word — gets announced as a *button* rather than a link, and needs padding hacks that show up as visible gaps in the text. None of that is wrong for a button, but all of it is wrong for an `<a>`, and a recognizer span underlines for free. The cost is a smaller hit area (the word itself rather than a 48dp target), which is the same trade the React original made. An early version put the leading space *inside* the link span to enlarge that hit box; it was removed — the underline starting in blank space looks broken, and inflating a target by a few pixels is not worth it. See the whitespace rule in `AGENTS.md`. Note the link colour is `primary`, **not** `error`: an error-coloured link on the pink `errorContainer` is close in value to the dark red body text, so it makes the link *less* findable, not more. Bootstrap puts links inside `.alert-danger` in its ordinary link colour for exactly this reason.
+
+**One testing constraint worth carrying forward.** `AcceptInvitationScreen` talks to dio from `initState`, and its loading box carries a `CircularProgressIndicator`. Widget tests must therefore resolve each request inside `tester.runAsync` *before* calling `pumpAndSettle` — settling first hangs on dio's async machinery, and settling while the spinner is up times out. `_settleAsync` in `accept_invitation_screen_test.dart` exists to make that ordering the easy default.
+
 **Two things about the guard's plumbing worth knowing.** The 401 hook is wired in `apiClientProvider` rather than inside `ApiClient`, so the client stays free of routing and tests can override only the transport (`dioProvider`) — a test that built its own `ApiClient` would be asserting against wiring it wrote itself. And `TokenStore` now takes a three-method `TokenStorage` instead of `FlutterSecureStorage` directly: mirroring the plugin means re-declaring signatures with per-platform option objects against a version we do not control, and a plugin stand-in has to implement all eighteen methods.
 
-**Unverified:** `flutter run -d chrome` against the real backend, and whether the address bar follows in-app navigation under the path strategy. Both are still open from 0.9–0.11 and neither is answerable from a widget test.
+**Manually verified 2026-10-13.** The app runs and **login succeeds against the real backend**, in two configurations:
+
+- `flutter run` against the dev server. Needs `--dart-define=API_BASE_URL=...`, since `ApiConfig.baseUrl` is empty on web and relative URLs would otherwise resolve against Flutter's own dev-server origin. That this works at all also means CORS is configured correctly for that cross-origin case.
+- A build served from the Ktor backend's own static resources (`Routing.kt:56-58`). This is the more meaningful of the two: it exercises same-origin relative URLs and confirms the backend serves the Flutter output at `/`.
+
+That covers the boot sequence, the token round-trip, and the `/login` → `/events` redirect against a live server — all previously unverified.
+
+Task 2.10's screen has also been seen in the browser. `/register` renders the ported screen and shows the already-logged-in branch when signed in, which also confirms the derived-`userContext` approach for `InvitationRoutes.kt:46`; and `/register?token=nonsense` shows the server's verbatim `Invalid or expired invitation token` **stacked above** that box, matching the nesting at `AcceptInvitationPage.tsx:95-96`. The second is a real result rather than a formality — it means a non-root path carrying a query string survived the Ktor SPA fallback and reached `GET /api/invitations/validate` intact, which is the server-side half of the invite-link chain.
+
+**The address bar follows in-app navigation.** The last item open from 0.9 is now answered, and it is the question the headless harness could not settle. Observed manually in the browser, and every case matched the intended behaviour:
+
+- signed out, any path → `/login`
+- `/register` stays on `/register` **whether signed in or not** — `App.tsx:66` sits outside the auth branch, so a signed-in visitor gets `AlreadyLoggedInError` rather than a redirect
+- unknown paths while signed out → `/login`
+- after login, everything lands on `/events`, bad URLs included
+
+The last one is the load-bearing observation: login → `/events` is *in-app* navigation, and the path shows in the URL. The failure this was guarding against was quiet — a login landing on `/events` with the bar still reading `/`, which looks fine until a reload or a shared link. `usePathUrlStrategy` is doing its job, and the concern recorded at task 0.9 can be considered retired.
 
 ---
 
@@ -225,7 +248,7 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [ ] **5.4** Port `CreateOrganizationForm` (59 lines) and `EditOrganizationForm` (86 lines).
 - [ ] **5.5** Port `CreateUserForm` (168 lines) and `EditUserForm` (153 lines).
 - [ ] **5.6** Port `Profile` (78 lines) and `EditProfileForm` (87 lines) to `/profile`.
-- [ ] **5.7** Port `CreateInvitationForm` (182 lines).
+- [ ] **5.7** Port `CreateInvitationForm` (182 lines). **Also the first real end-to-end test of the invite link** (carried over from Phase 2): mint an invitation here, then open `${Uri.base.origin}/register?token=...` cold and accept it, confirming the account is created and the app redirects to `/login`. This is the one flow the whole `usePathUrlStrategy` decision exists to serve, and Phase 2 could not exercise it — there was no way to mint a token. The server side is already proven (`/register?token=nonsense` survives the Ktor SPA fallback and reaches `GET /api/invitations/validate` intact); what remains is the success path and the link generated by 5.10.
 - [ ] **5.8** Port `InventoryAssociationEditor` (143 lines) — shared component, largest in `common/`.
 - [ ] **5.9** Replace HTML input types with Flutter pickers: `type="date"` → `showDatePicker`, `type="time"` → `showTimePicker`, `type="number"` → numeric `TextFormField` with `FilteringTextInputFormatter`, `type="email"` → `RegExp` validator.
 - [ ] **5.10** **Fix the invite-link bug surface.** `UserList.tsx:157` and `CreateInvitationForm.tsx:74` build `${window.location.origin}/register?token=`. Derive the origin from `Uri.base` — no native path needed, since invitees receive a link they open in a browser. Ensure the link is not token-dependent on any in-app state.
