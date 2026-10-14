@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -312,6 +314,65 @@ void main() {
       expect(find.text('Acme'), findsNothing, reason: 'not the context org');
     });
 
+    testWidgets('every label in the rail is legible against its background', (
+      tester,
+    ) async {
+      // The regression test for 3.14. `DropdownButton` has three text paths —
+      // the closed state, the hint (which `hintColor` overrides), and menu
+      // items (which apply no `DefaultTextStyle` at all) — and all three
+      // defaulted to the light-container ink. On the `#212529` rail that made
+      // the organization switcher invisible except for its chevron, while every
+      // existing test still passed, because they assert that a control
+      // *exists*.
+      //
+      // Asserted as a contrast ratio rather than "is not the background
+      // colour", so a future palette change cannot pass by being merely
+      // different. WCAG 2.1 AA for normal text is 4.5:1.
+      // Both scopes: `VIEW_USERS_GLOBAL` makes this user a super-admin, which
+      // renders the switcher, and `VIEW_EVENTS_ORGANIZATION` keeps them on
+      // `/events`. Without the second they land on `/profile`, and an
+      // **extended rail renders a label only for the selected destination** —
+      // so "Events" would not be in the tree and the assertion would test
+      // nothing.
+      await pumpAt(
+        tester,
+        desktopWidth,
+        permissions: const [viewUsersGlobal, viewEvents],
+      );
+
+      final railElement = tester.element(find.byType(NavigationRail));
+      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+      final theme = Theme.of(railElement);
+      final background =
+          rail.backgroundColor ??
+          theme.navigationRailTheme.backgroundColor ??
+          theme.colorScheme.surface;
+
+      // The four kinds of control on the rail, deliberately: one from each ink
+      // mechanism — an explicit `Text` style (the org hint), a `TextButton`
+      // foreground, a rail label style, and an explicit item style.
+      for (final label in [
+        'All Organizations',
+        'Profile',
+        'Logout',
+        'Events',
+      ]) {
+        final finder = find.text(label);
+        // Asserted before reading, so a label that stops rendering names
+        // itself instead of surfacing as "No element".
+        expect(finder, findsOneWidget, reason: label);
+
+        final ink = _effectiveInk(tester, finder);
+
+        expect(ink, isNotNull, reason: '$label has no resolvable ink');
+        expect(
+          _contrastRatio(background, ink!),
+          greaterThanOrEqualTo(4.5),
+          reason: '$label is illegible on the rail',
+        );
+      }
+    });
+
     testWidgets('the switcher remembers a selection across a reload', (
       tester,
     ) async {
@@ -331,4 +392,37 @@ void main() {
       expect(find.text('Globex'), findsOneWidget);
     });
   });
+}
+
+/// The ink a [Text] actually paints with.
+///
+/// `Text.style` is null whenever the colour comes from an enclosing
+/// `DefaultTextStyle` — which is how `TextButton` and `NavigationRail` set
+/// theirs. Reading only `Text.style` would report "no colour" for most of the
+/// rail and quietly skip the assertion that matters.
+Color? _effectiveInk(WidgetTester tester, Finder finder) {
+  final text = tester.widget<Text>(finder);
+  if (text.style?.color != null) {
+    return text.style!.color;
+  }
+  return DefaultTextStyle.of(tester.element(finder)).style.color;
+}
+
+/// WCAG 2.1 contrast ratio between two opaque colours.
+double _contrastRatio(Color a, Color b) {
+  final la = _relativeLuminance(a);
+  final lb = _relativeLuminance(b);
+  final lighter = math.max(la, lb);
+  final darker = math.min(la, lb);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+double _relativeLuminance(Color color) {
+  double channel(double component) => component <= 0.03928
+      ? component / 12.92
+      : math.pow((component + 0.055) / 1.055, 2.4).toDouble();
+
+  return 0.2126 * channel(color.r) +
+      0.7152 * channel(color.g) +
+      0.0722 * channel(color.b);
 }

@@ -214,8 +214,22 @@ The React shell is desktop-only (`navbar-expand-lg`). This phase establishes the
 - [x] **3.11** Replace icons. `react-icons/fa` gives ~6 glyphs; **the `bi bi-*` Bootstrap Icons were never installed** and currently render as empty `<i>` tags — do not attempt parity, use Material icons throughout.
 - [x] **3.12** Confirm the shell renders at all three breakpoints **in a web browser**. Screenshotted at 500 / 900 / 1400 px against the live backend, signed in as a seeded user. **This pass found a layout bug every widget test had missed** — see the 2026-10-13 progress entry.
 - [x] **3.13** Widget tests for the responsive chrome: nav items appear and disappear at each breakpoint, and `NavigationDrawer` / `NavigationRail` / sidebar render at mobile / tablet / desktop. Pin sizes rather than relying on a real browser — 3.12's real-browser pass stays as the manual check, and it earns its place: it caught a positional bug that no presence assertion here could see.
-- [ ] 3.14 fix organization display in side bar -- currently only a chevron is visible.  This seems to be because the foreground and background colors are very close to each other.
-- [ ] 3.15 double check against react: this has a vertical menu side bar.  Didn't react have an across-the-top bar?  It's not necessarily wrong, just different.  On mobile we'll want this to collapse to a hamburger and be a flyout I suspect.
+- [x] **3.14** Fix the organization display in the sidebar — only a chevron was visible. **Fixed.** See the 2026-10-13 progress entry: `DropdownButton` has three text paths that do not agree, all three of them defaulted to the light-container ink, and the static org label had the identical bug. Pinned by a contrast-ratio test that fails at 1.0:1 without the fix.
+- [x] **3.15** Double-check the vertical sidebar against React. **Your recollection is right, and the difference is deliberate.** React *does* have an across-the-top bar: `MainLayout.tsx:14` is `navbar navbar-expand-lg navbar-dark bg-dark`, with the nav items inline and everything collapsing behind a `navbar-toggler` hamburger below Bootstrap's 992px. The port replaces it with a rail, and mobile already collapses to a hamburger and a flyout — so the second half of the question is also what was built.
+
+  What actually changed, and why it is not parity:
+
+  | | React | Port |
+  |---|---|---|
+  | Desktop | top bar, one row | extended rail |
+  | Tablet | top bar, hamburger | collapsed rail |
+  | Mobile | hamburger → collapse | hamburger → `NavigationDrawer` |
+  | Org switcher | `<select>` inside the navbar | rail at ≥700, bottom sheet below |
+  | Profile / Logout | right end of the bar | foot of the rail / drawer |
+
+  The reason for the redesign is the one recorded when 3.6 was written: **the React navbar's own contents were unreachable on small screens.** The org `<select>` lived inside the collapse, so below 992px a super-admin had no way to switch organization at all, and `QuickOrganizationPickerModal` — the searchable list — was wired only to the event forms. A rail keeps the six nav items visible without a hamburger at 700px and up, and gives the org switcher a home at every size. The React layout was desktop-only and had one breakpoint; this has three.
+
+  Cost, stated plainly: it is **not** visually faithful, and anyone comparing the two side by side will notice immediately. That is a deliberate trade for reachability, not an oversight, and it is the kind of decision worth revisiting if the team would rather match the current look and accept the responsive gap.
 
 ---
 
@@ -1208,3 +1222,82 @@ reaching — **assert the behaviour that is not visible from the call site**, an
 
 **Still not verified:** touch input, the drawer opened by a real tap, and any
 device. All three are now task 3.13, and all three need hardware.
+
+### 2026-10-13 — Tasks 3.14 and 3.15 (organization switcher invisible; the rail vs. React's top bar)
+
+**3.14 fixed, 3.15 answered.** Neither was visible from the tests or the
+source — 3.14 came from someone looking at the running app, which is the whole
+argument for 3.12 existing.
+
+**`DropdownButton` has three text paths and none of them agree.** This is the
+mechanism, and it is worth knowing before writing any more of these:
+
+| Path | Where its colour comes from |
+|---|---|
+| Closed state | `DefaultTextStyle(style: widget.style)` |
+| Hint | `style.copyWith(color: theme.hintColor)` — **`hintColor` beats `style`** |
+| Menu items | **no `DefaultTextStyle` at all** (`_DropdownMenuItemContainer` is a bare `Align`), so the ambient theme |
+
+The control inherited the app's light-container ink from all three, on a
+`#212529` rail. The chevron was visible because it is an `Icon` with an explicit
+`color: Colors.white` — the only one of the four visible things I had coloured.
+Every widget test passed, because they assert a control *exists*.
+
+**The same bug was in the branch with no dropdown to blame.** The non-super-admin
+label used `colorScheme.onSurface`, correct in the light drawer and
+near-invisible on the dark rail. Fixed together; the ink decision now comes from
+one `_onDarkRail(layoutSize)` helper so the two cannot drift again.
+
+**`dropdownColor` follows the rail rather than staying light.** A light popup
+would need a *second* ink on the same strings, and items render in both the
+closed and open states — so no style can be scoped to one without breaking the
+other. One ink, one background.
+
+**A subtlety worth writing down: the hint never renders.** `DropdownButton`
+resolves its `value` with `items.indexWhere((item) => item.value == value)`, so
+a `null` value matches the "All Organizations" item — which exists precisely so
+the empty option is selectable — and the hint is only used when *no* item
+matches. This cost me two wrong attempts at proving the regression test bites: I
+mutated the `hint` first, and the test still passed, because the hint was not
+what was on screen. The mutation that failed it was on the **item**. Verified
+by reverting the whole control to its original form: the test then reports
+`Expected: >= 4.5, Actual: 1.0`.
+
+**The test asserts a contrast ratio, not a colour equality.** "Is not the same as
+the background" would pass for any change of hue, including a slightly worse one.
+WCAG 2.1 AA for normal text is 4.5:1, so that is the threshold, computed from
+relative luminance. Four labels are checked, deliberately one per ink mechanism:
+an explicit `Text` style, a `TextButton` foreground, a `NavigationRail` label
+style, and an explicit item style. `_effectiveInk` resolves
+`DefaultTextStyle.of(element)` when `Text.style` is null — reading only
+`Text.style` reports "no colour" for most of the rail and would skip the
+assertion that matters.
+
+**Two things about the extended rail that cost time and will again.** It renders
+a label **only for the selected destination** — with `selectedIndex == null` the
+rail shows one unselected icon-only row, so a test asserting on "Events" needs
+the user to actually be on `/events`. And a user holding only
+`VIEW_USERS_GLOBAL` lands on `/profile` (the guard's own fallback), so a
+super-admin test needs `VIEW_EVENTS_ORGANIZATION` too or it silently exercises
+the wrong branch.
+
+**3.15: the React app did have a top bar, and the rail is a deliberate
+redesign.** `MainLayout.tsx:14` is `navbar navbar-expand-lg navbar-dark
+bg-dark` — inline nav items, collapsing behind `navbar-toggler` below 992px.
+Mobile does collapse to a hamburger and a flyout, as expected.
+
+The reason for changing it was already recorded when 3.6 was written, and this
+is the first time it has been worth stating plainly: **the React navbar's own
+contents were unreachable below 992px.** The organization `<select>` sat inside
+the collapse, so a super-admin on a phone could not switch organization at all,
+and `QuickOrganizationPickerModal` — the searchable list — was wired only to the
+event forms. A rail shows the six items without a hamburger from 700px up and
+gives the switcher a home at every size. The trade is that it is **not**
+visually faithful, and it should be revisited if matching the current look
+matters more than closing the responsive gap.
+
+**Also confirmed after the `ShellRoute` restructure: the address bar follows
+in-app navigation.** This had been retired in the Phase 2 log, but nesting the
+authenticated branch under a `ShellRoute` was exactly the kind of change that
+could have broken path-based deep links, and it did not. `/events` loads and
+renders at the right URL.

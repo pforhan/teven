@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/layout/breakpoints.dart';
+import '../core/theme/teven_theme.dart';
 import '../models/organization.dart';
 import '../providers/auth_controller.dart';
 import '../providers/organization_controller.dart';
@@ -74,7 +75,12 @@ class _StaticOrganizationLabel extends ConsumerWidget {
       organization,
       overflow: TextOverflow.ellipsis,
       style: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.colorScheme.onSurface,
+        // The same mistake [_OrganizationDropdown] documents, in the branch
+        // that has no dropdown to style: `onSurface` is the light-container
+        // ink, correct in the drawer and near-invisible on the dark rail.
+        color: _onDarkRail(layoutSize)
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.onSurface,
       ),
     );
 
@@ -130,6 +136,24 @@ class _CompactOrganizationButton extends ConsumerWidget {
 }
 
 /// The desktop super-admin control. A dropdown, reproducing the `<select>`.
+///
+/// **Every piece of text here is light, and none of that is the default.**
+///
+/// `DropdownButton` has three separate text paths which do not agree:
+///
+/// - the closed state is wrapped in `DefaultTextStyle(style: style)`, so
+///   `style` alone fixes it;
+/// - the hint is `style.copyWith(color: theme.hintColor)` — **`hintColor` wins
+///   over `style`**, so the hint needs its own explicit `Text` style;
+/// - menu items apply **no** `DefaultTextStyle` at all
+///   (`_DropdownMenuItemContainer` is a bare `Align`), so they inherit the
+///   ambient theme — the app's light-container ink.
+///
+/// Left alone, all three render near-black on the `#212529` rail and the
+/// control is invisible except for the chevron. `dropdownColor` follows the
+/// rail rather than staying light, because a light popup would need a *second*
+/// ink on the same strings, and items render in both the closed and open
+/// states — so no style can be scoped to one without breaking the other.
 class _OrganizationDropdown extends ConsumerWidget {
   const _OrganizationDropdown();
 
@@ -152,10 +176,13 @@ class _OrganizationDropdown extends ConsumerWidget {
         'Error: $failure',
         overflow: TextOverflow.ellipsis,
         style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.error,
+          color: theme.colorScheme.onPrimary,
         ),
       );
     }
+
+    const ink = TextStyle(color: Colors.white, fontSize: 14);
+    const inkFaint = TextStyle(color: Colors.white70, fontSize: 14);
 
     return ConstrainedBox(
       // A `<select>` inside `.navbar-nav` sized itself to its content. Without
@@ -166,19 +193,37 @@ class _OrganizationDropdown extends ConsumerWidget {
         child: DropdownButton<int?>(
           value: selected?.organizationId,
           isExpanded: true,
-          hint: const Text(allOrganizationsLabel),
+          style: ink,
+          dropdownColor: TevenTheme.darkSurface,
+          // **The hint never renders**, and that is not an oversight.
+          // `DropdownButton` resolves `value` with
+          // `items.indexWhere((item) => item.value == value)`, so a `null`
+          // `value` matches the "All Organizations" item — which is present
+          // precisely so that the empty option is selectable — and the hint is
+          // used only when *no* item matches. Styled anyway: a control whose
+          // visible label depends on which branch of a widget's internal
+          // lookup happens to fire is not worth leaving to chance.
+          hint: const Text(
+            allOrganizationsLabel,
+            style: inkFaint,
+            overflow: TextOverflow.ellipsis,
+          ),
           icon: const Icon(Icons.expand_more, color: Colors.white),
           items: [
             // `OrganizationSelector.tsx:52` — the empty option means "no
             // organization filter", not "no organization".
             const DropdownMenuItem<int?>(
               value: null,
-              child: Text(allOrganizationsLabel),
+              child: Text(allOrganizationsLabel, style: ink),
             ),
             for (final organization in organizations)
               DropdownMenuItem<int?>(
                 value: organization.organizationId,
-                child: Text(organization.name, overflow: TextOverflow.ellipsis),
+                child: Text(
+                  organization.name,
+                  style: ink,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
           ],
           onChanged: (organizationId) {
@@ -224,6 +269,15 @@ List<OrganizationResponse> _including(
   }
   return [...loaded, selected];
 }
+
+/// Whether [size] renders on the dark rail rather than the light drawer.
+///
+/// Not a coincidence: the shell puts `LayoutSize.mobile` in the drawer and the
+/// other two in the rail, so the container is fully determined by the size.
+/// Derived once here because every ink decision below depends on it, and one
+/// branch getting it wrong is invisible until something is rendered on a dark
+/// background.
+bool _onDarkRail(LayoutSize size) => size != LayoutSize.mobile;
 
 /// `OrganizationSelector.tsx:52`.
 const String allOrganizationsLabel = 'All Organizations';
