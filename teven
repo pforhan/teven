@@ -15,6 +15,12 @@ set -euo pipefail
 readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly FLUTTER_DIR="${ROOT}/flutter_app"
 
+# Host port the backend publishes, and how long we wait for it to answer before
+# giving up on the `--open` handshake. The port must match docker-compose.yml's
+# ${TEVEN_BACKEND_PORT:-2022}; resolved via app_port so an override in the
+# environment or .env is honored rather than hardcoded.
+readonly APP_READY_TIMEOUT=120
+
 # Build flags for the host-side Flutter build. --no-web-resources-cdn self-hosts
 # CanvasKit, removing a third-party runtime fetch (FLUTTER-CONVERT.md task 0.10).
 readonly FLUTTER_BUILD_ARGS=(
@@ -44,6 +50,50 @@ need() {
     die "'$1' not found on PATH. ${2:-}"
 }
 
+# The host port the backend is published on. Docker Compose resolves
+# ${TEVEN_BACKEND_PORT:-2022} from the environment first and the repo .env
+# second, so mirror that order rather than hardcoding 2022.
+app_port() {
+  local port="${TEVEN_BACKEND_PORT:-}"
+  if [ -z "$port" ] && [ -f "${ROOT}/.env" ]; then
+    port="$(sed -n \
+      's/^[[:space:]]*TEVEN_BACKEND_PORT[[:space:]]*=[[:space:]]*\([^[:space:]#]*\).*/\1/p' \
+      "${ROOT}/.env" | tail -n 1)"
+  fi
+  printf '%s' "${port:-2022}"
+}
+
+# Block until the backend answers on the given URL. Any HTTP response counts,
+# including a redirect or a TLS error page — the point is that the port is
+# bound, not that the app is fully warmed. The self-signed dev cert means -k.
+wait_for_app() {
+  local url="$1" waited=0
+  printf '==> Waiting for %s\n' "$url"
+  while [ "$waited" -lt "$APP_READY_TIMEOUT" ]; do
+    if curl -k -sS -o /dev/null --max-time 5 "$url" 2>/dev/null; then
+      printf '    Ready.\n'
+      return 0
+    fi
+    sleep 2
+    waited=$((waited + 2))
+  done
+  printf '    No response after %ss; opening anyway.\n' "$APP_READY_TIMEOUT" >&2
+  return 1
+}
+
+open_browser() {
+  local url="$1"
+  if command -v open >/dev/null 2>&1; then
+    open "$url"
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$url"
+  elif command -v wslview >/dev/null 2>&1; then
+    wslview "$url"
+  else
+    printf '    No browser opener on PATH; open %s yourself.\n' "$url"
+  fi
+}
+
 usage() {
   cat <<'EOF'
 teven — task runner for the Teven stack
@@ -55,8 +105,10 @@ Commands:
                      in the background (docker compose -d).
   up -f | --foreground
                      Same, but stream logs in the foreground instead.
+  up -o | --open     Same, but wait for the backend to answer, then open the
+                     app in the default browser.
   up-react           Start the stack with the React frontend. No prebuild
-                     needed: React builds inside Docker.
+                     needed: React builds inside Docker. Takes -f and -o too.
   build              Build the Flutter web bundle only, no Docker.
   dev                Run the Flutter app against a local backend
                      (flutter run -d chrome).
@@ -71,6 +123,9 @@ Commands:
 
 Options:
   -f, --foreground   Stream logs instead of detaching (for `up`).
+  -o, --open         Open the app in the default browser once the backend
+                     answers (for `up` and `up-react`). Ignored with -f,
+                     which never returns to the prompt to do it.
   -v, --volumes      Also delete volumes (for `down`).
   -n, --dry-run      Print the commands that would run, without running them.
   -h, --help         Show this help.
@@ -83,6 +138,7 @@ Environment:
 Examples:
   ./teven up                    # build Flutter, then start in background
   ./teven up -f                 # build Flutter, then stream logs
+  ./teven up --open             # start, wait, then open the browser
   ./teven up --dry-run          # show what would run
   ./teven up-react              # start with the React frontend
   ./teven verify                # analyze + format check + test
@@ -94,11 +150,12 @@ main() {
   local command="${1:-help}"
   shift || true
 
-  local foreground=0 volumes=0 dry_run=0
+  local foreground=0 volumes=0 dry_run=0 open_app=0
 
   while [ $# -gt 0 ]; do
     case "$1" in
       -f | --foreground) foreground=1 ;;
+      -o | --open) open_app=1 ;;
       -v | --volumes) volumes=1 ;;
       -n | --dry-run) dry_run=1 ;;
       -h | --help)
@@ -115,8 +172,8 @@ main() {
   done
 
   case "$command" in
-    up) cmd_up "$foreground" "$dry_run" ;;
-    up-react) cmd_up_react "$foreground" "$dry_run" ;;
+    up) cmd_up "$foreground" "$dry_run" "$open_app" ;;
+    up-react) cmd_up_react "$foreground" "$dry_run" "$open_app" ;;
     build) cmd_build "$dry_run" ;;
     dev) cmd_dev "$dry_run" ;;
     verify) cmd_verify "$dry_run" ;;
@@ -148,8 +205,39 @@ cmd_build() {
   fi
 }
 
+# After the stack is up: wait for the backend, then open it. No-op when -o
+# wasn't passed, or when the logs are streaming in the foreground -- in that
+# mode we never return to the prompt, so there is nowhere to put the browser.
+maybe_open() {
+  local open_app="$1" foreground="$2" dry_run="$3"
+  local url="https://localhost:$(app_port)"
+
+  if [ "$open_app" -eq 0 ]; then
+    printf '\n==> App: %s\n' "$url"
+    return 0
+  fi
+  if [ "$foreground" -eq 1 ]; then
+    printf '\n==> App: %s\n' "$url"
+    printf '    Not opening: --open needs the background mode to wait in.\n'
+    return 0
+  fi
+
+  if [ "$dry_run" -eq 1 ]; then
+    printf '\n==> App: %s\n' "$url"
+    show curl --insecure --silent --show-error --output /dev/null "$url"
+    show open "$url"
+    return 0
+  fi
+
+  # A failed wait is a warning, not an error: the containers did come up, and
+  # the browser is the whole point of --open even if the probe timed out.
+  wait_for_app "$url" || true
+  printf '==> Opening %s\n' "$url"
+  open_browser "$url"
+}
+
 cmd_up() {
-  local foreground="$1" dry_run="$2"
+  local foreground="$1" dry_run="$2" open_app="$3"
   cmd_build "$dry_run" || return 1
   printf '==> Starting the stack (frontend: flutter)\n'
   local -a compose=(docker compose up --build)
@@ -159,10 +247,11 @@ cmd_up() {
   else
     WEB_SOURCE=flutter "${compose[@]}"
   fi
+  maybe_open "$open_app" "$foreground" "$dry_run"
 }
 
 cmd_up_react() {
-  local foreground="$1" dry_run="$2"
+  local foreground="$1" dry_run="$2" open_app="$3"
   printf '==> Starting the stack (frontend: react)\n'
   printf '    React builds inside Docker; no prebuild step needed.\n'
   local -a compose=(docker compose up --build)
@@ -172,6 +261,7 @@ cmd_up_react() {
   else
     WEB_SOURCE=react "${compose[@]}"
   fi
+  maybe_open "$open_app" "$foreground" "$dry_run"
 }
 
 # The web dev server origin the backend's dev CORS allows. Kept here and in
