@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' show Size;
 
+import 'package:dio/dio.dart' show RequestOptions;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -46,10 +47,16 @@ String userContextJson({List<String> permissions = const []}) => jsonEncode({
 /// Without this the stub would return 401 for it, the client would raise a
 /// [teven_app.core.api.api_exception.UnauthorizedException], and the
 /// single-flight 401 redirect would sign the test out mid-assertion.
+///
+/// [forOtherRoutes] answers anything else — the list screens' own endpoints.
+/// Returning null from it falls through to the 401, so a test can leave the
+/// paths it does not care about unauthorized and catch an accidental call to
+/// one of them.
 StubAdapter contextAdapter({
   List<String> permissions = const [],
   String token = 'token',
   List<String> organizationNames = const ['Acme', 'Globex'],
+  StubResponse? Function(RequestOptions options)? forOtherRoutes,
 }) => StubAdapter((options) {
   if (options.path == '/api/users/context') {
     return StubResponse.json(userContextJson(permissions: permissions));
@@ -96,10 +103,11 @@ StubAdapter contextAdapter({
       }),
     );
   }
-  return const StubResponse.json(
-    '{"success":false,"data":{},"error":{"message":"Unauthorized"}}',
-    status: 401,
-  );
+  return forOtherRoutes?.call(options) ??
+      const StubResponse.json(
+        '{"success":false,"data":{},"error":{"message":"Unauthorized"}}',
+        status: 401,
+      );
 });
 
 /// A container wired for tests: in-memory token, stubbed transport.
@@ -186,6 +194,33 @@ Future<ProviderContainer> pumpApp(
   return container;
 }
 
+/// Gives in-flight stubbed requests a chance to finish, then settles.
+///
+/// Same constraint as [pumpApp]: the stub is answered through dio's async
+/// machinery, which a widget test's fake clock will not advance, so
+/// `pumpAndSettle` alone can hang on it or time out against a spinner.
+///
+/// The loop does both halves, and **both are needed**. A request started from
+/// inside a frame — a screen's own provider, rather than the boot fetch that
+/// [pumpApp] awaits — registers its zero-duration timers on the *fake* clock,
+/// so `pump()` with no duration never fires them and the request never leaves
+/// `AsyncLoading`. Advancing the clock inside `runAsync` lets the real async
+/// machinery drain. Skipping either half leaves a `CircularProgressIndicator`
+/// spinning and `pumpAndSettle` timing out with no explanation — which is
+/// exactly what it did on Chrome before this was written down.
+///
+/// A few short waits cover a stub that resolves immediately, without the test
+/// having to know which provider a given screen happens to use.
+Future<void> settleRequests(WidgetTester tester) async {
+  for (var i = 0; i < 5; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+    await tester.pump(const Duration(milliseconds: 10));
+  }
+  await tester.pumpAndSettle();
+}
+
 /// Navigates and settles, then reports the resulting path.
 Future<String> goTo(
   WidgetTester tester,
@@ -194,6 +229,41 @@ Future<String> goTo(
 ) async {
   container.read(routerProvider).go(path);
   await tester.pumpAndSettle();
+  return currentPath(container);
+}
+
+/// Navigates to [path] where the destination does not fetch on arrival.
+///
+/// `goTo` settles the navigation animation, which is the right thing for a
+/// route that renders immediately — a placeholder, a static form. A list screen
+/// spins a progress indicator until its first request lands, and
+/// `pumpAndSettle` will never finish against one that is still in flight. Use
+/// [goToAndLoad] for those.
+Future<String> goToSettled(
+  WidgetTester tester,
+  ProviderContainer container,
+  String path,
+) async {
+  final landed = await goTo(tester, container, path);
+  await settleRequests(tester);
+  return landed;
+}
+
+/// Navigates to [path] and lets the screen's own requests finish, then reports
+/// the resulting path.
+///
+/// The counterpart to [goTo] for a route that fetches on arrival: one frame to
+/// build the screen and start its request, then [settleRequests] to let the
+/// answer land. See [settleRequests] for why both halves are required — this
+/// pair is what makes a list screen testable at all.
+Future<String> goToAndLoad(
+  WidgetTester tester,
+  ProviderContainer container,
+  String path,
+) async {
+  container.read(routerProvider).go(path);
+  await tester.pump();
+  await settleRequests(tester);
   return currentPath(container);
 }
 

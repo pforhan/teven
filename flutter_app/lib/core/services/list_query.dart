@@ -66,4 +66,32 @@ class ListQuery {
     sortOrder: sortOrder ?? this.sortOrder,
     organizationId: organizationId ?? this.organizationId,
   );
+
+  /// Value equality, so a [ListQuery] can key a provider family.
+  ///
+  /// The list screens rebuild a fresh `ListQuery` on every build, and a
+  /// `FutureProvider.family` compares its argument with `==` to decide whether
+  /// to refetch. Without this, every unrelated rebuild would re-issue the
+  /// request — and with it, a search box would fetch on each keystroke whether
+  /// or not the debounce fired.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ListQuery &&
+          runtimeType == other.runtimeType &&
+          limit == other.limit &&
+          offset == other.offset &&
+          search == other.search &&
+          sortBy == other.sortBy &&
+          sortOrder == other.sortOrder &&
+          organizationId == other.organizationId;
+
+  @override
+  int get hashCode =>
+      Object.hash(limit, offset, search, sortBy, sortOrder, organizationId);
+
+  @override
+  String toString() =>
+      'ListQuery(limit: $limit, offset: $offset, search: $search, '
+      'sortBy: $sortBy, sortOrder: $sortOrder, organizationId: $organizationId)';
 }

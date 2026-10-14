@@ -237,18 +237,26 @@ The React shell is desktop-only (`navbar-expand-lg`). This phase establishes the
 
 Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign, not port.** Tables become responsive lists.
 
-- [ ] **4.1** Build a shared `ResponsiveListView` replacing `TableView.tsx`: data-table layout at desktop, card layout at mobile.
-- [ ] **4.2** Reproduce hover-revealed row actions. `TableView.tsx:17-18` exposes `onRowMouseEnter`/`onRowMouseLeave` purely so buttons appear on hover, across 6 call sites. On mobile use always-visible trailing actions or a long-press menu; **web may keep hover** behind a `kIsWeb` branch.
-- [ ] **4.3** Reproduce hover tooltips (`OverlayTrigger` in 5 files). Same `kIsWeb` treatment; use `Semantics` labels for accessibility on native.
-- [ ] **4.4** Port `CustomerList` (134 lines): search, paginated table, create/edit/delete.
-- [ ] **4.5** Port `InventoryList` (144 lines). Note `GET /api/inventory/{id}` embeds an **unpaginated** `events` list — cap display client-side.
-- [ ] **4.6** Port `OrganizationList` (134 lines), gated on `VIEW_ORGANIZATIONS_GLOBAL`.
-- [ ] **4.7** Port `UserList` (264 lines) — the largest list screen. Includes role display and sort controls.
-- [ ] **4.8** Port the 6 `window.confirm` delete flows as async dialogs (`CustomerList.tsx:60`, `InventoryList.tsx:60`, `OrganizationList.tsx:51`, `UserList.tsx:79,94`, plus events in Phase 7).
-- [ ] **4.9** Port pagination controls against offset/limit. Per-endpoint default limits vary (10 or 1000) — verify each.
-- [ ] **4.10** Port the search-debounce pattern. The React lists use plain `useState`; pick a deliberate debounce and note the interval.
+- [x] **4.1** Build a shared `ResponsiveListView` replacing `TableView.tsx`: data-table layout at desktop, card layout at mobile.
+- [x] **4.2** Reproduce hover-revealed row actions. `TableView.tsx:17-18` exposes `onRowMouseEnter`/`onRowMouseLeave` purely so buttons appear on hover, across 6 call sites. On mobile use always-visible trailing actions or a long-press menu; **web may keep hover** behind a `kIsWeb` branch.
+- [x] **4.3** Reproduce hover tooltips (`OverlayTrigger` in 5 files). Same `kIsWeb` treatment; use `Semantics` labels for accessibility on native.
+- [x] **4.4** Port `CustomerList` (134 lines): search, paginated table, create/edit/delete.
+- [ ] **4.5** Port `InventoryList` (144 lines). Note `GET /api/inventory/{id}` embeds an **unpaginated** `events` list — cap display client-side. Delete uses `confirmDestructiveAction` (4.8), not a dialog written here.
+- [ ] **4.6** Port `OrganizationList` (134 lines), gated on `VIEW_ORGANIZATIONS_GLOBAL`. Delete uses `confirmDestructiveAction` (4.8).
+- [ ] **4.7** Port `UserList` (264 lines) — the largest list screen. Includes role display and sort controls. **Two** delete flows (`UserList.tsx:79,94`), both via `confirmDestructiveAction` (4.8); the user one still calls an endpoint that does not exist (10.12).
+- [x] **4.8** Port the 6 `window.confirm` delete flows as async dialogs (`CustomerList.tsx:60`, `InventoryList.tsx:60`, `OrganizationList.tsx:51`, `UserList.tsx:79,94`, plus events in Phase 7). **Done as one shared widget rather than six dialogs** — `confirmDestructiveAction` in `lib/widgets/confirm_dialog.dart`, used by the customer screen and available to the other five. Ticked with 1 of 6 wired, because the wiring is not separate work: it is a call each screen makes while being ported, and 4.5, 4.6, 4.7 and 7.6 are already open for that. **Each of those four tasks carries the obligation to use the shared dialog** — a closed task is a claim nobody re-reads, and a hand-rolled fourth dialog would be silent. The *consequence* of a confirmed delete (refetch vs redirect) stays at the call site in every case, because `UserList.tsx:94` deletes an invitation and `EventDetails.tsx:49` navigates away.
+- [ ] **4.9** Port pagination controls against offset/limit. Per-endpoint default limits vary (10 or 1000) — verify each. **Premise did not hold — no work needed.** `grep` finds no pagination control in any React list: all four fetch a single fixed page (`CustomerList.tsx:27` uses `25, 0`) and none can reach the rest. There is nothing to port. Whether to *add* paging is a product decision, not a porting one, and it is not recorded as a task.
+- [x] **4.10** Port the search-debounce pattern. The React lists use plain `useState`; pick a deliberate debounce and note the interval.
 - [ ] **4.11** Verify sort controls against each endpoint. **`sortBy` is silently ignored on `/api/events`**, and `GET /api/events` defaults `sortOrder` to `asc`.
-- [ ] **4.12** Widget tests for `ResponsiveListView`: table layout at desktop, card layout at mobile, and the truncated `events` list on an inventory row (task 4.5's client-side cap).
+- [x] **4.12** Widget tests for `ResponsiveListView`: table layout at desktop, card layout at mobile. **Split** — the third case in the original wording (the truncated `events` list on an inventory row) needs 4.5's screen, so it is now **4.13**.
+- [ ] **4.14** **Stop the list flashing on every search. Optional — raised during task 4.4's browser check and confirmed tolerable by hand, so it is filed rather than fixed.** A new query takes the whole card down to a spinner, header and all, so the header blinks out and back on every keystroke that survives the 300ms debounce. `CustomerList.tsx:46-48` never showed this: it left the previous rows up until the response landed, because `setCustomers` only ran on success. Three fixes, cheapest first:
+  1. **A thin `LinearProgressIndicator` over the existing rows**, with the previous items still rendered. Needs the last result kept across query keys, and it is the smallest change that removes the perceived flicker.
+  2. **Keep the header rendered during loading** — pass a `loading` flag into `ResponsiveListView` so the columns stay put and only the body swaps. Fixes half the symptom; the rows still blink.
+  3. **Retain the last value across family keys** with Riverpod's keep-alive link pattern, which restores the original behaviour exactly. Most machinery, and correct — `FutureProvider.autoDispose.family` disposes each key the moment it loses its last listener, which is why a new search starts from nothing.
+
+  Deferred because the debounce already collapses a burst into one request, so the flicker is once per pause rather than once per keystroke, and the user judged it acceptable in a browser. Options 1 and 3 are not mutually exclusive; do 1 first and 3 only if the flash is still objectionable once the list is stale-but-visible.
+
+- [ ] **4.13** Widget test for the truncated `events` list on an inventory row — 4.12's third case, held back because it needs `InventoryList` (4.5). Rides with that task.
 
 ---
 
@@ -297,7 +305,7 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [ ] **7.3** Replace the hover placeholder with a visible create affordance (FAB) on mobile and an `+` affordance on web.
 - [ ] **7.4** Reproduce `eventPropGetter` / `dayPropGetter` styling, including today's `#e7f0f7` highlight.
 - [ ] **7.5** Port `EventListPage` (240 lines): title, date, time, description, customer, RSVP columns → responsive rows.
-- [ ] **7.6** Port `EventDetails` (277 lines), including the two `window.confirm` flows and the `RsvpWidget` (72 lines) — drop-in RSVP posting `availability: "available" | "unavailable"` as a **free-form string**, not an enum.
+- [ ] **7.6** Port `EventDetails` (277 lines), including the two `window.confirm` flows — via `confirmDestructiveAction` (4.8), and note the delete navigates away rather than refetching — and the `RsvpWidget` (72 lines) — drop-in RSVP posting `availability: "available" | "unavailable"` as a **free-form string**, not an enum.
 - [ ] **7.7** Port `OtherEventsPanel` (97 lines).
 - [ ] **7.8** Replace `moment` with `intl` + `DateTime`. The existing parsing is fragile — `new Date(event.date + 'T' + event.time)` at `EventCalendar.tsx:230` — so use explicit `DateTime` construction.
 - [ ] **7.9** Handle timezone-naive timestamps. The API returns `"YYYY-MM-DD"` / `"HH:MM:SS"` strings with **no timezone**. Do not silently re-interpret as UTC; keep naive local semantics to match current behavior, and note this as a known limitation.
@@ -437,6 +445,15 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   **Guard rails.** Reject deleting the **last** super-admin, and reject self-deletion (a user who can delete themselves can lock themselves out mid-session). Check `VIEW_USERS_GLOBAL`/`MANAGE_USERS_GLOBAL` scoping so one org's admin cannot delete another's user — mirror the permission model on `PUT /api/users/{id}` (`UserRoutes.kt:84`).
 
+  **The last-super-admin check is close to redundant, but not quite — verify before dropping it.** Banning self-deletion does make "zero super-admins left" unreachable *by the obvious route*: the deleter always survives their own delete, so the count bottoms out at one. That argument is sound and it is why the self-deletion ban is the load-bearing half.
+
+  It has a hole, though, and the hole is in the permission model rather than in this route. **`isSuperAdmin` is derived from `VIEW_USERS_GLOBAL`** (`MainLayout.tsx:10`), while the delete button is gated on **`MANAGE_USERS_GLOBAL || MANAGE_USERS_ORGANIZATION`** (`UserList.tsx:25`). Those are independent grants, so a user holding only `MANAGE_USERS_ORGANIZATION` can delete users and is *not* a super-admin — and could delete the only super-admin without deleting themselves. Two ways to close it, and the cheaper one is preferable:
+
+  - **Ban self-deletion server-side and make "may delete users" imply super-admin** (gate the route on `VIEW_USERS_GLOBAL` rather than `MANAGE_USERS_GLOBAL`). One-line, and the invariant then holds by construction.
+  - **Keep the last-super-admin check** as a backstop, and re-check it whenever a new `MANAGE_*` permission is granted to non-super-admins.
+
+  Either way the route must check self-deletion **server-side**; a client-side check is a UI affordance, not a guard, and the React delete button is a UI affordance. Note that the *button* in `UserList.tsx:79` has never worked, so there is no existing behaviour to preserve here and no regression risk in fixing it.
+
   Add the route to `API.md`, where it is currently documented as if it exists.
 
 - [ ] **10.13** **Restore the staff-details feature: create `staff_details`, store `skills` as a proper list, and fix the silent-discard path.** **Decision made: fix it, do not delete it.** Staff profiles are a real feature the app presents, so the table and its read/write path get built properly rather than removed.
@@ -505,6 +522,60 @@ Once the Flutter web app is verified working locally against the real backend. T
   An enum on the server would catch that at the boundary. The cost is a migration for existing rows holding values outside any chosen set — check the data first (`SELECT DISTINCT availability FROM rsvps`) before deciding, since that query is cheap and the answer determines whether this is a small change or a data migration. Client-side, `RsvpAvailability` in `models/event.dart` already names the three values in use; tighten it once the server agrees on a set.
 
   **Already covered elsewhere, do not duplicate:** `Dockerfile:32-47` (the `frontend-react` builder stage, including its `COPY frontend/src` and `COPY frontend/public` lines) disappears with 10.1. Those are functional build instructions, not comments, so they are not this task's concern. `FLUTTER-CONVERT.md` itself is *expected* to reference `frontend/` paths throughout — it is a historical record and keeps them deliberately; exclude it.
+
+- [ ] **10.19** **Soft-delete customers, so deleting one does not destroy the events that reference it.** Found by deleting a real customer during task 4.4's browser check. **Decision made: soft delete**, on the grounds that prior events are business records and a customer row is not.
+
+  **The bug, exactly as the server reports it.** `CustomerDao.deleteCustomer` is `Customers.deleteWhere { Customers.id eq customerId } > 0` — a hard delete. `Events.customerId` is `integer("customer_id").references(Customers.id).nullable()` with no `onDelete`, so the FK is `ON DELETE NO ACTION`, and the delete fails the moment the customer has any event at all:
+
+  ```
+  ERROR: update or delete on table "customers" violates foreign key constraint
+  "fk_events_customer_id__id" on table "events"
+   Detail: Key (id)=(10) is still referenced from table "events".
+  ```
+
+  It surfaces to the user as a **500 carrying a Java stack trace**, via `Application.kt`'s generic handler — so the failure looks like a server fault rather than a refused delete. It has been this way for as long as the delete button has existed, and it is invisible to anyone whose customers have no events, which is most of them early on.
+
+  **Note the nullable column is doing nothing here.** `customer_id` being nullable means an event can have no customer, which is the shape a *hard* delete would want after nulling the references. Nothing nulls them, so the escape hatch that was built into the schema is unused. That is worth deciding explicitly rather than leaving as an accident: soft delete keeps the references, and the nullable column then only ever serves events that genuinely have no customer.
+
+  **Work items:**
+
+  1. Add the flag to `Customers` — `deletedAt` (timestamp, nullable) is the better choice over a boolean, because it answers "when" as well as "whether" and can be indexed. **`SchemaUtils.create` is create-if-missing and never alters an existing table** (established in 10.12), so this needs the dev database dropped and recreated; there is no migration path in this project.
+  2. `deleteCustomer` sets the flag instead of deleting, and returns the same shape it does now.
+  3. **Filter every read path, and this is the part that decides whether the task is 10 lines or 60.** `CustomerDao` has five: `getCustomers` (paged), `getAllCustomers`, `getAllCustomersByOrganization`, `getCustomerById`, and the one used to resolve the customer embedded in an event response. The first four must exclude deleted rows; **the fifth must not**, or every historical event silently loses its customer. `getCustomers` is the easy one — it already builds a `conditions` list and counts from the same query, so one added condition fixes the list *and* the `total` together. Put the filter in one helper so a sixth read path cannot forget it, and grep for direct `Customers.selectAll()` uses when adding it.
+  4. Decide what `GET /api/customers/{id}` returns for a deleted customer: 404 is cleanest and stops the edit form resurrecting a row that is meant to be gone. Whichever it is, `EditCustomerForm` should not be able to un-delete by accident.
+  5. Decide whether an edit to a deleted customer is allowed at all. The simplest coherent rule is that a deleted customer is immutable.
+
+  **No client change is needed.** The Flutter button, the shared `confirmDestructiveAction` dialog, the refetch, and "the row disappears from the list" all keep working, because a soft-deleted row is simply filtered out of the list. That is the main argument for doing it this way rather than as a 409.
+
+  **Why not just null the references, or cascade?** Nulling them is the hard-delete variant and throws away exactly the thing this task exists to preserve: the event would keep its date and description and lose the customer, which is the one field anyone reads. Cascading is worse and not worth spelling out. Soft delete preserves both the event and the customer's name on it, at the cost of the filtering work in item 3.
+
+  **This decision and 10.12's are deliberately different, and the difference is worth stating.** 10.12 chose a *hard* delete for users and nulls `Invitations.usedByUserId` rather than cascading. The split is on what the row *is*: a user is an identity that other rows authenticate against, and a deleted user should stop authenticating; a customer is a reference that history points at, and deleting one should not rewrite the past. If 10.12 is ever revisited, this is the reasoning to revisit it against — "history is audit-relevant" argues for soft-deleting users too, and the reason it does not is credential revocation, which is a real reason.
+
+  **Reachable through the UI, so it is not theoretical.** The customer list's delete button (`CustomerList.tsx:60`, ported in 4.4) hits this on the first customer that has an event. Given events are the core of the app, that is most customers in real use.
+
+- [ ] **10.20** **Build the customer details screen.** Found during task 4.4's browser check: clicking a customer's name lands on the event calendar. **Design direction is settled — a read-only rendering of the same fields the edit form shows, with the customer's events on the page. Build it; do not drop the link.**
+
+  **The screen has never existed, in any commit.** Verified rather than inferred, because it was asserted both ways in conversation and the history settles it:
+
+  | Check | Result |
+  |---|---|
+  | `grep -rl "CustomerDetail\|customerDetails" frontend/src/` | **nothing** — no component, no import, no link target |
+  | `git log -S 'customers/:' --all` | **zero commits** — the route has never been declared |
+  | `git log --diff-filter=ADR --name-only -- '*CustomerDetail*'` | **nothing** — the file was never added, deleted or renamed |
+  | All-time file list — `git log --all --name-only \| grep -i customer` | three React components: `CreateCustomerForm`, `CustomerList`, `EditCustomerForm`. That is all, ever |
+
+  **Two documents in the repo assume it exists, which is why it is so easy to believe it does.** `CustomerList.tsx:78` links to `/customers/${id}`, and `GEO_FEATURES_PLAN.md:80` lists *"Add `MapDisplay` to `EventDetails` and `CustomerDetails`"* as a geocoding task. Both reference a screen that was planned and never built — and that plan document is still in the repo, still referring to it. A dead link plus a live plan document makes a convincing fiction. Worth recording because the geocoding plan has an open task that cannot currently be done.
+
+  **The port reproduces the dead link exactly.** No `/customers/:customerId` route is registered, so the path falls through the `*` catch-all (`App.tsx:67`) to `/`, and the index route sends it to `/events`. Faithful; the fix is to build the screen rather than deviate from the original.
+
+  **Work items, in order.**
+
+  1. **The events list is the real work, and it is blocked on the backend.** The intended shape is the customer's past *and* future events, and `GET /api/events` **has no customer filter** — `EventRoutes.kt` takes `search`, `sortBy`, `sortOrder`, `limit`, `offset` and no `customerId`, and neither does `EventDao`. So this is not purely a screen task: it needs a new query parameter on the route and the DAO, which is Phase 10 backend work under the ground rules. If the screen is wanted before that parameter lands, ship the field rendering first — a customer page with no events on it still beats a link to the calendar.
+  2. Register the route in the port's table in Phase 5, alongside the forms, behind `VIEW_CUSTOMERS_ORGANIZATION` — the same gate as the list. **Not** `MANAGE_CUSTOMERS_ORGANIZATION`: the rendering is read-only and viewers can see the list, so the `App.tsx:62` create/edit split does not apply to a screen that cannot write.
+  3. Render the fields `EditCustomerForm` shows, as disabled rather than absent, so the two stay comparable. Do not build it as "the edit form in read-only mode" — that couples a read path to a write path, and the part that will differ (the events section) is most of the page.
+  4. The geo fields (`latitude`, `longitude`, `formattedAddress`) are on the DTO and null in practice, because the backend's geo service is dead code (**10.7**). Render them when the geocoding work lands (**`GEO_FEATURES_PLAN.md`**), not before — otherwise it is a page of empty coordinates.
+
+  **The same shape of problem exists for staff details, and the reason neither is noticed is identical.** `StaffDetails` is a planned surface with a DTO field and no storage (**10.13**), and `GEO_FEATURES_PLAN.md` assumes it too. Two documents promising screens the app does not have is a pattern rather than a coincidence, and it survives review because nothing links to either — so nothing fails, and the only way to notice is to click.
 
 - [x] **10.18** **Make the seeded test users loggable in.** Found while trying to discharge task 3.12's real-browser check.
 
@@ -589,6 +660,8 @@ Documented here so task 10.6 can address them. **Do not fix these during the por
 | **All 5 user FKs are `ON DELETE RESTRICT`** | Queried from the running dev DB. No cascade anywhere, so user deletion fails outright | **10.12** (add CASCADE) |
 | **Omitting `limit` returns the entire table** | Every DAO does `limit?.let { query.limit(it) }` (`CustomerDao.kt:73`, `EventDao.kt:180`, +3). The `limit: 0` in the response is cosmetic, **not** a real cap | **10.15** |
 | **18 of 33 server permissions are unreachable from the client** | `core/security/Permission.kt` defines 33; `src/types/permissions.ts` declares only 15. The `*_GLOBAL` variants beyond the two org ones, plus `MANAGE_ROLES_*`, `ASSIGN_*`, `CAN_ASSIGN_*`, `MANAGE_USERS_SELF` | **10.16** |
+| **`DELETE /api/customers/{id}` returns 500 when the customer has any event** | `CustomerDao.deleteCustomer` hard-deletes; `Events.customerId` is `.nullable()` with no `onDelete`, so the FK is `NO ACTION`. Observed: `violates foreign key constraint "fk_events_customer_id__id"`, surfacing as a 500 with a stack trace. Invisible to any customer with no events | **10.19** |
+| **No customer details screen exists — the link is dead in the React app too** | `CustomerList.tsx:78` links to `/customers/{id}`; `App.tsx` declares only `customers`, `customers/create`, `customers/edit/:customerId`, and `components/customers/` has no `CustomerDetails`. The `*` catch-all redirects to `/events`. Ported faithfully, so the port reproduces the dead link | **10.20** |
 | **Seeded users cannot log in — `TestDataProvider` writes a plaintext password** | `TestDataProvider.kt` set `it[passwordHash] = "password"` and the column is `users.password`. `BCrypt.checkpw("password", "password")` throws `IllegalArgumentException: Invalid salt version`, which `AuthServiceImpl.loginUser` did not catch — so **every seeded login answered HTTP 500 with a stack trace**, not 401. Found during task 3.12's verification attempt; the seeded `alice`/`bob`/`charlie`/`diana` accounts were unreachable until the seed stored a real hash | **10.18** ✅ |
 ---
 
@@ -1301,3 +1374,278 @@ in-app navigation.** This had been retired in the Phase 2 log, but nesting the
 authenticated branch under a `ShellRoute` was exactly the kind of change that
 could have broken path-based deep links, and it did not. `/events` loads and
 renders at the right URL.
+
+---
+
+### 2026-10-14 — Phase 4, tasks 4.1–4.4, 4.10, 4.12 (the shared list, and the first screen that uses it)
+
+**Done.** `ResponsiveListView`, the customer list at `/customers`, 25 widget
+tests. 138 pass on the VM; Chrome is unchanged at its 9 pre-existing failures.
+`flutter analyze` and `dart format` clean.
+
+**Six tasks, one commit, and 4.8 rides along for one of its six.** A shared
+widget with no caller would be a widget nothing exercises, and the customer
+list is the smallest screen that exercises all of it — search, sort, create,
+delete, permissions. The other five `window.confirm` flows (4.8) land with
+their own screens rather than as a commit of five dialogs.
+
+**The list's breakpoint is its own width, not the window's — which pushes
+"desktop table" much further right than expected.** The widget uses
+`LayoutBuilder`, so inside the shell it sees the *content column*, after the
+256px extended rail has come off. A window therefore has to be ~1360px before
+the customer table appears; between 1100 and 1360 it is cards. That is the
+correct measurement and it is worth writing down, because every screenshot
+taken at "desktop width" during Phase 3 was a window width.
+
+**Tablet gets cards.** The plan said "table at desktop, card at mobile" and
+left the middle open; at 700px the rail has already taken 72px and four
+customer columns plus actions do not survive the rest. A squeezed table that
+scrolls sideways is worse than cards that say what each value is.
+
+**Two decisions in the widget are independent and are implemented as such.**
+The *layout* follows the width. The *hover reveal* follows the input device
+(`kIsWeb`) and only exists in the table at all — which is the `kIsWeb` branch
+task 4.2 asked for. Conflating them was the first thing tried and it would have
+given a hypothetical desktop-native build a card list.
+
+**`revealActionsOnHover` is a parameter purely so tests can reach the hover
+path.** Widget tests run on the VM, where `kIsWeb` is false, so the hover
+branch would otherwise be unreachable from a test — and it is only reachable
+from a *test* that passes the flag. The Chrome run exercises it for real, with
+no flag, which is the better coverage and neither platform has to pretend.
+
+**`Tooltip` is the accessible name, so there is no `Semantics` wrapper.** Task
+4.3 asked for `Semantics` labels on native; `Tooltip` already publishes one,
+and adding a second `Semantics(label:)` on the same button announces the word
+twice. Recorded rather than "implemented", because the literal reading of the
+task would have made accessibility worse.
+
+**Actions moved from the name cell to their own column.** `CustomerList.tsx:77-89`
+absolutely positions them over the name, which works in a table and does not
+work in a card. A trailing column costs 96px of horizontal space and gains
+keyboard focus and a stable hover target.
+
+**`ListQuery` grew value equality, and that is load-bearing.** It is now the
+key of a `FutureProvider.autoDispose.family`. Without `==`, every rebuild
+produces a new key, the provider refetches, and the debounce in 4.10 is
+bypassed by a single unrelated `setState`. It was a two-method change to a
+class that already existed for exactly this parameter set.
+
+**4.10 is a fix, not a port, and the debounce is 300ms.** The React lists wire
+`useState` straight into `useCallback`'s dependency list, so typing "Globex"
+fires seven searches and races seven responses into one `setCustomers`. Nothing
+cancels the superseded requests either — that half is task 9.6.
+
+**Two places where the port is visibly less faithful, on purpose.** A new query
+drops the list to a spinner; the React original left the previous rows up until
+the response arrived, so searching flashes where it did not. Riverpod can
+retain the last value across family keys with a keep-alive link provider, and
+that is more machinery than 25 rows justifies — noted at the call site rather
+than left to be rediscovered. And `CustomerList`'s list is capped at 25 with no
+control to reach the rest, because that is exactly what the React app does.
+
+**4.9's premise did not hold: there is no pagination to port.** `grep` over the
+four React lists finds no control, and `CustomerList.tsx:27` fetches `25, 0` —
+one page, no way past it. Tick rewritten to say so. Adding paging is a product
+decision and is deliberately *not* filed as a task.
+
+**Only the `name` column is sortable, matching `CustomerList.tsx:76`.** Worth
+recording because `CustomerDao` *does* honour `sortBy` for phone and address,
+so task 4.11 should not go looking for missing sort controls that the server
+would have honoured — they are absent because the original chose that.
+
+**The tests found a harness gap that would have cost the next screen the same
+afternoon.** `settleRequests` needs *both* halves of its loop, and the reason
+is not obvious: a request started from inside a frame — a screen's own
+provider, rather than the boot fetch `pumpApp` awaits — registers its timers on
+the widget test's **fake** clock, so `pump()` with no duration never fires them
+and the request sits in `AsyncLoading` forever. `runAsync` alone does not help.
+On the VM this never bit; on Chrome it hung every screen test with a silent
+teardown failure and no message. `goToAndLoad` exists for the same reason and
+`goTo`'s doc comment now says which one to reach for.
+
+**Two pre-existing Chrome tests had to change.** `responsive_chrome_test`
+navigates to `/customers` to check the nav highlight and the drawer's close,
+and it was settling with `pumpAndSettle` against a progress indicator that
+cannot settle. Both now use `settleRequests`, and the harness answers
+`/api/customers` — the same trap it documents for `/api/organizations`, one
+screen along.
+
+**One new Chrome skip, and why it is not nine more.** `a failure shows the
+server message` is skipped on web. On Chrome it ends in a pending-timer
+teardown with no assertion failure and no message — byte-for-byte the signature
+of the nine pre-existing failures in `accept_invitation_screen_test.dart` that
+the Phase 3 log flagged as unowned. Every one of those nine is likewise about
+rendering `ErrorDisplay` after a rejected request, so this is *that* gap, not a
+new one. It is now 13 tests of unowned web behaviour, and the next one to touch
+`ErrorDisplay` should find the cause rather than add a skip.
+
+**The delete confirmation is shared, and 4.8 nearly was not.** The first
+version inlined the `AlertDialog` in a private method on the customer screen,
+which would have meant four more hand-rolled copies — the same duplication
+`ResponsiveListView` was written to remove for the table, one layer up. All six
+`window.confirm` call sites differ only in the noun they name, so
+`confirmDestructiveAction(context, title:, message:)` is now shared and each
+screen keeps only the part that genuinely differs: the service call, and what
+happens after — a refetch for the lists, a redirect for `EventDetails.tsx:49`,
+and an invitation that must outlive the user who accepted it
+(`UserList.tsx:94`). A widget that only asks a question has no business knowing
+any of that.
+
+**A dismissed dialog is a "no", and that is the part worth a test.** `showDialog`
+answers `null` when the dialog is dismissed with no choice — scrim, back
+gesture, Escape — and the helper turns that into `false` explicitly. Nothing
+makes that safe by accident: an `if (confirmed)` in the caller is `true` for
+`null`, and the scrim tap that produces it is the single easiest way to turn a
+confirmation into a delete button with a delay on it. The destructive colour
+is asserted too, since `styleFrom` resolves against the theme and a dropped
+`foregroundColor` is invisible to any presence check.
+
+**10.12's guard rails: the last-super-admin check is near-redundant, and the
+reason is worth having.** Banning self-deletion does make "no super-admins
+left" unreachable — the deleter always survives, so the count bottoms out at
+one. But it is only airtight if "may delete users" implies "is a super-admin",
+and today it does not: `isSuperAdmin` is `VIEW_USERS_GLOBAL`
+(`MainLayout.tsx:10`) while the delete button is gated on
+`MANAGE_USERS_GLOBAL || MANAGE_USERS_ORGANIZATION` (`UserList.tsx:25`). A user
+holding only the org-scoped manage permission can delete users without being a
+super-admin, and so can remove the last one. Recorded on the task with both
+ways to close it; the cheaper is gating the route on `VIEW_USERS_GLOBAL`. Worth
+resolving there rather than when someone implements the route, because the
+reasoning is not visible from the Kotlin.
+
+**Files added:** `lib/widgets/responsive_list_view.dart`,
+`lib/widgets/confirm_dialog.dart`,
+`lib/screens/customers/customer_list_screen.dart`,
+`lib/providers/customer_list.dart`, `test/responsive_list_view_test.dart`,
+`test/customer_list_screen_test.dart`, `test/confirm_dialog_test.dart`.
+**No new packages.**
+
+**Not verified in a browser.** The list was exercised by widget tests on both
+VM and Chrome; nobody has looked at it at three widths against the live
+backend. Task 3.12's precedent says that pass finds what widget tests cannot,
+and this is the largest responsive surface built so far.
+
+---
+
+### 2026-10-14 — Phase 4 browser pass (task 4.4's first real use), and two more tasks
+
+**The list was run in a browser against the live backend.** Three of the twelve
+things on the checklist came back, and one of them was not on the list: the
+table is broken for real data, and the row hover shifts.
+
+**`IntrinsicColumnWidth` built a 3915px-wide table.** With a realistic address
+and a realistic note, each column sized itself to its content and the notes
+column ended up 3900px to the right of the name — off screen, behind a
+horizontal scrollbar. My fixtures use `"Acme"` and `""`, so no widget test could
+have seen it. Fixed with flex column widths and **no horizontal scroll view**,
+which is the part worth remembering: the scroll view handed the table an
+*unbounded* width, which flex columns cannot divide. A fixed-size table and a
+flexible one are opposites, and the second is what a data table in a bounded
+pane wants. Bootstrap's `table-responsive` was the target behaviour, minus the
+scrolling — and the scrolling was only ever reachable *because* the widths were
+intrinsic.
+
+**The name column was centred, not left-aligned.** Caught in a screenshot, and
+it is the one defect there that no argument about capture points can explain
+away: "City Park" sat further right than "Jones Corporation" because
+`RenderTable` hands every cell a **tight** width — the whole column — and
+`TextButton` centres its label by default. Every other column is a `Text`, which
+is left-aligned, which is why only this one looked wrong. Worth knowing as a
+general rule for this widget: a cell's own alignment decides where its content
+sits, and the column width no longer does.
+
+**The actions column grew 8px on hover, and the row height is very likely the
+same bug.** `_actionsWidth` was 96; two `IconButton`s and their padding need
+104, so the column widened when the actions appeared. Fixed, and the cell is now
+pinned to a fixed height in **both** states rather than relying on the button
+happening to be 48dp today.
+
+**The vertical shift is reported from the browser and I could not reproduce it
+in a test — stated plainly rather than papered over.** Comparing text positions
+before and after hover shows nothing, on the VM and on Chrome, in the real
+screen. I then pinned the *row pitch* (the distance between two rows, and the
+gap between the header and the first row) instead, on the theory that a changing
+row *band* moves a row's text and the row below together, so both rects stay
+consistent while the gap above grows and the gap below shrinks — which is
+exactly what the screenshots show. **I then reverted the fix and the new
+assertions still passed**, so the row pitch is a useful invariant to keep and a
+regression guard for the future, but it is *not* evidence that the browser's
+shift is fixed. Two things are needed to close it: a rebuild and a re-check, and
+if it persists, the window width and browser zoom — the harness's geometry
+differs from the browser's in some way I have not identified, and guessing at it
+again would be the third wrong theory in a row.
+
+**The name link is a dead link, and it is dead in the React app too.** Given
+**10.20**, as a screen to build. I asserted from the file listing that no
+`CustomerDetails` component had ever existed, and that turned out to be right
+but was not the whole answer, so it is worth recording how it was settled.
+
+**Two people asserted opposite things and the history settled it, which is the
+only reason either claim was worth having.** The claim was that the screen had
+been there as a read-only rendering of the edit form's fields. Four checks say it
+never was: no occurrence of `CustomerDetail` in `frontend/src`, zero commits
+matching `customers/:` across `--all`, no file ever added/deleted/renamed
+matching `*CustomerDetail*`, and an all-time file list for "customer" that comes
+back as three components and an API service.
+
+**The reason the recollection was so reasonable, and the reason this is worth more
+than a dead link: two documents in the repo still promise the screen.**
+`CustomerList.tsx:78` links to it, and `GEO_FEATURES_PLAN.md:80` — still in the
+repository today — lists *"Add `MapDisplay` to `EventDetails` and `CustomerDetails`"*
+as a geocoding task. So the geocoding plan has an open item that cannot be done,
+and it will keep reading as though it can. `StaffDetails` is the same shape of
+thing (planned surface, DTO field, no storage — 10.13), and the same plan
+document assumes it.
+
+**The real cost of the missing screen is not the link, it is that
+`GET /api/events` cannot filter by customer.** The intended page is the
+customer's past and future events; `EventRoutes.kt` takes `search`, `sortBy`,
+`sortOrder`, `limit`, `offset` and no `customerId`, and neither does `EventDao`.
+So 10.20 is a backend task wearing a screen task's clothes, and it is scheduled
+in Phase 10 for that reason. Recording it here because the plan had no task for
+this screen at all — not the screen, not the query parameter behind it — and the
+only reason anyone noticed is that someone clicked a name in a browser.
+
+**A comment of mine cited a line that does not say what I claimed.** I had
+written that `App.tsx:47` declares `/customers/:customerId`. It does not, and
+line 47 is an events route. Corrected at the point of use. It is the failure
+mode task 10.8 warns about — a citation that looks followable and is not — and
+it reached the file from me rather than from the React source, which is the part
+worth remembering. Everything in these comments is now either verified by grep
+this session or explicitly marked as a guess.
+
+**Deleting a customer 500s once it has an event, and it is now task 10.19.**
+`fk_events_customer_id__id` is `NO ACTION` and `deleteCustomer` hard-deletes.
+Given **10.19** as soft delete, with the reasoning written down: events are
+business records, a customer is a reference, and nothing should rewrite the
+past. The load-bearing part is not the flag — it is that `CustomerDao` has five
+read paths and **the one that resolves a customer's name inside an event
+response must not apply the filter**, or every historical event silently loses
+its customer. The client needs no change at all, which is the main argument for
+soft delete over returning a 409.
+
+**What this pass is worth as a number.** Of the twelve checks, three found
+defects — one severe (3915px table), one cosmetic but visible (centred names),
+one unreproduced but pinned. Task 3.12's argument for a real-browser pass is now
+a measurement rather than an opinion: widget tests could not have caught any of
+these, and the one they *could* catch (the hover growth) I would have shipped
+without it.
+
+**The row heights are stable in the browser, which settles what the tests could
+not.** `_rowHeight` pins the actions cell in both hover states, and the fix
+works — but the pitch assertion written to prove it **passed on the reverted
+code too**, so the test never had the geometry to catch it. Two tests that
+cannot fail on the bug are worse than no test, and the honest account is that a
+human looking at it is what closed this one. The assertion stays as a guard, not
+as evidence.
+
+**One new finding, filed as 4.14 rather than fixed.** Typing in the filter blinks
+the table header: a new query replaces the whole card with a spinner, header
+included. The React original left the previous rows up until the response
+arrived. Judged tolerable by hand and deferred with the three options written
+down, because the debounce already reduces it to once per pause.
+
+**Two browser checks still outstanding** from the original list: the debounce
+under real typing, and a long list's scroll behaviour. Both are cheap and both
+are the kind of thing that only misbehaves with real data.

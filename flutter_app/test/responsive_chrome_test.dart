@@ -8,6 +8,7 @@ import 'package:teven_app/providers/organization_controller.dart';
 import 'package:teven_app/routing/app_router.dart';
 
 import 'support/auth_harness.dart';
+import 'support/stub_adapter.dart';
 
 /// The responsive chrome — tasks 3.1 through 3.11 and 3.13.
 ///
@@ -43,6 +44,18 @@ void main() {
     viewUsersOrg,
   ];
 
+  /// An empty `GET /api/customers` page.
+  ///
+  /// Answered because `/customers` is a real screen since task 4.4, and these
+  /// tests navigate there to check the nav highlight and the drawer's close.
+  /// Without it the harness answers 401, the client raises
+  /// `UnauthorizedException`, and the single-flight redirect signs the test out
+  /// — the same trap the harness documents for `/api/organizations`, one screen
+  /// along.
+  StubResponse emptyCustomerPage() => const StubResponse.json(
+    '{"success":true,"data":{"items":[],"total":0,"limit":25,"offset":0}}',
+  );
+
   Future<ProviderContainer> pumpAt(
     WidgetTester tester,
     double width, {
@@ -53,7 +66,11 @@ void main() {
     width: width,
     token: 'token',
     prefs: prefs,
-    adapter: contextAdapter(permissions: permissions),
+    adapter: contextAdapter(
+      permissions: permissions,
+      forOtherRoutes: (options) =>
+          options.path == '/api/customers' ? emptyCustomerPage() : null,
+    ),
   );
 
   /// Opens the mobile drawer and settles.
@@ -204,7 +221,10 @@ void main() {
       );
 
       await tester.tap(find.text('Customers'));
-      await tester.pumpAndSettle();
+      // `settleRequests` rather than `pumpAndSettle`: `/customers` fetches on
+      // arrival, and settling against its progress indicator never finishes on
+      // web. See the note on the helper.
+      await settleRequests(tester);
 
       expect(currentPath(container), AppRoutes.customers);
     });
@@ -220,7 +240,7 @@ void main() {
       await openDrawer(tester);
 
       await tester.tap(find.text('Customers'));
-      await tester.pumpAndSettle();
+      await settleRequests(tester);
 
       expect(currentPath(container), AppRoutes.customers);
       // Closing first and navigating second — the other order leaves the

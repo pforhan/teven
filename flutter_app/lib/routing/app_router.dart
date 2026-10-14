@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../models/permissions.dart';
 import '../providers/auth_controller.dart';
 import '../screens/accept_invitation_screen.dart';
+import '../screens/customers/customer_list_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/placeholder_screen.dart';
 import '../widgets/app_shell.dart';
@@ -47,6 +48,26 @@ abstract final class AppRoutes {
 
   static const String login = '/login';
   static const String register = '/register';
+
+  /// A concrete link to a customer's detail page.
+  ///
+  /// **There is no such route — in this app or in the React original.**
+  /// `App.tsx` declares only `customers`, `customers/create` and
+  /// `customers/edit/:customerId`; `frontend/src/components/customers/` has no
+  /// `CustomerDetails` component at all, and `CustomerList.tsx:78` links to a
+  /// path that matches nothing. The `*` catch-all (`App.tsx:67`) redirects to
+  /// `/`, whose index route redirects to `/events`. That is why clicking a
+  /// customer's name lands on the calendar.
+  ///
+  /// Reproduced rather than fixed, because parity is the rule through Phase 8
+  /// and this is a dead link that predates the port rather than a regression
+  /// introduced by it. Recorded in the discrepancy table with an owning task,
+  /// since the screen it implies is missing from the plan entirely.
+  static String customerDetails(int customerId) => '/customers/$customerId';
+
+  /// A concrete link to the edit form for one customer.
+  static String customerEditPath(int customerId) =>
+      customerEdit.replaceFirst(':customerId', '$customerId');
 
   /// Where a signed-in user lacking a permission is sent.
   ///
@@ -257,7 +278,7 @@ List<RouteBase> _shellRoutes(Ref ref) => [
 
   _guarded(ref, AppRoutes.customers, [
     Permission.viewCustomersOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.customers)),
+  ], (_) => const CustomerListScreen()),
   _guarded(ref, AppRoutes.customerCreate, [
     Permission.manageCustomersOrganization,
   ], (_) => const PlaceholderScreen.route(AppRoutes.customerCreate)),
