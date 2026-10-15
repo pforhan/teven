@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +13,10 @@ import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/debounced_search_field.dart';
 import '../../widgets/error_display.dart';
+import '../../widgets/list_screen_header.dart';
+import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
 /// The customer list.
@@ -41,22 +42,6 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   /// `CustomerList.tsx:27` — `getAllCustomers(25, 0, ...)`.
   static const int _pageLimit = 25;
 
-  /// How long typing has to pause before the list is re-queried.
-  ///
-  /// **Deliberate, where the React original was not.** `useState` on the search
-  /// box fed straight into `useCallback`'s dependency list, so every keystroke
-  /// cancelled and reissued a request. Nothing debounced that, and nothing
-  /// cancelled the superseded request either, so typing "Globex" fired seven
-  /// searches and raced seven responses into the same `setCustomers`.
-  ///
-  /// 300ms is the conventional figure and is short enough to feel immediate
-  /// while still collapsing a word into one request. Task 9.6 is where the
-  /// cancellation side gets its own treatment.
-  static const Duration _searchDebounce = Duration(milliseconds: 300);
-
-  final TextEditingController _search = TextEditingController();
-  Timer? _debounce;
-
   String _searchTerm = '';
   String _sortBy = 'name';
   SortOrder _sortOrder = SortOrder.asc;
@@ -68,21 +53,6 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   /// rendered it through `TableView`. Here the fetch's error lives in the
   /// provider, so only the mutation's needs a field.
   ApiException? _actionError;
-
-  @override
-  void dispose() {
-    // A pending debounce would otherwise fire into a disposed state.
-    _debounce?.cancel();
-    _search.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged(String value) {
-    _debounce?.cancel();
-    _debounce = Timer(_searchDebounce, () {
-      if (mounted) setState(() => _searchTerm = value);
-    });
-  }
 
   /// `CustomerList.tsx:50-56`: re-tapping the active column reverses it, and a
   /// different column starts ascending.
@@ -134,7 +104,11 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       key: 'name',
       label: 'Name',
       sortable: true,
-      render: (context, customer) => _CustomerLink(customer: customer),
+      render: (context, customer) => RecordLinkButton(
+        label: customer.name,
+        onPressed: () =>
+            context.go(AppRoutes.customerDetails(customer.customerId)),
+      ),
     ),
     ListColumn<CustomerResponse>(
       key: 'phone',
@@ -179,38 +153,22 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Customers',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                if (canManage)
-                  FilledButton.icon(
-                    onPressed: () => context.go(AppRoutes.customerCreate),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Create Customer'),
-                  ),
-              ],
+            ListScreenHeader(
+              title: 'Customers',
+              action: canManage
+                  ? FilledButton.icon(
+                      onPressed: () => context.go(AppRoutes.customerCreate),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Customer'),
+                    )
+                  : null,
             ),
             const SizedBox(height: 16),
-            // `col-md-6` in the original, and a fixed `width: 250px` on the
-            // event calendar's search box — task 9.2 is the pass that revisits
-            // fixed widths. A bounded box beats both: it stops the field
-            // stretching across a 4K window and stays usable at 500px.
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: TextField(
-                controller: _search,
-                onChanged: _onSearchChanged,
-                decoration: const InputDecoration(
-                  labelText: 'Search',
-                  hintText: 'Search by name...',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                ),
-              ),
+            // The debounce from task 4.10 lives with the field, not here —
+            // see `DebouncedSearchField` for why every list screen gets the
+            // same one rather than its own copy of the timer.
+            DebouncedSearchField(
+              onChanged: (value) => setState(() => _searchTerm = value),
             ),
             const SizedBox(height: 16),
             if (actionError != null) ...[
@@ -262,36 +220,4 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       ),
     );
   }
-}
-
-/// The customer's name, linking to their detail page.
-///
-/// `CustomerList.tsx:78` wrapped the name in a react-router `<Link>`; here a
-/// zero-padding [TextButton] in the link colour. A recognizer span would be
-/// wrong here — this is a cell, not a sentence, and a span has no way to be
-/// pressed, focused, or reached by tab.
-class _CustomerLink extends StatelessWidget {
-  const _CustomerLink({required this.customer});
-
-  final CustomerResponse customer;
-
-  @override
-  Widget build(BuildContext context) => TextButton(
-    style: TextButton.styleFrom(
-      foregroundColor: Theme.of(context).colorScheme.primary,
-      padding: EdgeInsets.zero,
-      minimumSize: const Size(48, 32),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      // **Load-bearing, and it was not obvious.** `RenderTable` hands every
-      // cell a *tight* width — the full column — so a cell widget decides for
-      // itself where its content sits, and `TextButton` centres its label by
-      // default. With the column sized to its content, that put "City Park" in
-      // the middle of the name column while "Jones Corporation" sat at its left
-      // edge, so the names looked raggedly indented. Every other column is a
-      // `Text`, which is left-aligned, which is why only this one looked wrong.
-      alignment: Alignment.centerLeft,
-    ),
-    onPressed: () => context.go(AppRoutes.customerDetails(customer.customerId)),
-    child: Text(customer.name),
-  );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/services/list_query.dart';
+import '../models/common.dart';
 import '../models/organization.dart';
 import 'service_providers.dart';
 
@@ -31,3 +32,17 @@ final organizationListProvider = FutureProvider<List<OrganizationResponse>>((
 final organizationsProvider = Provider<List<OrganizationResponse>>(
   (ref) => ref.watch(organizationListProvider).value ?? const [],
 );
+
+/// One page of organizations, keyed by the query that produced it.
+///
+/// Separate from [organizationListProvider] because the two want different
+/// things from the same endpoint. The switcher wants *all* of them and settles
+/// for 1000; the list screen wants the 25 the React original asked for, sorted
+/// and filtered, and re-queries on every keystroke of its search box. One
+/// provider for both would either cap the switcher at 25 or give the list
+/// screen the whole table every time someone typed a letter.
+final organizationPageProvider = FutureProvider.autoDispose
+    .family<PaginatedResponse<OrganizationResponse>, ListQuery>(
+      (ref, query) =>
+          ref.watch(organizationServiceProvider).getAllOrganizations(query),
+    );

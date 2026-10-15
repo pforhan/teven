@@ -241,10 +241,10 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [x] **4.2** Reproduce hover-revealed row actions. `TableView.tsx:17-18` exposes `onRowMouseEnter`/`onRowMouseLeave` purely so buttons appear on hover, across 6 call sites. On mobile use always-visible trailing actions or a long-press menu; **web may keep hover** behind a `kIsWeb` branch.
 - [x] **4.3** Reproduce hover tooltips (`OverlayTrigger` in 5 files). Same `kIsWeb` treatment; use `Semantics` labels for accessibility on native.
 - [x] **4.4** Port `CustomerList` (134 lines): search, paginated table, create/edit/delete.
-- [ ] **4.5** Port `InventoryList` (144 lines). Note `GET /api/inventory/{id}` embeds an **unpaginated** `events` list — cap display client-side. Delete uses `confirmDestructiveAction` (4.8), not a dialog written here.
-- [ ] **4.6** Port `OrganizationList` (134 lines), gated on `VIEW_ORGANIZATIONS_GLOBAL`. Delete uses `confirmDestructiveAction` (4.8).
+- [x] **4.5** Port `InventoryList` (144 lines). **Done** — search, sort by name or quantity, create, delete. The `events` list is capped at 3 per row with a `+N more` count, and that cap is the one place this screen is not a transcription: `InventoryDao.toInventoryItemResponse` selects *every* `EventInventory` row for an item, so the list is unpaginated on `GET /api/inventory` too, not only on `GET /api/inventory/{id}`. Delete uses `confirmDestructiveAction` (4.8). The server-side N+1 behind it is **10.21**.
+- [x] **4.6** Port `OrganizationList` (134 lines), gated on `VIEW_ORGANIZATIONS_GLOBAL`. **Done**, including the one thing that is *not* shared with the other two lists: this screen is deliberately **not** scoped to the selected organization. Delete uses `confirmDestructiveAction` (4.8).
 - [ ] **4.7** Port `UserList` (264 lines) — the largest list screen. Includes role display and sort controls. **Two** delete flows (`UserList.tsx:79,94`), both via `confirmDestructiveAction` (4.8); the user one still calls an endpoint that does not exist (10.12).
-- [x] **4.8** Port the 6 `window.confirm` delete flows as async dialogs (`CustomerList.tsx:60`, `InventoryList.tsx:60`, `OrganizationList.tsx:51`, `UserList.tsx:79,94`, plus events in Phase 7). **Done as one shared widget rather than six dialogs** — `confirmDestructiveAction` in `lib/widgets/confirm_dialog.dart`, used by the customer screen and available to the other five. Ticked with 1 of 6 wired, because the wiring is not separate work: it is a call each screen makes while being ported, and 4.5, 4.6, 4.7 and 7.6 are already open for that. **Each of those four tasks carries the obligation to use the shared dialog** — a closed task is a claim nobody re-reads, and a hand-rolled fourth dialog would be silent. The *consequence* of a confirmed delete (refetch vs redirect) stays at the call site in every case, because `UserList.tsx:94` deletes an invitation and `EventDetails.tsx:49` navigates away.
+- [x] **4.8** Port the 6 `window.confirm` delete flows as async dialogs (`CustomerList.tsx:60`, `InventoryList.tsx:60`, `OrganizationList.tsx:51`, `UserList.tsx:79,94`, plus events in Phase 7). **Done as one shared widget rather than six dialogs** — `confirmDestructiveAction` in `lib/widgets/confirm_dialog.dart`, used by the customer, inventory and organization screens. Ticked with 3 of 6 wired, because the wiring is not separate work: it is a call each screen makes while being ported, and 4.7 and 7.6 are already open for that. **Each of those two tasks carries the obligation to use the shared dialog** — a closed task is a claim nobody re-reads, and a hand-rolled fourth dialog would be silent. The *consequence* of a confirmed delete (refetch vs redirect) stays at the call site in every case, because `UserList.tsx:94` deletes an invitation and `EventDetails.tsx:49` navigates away.
 - [ ] **4.9** Port pagination controls against offset/limit. Per-endpoint default limits vary (10 or 1000) — verify each. **Premise did not hold — no work needed.** `grep` finds no pagination control in any React list: all four fetch a single fixed page (`CustomerList.tsx:27` uses `25, 0`) and none can reach the rest. There is nothing to port. Whether to *add* paging is a product decision, not a porting one, and it is not recorded as a task.
 - [x] **4.10** Port the search-debounce pattern. The React lists use plain `useState`; pick a deliberate debounce and note the interval.
 - [ ] **4.11** Verify sort controls against each endpoint. **`sortBy` is silently ignored on `/api/events`**, and `GET /api/events` defaults `sortOrder` to `asc`.
@@ -256,7 +256,7 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 
   Deferred because the debounce already collapses a burst into one request, so the flicker is once per pause rather than once per keystroke, and the user judged it acceptable in a browser. Options 1 and 3 are not mutually exclusive; do 1 first and 3 only if the flash is still objectionable once the list is stale-but-visible.
 
-- [ ] **4.13** Widget test for the truncated `events` list on an inventory row — 4.12's third case, held back because it needs `InventoryList` (4.5). Rides with that task.
+- [x] **4.13** Widget test for the truncated `events` list on an inventory row — 4.12's third case, held back because it needs `InventoryList` (4.5). Rides with that task. **Done with 4.5** — four cases in `inventory_list_screen_test.dart`: never used, all shown under the cap, truncated with a `+N more` count, and the cap applied **per row** rather than across the list.
 
 ---
 
@@ -598,6 +598,21 @@ Once the Flutter web app is verified working locally against the real backend. T
 
 ---
 
+- [ ] **10.21** **Stop `GET /api/inventory` embedding an unbounded `events` list per row.** Found while porting the inventory list (4.5). `InventoryDao.getInventoryItems` builds every row through `toInventoryItemResponse`, which does a second `selectAll` on `EventInventory` for that item with **no `limit`, no `offset` and no filter** — so a list of 25 items is 26 queries, and a heavily-used item brings back every event that has ever drawn on it.
+
+  Two consequences, and only the second one is visible to a user. The **N+1** is a performance problem that no test and no screenshot will report. The **unbounded payload** is a correctness one: the port has to truncate at the client (`maxEventsShown`, 4.5) because there is no server-side way to ask for fewer, so the count a user sees is a number the client invented.
+
+  Options, in increasing order of effort:
+  1. **Return a count instead of a list** on the list endpoint — an `eventCount` per item, with the full list kept on `GET /api/inventory/{id}` for whoever needs it. This is the shape the list screen actually wants, and it makes the client's truncation disappear rather than become a permanent workaround.
+  2. **Paginate `events`** within `InventoryItemResponse`. Preserves the current shape and costs a nested envelope; a page of events inside a page of items is awkward to consume.
+  3. **Batch the lookup** — one `where { EventInventory.inventoryItemId inList ids }` rather than one per row — and leave the list unbounded. Fixes the N+1 only, and leaves the payload problem.
+
+  Whatever is chosen, check the callers before narrowing the response: `getInventoryItemsForEvent` and `getAllInventoryItemsByOrganization` share `toInventoryItemResponse`, so changing it changes three endpoints at once.
+
+  Verify after: a request for 25 items issues a constant number of queries, and the client's `maxEventsShown` truncation is either gone or no longer load-bearing.
+
+---
+
 ## Phase 11 — Native packaging (deferred, not required for cutover)
 
 Additive: the web app keeps working unchanged. Only do this once web is stable and signing is arranged.
@@ -662,6 +677,8 @@ Documented here so task 10.6 can address them. **Do not fix these during the por
 | **18 of 33 server permissions are unreachable from the client** | `core/security/Permission.kt` defines 33; `src/types/permissions.ts` declares only 15. The `*_GLOBAL` variants beyond the two org ones, plus `MANAGE_ROLES_*`, `ASSIGN_*`, `CAN_ASSIGN_*`, `MANAGE_USERS_SELF` | **10.16** |
 | **`DELETE /api/customers/{id}` returns 500 when the customer has any event** | `CustomerDao.deleteCustomer` hard-deletes; `Events.customerId` is `.nullable()` with no `onDelete`, so the FK is `NO ACTION`. Observed: `violates foreign key constraint "fk_events_customer_id__id"`, surfacing as a 500 with a stack trace. Invisible to any customer with no events | **10.19** |
 | **No customer details screen exists — the link is dead in the React app too** | `CustomerList.tsx:78` links to `/customers/{id}`; `App.tsx` declares only `customers`, `customers/create`, `customers/edit/:customerId`, and `components/customers/` has no `CustomerDetails`. The `*` catch-all redirects to `/events`. Ported faithfully, so the port reproduces the dead link | **10.20** |
+| **`GET /api/inventory` embeds an unbounded `events` list per row, via a query per row** | `InventoryDao.toInventoryItemResponse:29` selects *all* of `EventInventory` for the item — no `limit`/`offset`/filter — and `getInventoryItems:83` calls it per row, so a 25-item page is 26 queries. Found while porting the inventory list; the plan's own note that this was a property of `GET /api/inventory/{id}` was **wrong** — the list endpoint does it too | **10.21** |
+| **The inventory and organization name links are dead, as the customer one is** | `InventoryList.tsx:78` → `/inventory/{id}` and `OrganizationList.tsx:80` → `/organizations/{id}`; `App.tsx:53-60` declares neither. Same defect as the row above, in two more screens | **10.20** (all three screens, or none) |
 | **Seeded users cannot log in — `TestDataProvider` writes a plaintext password** | `TestDataProvider.kt` set `it[passwordHash] = "password"` and the column is `users.password`. `BCrypt.checkpw("password", "password")` throws `IllegalArgumentException: Invalid salt version`, which `AuthServiceImpl.loginUser` did not catch — so **every seeded login answered HTTP 500 with a stack trace**, not 401. Found during task 3.12's verification attempt; the seeded `alice`/`bob`/`charlie`/`diana` accounts were unreachable until the seed stored a real hash | **10.18** ✅ |
 ---
 
@@ -1649,3 +1666,148 @@ down, because the debounce already reduces it to once per pause.
 **Two browser checks still outstanding** from the original list: the debounce
 under real typing, and a long list's scroll behaviour. Both are cheap and both
 are the kind of thing that only misbehaves with real data.
+
+---
+
+### 2026-10-14 — Phase 4, tasks 4.5, 4.6 and 4.13 (the other two list screens)
+
+**Done.** `InventoryList` at `/inventory` and `OrganizationList` at
+`/organizations`, 29 widget tests — plus one added to the customer screen to
+pin the header fix below. 175 pass on the VM, up from 145; Chrome
+is unchanged at its 9 pre-existing failures. `flutter analyze` and
+`dart format`
+clean.
+
+**Two tasks rather than one, because they are the same 144 lines of React
+written twice.** `InventoryList.tsx` and `OrganizationList.tsx` differ in the
+columns and the permission and in almost nothing else — same search box, same
+sort handler, same hover state, same `window.confirm`. Porting them together is
+also what made the *differences* visible; each is listed below.
+
+**The third list screen was the cheapest place to notice that three widgets had
+become copy-paste, so they stopped being it.** `DebouncedSearchField` now owns
+the controller, the timer and the disposal that the customer screen had;
+`RecordLinkButton` owns the name-link cell; `ListScreenHeader` owns the heading
+and the primary action. Before this the customer screen held a ~40-line block
+whose only content was a `Timer` and a `dispose` that cancels it, and a second
+copy of the header's `Row`; a third screen would have made both three. The
+customer screen's doc comment about task 4.10 did not go with them — it moved
+to the widget, which is where the next screen will look.
+
+**The inventory screen is the one place in Phase 4 that is a redesign rather
+than a transcription, and the plan's own note about it was half right.**
+Task 4.5 said `GET /api/inventory/{id}` embeds an unpaginated `events` list.
+True, and also incomplete: `InventoryDao.getInventoryItems` builds every row
+through the same `toInventoryItemResponse`, so **`GET /api/inventory` does it
+too** — one extra query per row, unbounded results. `InventoryList.tsx:97-103`
+rendered all of them, so a heavily-used item produced a table row hundreds of
+lines tall. The port caps at three and shows `+N more`. The cap is honest about
+being a workaround: there is no server-side way to ask for fewer, so the number
+the user sees is one the client invented. Filed as **10.21** with three options,
+cheapest first, and the load-bearing note that `toInventoryItemResponse` has
+three callers so changing it changes three endpoints.
+
+**The organization screen is the only list in the app that is *not* scoped to
+the selected organization, and a copy of either other screen would have gotten
+that wrong.** `CustomerList.tsx:32` and `InventoryList.tsx:32` both pass
+`selectedOrganization?.organizationId` to narrow the result; applying the same
+line here would show a super-admin one organization instead of all of them, on
+the one screen whose entire job is listing them. So its query sends
+`OrganizationList.tsx:26-31`'s five parameters and no organization, and there is
+a test whose only assertion is that the parameter is *absent* — `screenRequests`
+filters on `limit == 25` to tell the screen's request from the chrome's
+`limit == 1000` one.
+
+**The mobile test found a layout bug the desktop tests could not, and it was
+three bugs, two of them invisible.** The heading-and-create-button header was a
+`Row` in all three screens, which is the obvious reading of the React
+`d-flex justify-content-between`. At 500px the organization header overflowed
+**by 178 pixels** — "Create Organization" is a long label and a `Row` has
+nowhere to put it. The customer screen's "Create Customer" fits, and the
+inventory screen's "Create Item" fits better still, so the defect was present in
+three places and observable in one. That is the argument for the fix being a
+widget rather than a pattern, so `ListScreenHeader` now owns it and the `Wrap`
+inside it makes the header stack instead of clip. The customer screen gained a
+mobile test in this commit, so its fix is not resting on the other two screens
+having found it.
+
+**The organization screen's tests could not reach its own endpoint, and the
+failure was silent.** `contextAdapter` answers `/api/organizations` for the
+chrome's super-admin switcher by path, *before* `forOtherRoutes` is consulted,
+so the first version of the test stubbed the screen's requests through
+`forOtherRoutes` and watched the screen render the harness's own two canned
+organizations — including in the case that stubs a **failure**, which then
+rendered nothing at all and no error either. The stub looked like it was
+working. `contextAdapter` grew an `organizationsResponder` that is consulted
+first, which is a harness gap of exactly the kind the Phase 4 log already
+records once (`settleRequests` needing both halves of its loop).
+
+**Two of the three screens' detail links are dead in the React app, and now all
+three are documented as such rather than discovered one at a time.**
+`InventoryList.tsx:78` links to `/inventory/{id}` and `OrganizationList.tsx:80`
+to `/organizations/{id}`; `App.tsx:53-60` declares neither. Same defect as the
+customer link that task 10.20 owns, so the discrepancy table now has one row
+covering all three and 10.20 is scoped accordingly — building one detail screen
+out of three dead links is the same work as building one.
+
+**The two screens together bring 4.8 to 3 of its 6 wired, and nothing about
+the dialog changed.** Each screen calls `confirmDestructiveAction` and keeps
+only its own consequence: both refetch after a confirmed delete
+(`InventoryList.tsx:63`, `OrganizationList.tsx:54`), which is a provider
+invalidation rather than the React `fetchInventoryItems()` call. What remains
+open is 4.7 (two flows, one of which deletes an invitation that must outlive
+its user) and 7.6 (a delete that navigates away instead of refetching).
+
+**Two ports of the search box and no new package.** `DebouncedSearchField`
+carries the 300ms interval and the reasoning, unchanged from the customer
+screen's comment; the debounce itself is already pinned by the customer tests,
+which now exercise the shared widget rather than the screen's private copy.
+
+**Verified in a browser against the live backend**, via `./teven up`, both
+screens at mobile and desktop widths. What it confirmed:
+
+- **The header overflow is fixed.** The organization header stacks rather than
+  clipping. Worth recording that the *test* found this and the browser only
+  agreed — the reverse of the customer list, where the browser found three
+  defects no test could see. Both directions have now happened, which is the
+  honest summary of what each is good for.
+- **The dead name links reproduce exactly as documented.** Clicking an
+  inventory or organization name lands on `/events`, via the `*` catch-all,
+  which is what `AppRoutes.inventoryDetails` and
+  `AppRoutes.organizationDetails` claim on their doc comments. The customer
+  link's behaviour was *inferred* from `App.tsx` when **10.20** was written;
+  this is the same defect confirmed by hand in the two screens ported since, in
+  the same session, on the same app. Three links, one cause, and the third
+  confirms the first two were not a misreading of a single file.
+- **Edit shows the placeholder with the right path** — `/inventory/edit/12`,
+  `/organizations/edit/3` — so the routes resolve, the parameter is extracted,
+  and `ListScreenHeader`'s buttons are wired to the right placeholders. Phase 5
+  replaces the placeholder; nothing about it is wrong today.
+- **Search and filter feel right**, and the debounce behaves as designed under
+  real typing. That closes the one check the customer list's browser pass left
+  outstanding and still open in its entry.
+
+**Long-list scroll behaviour is still unverified, and is being left that way.**
+It was outstanding on the customer list and remains outstanding on both screens
+here. Deferred rather than overlooked: it needs a table with enough rows to
+scroll, which means seeding data, and nothing so far misbehaves without it. It
+is not a task, because nothing is broken yet and Phase 9's mobile pass
+(9.10) is the natural place to pick it up.
+
+**One item from that list is worth promoting while the context is fresh: the
+inventory `+N more` cap is the only thing on these two screens with no React
+original to compare against.** A real item with a long event history is the
+data that would say whether three is enough or looks arbitrary. Widget tests
+say three events render and four are counted; they cannot say three *reads* as
+the right number.
+
+**Files added:** `lib/screens/inventory/inventory_list_screen.dart`,
+`lib/screens/organizations/organization_list_screen.dart`,
+`lib/providers/inventory_list.dart`,
+`lib/widgets/debounced_search_field.dart`, `lib/widgets/record_link_button.dart`,
+`lib/widgets/list_screen_header.dart`,
+`test/inventory_list_screen_test.dart`, `test/organization_list_screen_test.dart`.
+**Files changed:** `customer_list_screen.dart` (shared widgets), `app_router.dart`
+(two routes and three path helpers), `organization_list.dart` (a paged provider
+beside the switcher's), `test/support/auth_harness.dart` (`organizationsResponder`).
+**No new packages.**

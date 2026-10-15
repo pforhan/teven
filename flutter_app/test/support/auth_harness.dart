@@ -52,16 +52,30 @@ String userContextJson({List<String> permissions = const []}) => jsonEncode({
 /// Returning null from it falls through to the 401, so a test can leave the
 /// paths it does not care about unauthorized and catch an accidental call to
 /// one of them.
+///
+/// [organizationsResponder] overrides the canned `/api/organizations` page.
+/// It exists because **the organization list screen cannot be tested through
+/// [forOtherRoutes]**: the branch above matches on path alone, so it claims
+/// that path before `forOtherRoutes` is ever consulted. The first version of
+/// `organization_list_screen_test.dart` learned that the hard way — the screen
+/// rendered the harness's two canned organizations, and a stubbed *failure* on
+/// its endpoint had no effect at all. It receives the query string so a caller
+/// can tell the chrome's `limit=1000` request from the screen's `limit=25`.
 StubAdapter contextAdapter({
   List<String> permissions = const [],
   String token = 'token',
   List<String> organizationNames = const ['Acme', 'Globex'],
+  StubResponse Function(String? query)? organizationsResponder,
   StubResponse? Function(RequestOptions options)? forOtherRoutes,
 }) => StubAdapter((options) {
   if (options.path == '/api/users/context') {
     return StubResponse.json(userContextJson(permissions: permissions));
   }
   if (options.path == '/api/organizations') {
+    final responder = organizationsResponder;
+    if (responder != null) {
+      return responder(options.uri.query);
+    }
     return StubResponse.json(
       jsonEncode({
         'success': true,

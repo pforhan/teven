@@ -210,7 +210,7 @@ cmd_build() {
 # mode we never return to the prompt, so there is nowhere to put the browser.
 maybe_open() {
   local open_app="$1" foreground="$2" dry_run="$3"
-  local url="https://localhost:$(app_port)"
+  local url="http://localhost:$(app_port)"
 
   if [ "$open_app" -eq 0 ]; then
     printf '\n==> App: %s\n' "$url"

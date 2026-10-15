@@ -8,7 +8,9 @@ import '../models/permissions.dart';
 import '../providers/auth_controller.dart';
 import '../screens/accept_invitation_screen.dart';
 import '../screens/customers/customer_list_screen.dart';
+import '../screens/inventory/inventory_list_screen.dart';
 import '../screens/login_screen.dart';
+import '../screens/organizations/organization_list_screen.dart';
 import '../screens/placeholder_screen.dart';
 import '../widgets/app_shell.dart';
 
@@ -38,6 +40,29 @@ abstract final class AppRoutes {
   static const String organizations = '/organizations';
   static const String organizationCreate = '/organizations/create';
   static const String organizationEdit = '/organizations/edit/:organizationId';
+
+  /// A concrete link to an inventory item's detail page.
+  ///
+  /// **There is no such route**, for the same reason there is no
+  /// [customerDetails] screen: `App.tsx:53-55` declares only `inventory`,
+  /// `inventory/create` and `inventory/edit/:inventoryId`, and
+  /// `InventoryList.tsx:78` links to a path that matches nothing. Reproduced
+  /// rather than fixed, on the same terms — see the discrepancy table.
+  static String inventoryDetails(int inventoryId) => '/inventory/$inventoryId';
+
+  static String inventoryEditPath(int inventoryId) =>
+      inventoryEdit.replaceFirst(':inventoryId', '$inventoryId');
+
+  /// A concrete link to an organization's detail page.
+  ///
+  /// Dead in the same way as [customerDetails] and [inventoryDetails]:
+  /// `App.tsx:58-60` declares no `organizations/:organizationId` route, and
+  /// `OrganizationList.tsx:80` links to one anyway.
+  static String organizationDetails(int organizationId) =>
+      '/organizations/$organizationId';
+
+  static String organizationEditPath(int organizationId) =>
+      organizationEdit.replaceFirst(':organizationId', '$organizationId');
 
   static const String users = '/users';
   static const String userCreate = '/users/create';
@@ -294,7 +319,7 @@ List<RouteBase> _shellRoutes(Ref ref) => [
 
   _guarded(ref, AppRoutes.inventory, [
     Permission.viewInventoryOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.inventory)),
+  ], (_) => const InventoryListScreen()),
   _guarded(ref, AppRoutes.inventoryCreate, [
     Permission.manageInventoryOrganization,
   ], (_) => const PlaceholderScreen.route(AppRoutes.inventoryCreate)),
@@ -310,7 +335,7 @@ List<RouteBase> _shellRoutes(Ref ref) => [
 
   _guarded(ref, AppRoutes.organizations, [
     Permission.viewOrganizationsGlobal,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.organizations)),
+  ], (_) => const OrganizationListScreen()),
   _guarded(ref, AppRoutes.organizationCreate, [
     Permission.manageOrganizationsGlobal,
   ], (_) => const PlaceholderScreen.route(AppRoutes.organizationCreate)),

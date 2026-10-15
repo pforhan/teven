@@ -358,4 +358,22 @@ void main() {
       ]);
     });
   });
+
+  group('cards at mobile', () {
+    testWidgets('a narrow viewport renders cards, not a table', (tester) async {
+      // The create button and the heading share one line at desktop and stack
+      // below it. This is here to pin that they *can* stack: the header was a
+      // `Row` and the mobile inventory test found it overflowing by 178px once
+      // the button's label grew long.
+      await openCustomers(tester, customerAdapter(), width: 500);
+
+      expect(find.byType(Table), findsNothing);
+      expect(find.text('Globex'), findsOneWidget);
+      expect(find.text('Create Customer'), findsOneWidget);
+      // `findsWidgets`: the card layout renders one action pair per row and the
+      // fixture has two customers.
+      expect(find.byIcon(Icons.edit), findsWidgets);
+      expect(find.byIcon(Icons.delete), findsWidgets);
+    });
+  });
 }
