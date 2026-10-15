@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
 import '../../models/inventory.dart';
+import '../../models/organization.dart';
 import '../../models/permissions.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/inventory_list.dart';
@@ -15,15 +16,16 @@ import '../../widgets/confirm_dialog.dart';
 import '../../widgets/debounced_search_field.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/list_screen_header.dart';
+import '../../widgets/paged_list_view.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
 /// The inventory list.
 ///
 /// `InventoryList.tsx` (144 lines). Search, sort by name or quantity, create,
-/// and delete. Like the customer list there is no pagination control — the
-/// React original fetches `25, 0` and offers no way past the first page, and
-/// task 4.9 is where paging becomes real.
+/// delete, and pagination. The React original fetched `25, 0` with no way past
+/// the first page; the page size is unchanged, and task 4.9 added a way to ask
+/// for the next one. See the customer screen for the fuller note.
 ///
 /// Two things here are not a transcription:
 ///
@@ -46,12 +48,14 @@ class InventoryListScreen extends ConsumerStatefulWidget {
 }
 
 class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
-  /// `InventoryList.tsx:27` — `getAllInventoryItems(25, 0, ...)`.
-  static const int _pageLimit = 25;
-
   String _searchTerm = '';
   String _sortBy = 'name';
   SortOrder _sortOrder = SortOrder.asc;
+
+  /// The query built during the last build, kept so the delete handler can reach
+  /// the same provider the screen is watching. See the customer screen for why
+  /// rebuilding it in the handler would be a second copy of the scoping rules.
+  ListQuery? _query;
 
   /// An error from a mutation — a failed delete. The fetch's error lives in the
   /// provider. See the same split on the customer screen.
@@ -88,14 +92,29 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       await ref
           .read(inventoryServiceProvider)
           .deleteInventoryItem(item.inventoryId);
-      // `fetchInventoryItems()` in the original — an invalidation, so the
-      // screen does not have to hold the result to re-request it.
-      ref.invalidate(inventoryListProvider);
+      // `fetchInventoryItems()` in the original — a reload back to the first
+      // page rather than `ref.invalidate`, which would rebuild every
+      // accumulated page key. See `PagedListController.reload`.
+      await ref.read(inventoryListProvider(_query!).notifier).reload();
       setState(() => _actionError = null);
     } on ApiException catch (error) {
       if (mounted) setState(() => _actionError = error);
     }
   }
+
+  /// Builds the provider key from this screen's own state.
+  ///
+  /// **`limit` and `offset` are deliberately absent** — they belong to
+  /// `PagedListController`, which applies the page size and advances the offset
+  /// itself. See the customer screen for why.
+  ListQuery _buildQuery(OrganizationResponse? organization) => ListQuery(
+    search: _searchTerm.isEmpty ? null : _searchTerm,
+    sortBy: _sortBy,
+    sortOrder: _sortOrder,
+    // `InventoryList.tsx:32` — only ever non-null for a super-admin, since that
+    // is the only case in which a selection exists to scope by.
+    organizationId: organization?.organizationId,
+  );
 
   List<ListColumn<InventoryItemResponse>> _columns() => [
     ListColumn<InventoryItemResponse>(
@@ -134,23 +153,15 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     final canManage = gate.has(Permission.manageInventoryOrganization);
     final organization = ref.watch(selectedOrganizationProvider);
 
-    final query = ListQuery(
-      limit: _pageLimit,
-      offset: 0,
-      search: _searchTerm.isEmpty ? null : _searchTerm,
-      sortBy: _sortBy,
-      sortOrder: _sortOrder,
-      // `InventoryList.tsx:32` — only ever non-null for a super-admin, since
-      // that is the only case in which a selection exists to scope by.
-      organizationId: organization?.organizationId,
-    );
-
+    final query = _buildQuery(organization);
+    _query = query;
     final page = ref.watch(inventoryListProvider(query));
     final actionError = _actionError;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: PagedScrollView(
+        onLoadMore: () =>
+            ref.read(inventoryListProvider(_query!).notifier).loadMore(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -173,40 +184,33 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
               ErrorDisplay.fromException(actionError),
               const SizedBox(height: 16),
             ],
-            page.when(
-              // As on the customer list, a new query drops the whole card to a
-              // spinner rather than leaving the previous rows up — see task 4.14
-              // for the three ways to stop that, none taken yet.
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => ErrorDisplay.fromException(
-                error is ApiException ? error : ApiRequestException('$error'),
-              ),
-              data: (page) => ResponsiveListView<InventoryItemResponse>(
-                data: page.items,
-                columns: _columns(),
-                idOf: (item) => item.inventoryId,
-                emptyMessage: 'No inventory items found.',
-                sortBy: _sortBy,
-                sortOrder: _sortOrder,
-                onSort: _onSort,
-                actions: canManage
-                    ? (context, item) => [
-                        ListRowAction(
-                          icon: Icons.edit,
-                          label: 'Edit',
-                          onPressed: () => context.go(
-                            AppRoutes.inventoryEditPath(item.inventoryId),
-                          ),
+            PagedListBody<InventoryItemResponse>(
+              state: page,
+              loadMore: () =>
+                  ref.read(inventoryListProvider(query).notifier).loadMore(),
+              columns: _columns(),
+              idOf: (item) => item.inventoryId,
+              emptyMessage: 'No inventory items found.',
+              sortBy: _sortBy,
+              sortOrder: _sortOrder,
+              onSort: _onSort,
+              actions: canManage
+                  ? (context, item) => [
+                      ListRowAction(
+                        icon: Icons.edit,
+                        label: 'Edit',
+                        onPressed: () => context.go(
+                          AppRoutes.inventoryEditPath(item.inventoryId),
                         ),
-                        ListRowAction(
-                          icon: Icons.delete,
-                          label: 'Delete',
-                          isDestructive: true,
-                          onPressed: () => _confirmDelete(item),
-                        ),
-                      ]
-                    : null,
-              ),
+                      ),
+                      ListRowAction(
+                        icon: Icons.delete,
+                        label: 'Delete',
+                        isDestructive: true,
+                        onPressed: () => _confirmDelete(item),
+                      ),
+                    ]
+                  : null,
             ),
           ],
         ),

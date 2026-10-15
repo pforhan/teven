@@ -172,11 +172,12 @@ Future<ProviderContainer> pumpApp(
   required StubAdapter adapter,
   String? token,
   double? width,
+  double? height,
   Map<String, Object> prefs = const {},
 }) async {
-  if (width != null) {
+  if (width != null || height != null) {
     tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = Size(width, 900);
+    tester.view.physicalSize = Size(width ?? 800, height ?? 900);
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();

@@ -3,20 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/list_query.dart';
 import '../../models/common.dart';
 import '../../models/customer.dart';
+import 'paged_list.dart';
 import 'service_providers.dart';
 
-/// One page of customers, keyed by the query that produced it.
+/// The customer list, accumulating a page at a time.
 ///
-/// A `FutureProvider.family` rather than an `AsyncNotifier` because the screen
-/// owns every input — the search text, the sort column, the selected
-/// organization — and there is nothing to hold that the query does not already
-/// carry. Changing an input produces a different key, Riverpod fetches, and
-/// the previous result stays on screen until the new one arrives, which is
-/// what `useEffect` + `setCustomers` did in the React original.
-///
-/// [ListQuery] has value equality for exactly this reason; without it every
-/// rebuild would be a new key and every keystroke a request.
-final customerListProvider = FutureProvider.autoDispose
-    .family<PaginatedResponse<CustomerResponse>, ListQuery>(
-      (ref, query) => ref.watch(customerServiceProvider).getAllCustomers(query),
+/// The shape and the reasoning are shared with the inventory, organization and
+/// user screens — see [PagedListController]. This file is the customer half of
+/// that: which service to call, and nothing else.
+final customerListProvider = AsyncNotifierProvider.autoDispose
+    .family<PagedCustomerList, PagedListState<CustomerResponse>, ListQuery>(
+      PagedCustomerList.new,
     );
+
+class PagedCustomerList extends PagedListController<CustomerResponse> {
+  PagedCustomerList(super.baseQuery);
+
+  @override
+  Future<PaginatedResponse<CustomerResponse>> fetchPage(ListQuery query) =>
+      ref.watch(customerServiceProvider).getAllCustomers(query);
+}

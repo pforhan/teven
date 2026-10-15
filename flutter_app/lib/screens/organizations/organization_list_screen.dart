@@ -14,6 +14,7 @@ import '../../widgets/confirm_dialog.dart';
 import '../../widgets/debounced_search_field.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/list_screen_header.dart';
+import '../../widgets/paged_list_view.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
@@ -43,13 +44,14 @@ class OrganizationListScreen extends ConsumerStatefulWidget {
 
 class _OrganizationListScreenState
     extends ConsumerState<OrganizationListScreen> {
-  /// `OrganizationList.tsx:26` — `getAllOrganizations(25, 0, ...)`. No
-  /// pagination control exists in the original, so the 25 stands; task 4.9.
-  static const int _pageLimit = 25;
-
   String _searchTerm = '';
   String _sortBy = 'name';
   SortOrder _sortOrder = SortOrder.asc;
+
+  /// The query built during the last build, kept so the delete handler can reach
+  /// the same provider the screen is watching. See the customer screen for why
+  /// rebuilding it in the handler would be a second copy of the scoping rules.
+  ListQuery? _query;
 
   /// An error from a mutation — a failed delete. The fetch's error lives in the
   /// provider.
@@ -86,13 +88,33 @@ class _OrganizationListScreenState
       await ref
           .read(organizationServiceProvider)
           .deleteOrganization(organization.organizationId);
-      // `fetchOrganizations()` in the original.
-      ref.invalidate(organizationPageProvider);
+      // `fetchOrganizations()` in the original — a reload back to the first
+      // page. See `PagedListController.reload`.
+      await ref.read(organizationPageProvider(_query!).notifier).reload();
       setState(() => _actionError = null);
     } on ApiException catch (error) {
       if (mounted) setState(() => _actionError = error);
     }
   }
+
+  /// Builds the provider key from this screen's own state.
+  ///
+  /// **`limit` and `offset` are deliberately absent** — they belong to
+  /// `PagedListController`, which applies the page size and advances the offset
+  /// itself. See the customer screen for why.
+  ///
+  /// **And note what is missing from this one: `organizationId`.** Every other
+  /// list screen scopes by the super-admin's selection, and copying that line
+  /// here — the obvious way to make this screen match its three siblings — would
+  /// hide every organization but one from the list whose entire job is to show
+  /// all of them. See the class doc comment. The React original passes only
+  /// `25, 0, search, sortBy, sortOrder` (`OrganizationList.tsx:26-31`), and so
+  /// does this.
+  ListQuery _buildQuery() => ListQuery(
+    search: _searchTerm.isEmpty ? null : _searchTerm,
+    sortBy: _sortBy,
+    sortOrder: _sortOrder,
+  );
 
   List<ListColumn<OrganizationResponse>> _columns() => [
     ListColumn<OrganizationResponse>(
@@ -118,20 +140,15 @@ class _OrganizationListScreenState
     final gate = ref.watch(permissionGateProvider);
     final canManage = gate.has(Permission.manageOrganizationsGlobal);
 
-    final query = ListQuery(
-      limit: _pageLimit,
-      offset: 0,
-      search: _searchTerm.isEmpty ? null : _searchTerm,
-      sortBy: _sortBy,
-      sortOrder: _sortOrder,
-    );
-
+    final query = _buildQuery();
+    _query = query;
     final page = ref.watch(organizationPageProvider(query));
     final actionError = _actionError;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: PagedScrollView(
+        onLoadMore: () =>
+            ref.read(organizationPageProvider(_query!).notifier).loadMore(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -154,42 +171,35 @@ class _OrganizationListScreenState
               ErrorDisplay.fromException(actionError),
               const SizedBox(height: 16),
             ],
-            page.when(
-              // Same as the customer and inventory screens — see task 4.14 for
-              // the three ways to keep the previous rows up during a query, none
-              // of them taken yet.
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => ErrorDisplay.fromException(
-                error is ApiException ? error : ApiRequestException('$error'),
-              ),
-              data: (page) => ResponsiveListView<OrganizationResponse>(
-                data: page.items,
-                columns: _columns(),
-                idOf: (organization) => organization.organizationId,
-                emptyMessage: 'No organizations found.',
-                sortBy: _sortBy,
-                sortOrder: _sortOrder,
-                onSort: _onSort,
-                actions: canManage
-                    ? (context, organization) => [
-                        ListRowAction(
-                          icon: Icons.edit,
-                          label: 'Edit',
-                          onPressed: () => context.go(
-                            AppRoutes.organizationEditPath(
-                              organization.organizationId,
-                            ),
+            PagedListBody<OrganizationResponse>(
+              state: page,
+              loadMore: () =>
+                  ref.read(organizationPageProvider(query).notifier).loadMore(),
+              columns: _columns(),
+              idOf: (organization) => organization.organizationId,
+              emptyMessage: 'No organizations found.',
+              sortBy: _sortBy,
+              sortOrder: _sortOrder,
+              onSort: _onSort,
+              actions: canManage
+                  ? (context, organization) => [
+                      ListRowAction(
+                        icon: Icons.edit,
+                        label: 'Edit',
+                        onPressed: () => context.go(
+                          AppRoutes.organizationEditPath(
+                            organization.organizationId,
                           ),
                         ),
-                        ListRowAction(
-                          icon: Icons.delete,
-                          label: 'Delete',
-                          isDestructive: true,
-                          onPressed: () => _confirmDelete(organization),
-                        ),
-                      ]
-                    : null,
-              ),
+                      ),
+                      ListRowAction(
+                        icon: Icons.delete,
+                        label: 'Delete',
+                        isDestructive: true,
+                        onPressed: () => _confirmDelete(organization),
+                      ),
+                    ]
+                  : null,
             ),
           ],
         ),

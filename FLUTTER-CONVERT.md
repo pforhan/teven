@@ -245,16 +245,17 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [x] **4.6** Port `OrganizationList` (134 lines), gated on `VIEW_ORGANIZATIONS_GLOBAL`. **Done**, including the one thing that is *not* shared with the other two lists: this screen is deliberately **not** scoped to the selected organization. Delete uses `confirmDestructiveAction` (4.8).
 - [x] **4.7** Port `UserList` (264 lines) — the largest list screen. Includes role display and sort controls. **Two** delete flows (`UserList.tsx:79,94`), both via `confirmDestructiveAction` (4.8); the user one still calls an endpoint that does not exist (10.12). **Done.** The only screen in the app that renders **two** tables in one route — unused invitations above the users — and the only one whose manage-gate ORs two scopes (`UserList.tsx:25`), which a copy of the organization screen's single-scope gate would have got wrong and locked every super-admin out of. The Organization column is conditional on `VIEW_USERS_GLOBAL`, so that column is what the scoping tests pin. The user delete **reproduces the broken call** — `UserService.deleteUser` now exists and 404s, with a test asserting the 404, so 10.12 will fail that test when it lands. "Create Invitation" is **omitted**: `UserList.tsx:206` toggles an inline form (182 lines) that is task 5.7, and there is no route for it, so a button would open nothing.
 - [x] **4.8** Port the 6 `window.confirm` delete flows as async dialogs (`CustomerList.tsx:60`, `InventoryList.tsx:60`, `OrganizationList.tsx:51`, `UserList.tsx:79,94`, plus events in Phase 7). **Done as one shared widget rather than six dialogs** — `confirmDestructiveAction` in `lib/widgets/confirm_dialog.dart`, used by the customer, inventory and organization screens. Ticked with 3 of 6 wired, because the wiring is not separate work: it is a call each screen makes while being ported, and 4.7 and 7.6 are already open for that. **Each of those two tasks carries the obligation to use the shared dialog** — a closed task is a claim nobody re-reads, and a hand-rolled fourth dialog would be silent. The *consequence* of a confirmed delete (refetch vs redirect) stays at the call site in every case, because `UserList.tsx:94` deletes an invitation and `EventDetails.tsx:49` navigates away. **5 of 6 now wired** (4.7 added both of this screen's); only Phase 7's event delete remains.
-- [ ] **4.9** Port pagination controls against offset/limit. Per-endpoint default limits vary (10 or 1000) — verify each. **Premise did not hold — no work needed.** `grep` finds no pagination control in any React list: all four fetch a single fixed page (`CustomerList.tsx:27` uses `25, 0`) and none can reach the rest. There is nothing to port. Whether to *add* paging is a product decision, not a porting one, and it is not recorded as a task.
+- [x] **4.9** **Reopened and implemented — pagination is now real.** Originally closed as "premise did not hold": `grep` finds no pagination control in any React list, and all four fetch a single fixed page (`CustomerList.tsx:27` uses `25, 0`) with no way to reach the rest, so there was genuinely nothing to *port*. Reopened because adding paging is a **product decision**, and it was made. The page *size* stays 25 — the original's own number, now `kListPageSize` — and what is new is a way to ask for the next one. Seamless loading on scroll, with a "Load more" button as the reachable floor; the progress entry gives the two reasons both exist. Applies to all four list screens. **This is a divergence from the original, not parity:** the React app can only ever see the first 25 rows, and now this one can see all of them.
 - [x] **4.10** Port the search-debounce pattern. The React lists use plain `useState`; pick a deliberate debounce and note the interval.
 - [x] **4.11** Verify sort controls against each endpoint. **`sortBy` is silently ignored on `/api/events`**, and `GET /api/events` defaults `sortOrder` to `asc`. **Verified against every DAO rather than taken on the plan's word, and the answer is a table, not a yes/no** — see the progress entry. Three of the five list screens agree with the server; the customer screen offers **three sort headers the server ignores** (`CustomerDao` switches on `name` alone and falls back to `id`), which is the one real mismatch and is left as-is under the parity rule. Events remain the outlier and stay **10.11**.
 - [x] **4.12** Widget tests for `ResponsiveListView`: table layout at desktop, card layout at mobile. **Split** — the third case in the original wording (the truncated `events` list on an inventory row) needs 4.5's screen, so it is now **4.13**.
-- [ ] **4.14** **Stop the list flashing on every search. Optional — raised during task 4.4's browser check and confirmed tolerable by hand, so it is filed rather than fixed.** A new query takes the whole card down to a spinner, header and all, so the header blinks out and back on every keystroke that survives the 300ms debounce. `CustomerList.tsx:46-48` never showed this: it left the previous rows up until the response landed, because `setCustomers` only ran on success. Three fixes, cheapest first:
-  1. **A thin `LinearProgressIndicator` over the existing rows**, with the previous items still rendered. Needs the last result kept across query keys, and it is the smallest change that removes the perceived flicker.
-  2. **Keep the header rendered during loading** — pass a `loading` flag into `ResponsiveListView` so the columns stay put and only the body swaps. Fixes half the symptom; the rows still blink.
-  3. **Retain the last value across family keys** with Riverpod's keep-alive link pattern, which restores the original behaviour exactly. Most machinery, and correct — `FutureProvider.autoDispose.family` disposes each key the moment it loses its last listener, which is why a new search starts from nothing.
+- [ ] **4.14** **Stop the list flashing on every search. Optional — raised during task 4.4's browser check and confirmed tolerable by hand, so it is filed rather than fixed.** A new query takes the whole card down to a spinner, header and all, so the header blinks out and back on every keystroke that survives the 300ms debounce. `CustomerList.tsx:46-48` never showed this: it left the previous rows up until the response landed, because `setCustomers` only ran on success.
 
-  Deferred because the debounce already collapses a burst into one request, so the flicker is once per pause rather than once per keystroke, and the user judged it acceptable in a browser. Options 1 and 3 are not mutually exclusive; do 1 first and 3 only if the flash is still objectionable once the list is stale-but-visible.
+  **4.9 does not fix this, and it is worth recording that rather than assuming it.** The natural assumption is that an accumulating list retains the previous result — it does not, across a *query change*. A new search term is a different `ListQuery` key, therefore a different provider, therefore a fresh notifier with no rows; `PagedListBody`'s spinner is then correct, because there is genuinely nothing behind it. **Measured rather than reasoned, one frame after the debounce fires: one `CircularProgressIndicator` on screen and the previous rows gone.** The flash this task describes is still there.
+
+  What 4.9 did change is the *other* loading paths: a further page, and the reload after a delete, now keep every row on screen and show a spinner in the footer instead. Those were never the filed symptom, so this is progress on a neighbouring problem rather than on this one, and **the task stays open**.
+
+  **The filed options all still stand, and option 3 is now much cheaper than it was.** It needed "the last result kept across family keys", which against a `FutureProvider.family` meant a keep-alive link holding a value the family had already discarded. The notifier now *owns* an accumulated list, so retaining it across a query change means declining to dispose the old provider while the new one loads — a `ref.keepAlive` and somewhere to hang the previous state, rather than a mechanism. Options 1 and 2 are as cheap as they were. **Left open deliberately:** it was filed as optional and judged tolerable by hand, nothing in 4.9 made it worse, and re-filing costs nothing.
 
 - [x] **4.13** Widget test for the truncated `events` list on an inventory row — 4.12's third case, held back because it needs `InventoryList` (4.5). Rides with that task. **Done with 4.5** — four cases in `inventory_list_screen_test.dart`: never used, all shown under the cap, truncated with a `+N more` count, and the cap applied **per row** rather than across the list.
 
@@ -1985,3 +1986,168 @@ taking a `tableMinWidth` its screens set — but it is a design decision about h
 much horizontal density this app wants, not a defect, so it is deferred rather
 than taken. Revisit with the reports and event list, which have their own column
 counts and are not in the app yet.
+
+### 2026-10-15 — Task 4.9, reopened: pagination on the four list screens
+
+**Done.** Offset/limit paging on the customer, inventory, organization and user
+lists. 25 rows per page, unchanged from the React original; seamless loading on
+scroll, with a "Load more" button underneath. 223 tests pass on the VM (up from
+202), 21 of them new; `flutter analyze` and `dart format` clean; Chrome unchanged
+at its 11 pre-existing failures.
+
+**The task was closed as "premise did not hold" and that was correct, so it is
+worth restating what changed.** There is no pagination control in any React list
+— `grep` finds none, and all four screens fetch `25, 0` with no route past it.
+There was nothing to port. Adding paging is a *product* decision, and it has now
+been made, which is the only reason this entry exists. The page size is the
+original's; the ability to ask for page two is new.
+
+**This is therefore a deliberate divergence, and it is the first one in Phase 4.**
+Every earlier task in this phase was either a transcription or a divergence
+already argued for (the hover affordance, the `+N more` cap). This one says the
+React app cannot see 26 rows and the Flutter app can. Recorded rather than
+buried, because "the port shows more rows than the original" is exactly the
+thing a side-by-side reviewer will notice.
+
+**The offset moved out of the query key, and that is the whole architecture.**
+Each provider was a `FutureProvider.autoDispose.family` keyed on a `ListQuery`
+that every screen built with a hard-coded `offset: 0`. Keying on the offset
+means each page is a *separate provider instance*, so accumulating pages would
+mean stitching N independent `AsyncValue`s back together and working out which
+is still loading. They are now `AsyncNotifier` families keyed on everything
+**except** the offset — search, sort, organization — with the offset held inside
+the notifier, so successive pages append to one list.
+
+That choice also buys the reset for free, which is the part that would have been
+easy to get wrong. A new search term is a different `ListQuery`, therefore a
+different provider, therefore a fresh notifier at offset 0. No "clear the
+pages" step exists to be forgotten — and an accumulator that resets itself in
+the wrong place is the failure mode this avoids rather than tests for.
+
+**The delete consequence changed, and `ref.invalidate` was actively wrong here.**
+Each screen used `ref.invalidate(listProvider)` after a delete, which rebuilds
+every accumulated page key — so a delete on page 3 of 3 would refetch all three.
+That is wasteful but not incorrect. `PagedListController.reload` is the
+replacement, and it resets to page 0 for a real reason: **deleting a row shifts
+every row after it up by one, so the boundaries of pages 2 and 3 have both moved
+and any rows already accumulated past the deletion are now wrong.** They cannot
+be repaired in place. This is offset paging's inherent weakness, and it is
+inherited from the API — the endpoint is offset/limit with no cursor, so there
+is nothing better to ask for.
+
+**A delete racing an in-flight page load is a real bug, and it was found by
+reading rather than by testing.** If the user scrolls to the bottom (starting
+page 3) and deletes a row before it lands, `reload` installs the correct result
+and *then* the older request arrives carrying rows computed from offsets that
+predate the delete — silently restoring the deleted row, with no error anywhere,
+because both requests succeeded. A generation counter drops the superseded
+response. `ref.mounted` does not cover it: that only detects *disposal*, and
+`reload` deliberately reuses the same notifier.
+
+**Two of the three tests guarding this were vacuous on the first attempt, and
+finding that out took two rounds.** This phase's log already has one entry about
+tests that pass on broken code; here it happened twice more, both times in the
+same way — a test that could not distinguish fixed from broken.
+
+- The **scroll** test passed with the scroll listener disabled. The cause was
+  structural: the `NotificationListener` was inside `PagedListView`, which is a
+  **descendant** of the screen's `SingleChildScrollView`, and scroll
+  notifications only bubble upward. It could never have worked. Nothing reported
+  a problem — the footer still rendered and the button still worked, so the list
+  paged perfectly well and only the automatic part was dead. That is why the
+  listener now lives in `PagedScrollView`, wrapping the scroll view.
+- The **delete race** test passed with the generation guard removed, twice. The
+  first version had a synchronous fake, so `loadMore` always finished before the
+  delete and the race never happened. The second added a gate, but released both
+  pending requests together — which let them resolve in *issue* order, putting
+  the reload last and letting it win. The race needs the stale page to land
+  **after** the reload, so the fake now releases requests one at a time in an
+  order the test chooses.
+
+Every mutation was then re-run against the final code: removing the generation
+guard, the in-flight guard, the short-page rule, the total clamp, the scroll
+trigger, and the dimensions guard each produce failures, and the baseline is
+clean.
+
+**Both triggers exist because each covers the case the other cannot.** Scrolling
+is invisible and cannot fire at all when the rows fit on screen — a short list, a
+tall viewport, or a phone where 25 cards is an 8000px page. A button is explicit
+and always reachable, but demands the user notice and scroll to it. Neither is
+sufficient alone, so the footer always shows the button while more remains and
+the scroll listener is an accelerant on top of it. **The footer sits below the
+fold at both widths**, which is a measured consequence of 25 rows, not an
+oversight: the tests had to use a 2400px viewport to tap it, and 9000px at
+mobile.
+
+**A third test was quietly measuring the wrong thing.** The `total` clamp looked
+pinned until the mutation proved otherwise: a backend with `total: 0` returns no
+rows either, so the test passed with or without the clamp. The real case is a
+server that returns rows *and* reports `total: 0` — which is exactly what
+`PaginatedResponse`'s `@Default(0)` produces for an endpoint omitting the field.
+The fixture now reports `total: 0` while returning 25 rows, and the clamp fails
+without it. This is the second time in this phase that a test asserting a real
+invariant turned out to pass vacuously; both were only caught by mutating the
+source, which is the argument for doing that routinely rather than when unsure.
+
+**`hasMore` is decided by a short page, not by `total`.** A page shorter than 25
+is the server saying there is nothing left. `total` is used for the count in the
+footer but cannot be trusted to *decide*: `PaginatedResponse` defaults it to 0,
+so a missing, zero or stale count would each strand the list at 25 rows with no
+way past it. The `total` is clamped to at least `items.length` for display, so a
+count below the rows held cannot render as "Showing 25 of 0".
+
+**Task 4.14 was checked rather than assumed closed, and it is not fixed.** The
+obvious inference is that an accumulating list retains the previous result across
+a search, so 4.14 would be free. It is not: a new search term is a different
+`ListQuery` key, hence a different provider, hence a fresh notifier holding
+nothing, so the spinner is showing because there genuinely is nothing behind it.
+Measured one frame after the debounce fires — one `CircularProgressIndicator`,
+previous rows gone. 4.14 stays open, and the note on it now says which of its
+three options is cheapest *because* of 4.9 rather than pretending the task is
+done. Two earlier entries in this phase record tests that passed on broken code;
+this would have been a third, in the plan rather than the suite.
+
+**Two smaller things worth recording.** The footer shows the count *instead of*
+the button while a page is in flight, not alongside it — a button that is
+tappable while doing nothing invites a second tap that does nothing. And each
+screen caches the `ListQuery` it built during `build`, so the delete handler
+reaches the same provider without re-deriving the scoping rules; rebuilding it
+would be a second copy of them, and a copy that differs only in the organization
+filter is a bug that only appears after a delete.
+
+**Verified in a browser against the live backend, with 62 seeded customers.**
+25 rows on arrival; scrolling loaded page 2 unprompted (25 → 50); further
+scrolling reached all 62; and **excess scrolling past the end issued zero
+requests**, which is the short-page rule working. The API pages 25 / 25 / 12
+server-side, matching.
+
+**Two things the browser pass could not check, recorded rather than hidden.**
+`/inventory` and `/organizations` render a blank canvas in the harness — **on the
+unmodified baseline too**, confirmed by stashing this work and rebuilding, so it
+is not caused by these changes and is not filed as a task here. And no screenshot
+was taken: the harness requires a visible desktop window, so the row count was
+read from the accessibility tree instead. That is weaker than an image for
+judging layout, and 4.9's visual check is best repeated by hand.
+
+**The customer screen's existing tests all passed unmodified**, including
+`expect(request.queryParameters['offset'], 0)` — the initial request is
+byte-identical to what the React app sent. That is the one compatibility claim
+worth making about the change: the first page is unchanged, and everything after
+it is new.
+
+**Files added:** `lib/providers/paged_list.dart`,
+`lib/widgets/paged_list_view.dart`, `test/paged_list_test.dart`,
+`test/paged_list_view_test.dart`.
+**Files changed:** the four list providers and four list screens, plus
+`test/support/auth_harness.dart` (an optional `height`, so a test can ask for a
+viewport that holds a whole page).
+**No new packages.**
+
+**Worth revisiting with the event list (Phase 7) and reports (Phase 8).** Both
+are `FutureProvider.family` consumers today and would move to `PagedListController`
+on the same pattern. The reports are the better case — task 8.5 already flags
+them as unpaginated over the whole org, which is the situation this controller
+exists for. The event list is the harder one: `EventResponse` nests rsvps,
+inventory and customer per row, so a page of 25 events is a much heavier
+payload than a page of 25 customers, and the 25 there is `defaultLimit` from task
+1.18 rather than this constant.

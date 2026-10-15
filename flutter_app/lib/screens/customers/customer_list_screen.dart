@@ -6,6 +6,7 @@ import '../../core/api/api_exception.dart';
 
 import '../../core/services/list_query.dart';
 import '../../models/customer.dart';
+import '../../models/organization.dart';
 import '../../models/permissions.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/customer_list.dart';
@@ -16,16 +17,23 @@ import '../../widgets/confirm_dialog.dart';
 import '../../widgets/debounced_search_field.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/list_screen_header.dart';
+import '../../widgets/paged_list_view.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
 /// The customer list.
 ///
-/// `CustomerList.tsx` (134 lines). Search, sort, create and delete — there is
-/// no pagination control in the React original, which fetches a fixed first
-/// page of 25 and offers no way to reach the rest. That behaviour is kept
-/// rather than improved here, so the list still shows 25 rows at most; task 4.9
-/// is where paging becomes real.
+/// `CustomerList.tsx` (134 lines). Search, sort, create and delete, plus
+/// pagination — the one thing here the React original does not have.
+///
+/// **The paging is new rather than ported, and it is worth being clear which
+/// part of it is not.** `CustomerList.tsx:27` fetched `getAllCustomers(25, 0,
+/// …)` and there is no control anywhere in the React app to reach row 26, so
+/// task 4.9 recorded "premise did not hold" and closed. The page *size* is
+/// still 25 — [kListPageSize], shared by all four list screens — because that is
+/// what the original asked for. What is new is that there is now a way to ask
+/// for the next page, and that it is the same shape on every list screen rather
+/// than four private `static const _pageLimit` copies.
 ///
 /// The row actions are hover-revealed in the React original
 /// (`CustomerList.tsx:79`), which is unreachable on a phone. The shared
@@ -39,12 +47,19 @@ class CustomerListScreen extends ConsumerStatefulWidget {
 }
 
 class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
-  /// `CustomerList.tsx:27` — `getAllCustomers(25, 0, ...)`.
-  static const int _pageLimit = 25;
-
   String _searchTerm = '';
   String _sortBy = 'name';
   SortOrder _sortOrder = SortOrder.asc;
+
+  /// The query built during the last build, kept so event handlers — "load
+  /// more", "reload after a delete" — can reach the same provider the screen is
+  /// watching.
+  ///
+  /// Rebuilding it in the handler instead would mean repeating the scoping rules
+  /// in a second place, and getting one of them subtly different is the kind of
+  /// bug that only shows up after a delete: the list reloads unfiltered, or
+  /// reloads the wrong organization's rows. One construction, one use.
+  ListQuery? _query;
 
   /// An error from a mutation — a failed delete, which the list itself does not
   /// re-render.
@@ -89,10 +104,11 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       await ref
           .read(customerServiceProvider)
           .deleteCustomer(customer.customerId);
-      // `fetchCustomers()` in the original. Invalidation rather than a
-      // direct refetch so the screen does not have to hold the result to
-      // re-request it.
-      ref.invalidate(customerListProvider);
+      // `fetchCustomers()` in the original. [PagedListController.reload]
+      // rather than `ref.invalidate`, which would rebuild every accumulated
+      // page key rather than resetting to the first — and the pages past the
+      // deletion are stale anyway, see `reload`.
+      await ref.read(customerListProvider(_query!).notifier).reload();
       setState(() => _actionError = null);
     } on ApiException catch (error) {
       if (mounted) setState(() => _actionError = error);
@@ -127,29 +143,52 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     ),
   ];
 
+  /// Builds the provider key from this screen's own state.
+  ///
+  /// **`limit` and `offset` are deliberately absent.** They used to be here —
+  /// `offset: 0` hard-coded, which is why the list could never reach past the
+  /// first page. They now belong to [PagedListController], which applies the
+  /// page size and advances the offset itself; putting them in the key as well
+  /// would make each page its own provider and the screen would have to stitch
+  /// N independent results back into one list.
+  ///
+  /// That this is a plain function of the screen's own state is what makes the
+  /// reset work: a changed search term or sort is a different [ListQuery], which
+  /// is a different provider, which starts again at offset 0. See
+  /// [PagedListController] for why that is the right place for the offset to
+  /// live.
+  ///
+  /// Called from `build` rather than being cached as a getter, because it reads
+  /// `selectedOrganizationProvider` — a `ref.watch` inside a getter would be a
+  /// dependency registered outside the build that is supposed to own it.
+  ListQuery _buildQuery(OrganizationResponse? organization) => ListQuery(
+    search: _searchTerm.isEmpty ? null : _searchTerm,
+    sortBy: _sortBy,
+    sortOrder: _sortOrder,
+    // `CustomerList.tsx:32` — only ever non-null for a super-admin, since that
+    // is the only case in which a selection exists to scope by.
+    organizationId: organization?.organizationId,
+  );
+
   @override
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
     final canManage = gate.has(Permission.manageCustomersOrganization);
     final organization = ref.watch(selectedOrganizationProvider);
 
-    final query = ListQuery(
-      limit: _pageLimit,
-      offset: 0,
-      search: _searchTerm.isEmpty ? null : _searchTerm,
-      sortBy: _sortBy,
-      sortOrder: _sortOrder,
-      // `CustomerList.tsx:32` — only ever non-null for a super-admin, since that
-      // is the only case in which a selection exists to scope by.
-      organizationId: organization?.organizationId,
-    );
-
+    final query = _buildQuery(organization);
+    // Assigning during build rather than in an event handler: the search field's
+    // debounce and the sort toggle both go through `setState`, and this is the
+    // only place that sees the organization selection change without a
+    // `setState` of its own.
+    _query = query;
     final page = ref.watch(customerListProvider(query));
     final actionError = _actionError;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: PagedScrollView(
+        onLoadMore: () =>
+            ref.read(customerListProvider(_query!).notifier).loadMore(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -175,45 +214,35 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               ErrorDisplay.fromException(actionError),
               const SizedBox(height: 16),
             ],
-            page.when(
-              // A new query — a search term, a re-sort — starts from scratch,
-              // so the whole card becomes a spinner. The React original kept
-              // the previous rows up until the response arrived (it only
-              // called `setCustomers` on success), so this flashes where that
-              // did not. Riverpod can retain the last value across family keys
-              // with a keep-alive link provider; that is more machinery than a
-              // list with 25 rows in it justifies, and it is recorded here
-              // rather than forgotten.
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => ErrorDisplay.fromException(
-                error is ApiException ? error : ApiRequestException('$error'),
-              ),
-              data: (page) => ResponsiveListView<CustomerResponse>(
-                data: page.items,
-                columns: _columns(),
-                idOf: (customer) => customer.customerId,
-                emptyMessage: 'No customers found.',
-                sortBy: _sortBy,
-                sortOrder: _sortOrder,
-                onSort: _onSort,
-                actions: canManage
-                    ? (context, customer) => [
-                        ListRowAction(
-                          icon: Icons.edit,
-                          label: 'Edit',
-                          onPressed: () => context.go(
-                            AppRoutes.customerEditPath(customer.customerId),
-                          ),
+            PagedListBody<CustomerResponse>(
+              state: page,
+              // The same handler `PagedScrollView` uses for scrolling, so the
+              // button and the automatic load cannot drift apart.
+              loadMore: () =>
+                  ref.read(customerListProvider(query).notifier).loadMore(),
+              columns: _columns(),
+              idOf: (customer) => customer.customerId,
+              emptyMessage: 'No customers found.',
+              sortBy: _sortBy,
+              sortOrder: _sortOrder,
+              onSort: _onSort,
+              actions: canManage
+                  ? (context, customer) => [
+                      ListRowAction(
+                        icon: Icons.edit,
+                        label: 'Edit',
+                        onPressed: () => context.go(
+                          AppRoutes.customerEditPath(customer.customerId),
                         ),
-                        ListRowAction(
-                          icon: Icons.delete,
-                          label: 'Delete',
-                          isDestructive: true,
-                          onPressed: () => _confirmDelete(customer),
-                        ),
-                      ]
-                    : null,
-              ),
+                      ),
+                      ListRowAction(
+                        icon: Icons.delete,
+                        label: 'Delete',
+                        isDestructive: true,
+                        onPressed: () => _confirmDelete(customer),
+                      ),
+                    ]
+                  : null,
             ),
           ],
         ),

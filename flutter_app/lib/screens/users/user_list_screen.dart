@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
 import '../../models/invitation.dart';
+import '../../models/organization.dart';
 import '../../models/permissions.dart';
 import '../../models/user.dart';
 import '../../providers/auth_controller.dart';
@@ -19,6 +20,7 @@ import '../../widgets/confirm_dialog.dart';
 import '../../widgets/debounced_search_field.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/list_screen_header.dart';
+import '../../widgets/paged_list_view.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
@@ -60,10 +62,6 @@ class UserListScreen extends ConsumerStatefulWidget {
 }
 
 class _UserListScreenState extends ConsumerState<UserListScreen> {
-  /// `UserList.tsx:34` — `getAllUsers(25, 0, ...)`. No pagination control
-  /// exists in the original, so the 25 stands; task 4.9.
-  static const int _pageLimit = 25;
-
   /// How long the "Copied!" label stays up. `UserList.tsx:160` — `setTimeout`
   /// at 2000ms.
   static const Duration _copiedIndicatorDuration = Duration(seconds: 2);
@@ -84,6 +82,16 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   /// An error from a mutation — either delete. The fetches' errors live in
   /// their own providers. See the same split on the customer screen.
   ApiException? _actionError;
+
+  /// The query built during the last build, kept so the user-delete handler can
+  /// reach the same provider the screen is watching. See the customer screen
+  /// for why rebuilding it in the handler would be a second copy of the scoping
+  /// rules.
+  ///
+  /// **Only the user delete uses this.** The invitation delete refetches the
+  /// invitations instead, which are a separate provider and a separate
+  /// collection — see `_confirmDeleteInvitation`.
+  ListQuery? _query;
 
   @override
   void dispose() {
@@ -127,9 +135,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
 
     try {
       await ref.read(userServiceProvider).deleteUser(user.userId);
-      // `fetchUsers()` in the original — an invalidation, so the screen does
-      // not have to hold the result to re-request it.
-      ref.invalidate(userPageProvider);
+      // `fetchUsers()` in the original — a reload back to the first page. See
+      // `PagedListController.reload` for why an invalidation would be wrong once
+      // there is more than one page.
+      await ref.read(userPageProvider(_query!).notifier).reload();
       setState(() => _actionError = null);
     } on ApiException catch (error) {
       if (mounted) setState(() => _actionError = error);
@@ -284,6 +293,21 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   /// hand-rolled "Actions" column holding a labelled delete button;
   /// [ResponsiveListView]'s action list replaces it, which is what the other
   /// three screens did.
+  /// Builds the provider key from this screen's own state.
+  ///
+  /// **`limit` and `offset` are deliberately absent** — they belong to
+  /// `PagedListController`, which applies the page size and advances the offset
+  /// itself. See the customer screen for why.
+  ListQuery _buildQuery(OrganizationResponse? organization) => ListQuery(
+    search: _searchTerm.isEmpty ? null : _searchTerm,
+    sortBy: _sortBy,
+    sortOrder: _sortOrder,
+    // `UserList.tsx:39` — only ever non-null for a super-admin, since that is
+    // the only case in which a selection exists to scope by.
+    organizationId: organization?.organizationId,
+  );
+
+  /// The invitation columns. `UserList.tsx:166-195`.
   List<ListColumn<InvitationResponse>> _invitationColumns() => [
     ListColumn<InvitationResponse>(
       key: 'roleName',
@@ -336,17 +360,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             <InvitationResponse>[],
           );
 
-    final query = ListQuery(
-      limit: _pageLimit,
-      offset: 0,
-      search: _searchTerm.isEmpty ? null : _searchTerm,
-      sortBy: _sortBy,
-      sortOrder: _sortOrder,
-      // `UserList.tsx:39` — only ever non-null for a super-admin, since that is
-      // the only case in which a selection exists to scope by.
-      organizationId: organization?.organizationId,
-    );
-
+    final query = _buildQuery(organization);
+    _query = query;
     final page = ref.watch(userPageProvider(query));
     final actionError = _actionError;
 
@@ -364,8 +379,9 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
         invitations.hasError;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: PagedScrollView(
+        onLoadMore: () =>
+            ref.read(userPageProvider(_query!).notifier).loadMore(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -407,39 +423,32 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
               ErrorDisplay.fromException(actionError),
               const SizedBox(height: 16),
             ],
-            page.when(
-              // As on the other three lists, a new query drops the card to a
-              // spinner rather than leaving the previous rows up — see task
-              // 4.14 for the three ways to stop that, none taken yet.
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => ErrorDisplay.fromException(
-                error is ApiException ? error : ApiRequestException('$error'),
-              ),
-              data: (page) => ResponsiveListView<UserResponse>(
-                data: page.items,
-                columns: _userColumns(canViewGlobal: canViewGlobal),
-                idOf: (user) => user.userId,
-                emptyMessage: 'No users found.',
-                sortBy: _sortBy,
-                sortOrder: _sortOrder,
-                onSort: _onSort,
-                actions: canManage
-                    ? (context, user) => [
-                        ListRowAction(
-                          icon: Icons.edit,
-                          label: 'Edit',
-                          onPressed: () =>
-                              context.go(AppRoutes.userEditPath(user.userId)),
-                        ),
-                        ListRowAction(
-                          icon: Icons.delete,
-                          label: 'Delete',
-                          isDestructive: true,
-                          onPressed: () => _confirmDeleteUser(user),
-                        ),
-                      ]
-                    : null,
-              ),
+            PagedListBody<UserResponse>(
+              state: page,
+              loadMore: () =>
+                  ref.read(userPageProvider(query).notifier).loadMore(),
+              columns: _userColumns(canViewGlobal: canViewGlobal),
+              idOf: (user) => user.userId,
+              emptyMessage: 'No users found.',
+              sortBy: _sortBy,
+              sortOrder: _sortOrder,
+              onSort: _onSort,
+              actions: canManage
+                  ? (context, user) => [
+                      ListRowAction(
+                        icon: Icons.edit,
+                        label: 'Edit',
+                        onPressed: () =>
+                            context.go(AppRoutes.userEditPath(user.userId)),
+                      ),
+                      ListRowAction(
+                        icon: Icons.delete,
+                        label: 'Delete',
+                        isDestructive: true,
+                        onPressed: () => _confirmDeleteUser(user),
+                      ),
+                    ]
+                  : null,
             ),
           ],
         ),
