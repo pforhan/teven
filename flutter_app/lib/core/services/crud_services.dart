@@ -51,15 +51,24 @@ class UserService {
         decode: (json) => UserResponse.fromJson(json! as Map<String, dynamic>),
       );
 
-  /// **Not implemented.** The React app calls `DELETE /api/users/{id}` and
-  /// `UserList.tsx:81` surfaces it as a working delete button, but
-  /// `UserRoutes.kt` defines no `delete` route — the request 404s at the `/api`
-  /// catch-all.
+  /// Deletes a user. **This endpoint does not exist.**
   ///
-  /// The method is omitted rather than stubbed so the compiler forces anyone
-  /// porting `UserList`'s delete button to confront the gap. Task 4.8 covers
-  /// the UI side; the decision of whether to *add* the endpoint or *drop* the
-  /// button is not a porting call. See FLUTTER-CONVERT.md's discrepancy table.
+  /// The React app calls `DELETE /api/users/{id}` and `UserList.tsx:81` surfaces
+  /// it as a working delete button, but `UserRoutes.kt` defines no `delete`
+  /// route — the request falls through to the `/api` catch-all and 404s with a
+  /// JSON envelope. The button has therefore never worked.
+  ///
+  /// **Reproduced rather than fixed or dropped**, on the same terms as the dead
+  /// detail links (`AppRoutes.customerDetails`): the port is faithful through
+  /// Phase 8, and a 404 that the screen surfaces as an error is a more honest
+  /// reproduction than a button quietly missing. `UserList.tsx:81` caught the
+  /// failure and put it in the shared `error` state; the ported screen does the
+  /// same through its action-error banner.
+  ///
+  /// Task 10.12 owns the fix, and its decision is made — **hard delete**, with
+  /// the four dependent tables cascaded and `Invitations.usedByUserId` nulled
+  /// rather than cascaded. Until then this call always fails.
+  Future<void> deleteUser(int userId) => _client.delete('/api/users/$userId');
 }
 
 /// Organizations. Global-only endpoints — gated on

@@ -17,6 +17,7 @@ class ListColumn<T> {
     this.text,
     this.render,
     this.sortable = false,
+    this.flex,
   }) : assert(
          text == null || render == null,
          'A column takes either a plain text extractor or a custom renderer, '
@@ -29,6 +30,27 @@ class ListColumn<T> {
 
   /// Header text, shown in both layouts.
   final String label;
+
+  /// This column's share of the table's width, relative to the others.
+  ///
+  /// **Null — the default — keeps the old behaviour**: the first column gets
+  /// two shares and every other column one. That heuristic is right for a
+  /// table whose first column holds the record's name and whose rest are short,
+  /// which is what three of the four screens are.
+  ///
+  /// It is wrong for a table whose *longest* values are not in the first
+  /// column. On the user list it gave Username — which holds "alice" and "bob"
+  /// — two shares while Email and Organization, which hold
+  /// `tevadmin@muddyhorse.com` and `TEST_ORG_Green Vistas Landscaping`, got
+  /// one each, and both wrapped onto a second line at a 1419px window. Equal
+  /// shares are not neutral: they are only fair when the values are the same
+  /// length, and no column set is.
+  ///
+  /// Declared per column rather than computed from the values, because the
+  /// widget cannot know them — that is the screen's knowledge — and because a
+  /// layout that re-measures on every row would reflow as the user pages.
+  /// Ignored in the card layout, where every value is already full width.
+  final int? flex;
 
   /// Plain-value accessor, for the columns that are just a field.
   final String Function(T item)? text;
@@ -273,12 +295,16 @@ class _TableLayout<T> extends StatelessWidget {
     // nothing.
     //
     // The first column gets a double share because it holds the record's name,
-    // which is the one column worth reading first. A guess, and the thing to
-    // revisit if a screen's columns want something else.
+    // which is the one column worth reading first — but only where the screen
+    // has not said otherwise. See [ListColumn.flex]: the user list is the first
+    // screen whose longest values are *not* in the first column, and the
+    // default starved them into wrapping.
     return Table(
       columnWidths: {
-        for (final (index, _) in widget.columns.indexed)
-          index: FlexColumnWidth(index == 0 ? 2 : 1),
+        for (final (index, column) in widget.columns.indexed)
+          index: FlexColumnWidth(
+            (column.flex ?? (index == 0 ? 2 : 1)).toDouble(),
+          ),
         if (widget.actions != null)
           widget.columns.length: const FixedColumnWidth(_actionsWidth),
       },
@@ -330,7 +356,20 @@ class _TableLayout<T> extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            children: [label, const SizedBox(width: 8), icon],
+            children: [
+              // **The label flexes, and that is not cosmetic.** Five columns
+              // plus actions is the first layout in the app wide enough to
+              // overflow a header — the user screen's conditional Organization
+              // column does it — and it overflowed by 32px at a 1500px window,
+              // which is the same width the other three list screens' tests
+              // use. A `Row` with `mainAxisSize.min` and a rigid `Text` has
+              // nowhere to put the overflow, so the header cell must be the
+              // thing that gives: the label ellipsizes and the sort arrow, which
+              // is the part that carries meaning, stays whole.
+              Flexible(child: label),
+              const SizedBox(width: 8),
+              icon,
+            ],
           ),
         ),
       ),

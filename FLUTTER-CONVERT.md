@@ -243,11 +243,11 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [x] **4.4** Port `CustomerList` (134 lines): search, paginated table, create/edit/delete.
 - [x] **4.5** Port `InventoryList` (144 lines). **Done** — search, sort by name or quantity, create, delete. The `events` list is capped at 3 per row with a `+N more` count, and that cap is the one place this screen is not a transcription: `InventoryDao.toInventoryItemResponse` selects *every* `EventInventory` row for an item, so the list is unpaginated on `GET /api/inventory` too, not only on `GET /api/inventory/{id}`. Delete uses `confirmDestructiveAction` (4.8). The server-side N+1 behind it is **10.21**.
 - [x] **4.6** Port `OrganizationList` (134 lines), gated on `VIEW_ORGANIZATIONS_GLOBAL`. **Done**, including the one thing that is *not* shared with the other two lists: this screen is deliberately **not** scoped to the selected organization. Delete uses `confirmDestructiveAction` (4.8).
-- [ ] **4.7** Port `UserList` (264 lines) — the largest list screen. Includes role display and sort controls. **Two** delete flows (`UserList.tsx:79,94`), both via `confirmDestructiveAction` (4.8); the user one still calls an endpoint that does not exist (10.12).
-- [x] **4.8** Port the 6 `window.confirm` delete flows as async dialogs (`CustomerList.tsx:60`, `InventoryList.tsx:60`, `OrganizationList.tsx:51`, `UserList.tsx:79,94`, plus events in Phase 7). **Done as one shared widget rather than six dialogs** — `confirmDestructiveAction` in `lib/widgets/confirm_dialog.dart`, used by the customer, inventory and organization screens. Ticked with 3 of 6 wired, because the wiring is not separate work: it is a call each screen makes while being ported, and 4.7 and 7.6 are already open for that. **Each of those two tasks carries the obligation to use the shared dialog** — a closed task is a claim nobody re-reads, and a hand-rolled fourth dialog would be silent. The *consequence* of a confirmed delete (refetch vs redirect) stays at the call site in every case, because `UserList.tsx:94` deletes an invitation and `EventDetails.tsx:49` navigates away.
+- [x] **4.7** Port `UserList` (264 lines) — the largest list screen. Includes role display and sort controls. **Two** delete flows (`UserList.tsx:79,94`), both via `confirmDestructiveAction` (4.8); the user one still calls an endpoint that does not exist (10.12). **Done.** The only screen in the app that renders **two** tables in one route — unused invitations above the users — and the only one whose manage-gate ORs two scopes (`UserList.tsx:25`), which a copy of the organization screen's single-scope gate would have got wrong and locked every super-admin out of. The Organization column is conditional on `VIEW_USERS_GLOBAL`, so that column is what the scoping tests pin. The user delete **reproduces the broken call** — `UserService.deleteUser` now exists and 404s, with a test asserting the 404, so 10.12 will fail that test when it lands. "Create Invitation" is **omitted**: `UserList.tsx:206` toggles an inline form (182 lines) that is task 5.7, and there is no route for it, so a button would open nothing.
+- [x] **4.8** Port the 6 `window.confirm` delete flows as async dialogs (`CustomerList.tsx:60`, `InventoryList.tsx:60`, `OrganizationList.tsx:51`, `UserList.tsx:79,94`, plus events in Phase 7). **Done as one shared widget rather than six dialogs** — `confirmDestructiveAction` in `lib/widgets/confirm_dialog.dart`, used by the customer, inventory and organization screens. Ticked with 3 of 6 wired, because the wiring is not separate work: it is a call each screen makes while being ported, and 4.7 and 7.6 are already open for that. **Each of those two tasks carries the obligation to use the shared dialog** — a closed task is a claim nobody re-reads, and a hand-rolled fourth dialog would be silent. The *consequence* of a confirmed delete (refetch vs redirect) stays at the call site in every case, because `UserList.tsx:94` deletes an invitation and `EventDetails.tsx:49` navigates away. **5 of 6 now wired** (4.7 added both of this screen's); only Phase 7's event delete remains.
 - [ ] **4.9** Port pagination controls against offset/limit. Per-endpoint default limits vary (10 or 1000) — verify each. **Premise did not hold — no work needed.** `grep` finds no pagination control in any React list: all four fetch a single fixed page (`CustomerList.tsx:27` uses `25, 0`) and none can reach the rest. There is nothing to port. Whether to *add* paging is a product decision, not a porting one, and it is not recorded as a task.
 - [x] **4.10** Port the search-debounce pattern. The React lists use plain `useState`; pick a deliberate debounce and note the interval.
-- [ ] **4.11** Verify sort controls against each endpoint. **`sortBy` is silently ignored on `/api/events`**, and `GET /api/events` defaults `sortOrder` to `asc`.
+- [x] **4.11** Verify sort controls against each endpoint. **`sortBy` is silently ignored on `/api/events`**, and `GET /api/events` defaults `sortOrder` to `asc`. **Verified against every DAO rather than taken on the plan's word, and the answer is a table, not a yes/no** — see the progress entry. Three of the five list screens agree with the server; the customer screen offers **three sort headers the server ignores** (`CustomerDao` switches on `name` alone and falls back to `id`), which is the one real mismatch and is left as-is under the parity rule. Events remain the outlier and stay **10.11**.
 - [x] **4.12** Widget tests for `ResponsiveListView`: table layout at desktop, card layout at mobile. **Split** — the third case in the original wording (the truncated `events` list on an inventory row) needs 4.5's screen, so it is now **4.13**.
 - [ ] **4.14** **Stop the list flashing on every search. Optional — raised during task 4.4's browser check and confirmed tolerable by hand, so it is filed rather than fixed.** A new query takes the whole card down to a spinner, header and all, so the header blinks out and back on every keystroke that survives the 300ms debounce. `CustomerList.tsx:46-48` never showed this: it left the previous rows up until the response landed, because `setCustomers` only ran on success. Three fixes, cheapest first:
   1. **A thin `LinearProgressIndicator` over the existing rows**, with the previous items still rendered. Needs the last result kept across query keys, and it is the smallest change that removes the perceived flicker.
@@ -568,6 +568,8 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   **The port reproduces the dead link exactly.** No `/customers/:customerId` route is registered, so the path falls through the `*` catch-all (`App.tsx:67`) to `/`, and the index route sends it to `/events`. Faithful; the fix is to build the screen rather than deviate from the original.
 
+  **Scope widened to four links by task 4.7.** `UserList.tsx:123` links to `/users/{id}` and `App.tsx:61-63` declares no `users/:userId`, so the user list has the identical dead link — the fourth. It is recorded here rather than as a row of its own because it is the same defect in the same shape, and building one detail screen out of four dead links is the same work as building one out of three. The three screens' links were confirmed by hand in a browser during the 4.5/4.6 pass; the fourth is confirmed from `App.tsx` and from the port's own route table, where `AppRoutes.userDetails` documents the absence in the same terms as the other three.
+
   **Work items, in order.**
 
   1. **The events list is the real work, and it is blocked on the backend.** The intended shape is the customer's past *and* future events, and `GET /api/events` **has no customer filter** — `EventRoutes.kt` takes `search`, `sortBy`, `sortOrder`, `limit`, `offset` and no `customerId`, and neither does `EventDao`. So this is not purely a screen task: it needs a new query parameter on the route and the DAO, which is Phase 10 backend work under the ground rules. If the screen is wanted before that parameter lands, ship the field rendering first — a customer page with no events on it still beats a link to the calendar.
@@ -678,7 +680,7 @@ Documented here so task 10.6 can address them. **Do not fix these during the por
 | **`DELETE /api/customers/{id}` returns 500 when the customer has any event** | `CustomerDao.deleteCustomer` hard-deletes; `Events.customerId` is `.nullable()` with no `onDelete`, so the FK is `NO ACTION`. Observed: `violates foreign key constraint "fk_events_customer_id__id"`, surfacing as a 500 with a stack trace. Invisible to any customer with no events | **10.19** |
 | **No customer details screen exists — the link is dead in the React app too** | `CustomerList.tsx:78` links to `/customers/{id}`; `App.tsx` declares only `customers`, `customers/create`, `customers/edit/:customerId`, and `components/customers/` has no `CustomerDetails`. The `*` catch-all redirects to `/events`. Ported faithfully, so the port reproduces the dead link | **10.20** |
 | **`GET /api/inventory` embeds an unbounded `events` list per row, via a query per row** | `InventoryDao.toInventoryItemResponse:29` selects *all* of `EventInventory` for the item — no `limit`/`offset`/filter — and `getInventoryItems:83` calls it per row, so a 25-item page is 26 queries. Found while porting the inventory list; the plan's own note that this was a property of `GET /api/inventory/{id}` was **wrong** — the list endpoint does it too | **10.21** |
-| **The inventory and organization name links are dead, as the customer one is** | `InventoryList.tsx:78` → `/inventory/{id}` and `OrganizationList.tsx:80` → `/organizations/{id}`; `App.tsx:53-60` declares neither. Same defect as the row above, in two more screens | **10.20** (all three screens, or none) |
+| **The inventory, organization and user name links are dead, as the customer one is** | `InventoryList.tsx:78` → `/inventory/{id}`, `OrganizationList.tsx:80` → `/organizations/{id}`, `UserList.tsx:123` → `/users/{id}`; `App.tsx` declares none of them. Same defect as the row above, in three more screens | **10.20** (all four screens, or none) |
 | **Seeded users cannot log in — `TestDataProvider` writes a plaintext password** | `TestDataProvider.kt` set `it[passwordHash] = "password"` and the column is `users.password`. `BCrypt.checkpw("password", "password")` throws `IllegalArgumentException: Invalid salt version`, which `AuthServiceImpl.loginUser` did not catch — so **every seeded login answered HTTP 500 with a stack trace**, not 401. Found during task 3.12's verification attempt; the seeded `alice`/`bob`/`charlie`/`diana` accounts were unreachable until the seed stored a real hash | **10.18** ✅ |
 ---
 
@@ -1811,3 +1813,175 @@ the right number.
 (two routes and three path helpers), `organization_list.dart` (a paged provider
 beside the switcher's), `test/support/auth_harness.dart` (`organizationsResponder`).
 **No new packages.**
+
+### 2026-10-15 — Phase 4, tasks 4.7 and 4.11 (the user list, and the sort audit it asked for)
+
+**Done.** `UserList` at `/users`, 27 widget tests. 202 pass on the VM, up from
+175; `flutter analyze` and `dart format` clean.
+
+**4.11 turned out to be a table, not a yes/no, and writing it down is most of
+its value.** The task's wording points at events (`sortBy` ignored on
+`GET /api/events`), which is Phase 7's screen, so the useful thing was to check
+every list DAO rather than the one the task named. Each DAO has the same shape —
+a `when (sortBy)` over its columns, falling through to `Users.id` — so the
+question per screen is whether its sortable headers are the cases that `when`
+has:
+
+| Screen | Sortable headers | `UserDao`/`CustomerDao`/… accepts | Agree? |
+|---|---|---|---|
+| Customers | `name` | `name` only | **partly** — `phone`, `address`, `notes` fall back to `id` |
+| Inventory | `name`, `quantity` | `name`, `quantity` | yes |
+| Organizations | `name` | `name` | yes |
+| Users | `username`, `displayName`, `email` | `username`, `email`, `displayName` | yes |
+| Events | — | **nothing** (`EventRoutes.kt` never reads it) | no — **10.11** |
+
+So the one real mismatch is on the customer screen, and it is the mirror image
+of what `organization_list_screen_test.dart` claimed in a comment: that comment
+says the customer's `sortBy` for phone "is honoured by `CustomerDao` and absent
+from the UI", which is backwards — `CustomerDao.getCustomers:68-71` switches on
+`name` alone. Three headers there look live and reorder by id. **Left as-is.**
+Hiding them would be a visible divergence from the React original on the strength
+of a backend reading, which is exactly what the parity rule is meant to prevent,
+and the audit's job was to find it, not to act on it. Recorded in the 4.11 task.
+
+**This screen is the first with enough columns to overflow a table header, and
+the fix belongs to all four.** Five columns plus an actions column pushed the
+"Display Name" header — label, gap, sort arrow — **32 pixels past its cell** at a
+1500px window, which is the width the other three list screens' tests already
+use. The cause is in the shared widget, not this screen: a header `Row` with
+`mainAxisSize.min` and a rigid `Text` has nowhere to put overflow.
+`ResponsiveListView`'s header label is now `Flexible`, so it ellipsizes and the
+sort arrow — the part carrying meaning — stays whole. Found by a test rather than
+a browser, and it would have been found eventually by any screen wide enough;
+only this one is.
+
+**`Uri.base.origin` throws for any scheme that is not http or https, which is the
+whole point of task 5.10.** The invite link wanted `Uri.base`, and the obvious
+one-liner took the screen down with it — `Bad state: Origin is only applicable
+schemes http and https` — under `flutter test`, where `Uri.base` is a `file:`
+URL, and under any native URL scheme, which is what 5.10 exists to support. The
+origin is now read through a guard, with the reasoning on the function. Worth
+recording as a shape: the task that asks for `Uri.base` is the task most likely
+to be written as the one-liner that does not survive contact with a non-web
+platform.
+
+**The user delete is reproduced broken, and the test that proves it will fail
+when 10.12 lands.** `UserService.deleteUser` was deliberately absent, with a
+comment saying the compiler would force whoever ported the button to confront
+the gap. It did, and the confrontation produced a decision rather than an
+omission: **keep the button**, because the React original has one and a
+parity-through-Phase-8 port that quietly dropped a control is a divergence, not a
+fix. The request 404s at the server's `/api` catch-all and the screen shows the
+envelope's message, which is what `UserList.tsx:85-89` did with the same failure.
+`user_list_screen_test.dart` asserts the 404 and the untouched list, so **10.12
+will fail that test** — which is the intended signal, not a problem with it.
+
+**Two tests failed for reasons worth keeping, both about a 401 that was not a
+"not stubbed".** `contextAdapter`'s fallback for an unanswered path is a **401**,
+and this screen fetches invitations on arrival for any manager. Leaving that path
+unstubbed tripped the real unauthorized redirect, signed every test out, and
+landed it on `/login` — twenty failures whose first symptom was
+`Found 0 widgets with type "UserListScreen"`, which reads as a broken screen
+rather than a wrong stub. The same trap took the user-delete test: an
+unanswered `DELETE /api/users/{id}` 401s instead of 404ing, so the error banner
+never appeared. Both are now answered explicitly. The harness's 401 fallback is
+load-bearing for catching accidental calls, and it is also a loaded gun for
+exactly this screen; a caller who forgets a stub gets signed out rather than a
+clear failure.
+
+**"Create Invitation" is the one React control this screen does not have, and
+that is deliberate.** `UserList.tsx:206` toggles an inline `CreateInvitationForm`
+— 182 lines, task 5.7. It has **no route**; the React original renders it in
+place. There is nothing to navigate to, so a button would open nothing, and a
+button that does nothing is worse than its absence. It returns with the form that
+owns it.
+
+**4.8 is now 5 of 6 wired**, and the split held: both of this screen's deletes
+call `confirmDestructiveAction` and each keeps its own consequence, which differ
+in a way the shared dialog must not absorb — deleting a user refetches
+`userPageProvider`, deleting an invitation refetches `unusedInvitationsProvider`
+and leaves the users list alone. A test asserts exactly that asymmetry, because a
+screen that invalidated both would pass every other assertion while hiding a
+second request behind an unnecessary one. Only Phase 7's event delete remains,
+and that one navigates away rather than refetching.
+
+**Files added:** `lib/screens/users/user_list_screen.dart`,
+`lib/providers/user_list.dart`, `test/user_list_screen_test.dart`.
+**Files changed:** `crud_services.dart` (`deleteUser`, previously absent),
+`app_router.dart` (the `/users` screen and two path helpers),
+`responsive_list_view.dart` (flexible header label, per-column `flex`).
+**No new packages.**
+
+**Not done, and not hidden: the browser pass.** Every screen in this phase has
+one, and this is the largest of them — a second table, a clipboard write and two
+dialogs, which are the three things widget tests assert least well. What a
+browser pass should confirm, so nobody has to reconstruct it: that the dead
+`/users/{id}` link lands on `/events` via the catch-all; that edit shows the
+placeholder with the right path; that confirming the user delete surfaces the
+404 envelope and leaves the list intact; and — the one nothing else covers —
+**the invitation table, the copy button and the "Copied!" label, which need an
+outstanding invitation to exist.** The seeded backend has none, and minting one
+needs the 5.7 form that does not exist yet, so that part is blocked on a task
+rather than merely undone.
+
+### 2026-10-15 — Phase 4, the user list's column allocation (browser finding, no test)
+
+**The default column split is wrong for any screen whose longest values are not
+in the first column, and the user list is the first one.** `ResponsiveListView`
+gave the first column two shares and every other column one, on the reasoning
+that the first column holds the record's name. On the customer table that is
+true and the rest are short. On the user table it hands the largest column to
+Username — "alice", "bob" — and splits the rest four ways, so at a ~1420px
+window `alice@greenvistas.co` wrapped as `alice@greenvistas.co` / `m` and
+`TEST_ORG_Green` / `Vistas Landscaping` broke across two lines each. Found in a
+browser, from a screenshot, on a column count no test had rendered at that width.
+
+`ListColumn` now takes an optional `flex`. **Null keeps the old behaviour**, so
+the other three screens are byte-for-byte unchanged; the user table declares
+`2, 2, 3, 1, 4` — proportional to the longest realistic value per column rather
+than the average, because a display name and a role name are short by nature and
+an organization name is free text written by whoever created it. The weights are
+a judgement; **nothing pins them, deliberately.**
+
+**Three tests that measured this were written, found to be vacuous, and deleted.**
+Worth recording why, because the failure mode is the interesting part and it is
+not specific to this screen:
+
+- **They passed with the fix removed.** At the width they used, the harness put
+  the screen in the *card* layout, so there was no table to wrap and the
+  assertions were true of a layout they never exercised.
+- **Flutter's test font is not a browser font.** The harness renders every glyph
+  as a fixed-width box, so `tevadmin@muddyhorse.com` measures ~322px under test
+  against ~185px in a real browser. Any pixel threshold in a widget test is
+  measuring the font, not the layout — which means a test tight enough to catch
+  this regression would also fail on a font change, and one loose enough to be
+  stable would not catch it.
+
+Deleting them is the better trade. The fix is verified by the screenshot that
+motivated it and by the browser pass below; a test that cannot distinguish fixed
+from broken is worse than no test, because it is a test that reports success
+either way.
+
+**A correction to a number in this phase's own docs, from measuring it.** The
+table/card breakpoint is `ResponsiveListView`'s **own** available width, not the
+window's, and the extended rail plus the screen and card padding take ~289px. So
+the table starts at a window of roughly **1390px**, not the 1100 in
+`AppBreakpoints.desktop` — which is the number the earlier entries in this phase
+quote. The customer and inventory screens are unaffected in practice (four
+columns, and they were read at 1500), but anyone reasoning about where the table
+stops should use the list's width.
+
+**Files changed:** `responsive_list_view.dart` (`ListColumn.flex`, honoured in
+the table layout only), `user_list_screen.dart` (the weights).
+**Test count unchanged at 202** — three tests added and removed inside this
+entry.
+
+**Open judgement, deferred deliberately: the table/card breakpoint is too high
+for a five-column screen.** At the ~1390px window where the user table first
+appears it is readable but tight, and the judgement that a table needs 1100px
+of *content* width was made for a four-column screen and has never been
+revisited. A per-screen minimum width is the obvious fix — `ResponsiveListView`
+taking a `tableMinWidth` its screens set — but it is a design decision about how
+much horizontal density this app wants, not a defect, so it is deferred rather
+than taken. Revisit with the reports and event list, which have their own column
+counts and are not in the app yet.

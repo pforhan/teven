@@ -12,6 +12,7 @@ import '../screens/inventory/inventory_list_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/organizations/organization_list_screen.dart';
 import '../screens/placeholder_screen.dart';
+import '../screens/users/user_list_screen.dart';
 import '../widgets/app_shell.dart';
 
 /// Every path in the app, in one place.
@@ -67,6 +68,18 @@ abstract final class AppRoutes {
   static const String users = '/users';
   static const String userCreate = '/users/create';
   static const String userEdit = '/users/edit/:userId';
+
+  /// A concrete link to a user's detail page.
+  ///
+  /// **There is no such route**, the same defect as [customerDetails],
+  /// [inventoryDetails] and [organizationDetails] — `App.tsx:61-63` declares
+  /// only `users`, `users/create` and `users/edit/:userId`, and
+  /// `UserList.tsx:123` links to a path that matches nothing. Reproduced, and
+  /// task 10.20 owns all four.
+  static String userDetails(int userId) => '/users/$userId';
+
+  static String userEditPath(int userId) =>
+      userEdit.replaceFirst(':userId', '$userId');
 
   static const String reports = '/reports';
   static const String profile = '/profile';
@@ -351,7 +364,7 @@ List<RouteBase> _shellRoutes(Ref ref) => [
 
   _guarded(ref, AppRoutes.users, [
     Permission.viewUsersOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.users)),
+  ], (_) => const UserListScreen()),
   // `App.tsx:62` gates create on *either* scope, unlike every other create
   // route. That asymmetry is deliberate here; task 5.12 flags the matching
   // asymmetry on the edit route for a second look.
