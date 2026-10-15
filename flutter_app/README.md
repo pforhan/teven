@@ -8,18 +8,37 @@ live application until task 10.3 of that plan.
 
 ## Status
 
-**Early scaffolding — not yet a working app.** Running this shows a placeholder
-screen. The app is not wired to the API yet, and the React frontend in
-`../frontend` remains the live application. See
-[`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md) for progress.
+**In progress.** Auth, the responsive shell, and the customer, inventory, and
+organization lists are ported and working against the backend; most routes still
+render a placeholder naming the path. The React frontend in `../frontend`
+remains the live application. See [`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md)
+for progress and the parity matrix.
 
 ## Running locally
+
+From the repo root, use the task runner — it handles the prebuild and the
+origins:
+
+```bash
+../teven up        # build the bundle, then serve from the real backend
+../teven dev       # hot reload, against a backend you already started
+../teven verify    # analyze, format-check, test
+```
+
+By hand, if you need to:
 
 ```bash
 flutter pub get
 dart run build_runner build   # required after every clone; see below
-flutter run -d chrome
+flutter run -d chrome --web-port=3000 --dart-define=API_BASE_URL=http://localhost:2022
 ```
+
+**Both flags on that last line are load-bearing.** Without
+`API_BASE_URL` the app uses relative URLs, which resolve against whatever origin
+served the page — against the Flutter dev server that means `/api` returns a 404
+rather than reaching the backend. Without a fixed `--web-port` the dev server
+picks a random port that the backend's CORS allow-list cannot name.
+`../teven dev` sets both.
 
 **`build_runner` is a required setup step.** Generated files (`*.freezed.dart`,
 `*.g.dart`) are gitignored, so they are absent from a fresh clone. Until
@@ -30,8 +49,10 @@ that exists only in generated code.
 Re-run it after changing anything in `lib/models/`, or after pulling commits
 that add or modify a model.
 
-The web build is served from the same origin as the API, so requests use
-relative URLs and no configuration is needed. See `lib/core/config/api_config.dart`.
+**In production, no configuration is needed.** The web build is served from the
+same origin as the API, so requests use relative URLs. The `--dart-define` above
+is only needed because the Flutter *dev server* is a different origin from the
+backend. See `lib/core/config/api_config.dart`.
 
 ## Building for Docker
 

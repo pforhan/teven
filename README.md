@@ -115,26 +115,35 @@ The frontend is in the middle of a rewrite. Two implementations currently exist 
 | Location | Stack | Status |
 |---|---|---|
 | `frontend/` | React 19, Vite, TypeScript, Bootstrap | **Live.** Served by the backend, unmodified |
-| `flutter_app/` | Flutter (Dart), Riverpod, go_router | In progress — scaffold only so far |
+| `flutter_app/` | Flutter (Dart), Riverpod, go_router | In progress — auth, the responsive shell, and the customer, inventory, and organization lists are ported |
 
 The React app remains the production frontend until the conversion reaches cutover. It is not to be modified or removed during the conversion; see the ground rules in [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md).
 
 ### Developing the Flutter app
 
+From the repo root:
+
 ```bash
-cd flutter_app
-flutter pub get
-flutter run -d chrome
+./teven up          # build the bundle, then serve from the real backend
+./teven up -f       # same, streaming logs in the foreground
+./teven up --open   # same, then open it in your browser
 ```
 
-Requires the Flutter SDK. Or, from the repo root, `./teven dev`.
+`./teven dev` runs it with hot reload instead, against a backend you have already
+started. Either way the app is served from the same origin as the API, so login
+works and you can use the ported screens for real.
 
-> **Status: scaffold only.** Running this today shows a placeholder screen, not a
-> working app. The conversion is in progress and this app is not yet wired to
-> the API. To use Teven right now, run the React frontend via `./teven up-react`
-> as described above.
+```bash
+./teven verify      # analyze, format-check, test
+```
 
-Run `./teven verify` to analyze, format-check, and test the Flutter app.
+All of these need the Flutter SDK. The raw commands still work, with one caveat:
+**`flutter run -d chrome` on its own will not reach the backend.** The app uses
+relative URLs on web, which resolve against the origin that served the page — so
+against the Flutter dev server, `/api` returns a 404. It also needs a fixed
+`--web-port`, since the dev server otherwise picks a random port that the
+backend's CORS allow-list cannot name. `./teven dev` sets both. See
+`flutter_app/README.md` for the full flag list.
 
 See [flutter_app/README.md](flutter_app/README.md) for analysis, tests, and code generation commands, and [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for the full task list and current progress.
 

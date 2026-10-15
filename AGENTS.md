@@ -9,8 +9,43 @@ This document outlines the conventions and best practices to follow when using L
 - **Modular Architecture:** The backend is designed with a modular structure. Ensure that new code is placed in the appropriate module (`app`, `core`, `data`, `service`, `api`, `auth`).
 - **2-Space Indentation:** Use 2 spaces for indentation in all code files.
 - **No whitespace inside link text:** A link's label must never begin or end with a space. The underline starts in blank space and the hit area extends past the word, which looks broken and is trivially avoidable. Put the separating space in the surrounding sentence, not in the link — `"clicking here."` is three spans (`"clicking "`, `"here"`, `"."`), not one. Applies to both Flutter `TextSpan`s and React/HTML `<a>`.
-- **Confirmation of changes:** Always run the build and tests to confirm any changes.
+- **Confirmation of changes:** Always run the build and tests to confirm any changes. For the Flutter app that is `./teven verify` — see the command reference below.
 - **Do not check in code:** Unless specifically instructed to do so, don't set up any git commands.
+
+## Command reference — use `./teven`, not the raw commands
+
+`./teven` is a task runner at the repo root wrapping the Docker Compose workflow.
+**Prefer it over the commands it wraps.** Every raw equivalent below either skips
+a step the script exists to enforce, or is wrong on its own.
+
+| Task | Use | Instead of |
+|---|---|---|
+| Start the stack (Flutter) | `./teven up` | `WEB_SOURCE=flutter docker compose up --build -d` |
+| Start the stack (React) | `./teven up-react` | `WEB_SOURCE=react docker compose up --build -d` |
+| Analyze + format-check + test | `./teven verify` | `flutter analyze && dart format --output=none --set-exit-if-changed . && flutter test` |
+| Run the app with hot reload | `./teven dev` | `flutter run -d chrome` |
+| Build the web bundle only | `./teven build` | `flutter build web --release --no-web-resources-cdn` |
+| Stop / reset | `./teven down`, `./teven down -v` | `docker compose down [-v]` |
+| Container status and logs | `./teven status`, `./teven logs` | `docker compose ps`, `docker compose logs -f` |
+| Full list | `./teven help` | — |
+
+Three of those are not stylistic preferences, and each has cost someone a run:
+
+- **`./teven up` over `docker compose up --build`.** With `WEB_SOURCE=flutter`
+  the Dockerfile copies a **prebuilt** bundle from `flutter_app/build/web`; it
+  does not compile it in the container. Calling Docker directly and forgetting
+  the prebuild produces a successful build that packages a **stale** bundle, with
+  nothing in the output to say so. `./teven up` cannot be run that way.
+- **`./teven dev` over `flutter run -d chrome`.** The bare form does not reach
+  the backend. The app uses relative URLs on web, which resolve against whatever
+  origin served the page — so against the Flutter dev server, `/api` 404s. It also
+  needs a fixed `--web-port`, because the dev server otherwise picks a random
+  port that the backend's CORS allow-list cannot name. `cmd_dev` sets both.
+- **`./teven verify` over the three commands by hand.** It is analyze, a
+  `dart format --set-exit-if-changed` *check*, and the test run. The format check
+  is the one that gets dropped, and formatting is enforced in this repo.
+
+Add `-n`/`--dry-run` to any of them to print the commands without running them.
 
 ## Backend (Kotlin/Ktor)
 
@@ -26,7 +61,30 @@ This document outlines the conventions and best practices to follow when using L
   - **Unit Tests:** All new business logic in the `service` module should be accompanied by unit tests. Use JUnit 5 and MockK for mocking dependencies.
   - **Integration Tests:** For new API endpoints, add integration tests to verify the entire request/response flow, including database interactions.
 
+## Frontend (Flutter/Dart)
+
+The Flutter app in `flutter_app/` is the conversion target and is being built in
+parallel with the live React app. `FLUTTER-CONVERT.md` is the source of truth for
+what is ported and why.
+
+- **Verifying changes:** `./teven verify` from the repo root. Run it before
+  claiming any change works.
+- **Running the app:** `./teven dev` (hot reload against a local backend), or
+  `./teven up` to see it served from the real backend the way a user does. See
+  the command reference above for why not to call `flutter run` directly.
+- **After a fresh clone:** `dart run build_runner build` in `flutter_app/` is
+  **required** before anything compiles. See "Commits" below.
+- **Doc comments citing the React original are load-bearing.** The port is
+  deliberate about where it diverges, and `FLUTTER-CONVERT.md` is where that
+  reasoning lives. When you change behaviour, update the task and its progress
+  entry — a closed task nobody re-reads is how a regression survives review.
+- **Commit and format:** Dart uses `dart format` (2-space, trailing commas);
+  `.freezed.dart` and `.g.dart` are generated and gitignored.
+
 ## Frontend (React/TypeScript)
+
+The live application until cutover. Do not modify during the conversion, except
+where a task in `FLUTTER-CONVERT.md` explicitly says to.
 
 - **Building:** Build and test frontend with `npm run build --prefix frontend`
 - **Component-Based Architecture:** Follow a component-based architecture, creating reusable components where possible.
