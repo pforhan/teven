@@ -50,7 +50,7 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
       if (!mounted) return;
       setState(() {
         _roles = roles;
-        if (roles.isNotEmpty) _selectedRoleId = roles.first.roleId;
+        _selectedRoleId = null;
       });
 
       final canManageGlobal = ref
@@ -99,7 +99,7 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
 
   Future<void> _handleCreate() async {
     if (_selectedRoleId == null) {
-      setState(() => _error = "Please select a role.");
+      setState(() => _error = "Please select one role.");
       return;
     }
 
@@ -226,19 +226,24 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
           const SizedBox(height: 16),
         ],
         const Text('Select Role:'),
-        DropdownButton<int>(
-          value: _selectedRoleId,
-          isExpanded: true,
-          items: [
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
             for (final role in _roles)
-              DropdownMenuItem<int>(
-                value: role.roleId,
-                child: Text(role.roleName),
+              ChoiceChip(
+                label: Text(role.roleName),
+                selected: _selectedRoleId == role.roleId,
+                onSelected: _loading
+                    ? null
+                    : (selected) {
+                        setState(() {
+                          _selectedRoleId = selected ? role.roleId : null;
+                        });
+                      },
               ),
           ],
-          onChanged: _loading
-              ? null
-              : (value) => setState(() => _selectedRoleId = value),
         ),
         const SizedBox(height: 16),
         TextFormField(
