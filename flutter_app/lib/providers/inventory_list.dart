@@ -27,7 +27,7 @@ final inventoryListProvider = AsyncNotifierProvider.autoDispose
       PagedInventoryList,
       PagedListState<InventoryItemResponse>,
       ListQuery
-    >(PagedInventoryList.new);
+    >(PagedInventoryList.new, retry: noRetry);
 
 class PagedInventoryList extends PagedListController<InventoryItemResponse> {
   PagedInventoryList(super.baseQuery);

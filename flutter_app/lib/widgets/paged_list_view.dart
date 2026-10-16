@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
-// `AsyncValueExtensions` is not optional here: `when` is an extension method,
-// not a member of `AsyncValue`, so importing only the class leaves `state.when`
-// undefined with a message that points at the wrong thing entirely.
 import 'package:flutter_riverpod/flutter_riverpod.dart'
-    show AsyncValue, AsyncValueExtensions;
+    show
+        AsyncValue,
+        AsyncValueExtensions,
+        ConsumerState,
+        ConsumerStatefulWidget;
+// `ProviderListenable` is not exported by `flutter_riverpod.dart` — that library
+// exports `ProviderListenableSelect` and its relatives but not the base
+// interface — so it comes from `flutter_riverpod/misc.dart`. `package:riverpod`
+// also exports it, but reaching past `flutter_riverpod` for it trips
+// `depend_on_referenced_packages` and would mean declaring `riverpod` as a direct
+// dependency purely to name one type that is already in the graph.
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 
 import '../core/api/api_exception.dart';
 import '../core/services/list_query.dart';
@@ -48,6 +56,8 @@ class PagedListView<T> extends StatelessWidget {
     this.onSort,
     this.emptyMessage = 'Nothing to show.',
     this.revealActionsOnHover,
+    this.stale = false,
+    this.filtered = false,
   });
 
   /// The rows loaded so far, and whether more are coming.
@@ -72,6 +82,50 @@ class PagedListView<T> extends StatelessWidget {
   final String emptyMessage;
   final bool? revealActionsOnHover;
 
+  /// Whether the rows on screen are the result of an active search.
+  ///
+  /// Only affects the wording of the count. "Showing all 2" is ambiguous in a
+  /// way that matters once a filter is on: two of *what*? The count is the
+  /// number the server matched, not the size of the table, and on a screen
+  /// listing a large collection "Showing all 2" reads as though the collection
+  /// holds two rows. Suffixing **filtered** says which number it is, and it is
+  /// the only place the distinction surfaces — the rows look identical either
+  /// way.
+  final bool filtered;
+
+  /// Whether these rows are the answer to the query currently being displayed.
+  ///
+  /// False once a newer query has started and before it lands — whether it is
+  /// still in flight or has failed. **One flag, not three states**, and the
+  /// reason is worth recording because the three-state version it replaced was
+  /// written for a good reason and was still the wrong shape.
+  ///
+  /// It began as a single boolean covering both "refreshing" and "failed", which
+  /// was wrong: the failure path rendered a progress bar that never stopped, an
+  /// indeterminate animation on a screen that had already given up, and it made
+  /// `pumpAndSettle` hang forever in the widget tests. So it became an enum —
+  /// `current`, `refreshing`, `stale` — with a bar for one and not the other.
+  ///
+  /// **Then the bar went, and `refreshing` and `stale` turned out to render
+  /// identically**, because the only thing that had distinguished them was the
+  /// decoration. The enum was carrying a distinction that no longer existed. A
+  /// browser check found why the bar had to go: it was inserted above the card,
+  /// so it pushed the whole list down by its own height for the duration of
+  /// every search — a 2px version of the very flash task 4.14 exists to remove.
+  /// **The progress indicator was moving the thing it was reporting on.**
+  ///
+  /// What survives is the part with a real justification: the footer is
+  /// suppressed, because "Showing 25 of 137" and a "Load more" button describe
+  /// the *retained* result, and during a search that result is not what the user
+  /// asked for — a count for the wrong filter, and a button that would page the
+  /// previous query. The same holds of a failed query, for the same reason.
+  ///
+  /// **There is now no visual indication that the rows are stale**, which is
+  /// what `TableView.tsx` did: it had no loading state at all, so a search was
+  /// silent until the rows changed. That is the behaviour being restored, and it
+  /// is a deliberate trade rather than an omission.
+  final bool stale;
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -89,7 +143,9 @@ class PagedListView<T> extends StatelessWidget {
       ),
       // An empty list has nothing to page: `hasMore` is only ever true of a
       // list that came back short, and a genuinely empty result is not short.
-      if (state.items.isNotEmpty) _Footer<T>(state: state, loadMore: loadMore),
+      // Nor is there anything to page while these rows are not the answer.
+      if (state.items.isNotEmpty && !stale)
+        _Footer<T>(state: state, loadMore: loadMore, filtered: filtered),
     ],
   );
 }
@@ -180,14 +236,23 @@ const double loadMoreThreshold = 100;
 ///   and without knowing the list is scrollable. See the class doc for why this
 ///   is not purely a fallback.
 class _Footer<T> extends StatelessWidget {
-  const _Footer({required this.state, required this.loadMore});
+  const _Footer({
+    required this.state,
+    required this.loadMore,
+    required this.filtered,
+  });
 
   final PagedListState<T> state;
   final VoidCallback loadMore;
+  final bool filtered;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Suffix on both counts, for the reason on [PagedListView.filtered]: with a
+    // filter on, the number is how many rows *matched*, not how many exist.
+    final suffix = filtered ? ' filtered' : '';
 
     // A failed page leaves the rows above untouched, so the failure is reported
     // here rather than replacing the list. The message is the server's, for the
@@ -230,7 +295,7 @@ class _Footer<T> extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.only(top: 12),
         child: Text(
-          'Showing all ${state.total}',
+          'Showing all ${state.total}$suffix',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.outline,
@@ -244,7 +309,7 @@ class _Footer<T> extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Showing ${state.items.length} of ${state.total}',
+            'Showing ${state.items.length} of ${state.total}$suffix',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.outline,
             ),
@@ -261,40 +326,76 @@ class _Footer<T> extends StatelessWidget {
   }
 }
 
-/// Builds the loading, error and loaded states of a [PagedListState].
+/// A list screen's rows, keeping the previous result on screen while a new query
+/// loads. Task 4.14.
 ///
-/// Extracted so the four list screens agree on **when** a spinner appears rather
-/// than each re-deriving it, and so the rule below is stated once.
+/// **What the React original did, precisely, because "it kept the rows" is not
+/// the whole of it.** `TableView.tsx` has *no loading state at all* — it renders
+/// `data` unconditionally, and `CustomerList.tsx:34` sets state only inside the
+/// `try`, so a failed or in-flight fetch left `customers` untouched. Two
+/// consequences, and the port had both wrong before this:
 ///
-/// **A spinner replaces the list only when there is nothing to show.** A failed
-/// or in-flight *first* page has no rows behind it, so there is nothing to keep;
-/// once any page has landed, a later request shows a footer instead and the rows
-/// stay. That is task 4.14's fix, and it comes for free here rather than as a
-/// separate mechanism: an accumulating list already holds the previous result,
-/// so keeping it visible is the absence of work rather than a retention scheme.
-class PagedListBody<T> extends StatelessWidget {
-  const PagedListBody({
+/// 1. **Rows stay put during a search.** The whole card used to be replaced by
+///    a spinner, so the heading, the column headers and every row blinked out
+///    and back on each debounced keystroke. That is the filed symptom.
+/// 2. **On failure the error appears *above* the stale rows, not instead of
+///    them.** `TableView.tsx:40` and `:42` are siblings inside the same card
+///    body, so React rendered the banner and the previous table together. The
+///    port replaced the list with the error, which is a divergence this task
+///    did not originally mention.
+///
+/// **How the retention works, and why it is a field rather than a provider.** A
+/// new search term is a different `ListQuery` key and therefore a *different*
+/// provider, so Riverpod has already discarded the old result by the time the
+/// new query starts — there is no previous value to read out of the
+/// [AsyncValue], and no amount of `skipLoadingOnRefresh` will conjure one. The
+/// previous list is therefore kept here, in this widget's state.
+///
+/// The alternative was task 4.14's option 3, "retain the last value across
+/// family keys with Riverpod's keep-alive link pattern" — hold the old provider
+/// alive so its value survives. That works too and is arguably more
+/// "correct-looking", but it retains a *provider*, and keeping a whole live
+/// provider alive to preserve a list of rows is more machinery than copying
+/// twenty-five of them into a field. One screen's worth of retention does not
+/// need a container-level lifetime.
+///
+/// **The retained rows are stale, and they are labelled as such by the bar
+/// rather than by hiding.** They are the previous *search's* rows, so for a
+/// moment they are not what the user asked for — which is precisely what the
+/// React original showed, and the reason that behaviour was worth copying. A
+/// list that says nothing while it reloads is worse than one that shows what it
+/// had a moment ago and admits it is refreshing.
+class PagedListSection<T> extends ConsumerStatefulWidget {
+  const PagedListSection({
     super.key,
-    required this.state,
+    required this.provider,
+    required this.loadMore,
     required this.columns,
     required this.idOf,
-    required this.loadMore,
     this.actions,
     this.sortBy,
     this.sortOrder,
     this.onSort,
     this.emptyMessage = 'Nothing to show.',
     this.revealActionsOnHover,
+    this.filtered = false,
   });
 
-  /// The provider's value. An `AsyncValue` rather than a bare state so the
-  /// screen passes what it already watched, and this widget does not need to
-  /// know which resource it is rendering.
-  final AsyncValue<PagedListState<T>> state;
+  /// The list being watched.
+  ///
+  /// A [ProviderListenable] rather than a resolved `AsyncValue` because
+  /// **watching has to happen here**, not in the screen: the screen watches the
+  /// provider to build the query, and a new query means a new provider, so a
+  /// screen that handed over a snapshot would have nothing to retain. Passing
+  /// the provider itself is what lets the previous value be captured before it is
+  /// replaced.
+  final ProviderListenable<AsyncValue<PagedListState<T>>> provider;
+
+  /// Requests the next page — the same handler [PagedScrollView] uses.
+  final VoidCallback loadMore;
 
   final List<ListColumn<T>> columns;
   final Object Function(T item) idOf;
-  final VoidCallback loadMore;
   final List<ListRowAction> Function(BuildContext context, T item)? actions;
   final String? sortBy;
   final SortOrder? sortOrder;
@@ -302,31 +403,95 @@ class PagedListBody<T> extends StatelessWidget {
   final String emptyMessage;
   final bool? revealActionsOnHover;
 
+  /// Whether the screen's search box holds a term. Only reaches the footer, to
+  /// word its count — see [PagedListView.filtered].
+  final bool filtered;
+
   @override
-  Widget build(BuildContext context) => state.when(
-    // `skipLoadingOnRefresh: false` because the default — true — routes a
-    // refresh that *kept* its previous value to `data` instead. That is the
-    // right default elsewhere, but here it would hide the in-flight state of a
-    // reload that does have rows behind it, and the footer would never appear.
-    skipLoadingOnRefresh: false,
-    loading: () => const Center(child: CircularProgressIndicator()),
-    // The same wrapping every list screen already does: `ApiClient` raises the
-    // sealed `ApiException` hierarchy, and anything reaching here as a bare
-    // object is a programming error rather than a server message.
-    error: (error, _) => ErrorDisplay.fromException(
-      error is ApiException ? error : ApiRequestException('$error'),
-    ),
-    data: (data) => PagedListView<T>(
-      state: data,
-      columns: columns,
-      idOf: idOf,
-      loadMore: loadMore,
-      actions: actions,
-      sortBy: sortBy,
-      sortOrder: sortOrder,
-      onSort: onSort,
-      emptyMessage: emptyMessage,
-      revealActionsOnHover: revealActionsOnHover,
-    ),
-  );
+  ConsumerState<PagedListSection<T>> createState() =>
+      _PagedListSectionState<T>();
+}
+
+class _PagedListSectionState<T> extends ConsumerState<PagedListSection<T>> {
+  /// The last list that actually resolved, kept while a newer query is in
+  /// flight or has failed.
+  ///
+  /// Never cleared. A user who searches "globex" and then clears the box gets
+  /// the globex rows back while the unfiltered query loads, which is the same
+  /// behaviour as not clearing it at all — and a retention scheme that reset
+  /// itself would reintroduce exactly the flash this exists to remove.
+  PagedListState<T>? _retained;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = ref.watch(widget.provider);
+
+    // Captured during build rather than in a listener: assigning to a field is
+    // not a `setState`, so this does not schedule a frame, and reading it here
+    // means the value is retained on the very first frame it resolves rather
+    // than one frame later. A `ref.listen` would work too and would need its own
+    // test to prove it fires on the initial value.
+    final resolved = current.value;
+    if (resolved != null) _retained = resolved;
+
+    final retained = _retained;
+
+    // Data is authoritative whenever there is any — including a refresh that
+    // carried its previous value, where the rows on screen are the right ones
+    // and only the pagination state is moving.
+    if (resolved != null) {
+      return _list(resolved);
+    }
+
+    // An error with something retained: the banner above the stale rows, which
+    // is what `TableView.tsx:40,42` renders. With nothing retained there is
+    // nothing to sit under it.
+    //
+    // `value`/`error`/`isLoading` rather than `hasValue`/`hasError`: in
+    // Riverpod 3 those two live on an `@internal` extension, and reaching them
+    // means importing something not meant to be used.
+    final error = current.error;
+    if (error != null) {
+      final banner = ErrorDisplay.fromException(
+        error is ApiException ? error : ApiRequestException('$error'),
+      );
+      if (retained == null) return banner;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          banner,
+          const SizedBox(height: 16),
+          _list(retained, stale: true),
+        ],
+      );
+    }
+
+    // Loading, with something retained: the rows stay and a bar says they are
+    // about to change. This is task 4.14's fix.
+    if (current.isLoading && retained != null) {
+      return _list(retained, stale: true);
+    }
+
+    // A first load, or a query that failed with nothing to show. A spinner is
+    // correct here and honest: there are no rows to keep, and the empty-state
+    // message would claim there is nothing to find when the truth is that
+    // nothing has arrived yet.
+    return const Center(child: CircularProgressIndicator());
+  }
+
+  Widget _list(PagedListState<T> state, {bool stale = false}) =>
+      PagedListView<T>(
+        state: state,
+        columns: widget.columns,
+        idOf: widget.idOf,
+        loadMore: widget.loadMore,
+        actions: widget.actions,
+        sortBy: widget.sortBy,
+        sortOrder: widget.sortOrder,
+        onSort: widget.onSort,
+        emptyMessage: widget.emptyMessage,
+        revealActionsOnHover: widget.revealActionsOnHover,
+        stale: stale,
+        filtered: widget.filtered,
+      );
 }

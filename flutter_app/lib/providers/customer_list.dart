@@ -14,6 +14,7 @@ import 'service_providers.dart';
 final customerListProvider = AsyncNotifierProvider.autoDispose
     .family<PagedCustomerList, PagedListState<CustomerResponse>, ListQuery>(
       PagedCustomerList.new,
+      retry: noRetry,
     );
 
 class PagedCustomerList extends PagedListController<CustomerResponse> {

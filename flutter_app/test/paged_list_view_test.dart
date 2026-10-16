@@ -242,7 +242,9 @@ void main() {
       // The new query fetches offset 0 — it does not inherit the pages the old
       // one had accumulated, which is what would show a mixture of two searches.
       expect(offsets.last, 0);
-      expect(find.text('Showing 25 of 60'), findsOneWidget);
+      // The "filtered" suffix is the wording task 4.14 settled on, so this
+      // assertion moves with it. See `PagedListView.filtered`.
+      expect(find.text('Showing 25 of 60 filtered'), findsOneWidget);
     });
   });
 

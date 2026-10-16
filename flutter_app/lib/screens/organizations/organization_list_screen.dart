@@ -142,7 +142,6 @@ class _OrganizationListScreenState
 
     final query = _buildQuery();
     _query = query;
-    final page = ref.watch(organizationPageProvider(query));
     final actionError = _actionError;
 
     return Scaffold(
@@ -171,13 +170,17 @@ class _OrganizationListScreenState
               ErrorDisplay.fromException(actionError),
               const SizedBox(height: 16),
             ],
-            PagedListBody<OrganizationResponse>(
-              state: page,
+            PagedListSection<OrganizationResponse>(
+              provider: organizationPageProvider(query),
               loadMore: () =>
                   ref.read(organizationPageProvider(query).notifier).loadMore(),
               columns: _columns(),
               idOf: (organization) => organization.organizationId,
               emptyMessage: 'No organizations found.',
+              // Only reaches the footer, to word its count. Same test as the one
+              // `_buildQuery` uses to decide whether to send `search` at all, so
+              // the label cannot claim a filter the request did not apply.
+              filtered: _searchTerm.isNotEmpty,
               sortBy: _sortBy,
               sortOrder: _sortOrder,
               onSort: _onSort,

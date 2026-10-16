@@ -5,6 +5,45 @@ import '../core/api/api_exception.dart';
 import '../core/services/list_query.dart';
 import '../models/common.dart';
 
+/// Turns off Riverpod's automatic retry of a failed provider build.
+///
+/// **Every list provider passes this, and it is a decision rather than a
+/// default.** Riverpod 3 retries a failed build with exponential backoff. For a
+/// list screen that is wrong in three separate ways, and only the first is
+/// obvious:
+///
+/// - **It fights task 4.14.** A retry takes the list back through
+///   [AsyncLoading], so a single failed search would render the error banner,
+///   then the rows, then the banner again as each attempt landed. The flash the
+///   user complained about would come back through the error path instead of the
+///   loading one.
+/// - **It cannot help with the failures that actually occur.** A 401 means the
+///   session is gone and `ApiClient`'s unauthorized redirect has already fired;
+///   a 403 means the caller lacks the permission and will keep lacking it; a
+///   validation error will keep failing. None of those are transient, and
+///   retrying each of them twice more is three wasted requests per failure.
+/// - **It hides its own work.** An automatic retry that succeeds replaces the
+///   error with rows and says nothing, so the screen briefly claims a result the
+///   user never asked for and cannot explain.
+///
+/// What replaces it is the affordance the UI already has: a failed *further
+/// page* shows "Try again" in the footer, and a failed *query* shows the
+/// server's message. Both are deliberate and both are visible. A silent retry is
+/// neither.
+///
+/// This also has a testing consequence worth recording, because it is how the
+/// behaviour was found. Riverpod arms a `Timer` for the retry; the widget-test
+/// fake clock does not advance far enough to fire it, so teardown failed with
+/// "A Timer is still pending even after the widget tree was disposed" on every
+/// test that rendered an error. Those four tests were failing for a reason that
+/// had nothing to do with what they assert.
+///
+/// Typed as `Duration? Function(int, Object)` rather than Riverpod's `Retry`
+/// typedef, which is not exported by `flutter_riverpod` — the two are the same
+/// type, and spelling it out avoids importing `riverpod`'s internals for a
+/// name.
+Duration? noRetry(int retryCount, Object error) => null;
+
 /// How many rows a list screen asks for per request.
 ///
 /// The React original's number — `getAllCustomers(25, 0, ...)` and the same

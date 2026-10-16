@@ -362,7 +362,6 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
 
     final query = _buildQuery(organization);
     _query = query;
-    final page = ref.watch(userPageProvider(query));
     final actionError = _actionError;
 
     // Read through `value` rather than Riverpod 3's removed `valueOrNull`.
@@ -423,13 +422,17 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
               ErrorDisplay.fromException(actionError),
               const SizedBox(height: 16),
             ],
-            PagedListBody<UserResponse>(
-              state: page,
+            PagedListSection<UserResponse>(
+              provider: userPageProvider(query),
               loadMore: () =>
                   ref.read(userPageProvider(query).notifier).loadMore(),
               columns: _userColumns(canViewGlobal: canViewGlobal),
               idOf: (user) => user.userId,
               emptyMessage: 'No users found.',
+              // Only reaches the footer, to word its count. Same test as the one
+              // `_buildQuery` uses to decide whether to send `search` at all, so
+              // the label cannot claim a filter the request did not apply.
+              filtered: _searchTerm.isNotEmpty,
               sortBy: _sortBy,
               sortOrder: _sortOrder,
               onSort: _onSort,

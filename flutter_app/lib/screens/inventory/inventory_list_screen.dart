@@ -155,7 +155,6 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
 
     final query = _buildQuery(organization);
     _query = query;
-    final page = ref.watch(inventoryListProvider(query));
     final actionError = _actionError;
 
     return Scaffold(
@@ -184,13 +183,17 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
               ErrorDisplay.fromException(actionError),
               const SizedBox(height: 16),
             ],
-            PagedListBody<InventoryItemResponse>(
-              state: page,
+            PagedListSection<InventoryItemResponse>(
+              provider: inventoryListProvider(query),
               loadMore: () =>
                   ref.read(inventoryListProvider(query).notifier).loadMore(),
               columns: _columns(),
               idOf: (item) => item.inventoryId,
               emptyMessage: 'No inventory items found.',
+              // Only reaches the footer, to word its count. Same test as the one
+              // `_buildQuery` uses to decide whether to send `search` at all, so
+              // the label cannot claim a filter the request did not apply.
+              filtered: _searchTerm.isNotEmpty,
               sortBy: _sortBy,
               sortOrder: _sortOrder,
               onSort: _onSort,

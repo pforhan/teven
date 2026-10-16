@@ -182,7 +182,6 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     // only place that sees the organization selection change without a
     // `setState` of its own.
     _query = query;
-    final page = ref.watch(customerListProvider(query));
     final actionError = _actionError;
 
     return Scaffold(
@@ -214,8 +213,8 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               ErrorDisplay.fromException(actionError),
               const SizedBox(height: 16),
             ],
-            PagedListBody<CustomerResponse>(
-              state: page,
+            PagedListSection<CustomerResponse>(
+              provider: customerListProvider(query),
               // The same handler `PagedScrollView` uses for scrolling, so the
               // button and the automatic load cannot drift apart.
               loadMore: () =>
@@ -223,6 +222,10 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               columns: _columns(),
               idOf: (customer) => customer.customerId,
               emptyMessage: 'No customers found.',
+              // Only reaches the footer, to word its count. Same test as the one
+              // `_buildQuery` uses to decide whether to send `search` at all, so
+              // the label cannot claim a filter the request did not apply.
+              filtered: _searchTerm.isNotEmpty,
               sortBy: _sortBy,
               sortOrder: _sortOrder,
               onSort: _onSort,

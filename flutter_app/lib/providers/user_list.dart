@@ -21,6 +21,7 @@ import 'service_providers.dart';
 final userPageProvider = AsyncNotifierProvider.autoDispose
     .family<PagedUserList, PagedListState<UserResponse>, ListQuery>(
       PagedUserList.new,
+      retry: noRetry,
     );
 
 class PagedUserList extends PagedListController<UserResponse> {

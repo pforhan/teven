@@ -54,7 +54,7 @@ final organizationPageProvider = AsyncNotifierProvider.autoDispose
       PagedOrganizationList,
       PagedListState<OrganizationResponse>,
       ListQuery
-    >(PagedOrganizationList.new);
+    >(PagedOrganizationList.new, retry: noRetry);
 
 class PagedOrganizationList extends PagedListController<OrganizationResponse> {
   PagedOrganizationList(super.baseQuery);

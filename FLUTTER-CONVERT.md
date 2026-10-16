@@ -249,13 +249,19 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [x] **4.10** Port the search-debounce pattern. The React lists use plain `useState`; pick a deliberate debounce and note the interval.
 - [x] **4.11** Verify sort controls against each endpoint. **`sortBy` is silently ignored on `/api/events`**, and `GET /api/events` defaults `sortOrder` to `asc`. **Verified against every DAO rather than taken on the plan's word, and the answer is a table, not a yes/no** — see the progress entry. Three of the five list screens agree with the server; the customer screen offers **three sort headers the server ignores** (`CustomerDao` switches on `name` alone and falls back to `id`), which is the one real mismatch and is left as-is under the parity rule. Events remain the outlier and stay **10.11**.
 - [x] **4.12** Widget tests for `ResponsiveListView`: table layout at desktop, card layout at mobile. **Split** — the third case in the original wording (the truncated `events` list on an inventory row) needs 4.5's screen, so it is now **4.13**.
-- [ ] **4.14** **Stop the list flashing on every search. Optional — raised during task 4.4's browser check and confirmed tolerable by hand, so it is filed rather than fixed.** A new query takes the whole card down to a spinner, header and all, so the header blinks out and back on every keystroke that survives the 300ms debounce. `CustomerList.tsx:46-48` never showed this: it left the previous rows up until the response landed, because `setCustomers` only ran on success.
+- [x] **4.14** **Stop the list flashing on every search. Done — and the retained rows were cheaper than any of the three options filed here.** A new query took the whole card down to a spinner, header and all, so the header blinked out and back on every keystroke that survived the 300ms debounce. `CustomerList.tsx:46-48` never showed this: `TableView` has **no loading state at all** — it renders `data` unconditionally, and `setCustomers` runs only inside the `try`.
 
-  **4.9 does not fix this, and it is worth recording that rather than assuming it.** The natural assumption is that an accumulating list retains the previous result — it does not, across a *query change*. A new search term is a different `ListQuery` key, therefore a different provider, therefore a fresh notifier with no rows; `PagedListBody`'s spinner is then correct, because there is genuinely nothing behind it. **Measured rather than reasoned, one frame after the debounce fires: one `CircularProgressIndicator` on screen and the previous rows gone.** The flash this task describes is still there.
+  **None of the three filed options was needed, and option 3 was the wrong shape.** It asked for "the last result kept across family keys", which against a `FutureProvider.family` meant a keep-alive link holding a value the family had already discarded. After 4.9 the list is a `PagedListController` that *owns* an accumulated list, so retaining it across a query change is a field and a `ref.watch` — no container-level lifetime, no link, no second mechanism. Option 1's progress bar was built and then **removed**: a browser check showed it pushed the whole card down by its own 2px height for the duration of every search, which is a smaller version of the flash this task exists to remove. Option 2 is moot, because the header never leaves now.
 
-  What 4.9 did change is the *other* loading paths: a further page, and the reload after a delete, now keep every row on screen and show a spinner in the footer instead. Those were never the filed symptom, so this is progress on a neighbouring problem rather than on this one, and **the task stays open**.
+  **A search is therefore silent, exactly as it was in React.** `TableView` had no loading state, so there is no indicator that the rows are stale — a deliberate trade, recorded at `PagedListView.stale`.
 
-  **The filed options all still stand, and option 3 is now much cheaper than it was.** It needed "the last result kept across family keys", which against a `FutureProvider.family` meant a keep-alive link holding a value the family had already discarded. The notifier now *owns* an accumulated list, so retaining it across a query change means declining to dispose the old provider while the new one loads — a `ref.keepAlive` and somewhere to hang the previous state, rather than a mechanism. Options 1 and 2 are as cheap as they were. **Left open deliberately:** it was filed as optional and judged tolerable by hand, nothing in 4.9 made it worse, and re-filing costs nothing.
+  **It also fixed a second divergence nobody had written down.** `TableView.tsx:40` and `:42` are siblings, so React rendered the error banner **and** the previous table together; the port replaced the list with the error. Same mechanism, same fix — the banner now sits above the stale rows.
+
+  **The footer now says "filtered" when a search is active** — "Showing all 2 filtered", "Showing 25 of 60 filtered". "Showing all 2" is ambiguous the moment a filter is on: two of *what*? The count is what the server matched, not the size of the table, and on a large collection it reads as though the collection holds two rows. Also found by eye, in the same pass.
+
+  **Riverpod's automatic retry is now off for list providers** (`noRetry`), which was not on this list and turned out to be load-bearing. A failed search retried with backoff, taking the list back through loading and reproducing **this same flash through the error path**. It could not help either: a 401 or a 403 is never transient, so each failure cost three requests instead of one.
+
+  **Not verified in a browser by me** — the harness's Flutter renderer would not initialise. Both defects above came from the user's own browser pass, and the widget tests now pin the geometry that caused the shift. See the progress entry.
 
 - [x] **4.13** Widget test for the truncated `events` list on an inventory row — 4.12's third case, held back because it needs `InventoryList` (4.5). Rides with that task. **Done with 4.5** — four cases in `inventory_list_screen_test.dart`: never used, all shown under the cap, truncated with a `+N more` count, and the cap applied **per row** rather than across the list.
 
@@ -2122,12 +2128,16 @@ requests**, which is the short-page rule working. The API pages 25 / 25 / 12
 server-side, matching.
 
 **Two things the browser pass could not check, recorded rather than hidden.**
-`/inventory` and `/organizations` render a blank canvas in the harness — **on the
-unmodified baseline too**, confirmed by stashing this work and rebuilding, so it
-is not caused by these changes and is not filed as a task here. And no screenshot
-was taken: the harness requires a visible desktop window, so the row count was
-read from the accessibility tree instead. That is weaker than an image for
-judging layout, and 4.9's visual check is best repeated by hand.
+`/inventory` and `/organizations` rendered a blank canvas in the harness — **on
+the unmodified baseline too**, confirmed by stashing this work and rebuilding.
+**Correction, 2026-10-15 (task 4.14): this was a harness limitation, not a
+finding.** The user checked both screens in a real browser and they render fine,
+and the same harness that could not draw them had rendered the customer list
+correctly earlier in the same session. Do not file anything against these two
+screens on the strength of that observation. And no screenshot was taken at all:
+the harness requires a visible desktop window, so row counts were read from the
+accessibility tree instead — weaker than an image for judging layout, and 4.9's
+visual check is best repeated by hand.
 
 **The customer screen's existing tests all passed unmodified**, including
 `expect(request.queryParameters['offset'], 0)` — the initial request is
@@ -2151,3 +2161,159 @@ exists for. The event list is the harder one: `EventResponse` nests rsvps,
 inventory and customer per row, so a page of 25 events is a much heavier
 payload than a page of 25 customers, and the 25 there is `defaultLimit` from task
 1.18 rather than this constant.
+
+### 2026-10-15 — Task 4.14: the search flash, and two things it dragged in
+
+**Done.** The list no longer blinks on every search. 237 tests pass on the VM (up
+from 223), 14 of them new in `test/list_refresh_test.dart`; 35 pass on Chrome
+across the pagination and refresh files; `flutter analyze` and `dart format`
+clean; web build succeeds.
+
+**Reading the React original first paid for itself twice.** `TableView.tsx` has
+*no loading state at all* — no spinner, no `loading` prop — it renders `data`
+unconditionally, and `CustomerList.tsx:34` sets state only inside the `try`. So
+the original's behaviour was not "show stale rows while loading" as a design
+choice; it was a consequence of having no loading concept. Which also means:
+
+- **Rows stay put during a search.** The filed symptom.
+- **On failure the error renders *above* the previous rows**, because
+  `TableView.tsx:40` and `:42` are siblings in the same card body. The port
+  replaced the list with the error. **This was a second divergence that no task
+  mentioned**, and it is fixed by the same mechanism — the banner now sits above
+  the stale rows, as it did in React.
+
+**The retention is a field, not a keep-alive link.** Task 4.14's option 3 asked
+for the last result kept across family keys, which against a
+`FutureProvider.family` would have meant a keep-alive link holding a value the
+family had already thrown away. After 4.9 the list is a `PagedListController`
+that *owns* its accumulated rows, so retaining them across a query change is a
+field and a `ref.watch` — no container-level lifetime. **The filed option was
+describing a cost that the previous task's architecture had already removed**,
+which is worth knowing: it was cheap to write when it was filed and cheaper still
+afterwards.
+
+**One boolean for two states was a real bug, and the loudest symptom was a test
+timeout.** `refreshing` first covered both "a query is in flight" and "the last
+query failed". On the failure path that rendered a progress bar that never
+stopped — an indeterminate animation on a screen that had already given up — and
+made `pumpAndSettle` hang forever. It became a three-value `PagedListFreshness`
+(`current` / `refreshing` / `stale`), **and then that was removed too** — see the
+bar below. Two failures from one flag, and the timeout was the third, which is
+the usual pattern in this log: the visible failure is rarely the whole of it.
+
+**The progress bar was built, shipped in the first pass, and then removed after a
+browser check.** It was inserted *above* the card, so it pushed the entire list
+down by its own height for the duration of every search — a 2px version of the
+exact flash this task exists to remove. **The indicator was moving the thing it
+was reporting on.** Removing it had a consequence worth recording: with the bar
+gone, `refreshing` and `stale` rendered *identically*, because a decoration had
+been the only thing distinguishing them. The three-state enum was carrying a
+distinction that no longer existed, so it collapsed to a single `stale` flag — the
+user's "if that simplifies things" turned out to remove an entire type.
+
+A search is now **silent**, which is what `TableView.tsx` did — it had no loading
+state at all. That is the behaviour being restored rather than an omission, and
+the trade is written down at `PagedListView.stale`.
+
+**The geometry test replaces "no spinner is present", and that substitution is the
+lesson.** The first draft asserted the absence of a `LinearProgressIndicator`,
+which tests a *name*. Anything inserted above the card shifts it whatever it is
+called, so the assertion is now a `getRect` comparison on the card — same top,
+same height, mid-search. Reinstating a 2px bar above the card, which is the exact
+reported bug, fails it.
+
+**One of five mutations passed, and it should have.** A `SizedBox(height: 2)`
+inserted *unconditionally* does not fail the test, because it is present both
+before and during the search and so moves nothing. That is the test being right
+rather than vacuous: the defect is *transient* movement, and chrome that is
+always there shifts nothing. Worth stating, because "a mutation passed" normally
+means a broken test and here it means the opposite.
+
+**The geometry test also failed for a reason worth recording.** Its first draft
+asserted equal heights *after* the search settled as well, and failed — because
+the search returned one row instead of two, so the card was genuinely shorter.
+Asserting that new data does not change the list asserts the opposite of the
+intent. Top is now compared after settling; both top and height during.
+
+**The footer count says "filtered" once a search is active.** "Showing all 2" is
+ambiguous the moment a filter is on — two of *what*? The number is what the server
+matched, not the size of the table, so on a large collection it reads as though
+the collection holds two rows. Both the completed case ("Showing all 2 filtered")
+and the paging case ("Showing 25 of 60 filtered") carry the suffix. Reported by
+eye in the same pass as the bar, and the clearest example in this log of a
+one-word copy change removing a real ambiguity.
+
+**Riverpod's automatic retry was quietly re-creating the very flash this task
+exists to remove.** Four tests that render an error started failing with "A
+Timer is still pending even after the widget tree was disposed" — Riverpod arms
+a `Timer` for the retry and the fake clock never fires it. Chasing that turned up
+the actual behaviour: a failed search was retried with backoff, taking the list
+back through loading. So a 500 would render the error, then the rows, then the
+error again, once per attempt. **The retry is now off for all four list
+providers** (`noRetry`), and not only because of the flicker: a 401 and a 403 are
+never transient, so each failure was costing three requests instead of one. The
+UI already owns the retry story — a "Try again" button in the footer, the
+server's message above the stale rows.
+
+**Two of the first three new tests passed with the retention deleted.** The same
+failure mode as the column-allocation tests earlier in this phase, and in the same
+shape. The first draft asserted "footer hidden during refresh" and "rows
+retained" as two tests, and both were true of the old spinner — because a spinner
+*also* hides the footer, having replaced the list wholesale. What separates them
+is the **combination**: old rows present *and* no `CircularProgressIndicator`,
+which is mutually exclusive under the old behaviour and only both-true with the
+fix. Both footer assertions were kept, because they are the reason the
+suppression is deliberate, but the note says plainly that on their own they pin
+nothing.
+
+Five mutations were run against the final code and each produces failures —
+spinner in place of the retention, the bar on a failed query, the footer left
+visible while refreshing, the error banner dropped, and the retry re-enabled.
+
+**Every one of these tests observes a single frame taken mid-flight, which dictates
+the shape of the file.** They `pump()` a fixed duration and look, then **drain
+afterwards** — and the drain is not optional: dio leaves a zero-duration timer
+pending until a request completes, so a test ending mid-flight fails at teardown
+regardless of what it asserted. That produced four failures on the first run that
+were about none of the assertions in them.
+
+(This was originally framed around the progress bar, which animated indefinitely
+and made `pumpAndSettle` unusable mid-flight. The bar is gone, so that constraint
+is too — but the mid-flight framing is still the right one, because the behaviour
+only exists on a frame nobody has settled.)
+
+**The fixture was wrong before the code was, twice.** The customer stub returned
+all 60 rows in one response labelled `limit: 25` — a shape the server cannot
+produce — so the "Showing 25 of 60" assertions failed for a reason unrelated to
+the behaviour. It is offset- and limit-aware now, and paging a real 62-row
+dataset through it confirms the count is 25/25/12.
+
+**Files changed:** `paged_list_view.dart` (`PagedListSection` replaces
+`PagedListBody`; the `stale` flag; the "filtered" suffix), `paged_list.dart`
+(`noRetry`), the four providers (`retry: noRetry`), the four screens.
+**Files added:** `test/list_refresh_test.dart`.
+**No new packages.**
+
+**Not verified in a browser by me, and the two defects above came from the user's
+own pass rather than from anything in this file.** The harness's Flutter renderer
+would not initialise — `flutter-view` and `flt-glass-pane` present, **zero**
+canvases, no console output — and it had degraded partway through a session in
+which it had earlier rendered the customer list correctly and been driven through
+three pages. **The earlier note in this log that `/inventory` and `/organizations`
+"render a blank canvas in the harness" was reported as a finding and should be
+read as a harness limitation: the user checked both in a real browser and they
+render fine.** Corrected in the 4.9 entry too.
+
+That gap matters more here than anywhere else in the phase, and this entry is the
+argument for it: **the progress bar and the footer wording were both wrong, both
+were obvious, and eleven widget tests passed straight through them.** The
+geometry test exists only because a person looked. What the tests now establish is
+that the card does not move; what they could never establish is whether the copy
+reads well.
+
+**Two follow-ups worth carrying.** Task 9.6 (cancellation) now has somewhere
+obvious to attach: the debounced search's superseded requests are still not
+cancelled, and `PagedListController` is where a generation guard would go. And
+the events list in Phase 7 is the one screen where retaining stale rows is
+least obviously right — `EventResponse` embeds a customer and inventory per row,
+so a search that changes the set changes a lot of data at once.
