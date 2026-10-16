@@ -17,6 +17,7 @@ import '../../providers/service_providers.dart';
 import '../../providers/user_list.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/create_invitation_form.dart';
 import '../../widgets/debounced_search_field.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/list_screen_header.dart';
@@ -67,6 +68,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   static const Duration _copiedIndicatorDuration = Duration(seconds: 2);
 
   String _searchTerm = '';
+
+  bool _showInvitationForm = false;
 
   /// `UserList.tsx:27` — the list opens sorted by username ascending, which is
   /// one of the three columns `UserDao` actually honours.
@@ -387,13 +390,44 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             ListScreenHeader(
               title: 'User Management',
               action: canManage
-                  ? FilledButton.icon(
-                      onPressed: () => context.go(AppRoutes.userCreate),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Create User'),
+                  ? Wrap(
+                      spacing: 8,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () => context.go(AppRoutes.userCreate),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Create User'),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () =>
+                              setState(() => _showInvitationForm = true),
+                          icon: const Icon(Icons.mail),
+                          label: const Text('Create Invitation'),
+                        ),
+                      ],
                     )
                   : null,
             ),
+            if (canManage && _showInvitationForm) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: CreateInvitationForm(
+                  onInvitationCreated: (_) {
+                    setState(() => _showInvitationForm = false);
+                    ref.invalidate(unusedInvitationsProvider);
+                  },
+                  onCancel: () => setState(() => _showInvitationForm = false),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             // `UserList.tsx:224-232`. Above the users, as in the original.
             if (showInvitations) ...[

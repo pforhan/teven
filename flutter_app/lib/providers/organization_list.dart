@@ -34,6 +34,40 @@ final organizationsProvider = Provider<List<OrganizationResponse>>(
   (ref) => ref.watch(organizationListProvider).value ?? const [],
 );
 
+/// [loaded], with [selected] appended when it is not already among them.
+///
+/// **`DropdownButton` and `DropdownButtonFormField` assert that the value has a
+/// matching item**, and both the chrome's switcher and the customer forms hit
+/// that. The React original gets it wrong in both directions: it renders
+/// `<select value={selected.organizationId}>` with options built in a
+/// `useEffect`, so on the first render — and again on every render before that
+/// fetch resolves — the value names an option that does not exist. A browser
+/// quietly shows the first option instead; Flutter takes the screen down.
+///
+/// The list is empty until it resolves, so folding the selection in means the
+/// control always has an item for whatever it currently says is selected. An
+/// organization that has since been deleted keeps appearing once, which is a
+/// smaller lie than pretending the user never chose it.
+///
+/// Lives here rather than beside either caller because by Phase 5 there are
+/// three: the rail's dropdown, and the two customer forms. Phase 3 wrote it as
+/// a private function and hit the same assertion again while porting the first
+/// form that needed it — which is the argument for a shared home.
+List<OrganizationResponse> organizationsIncluding(
+  List<OrganizationResponse> loaded,
+  OrganizationResponse? selected,
+) {
+  if (selected == null) {
+    return loaded;
+  }
+  for (final organization in loaded) {
+    if (organization.organizationId == selected.organizationId) {
+      return loaded;
+    }
+  }
+  return [...loaded, selected];
+}
+
 /// The organization list screen's rows, accumulating a page at a time.
 ///
 /// Separate from [organizationListProvider] because the two want different

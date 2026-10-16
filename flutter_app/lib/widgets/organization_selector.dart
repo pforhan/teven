@@ -161,7 +161,7 @@ class _OrganizationDropdown extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final selected = ref.watch(selectedOrganizationProvider);
-    final organizations = _including(
+    final organizations = organizationsIncluding(
       ref.watch(organizationsProvider),
       selected,
     );
@@ -241,34 +241,8 @@ class _OrganizationDropdown extends ConsumerWidget {
   }
 }
 
-/// [loaded], with [selected] appended if it is not already among them.
-///
-/// **The React original gets this wrong in both directions.** It renders
-/// `<select value={selected.organizationId}>` with options built from a list
-/// fetched in a `useEffect`, so on the first render — and again on every
-/// render before that fetch resolves — the value names an option that does not
-/// exist. A browser quietly shows the first option instead; `DropdownButton`
-/// asserts, and the assertion takes the screen down with it.
-///
-/// The list is empty until it resolves, so folding this in means the control
-/// always has an item for whatever the control currently says is selected,
-/// whether that is "nothing selected" or a restored selection the user cannot
-/// otherwise see. An organization that has since been deleted keeps appearing
-/// once, which is a smaller lie than pretending the user never chose it.
-List<OrganizationResponse> _including(
-  List<OrganizationResponse> loaded,
-  OrganizationResponse? selected,
-) {
-  if (selected == null) {
-    return loaded;
-  }
-  for (final organization in loaded) {
-    if (organization.organizationId == selected.organizationId) {
-      return loaded;
-    }
-  }
-  return [...loaded, selected];
-}
+/// [organizationsIncluding] — see there for the assertion this avoids and for
+/// why it was private here until Phase 5 needed it in three places.
 
 /// Whether [size] renders on the dark rail rather than the light drawer.
 ///

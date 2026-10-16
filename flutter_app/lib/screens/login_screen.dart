@@ -4,17 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/api_exception.dart';
 import '../providers/auth_controller.dart';
 import '../widgets/error_display.dart';
+import '../widgets/validators.dart';
 
 /// The login screen.
 ///
 /// Replaces `Auth.tsx` — 71 lines of a single card, no register link and no
 /// "forgot password", since neither exists in the React app.
 ///
-/// Deliberately narrower than the rest of the port in one respect: **there is
-/// no `_Form` abstraction here.** Task 5.1 settles that convention once, for
-/// seven forms, and binding login to a convention chosen afterwards would mean
-/// rewriting it. What the screen does reproduce is the behaviour — see
-/// [_submit] — and the card sizing, fixed up for small viewports.
+/// Deliberately narrower than the rest of the port in one respect: **it does
+/// not use [FormCard].** That widget was written afterwards, for task 5.1, and
+/// it owns a `Scaffold` — so adopting it here would mean nesting one inside the
+/// other. The convention this screen does share is `Validators.required` in
+/// place of its own private copy, which task 5.1 removed.
+///
+/// What the screen reproduces is the behaviour — see [_submit] — and the card
+/// sizing, fixed up for small viewports.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -117,7 +121,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Username',
                         ),
-                        validator: _required,
+                        validator: Validators.required,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -142,7 +146,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 : 'Hide password',
                           ),
                         ),
-                        validator: _required,
+                        validator: Validators.required,
                       ),
                       const SizedBox(height: 24),
                       FilledButton(
@@ -169,8 +173,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
-
-  /// Stands in for the React `required` attribute (`Auth.tsx:45,57`).
-  static String? _required(String? value) =>
-      (value == null || value.isEmpty) ? 'This field is required' : null;
 }

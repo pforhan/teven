@@ -7,11 +7,20 @@ import 'package:go_router/go_router.dart';
 import '../models/permissions.dart';
 import '../providers/auth_controller.dart';
 import '../screens/accept_invitation_screen.dart';
+import '../screens/customers/create_customer_screen.dart';
 import '../screens/customers/customer_list_screen.dart';
+import '../screens/customers/edit_customer_screen.dart';
+import '../screens/inventory/create_inventory_screen.dart';
+import '../screens/inventory/edit_inventory_screen.dart';
 import '../screens/inventory/inventory_list_screen.dart';
 import '../screens/login_screen.dart';
+import '../screens/organizations/create_organization_screen.dart';
+import '../screens/organizations/edit_organization_screen.dart';
 import '../screens/organizations/organization_list_screen.dart';
 import '../screens/placeholder_screen.dart';
+import '../screens/profile/profile_screen.dart';
+import '../screens/users/create_user_screen.dart';
+import '../screens/users/edit_user_screen.dart';
 import '../screens/users/user_list_screen.dart';
 import '../widgets/app_shell.dart';
 
@@ -319,14 +328,20 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   ], (_) => const CustomerListScreen()),
   _guarded(ref, AppRoutes.customerCreate, [
     Permission.manageCustomersOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.customerCreate)),
+  ], (_) => const CreateCustomerScreen()),
   _guarded(
     ref,
     AppRoutes.customerEdit,
     [Permission.manageCustomersOrganization],
-    (state) => PlaceholderScreen.route(
-      AppRoutes.customerEdit,
-      params: state.pathParameters,
+    (state) => EditCustomerScreen(
+      // The route declares `:customerId` and every link in the app builds it
+      // from an `int`, so a non-numeric value means someone hand-edited the
+      // URL. `-1` rather than a throw: `int.parse` would take the app down, and
+      // a catch-all redirect does not apply to a route that already matched.
+      // The screen then asks for `/api/customers/-1`, which 404s, which lands
+      // on the error branch — a message saying there is no such customer, which
+      // is what happened.
+      customerId: int.tryParse(state.pathParameters['customerId'] ?? '') ?? -1,
     ),
   ),
 
@@ -335,14 +350,14 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   ], (_) => const InventoryListScreen()),
   _guarded(ref, AppRoutes.inventoryCreate, [
     Permission.manageInventoryOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.inventoryCreate)),
+  ], (_) => const CreateInventoryScreen()),
   _guarded(
     ref,
     AppRoutes.inventoryEdit,
     [Permission.manageInventoryOrganization],
-    (state) => PlaceholderScreen.route(
-      AppRoutes.inventoryEdit,
-      params: state.pathParameters,
+    (state) => EditInventoryScreen(
+      inventoryId:
+          int.tryParse(state.pathParameters['inventoryId'] ?? '') ?? -1,
     ),
   ),
 
@@ -351,14 +366,14 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   ], (_) => const OrganizationListScreen()),
   _guarded(ref, AppRoutes.organizationCreate, [
     Permission.manageOrganizationsGlobal,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.organizationCreate)),
+  ], (_) => const CreateOrganizationScreen()),
   _guarded(
     ref,
     AppRoutes.organizationEdit,
     [Permission.manageOrganizationsGlobal],
-    (state) => PlaceholderScreen.route(
-      AppRoutes.organizationEdit,
-      params: state.pathParameters,
+    (state) => EditOrganizationScreen(
+      organizationId:
+          int.tryParse(state.pathParameters['organizationId'] ?? '') ?? -1,
     ),
   ),
 
@@ -371,14 +386,13 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   _guarded(ref, AppRoutes.userCreate, [
     Permission.manageUsersGlobal,
     Permission.manageUsersOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.userCreate)),
+  ], (_) => const CreateUserScreen()),
   _guarded(
     ref,
     AppRoutes.userEdit,
     [Permission.manageUsersGlobal],
-    (state) => PlaceholderScreen.route(
-      AppRoutes.userEdit,
-      params: state.pathParameters,
+    (state) => EditUserScreen(
+      userId: int.tryParse(state.pathParameters['userId'] ?? '') ?? -1,
     ),
   ),
 
@@ -387,10 +401,5 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   ], (_) => const PlaceholderScreen.route(AppRoutes.reports)),
 
   // `App.tsx:59` — the only authenticated route with no permission gate.
-  _guarded(
-    ref,
-    AppRoutes.profile,
-    const [],
-    (_) => const PlaceholderScreen.route(AppRoutes.profile),
-  ),
+  _guarded(ref, AppRoutes.profile, const [], (_) => const ProfileScreen()),
 ];

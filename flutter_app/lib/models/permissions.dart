@@ -18,6 +18,30 @@ enum Permission {
   manageEventsOrganization('MANAGE_EVENTS_ORGANIZATION'),
   viewCustomersOrganization('VIEW_CUSTOMERS_ORGANIZATION'),
   manageCustomersOrganization('MANAGE_CUSTOMERS_ORGANIZATION'),
+
+  /// **One of the 18 that task 10.16 covers, added early because a Phase 5
+  /// form cannot be ported without it.**
+  ///
+  /// Both customer forms gate their organization `<select>` on
+  /// `hasPermission('MANAGE_CUSTOMERS_GLOBAL')`
+  /// (`CreateCustomerForm.tsx:29`, `EditCustomerForm.tsx:24`), and the React
+  /// `Permission` type does not name it — so under the mirror-the-15 rule the
+  /// control would never render for anyone. That is not a cosmetic loss: the
+  /// **server requires** it of a global manager.
+  /// `CustomerService.kt:62` throws `"organizationId is required for
+  /// MANAGE_CUSTOMERS_GLOBAL users"` when the request omits one, and
+  /// `:93` refuses an `organizationId` change from anyone who lacks it. So the
+  /// gate decides whether the form can create a customer at all.
+  ///
+  /// The `SuperAdmin` role is seeded with every permission
+  /// (`InitialSetup.kt:24` — `Permission.entries.map { it.name }`), so the
+  /// permission is genuinely held in practice and the dropdown is live.
+  /// `Organizer` and `Staff` are not granted it.
+  ///
+  /// Added as option (a) of 10.16 — "grant it a client constant and gate the
+  /// corresponding UI" — for the one permission this phase could not proceed
+  /// without. The other 17 still wait on that task's review.
+  manageCustomersGlobal('MANAGE_CUSTOMERS_GLOBAL'),
   viewInventoryOrganization('VIEW_INVENTORY_ORGANIZATION'),
   manageInventoryOrganization('MANAGE_INVENTORY_ORGANIZATION'),
   viewReportsOrganization('VIEW_REPORTS_ORGANIZATION'),

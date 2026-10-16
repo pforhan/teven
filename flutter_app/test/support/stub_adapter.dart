@@ -48,6 +48,17 @@ class StubAdapter implements HttpClientAdapter {
   /// Every request made, in order.
   final List<RequestOptions> requests = [];
 
+  /// The body of each request, keyed by its options.
+  ///
+  /// A map rather than a second list so the two cannot drift, and keyed rather
+  /// than "the last one" because a screen test almost always needs to assert on
+  /// *a* request after several have gone out — a form's `POST` after the chrome
+  /// has already asked for the organization list, say.
+  final Map<RequestOptions, String?> bodies = {};
+
+  /// The body sent with [request], as JSON text.
+  String? bodyOf(RequestOptions request) => bodies[request];
+
   RequestOptions get last => requests.last;
 
   /// Query parameters of the most recent request, flattened.
@@ -84,7 +95,7 @@ class StubAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
-    lastRequestBody = await _decode(requestStream);
+    lastRequestBody = bodies[options] = await _decode(requestStream);
     final response = handler?.call(options);
 
     if (response == null) {
