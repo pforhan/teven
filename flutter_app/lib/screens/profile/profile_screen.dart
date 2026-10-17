@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../models/user.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/service_providers.dart';
 import '../../widgets/form_card.dart';
+import '../../widgets/picker_fields.dart';
 import '../../widgets/validators.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -161,10 +161,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               controller: _phoneController,
               decoration: const InputDecoration(labelText: 'Phone Number'),
             ),
-            TextFormField(
-              controller: _dobController,
-              decoration: const InputDecoration(labelText: 'Date of Birth'),
-            ),
+            DateField(controller: _dobController, label: 'Date of Birth'),
             TextFormField(
               controller: _skillsController,
               decoration: const InputDecoration(

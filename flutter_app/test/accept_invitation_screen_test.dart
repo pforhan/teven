@@ -121,7 +121,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Accept Invitation'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Enter a valid email address'), findsOneWidget);
+      expect(find.text('Invalid email'), findsOneWidget);
       expect(
         adapter.requests.where((r) => r.path == '/api/invitations/accept'),
         isEmpty,

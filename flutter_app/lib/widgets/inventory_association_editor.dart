@@ -6,6 +6,7 @@ import '../core/services/list_query.dart';
 import '../models/event.dart';
 import '../models/inventory.dart';
 import '../providers/service_providers.dart';
+import 'picker_fields.dart';
 
 class InventoryAssociationEditor extends ConsumerStatefulWidget {
   const InventoryAssociationEditor({
@@ -29,6 +30,7 @@ class _InventoryAssociationEditorState
   List<InventoryItemResponse> _available = [];
   int? _selectedId;
   int _quantity = 1;
+  final _quantityController = TextEditingController(text: '1');
   List<EventInventoryItem> _associated = [];
   String? _error;
 
@@ -37,6 +39,12 @@ class _InventoryAssociationEditorState
     super.initState();
     _associated = List.of(widget.initialInventoryItems);
     _refresh();
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    super.dispose();
   }
 
   @override
@@ -163,10 +171,9 @@ class _InventoryAssociationEditorState
               const SizedBox(width: 8),
               SizedBox(
                 width: 80,
-                child: TextFormField(
-                  initialValue: '$_quantity',
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Qty'),
+                child: NumberField(
+                  controller: _quantityController,
+                  label: 'Qty',
                   onChanged: (v) => _quantity = int.tryParse(v) ?? 1,
                 ),
               ),

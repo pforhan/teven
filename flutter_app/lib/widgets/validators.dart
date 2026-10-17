@@ -56,4 +56,20 @@ abstract final class Validators {
     }
     return null;
   }
+
+  /// `required` plus a non-negative integer check.
+  ///
+  /// For `type="number"` fields — quantity in the inventory forms. The
+  /// `FilteringTextInputFormatter` on the field means a non-numeric value
+  /// cannot be typed, so the `int.tryParse` check is a safety net rather than
+  /// the primary defense.
+  static String? requiredNumber(String? value) {
+    if (required(value) != null) {
+      return required(value);
+    }
+    if (int.tryParse(value!) == null) {
+      return 'Must be a number';
+    }
+    return null;
+  }
 }

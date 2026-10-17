@@ -9,6 +9,7 @@ import '../providers/auth_controller.dart';
 import '../providers/service_providers.dart';
 import '../widgets/already_logged_in_error.dart';
 import '../widgets/error_display.dart';
+import '../widgets/validators.dart';
 
 /// Accepts an invitation and creates the account behind it.
 ///
@@ -351,7 +352,7 @@ class _AcceptInvitationScreenState
                   textInputAction: TextInputAction.next,
                   enabled: !_submitting,
                   decoration: const InputDecoration(labelText: 'Email'),
-                  validator: _email,
+                  validator: Validators.email,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -384,21 +385,6 @@ class _AcceptInvitationScreenState
   /// Stands in for `required` (`AcceptInvitationPage.tsx:120`).
   static String? _required(String? value) =>
       (value == null || value.isEmpty) ? 'This field is required' : null;
-
-  /// Stands in for `type="email"` (`AcceptInvitationPage.tsx:146`).
-  ///
-  /// Browsers apply this natively before firing `submit`; Flutter does not, so
-  /// without a validator a typo would reach the server. Deliberately shallow —
-  /// task 5.9 settles the validator convention once, for all seven forms.
-  static String? _email(String? value) {
-    final required = _required(value);
-    if (required != null) {
-      return required;
-    }
-    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value!)
-        ? null
-        : 'Enter a valid email address';
-  }
 }
 
 /// The Bootstrap `alert-info` / `alert-success` boxes on this screen.

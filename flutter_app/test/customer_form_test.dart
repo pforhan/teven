@@ -602,7 +602,7 @@ void main() {
           return null;
         },
       );
-      final container = await openEdit(tester, adapter, '/customers/edit/1');
+      await openEdit(tester, adapter, '/customers/edit/1');
       expect(find.text('Try again'), findsOneWidget);
 
       await tester.tap(find.text('Try again'));

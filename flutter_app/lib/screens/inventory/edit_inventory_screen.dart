@@ -11,6 +11,7 @@ import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/organization_select_field.dart';
+import '../../widgets/picker_fields.dart';
 import '../../widgets/validators.dart';
 
 /// Task 5.3. Port of `EditInventoryForm.tsx`.
@@ -153,17 +154,10 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
           decoration: const InputDecoration(labelText: 'Description'),
           validator: Validators.requiredText,
         ),
-        TextFormField(
+        NumberField(
           controller: _quantityController,
-          decoration: const InputDecoration(labelText: 'Quantity'),
-          keyboardType: TextInputType.number,
-          validator: (value) {
-            if (Validators.required(value) != null) {
-              return Validators.required(value);
-            }
-            if (int.tryParse(value ?? '') == null) return 'Must be a number';
-            return null;
-          },
+          label: 'Quantity',
+          validator: Validators.requiredNumber,
         ),
         if (canManageGlobal)
           OrganizationSelectField(
