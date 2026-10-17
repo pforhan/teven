@@ -70,7 +70,7 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = ApiRequestException('An unknown error occurred');
+        _error = const ApiRequestException('An unknown error occurred');
         _isLoading = false;
       });
     }
@@ -116,7 +116,9 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
       setState(() => _error = e);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = ApiRequestException('An unknown error occurred'));
+      setState(
+        () => _error = const ApiRequestException('An unknown error occurred'),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -142,7 +144,7 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
       );
     }
 
-    Widget rolesField = Wrap(
+    final Widget rolesField = Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [

@@ -61,7 +61,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(
-        () => _error = ApiRequestException(
+        () => _error = const ApiRequestException(
           'An unknown error occurred while loading item',
         ),
       );
@@ -111,7 +111,9 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
       setState(() => _error = e);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = ApiRequestException('An unknown error occurred'));
+      setState(
+        () => _error = const ApiRequestException('An unknown error occurred'),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);

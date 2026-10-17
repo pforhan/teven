@@ -54,7 +54,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = ApiRequestException('An unknown error occurred');
+        _error = const ApiRequestException('An unknown error occurred');
         _isLoading = false;
       });
     }
@@ -110,7 +110,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       setState(() => _error = e);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = ApiRequestException('An unknown error occurred'));
+      setState(
+        () => _error = const ApiRequestException('An unknown error occurred'),
+      );
     }
   }
 

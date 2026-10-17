@@ -68,9 +68,7 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
       } else if (canManageGlobal) {
         organizationId = _selectedOrganization?.organizationId;
       } else {
-        organizationId = userContext == null
-            ? null
-            : userContext.user.organization.organizationId;
+        organizationId = userContext?.user.organization.organizationId;
       }
 
       if (organizationId == null) {
@@ -98,7 +96,9 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
       setState(() => _error = e);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = ApiRequestException('An unknown error occurred'));
+      setState(
+        () => _error = const ApiRequestException('An unknown error occurred'),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);

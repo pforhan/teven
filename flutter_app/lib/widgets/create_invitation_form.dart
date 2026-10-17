@@ -270,9 +270,9 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
                 child: const Text('Cancel'),
               ),
               const SizedBox(width: 8),
-              FilledButton(
+              const FilledButton(
                 onPressed: null,
-                child: const Text('Create Invitation'),
+                child: Text('Create Invitation'),
               ),
             ],
           ),

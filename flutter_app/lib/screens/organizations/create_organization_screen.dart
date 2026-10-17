@@ -57,7 +57,9 @@ class _CreateOrganizationScreenState
       setState(() => _error = e);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = ApiRequestException('An unknown error occurred'));
+      setState(
+        () => _error = const ApiRequestException('An unknown error occurred'),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

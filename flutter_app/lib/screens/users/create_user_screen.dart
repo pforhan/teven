@@ -60,7 +60,7 @@ class _CreateUserScreenState extends ConsumerState<CreateUserScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = ApiRequestException('An unknown error occurred');
+        _error = const ApiRequestException('An unknown error occurred');
         _isLoading = false;
       });
     }
@@ -126,7 +126,9 @@ class _CreateUserScreenState extends ConsumerState<CreateUserScreen> {
       setState(() => _error = e);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = ApiRequestException('An unknown error occurred'));
+      setState(
+        () => _error = const ApiRequestException('An unknown error occurred'),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -143,7 +145,7 @@ class _CreateUserScreenState extends ConsumerState<CreateUserScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    Widget rolesField = Wrap(
+    final Widget rolesField = Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
