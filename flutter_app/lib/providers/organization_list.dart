@@ -15,6 +15,16 @@ import 'service_providers.dart';
 /// The limit is explicit and load-bearing: task 10.15 records that omitting
 /// `limit` applies **no cap at all** server-side, so an unparameterized request
 /// returns the whole table. `1000` is the React app's number, kept as-is.
+///
+/// **`retry: noRetry`, for the same reason [organizationPageProvider] sets it.**
+/// A `FutureProvider` left on the default policy retries a failed build on an
+/// exponential backoff, and the first retry's 800ms timer outlives the widget
+/// test that provoked the failure — Flutter fails the test on the pending timer
+/// rather than on any assertion, which reads as a leak in the test harness
+/// rather than as the retry it is. A failed organization fetch is also not
+/// transient in a way worth hiding: it is a 403 or a 404, and retrying it
+/// silently would re-request on a screen that has already told the user it
+/// failed.
 final organizationListProvider = FutureProvider<List<OrganizationResponse>>((
   ref,
 ) async {
@@ -22,7 +32,7 @@ final organizationListProvider = FutureProvider<List<OrganizationResponse>>((
       .watch(organizationServiceProvider)
       .getAllOrganizations(const ListQuery(limit: 1000));
   return page.items;
-});
+}, retry: noRetry);
 
 /// The organizations, or an empty list while loading or after a failure.
 ///

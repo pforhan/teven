@@ -79,6 +79,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// A navigation label, scoped to the open drawer.
+  ///
+  /// **Scoped, because a label alone is ambiguous once the user is somewhere.**
+  /// A user holding no permissions is sent to `/profile` by the router — it is
+  /// the one authenticated route with no permission requirement — so the page
+  /// *behind* the drawer carries its own "Profile" heading. `find.text` alone
+  /// then matches the heading and the nav item, and an assertion about
+  /// navigation fails on the page behind it. Same reason the rail cases below
+  /// assert on the rail.
+  Finder drawerItem(String label) => find.descendant(
+    of: find.byType(NavigationDrawer),
+    matching: find.text(label),
+  );
+
   NavigationRail railIn(WidgetTester tester) =>
       tester.widget<NavigationRail>(find.byType(NavigationRail));
 
@@ -175,12 +189,12 @@ void main() {
       await openDrawer(tester);
 
       for (final label in ['Events', 'Customers', 'Inventory', 'Reports']) {
-        expect(find.text(label), findsNothing, reason: label);
+        expect(drawerItem(label), findsNothing, reason: label);
       }
       // Profile and Logout are not gated, and must survive an empty set —
       // otherwise a user with no grants has no way out of the app.
-      expect(find.text('Profile'), findsOneWidget);
-      expect(find.text('Logout'), findsOneWidget);
+      expect(drawerItem('Profile'), findsOneWidget);
+      expect(drawerItem('Logout'), findsOneWidget);
     });
 
     testWidgets('Users is shown for either scope', (tester) async {

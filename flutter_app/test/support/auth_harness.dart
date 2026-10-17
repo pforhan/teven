@@ -95,6 +95,33 @@ StubAdapter contextAdapter({
       }),
     );
   }
+  if (options.method == 'GET' && options.path.startsWith('/api/users/')) {
+    return StubResponse.json(
+      jsonEncode({
+        'success': true,
+        'data': {
+          'userId': 1,
+          'username': 'ada',
+          'email': 'ada@example.com',
+          'displayName': 'Ada',
+          'roles': ['Admin'],
+          'organization': {
+            'organizationId': 1,
+            'name': 'Acme',
+            'contactInformation': '',
+          },
+        },
+      }),
+    );
+  }
+  if (options.method == 'GET' && options.path == '/api/roles') {
+    // Answered for the same reason as `/api/users/{id}` above: the create-user
+    // screen lists roles on arrival, and a test that only means to assert that
+    // the *guard* admitted the route should not have to know that. Empty,
+    // because a role list is `services_test.dart`'s subject and nobody is
+    // asserting on its contents through this harness.
+    return const StubResponse.json('{"success":true,"data":[]}');
+  }
   if (options.method == 'POST' && options.path == '/api/users/login') {
     return StubResponse.json(
       jsonEncode({

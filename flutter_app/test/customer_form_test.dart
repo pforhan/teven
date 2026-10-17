@@ -60,6 +60,23 @@ void main() {
     }),
   );
 
+  /// An empty `GET /api/customers` page.
+  ///
+  /// **The list the form redirects to after a successful save needs an
+  /// answer.** Every "lands on the list" assertion here ends by navigating to
+  /// `/customers`, which fetches on arrival, and an unstubbed path falls through
+  /// to the harness's 401 — which is not neutral here: it trips the real
+  /// unauthorized redirect, signs the test out and lands on `/login`, so the
+  /// path assertion fails on a signed-out app rather than on the redirect under
+  /// test. Empty, because the contents of the list are none of these tests'
+  /// business; [customer_list_screen_test.dart] is where rows get asserted.
+  StubResponse emptyCustomerPage() => StubResponse.json(
+    jsonEncode({
+      'success': true,
+      'data': {'items': <Object>[], 'total': 0, 'limit': 25, 'offset': 0},
+    }),
+  );
+
   /// A backend for the customer forms.
   ///
   /// `POST /api/customers` answers a real `CustomerResponse` — the React client
@@ -82,6 +99,9 @@ void main() {
           options.path.startsWith('/api/customers/')) {
         return updateFailure ??
             const StubResponse.json('"Customer with ID 1 updated"');
+      }
+      if (options.method == 'GET' && options.path == '/api/customers') {
+        return emptyCustomerPage();
       }
       if (options.method == 'GET' &&
           options.path.startsWith('/api/customers/')) {
@@ -147,22 +167,22 @@ void main() {
     return jsonDecode(adapter.bodyOf(request)!) as Map<String, dynamic>;
   }
 
-  void fillFields(
+  Future<void> fillFields(
     WidgetTester tester, {
     String name = 'Globex',
     String phone = '555-0100',
     String address = '1 Example Street',
     String notes = 'A note',
-  }) {
-    void enter(int index, String value) {
+  }) async {
+    Future<void> enter(int index, String value) async {
       final field = find.byType(TextFormField).at(index);
-      tester.enterText(field, value);
+      await tester.enterText(field, value);
     }
 
-    enter(0, name);
-    enter(1, phone);
-    enter(2, address);
-    enter(3, notes);
+    await enter(0, name);
+    await enter(1, phone);
+    await enter(2, address);
+    await enter(3, notes);
   }
 
   Future<void> submit(WidgetTester tester) async {
@@ -226,7 +246,7 @@ void main() {
       // **The one case `isEmpty` alone would miss.** HTML `required` rejects
       // it, so this is parity rather than an addition — but it is also the case
       // a `required`-only port would fail, which is why `requiredText` exists.
-      fillFields(tester, name: '   ');
+      await fillFields(tester, name: '   ');
       await submit(tester);
 
       expect(find.text('This field is required'), findsOneWidget);
@@ -241,7 +261,7 @@ void main() {
 
       expect(find.byType(OrganizationSelectField), findsNothing);
 
-      fillFields(tester);
+      await fillFields(tester);
       await submit(tester);
 
       // `CreateCustomerForm.tsx:82` — the user's own organization, from the
@@ -280,7 +300,7 @@ void main() {
       // `CreateCustomerForm.tsx:40-42` seeds the selection with `items[0]`.
       expect(organizationRequests(adapter), hasLength(1));
 
-      fillFields(tester);
+      await fillFields(tester);
       await submit(tester);
 
       // The harness numbers organizations 1..2, so `items[0]` is 1.
@@ -306,7 +326,7 @@ void main() {
       expect(find.byType(OrganizationSelectField), findsNothing);
       expect(organizationRequests(adapter), isEmpty);
 
-      fillFields(tester);
+      await fillFields(tester);
       await submit(tester);
 
       expect(bodyOf(adapter, 'POST', '/api/customers')['organizationId'], 7);
@@ -327,7 +347,7 @@ void main() {
       await tester.tap(find.text('Globex').last);
       await tester.pumpAndSettle();
 
-      fillFields(tester);
+      await fillFields(tester);
       await submit(tester);
 
       // The second organization in the harness's canned list, so the assertion
@@ -341,7 +361,7 @@ void main() {
       final adapter = customerFormAdapter();
       final container = await openCreate(tester, adapter);
 
-      fillFields(
+      await fillFields(
         tester,
         name: 'Initech',
         phone: '555-0199',
@@ -371,7 +391,7 @@ void main() {
       );
       final container = await openCreate(tester, adapter);
 
-      fillFields(tester);
+      await fillFields(tester);
       await submit(tester);
 
       expect(find.text('Error: Customer already exists'), findsOneWidget);
@@ -418,7 +438,7 @@ void main() {
       );
       final container = await openCreate(tester, adapter);
 
-      fillFields(tester);
+      await fillFields(tester);
       await submit(tester);
 
       expect(find.text('This field is required'), findsOneWidget);
@@ -510,6 +530,9 @@ void main() {
           manageCustomersGlobal,
         ],
         forOtherRoutes: (options) {
+          if (options.method == 'GET' && options.path == '/api/customers') {
+            return emptyCustomerPage();
+          }
           if (options.method == 'GET' &&
               options.path.startsWith('/api/customers/')) {
             return customerBody(

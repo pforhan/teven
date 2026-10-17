@@ -71,33 +71,57 @@ class OrganizationSelectField extends ConsumerWidget {
     final organizations = organizationsIncluding(loaded, chosen);
     // A failed fetch renders the same empty control a pending one does, which
     // is what the React original does — it has no error state for this and
-    // lets the submit fail instead. The message goes in the helper text rather
-    // than replacing the control, because a super-admin staring at an empty
+    // lets the submit fail instead. The message goes *beside* the control
+    // rather than replacing it, because a super-admin staring at an empty
     // dropdown has no other way to tell "still loading" from "broken", and the
     // difference decides whether they wait or give up. Swapping the control out
     // for an error string would also leave the form un-submittable with no
     // explanation attached to the thing they tried to submit.
     final failure = ref.watch(organizationListProvider).error;
 
-    return DropdownButtonFormField<OrganizationResponse>(
-      // `value:` is deprecated on `DropdownButtonFormField` in favour of
-      // `initialValue`, which is the honest name here: the field's value comes
-      // and goes with the owning form's state, and `DropdownButtonFormField`
-      // only reads it on first build.
-      initialValue: chosen,
-      isExpanded: true,
-      onChanged: onChanged,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: 'Organization',
-        helperText: failure == null ? null : 'Could not load: $failure',
-      ),
-      items: [
-        for (final organization in organizations)
-          DropdownMenuItem<OrganizationResponse>(
-            value: organization,
-            child: Text(organization.name, overflow: TextOverflow.ellipsis),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DropdownButtonFormField<OrganizationResponse>(
+          // `value:` is deprecated on `DropdownButtonFormField` in favour of
+          // `initialValue`, which is the honest name here: the field's value
+          // comes and goes with the owning form's state, and
+          // `DropdownButtonFormField` only reads it on first build.
+          initialValue: chosen,
+          isExpanded: true,
+          onChanged: onChanged,
+          validator: validator,
+          decoration: const InputDecoration(labelText: 'Organization'),
+          items: [
+            for (final organization in organizations)
+              DropdownMenuItem<OrganizationResponse>(
+                value: organization,
+                child: Text(organization.name, overflow: TextOverflow.ellipsis),
+              ),
+          ],
+        ),
+        // **A sibling of the control, not its `helperText`.**
+        //
+        // `InputDecorator` shows `errorText` *instead of* `helperText` — the
+        // two are mutually exclusive, and validation wins. Since the symptom of
+        // a failed fetch is an empty dropdown, the user reaches it by hitting
+        // submit, so the very act that needs explaining replaced the
+        // explanation with "This field is required". That is the worst possible
+        // pairing: the message blames the user for a fault they did not cause,
+        // and it is the only moment they could have learned the list had
+        // failed to load.
+        //
+        // Rendered below the control for the same reason. It is not styled as
+        // a validation error — nothing about the *selection* is invalid, and
+        // colouring it as one would double up with the real error that
+        // `validator` returns a line above.
+        if (failure != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Could not load: $failure',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
+        ],
       ],
     );
   }
