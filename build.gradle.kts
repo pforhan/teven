@@ -18,6 +18,25 @@ allprojects {
 
 subprojects {
     apply(plugin = "org.jetbrains.dokka")
+
+    // The Docker build pins JDK 21 (eclipse-temurin:21-jdk-jammy). Match it on
+    // the host so a newer default JDK can't break the build: Kotlin 2.4.20
+    // tops out at JVM 26, so under Homebrew's default JDK 27, compileJava
+    // targets 27 while compileKotlin falls back to 26 and Gradle fails with
+    // "Inconsistent JVM Target Compatibility". Pinning both to 21 makes the
+    // host and container builds agree.
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        configure<org.gradle.api.plugins.JavaPluginExtension> {
+            toolchain {
+                languageVersion.set(org.gradle.jvm.toolchain.JavaLanguageVersion.of(21))
+            }
+        }
+        configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
+            compilerOptions {
+                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+            }
+        }
+    }
 }
 
 tasks.register("generateApiDocs") {

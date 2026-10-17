@@ -134,10 +134,13 @@ started. Either way the app is served from the same origin as the API, so login
 works and you can use the ported screens for real.
 
 ```bash
-./teven verify      # analyze, format-check, test
+./teven verify          # analyze, format-check, test (Flutter)
+./teven verify-backend  # backend unit tests (./gradlew test)
+./teven verify-all      # both, backend first
 ```
 
-All of these need the Flutter SDK. The raw commands still work, with one caveat:
+All of these need the Flutter SDK, except `verify-backend`, which uses the Gradle
+wrapper. The raw commands still work, with one caveat:
 **`flutter run -d chrome` on its own will not reach the backend.** The app uses
 relative URLs on web, which resolve against the origin that served the page — so
 against the Flutter dev server, `/api` returns a 404. It also needs a fixed

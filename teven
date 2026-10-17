@@ -113,6 +113,8 @@ Commands:
   dev                Run the Flutter app against a local backend
                      (flutter run -d chrome).
   verify             Analyze, format-check, and test the Flutter app.
+  verify-backend     Run the backend unit tests across every Gradle module.
+  verify-all         Run both: backend tests, then the Flutter verify.
   clean              Remove built web bundles (Flutter and React).
   down               Stop the containers.
   down -v | --volumes
@@ -141,7 +143,9 @@ Examples:
   ./teven up --open             # start, wait, then open the browser
   ./teven up --dry-run          # show what would run
   ./teven up-react              # start with the React frontend
-  ./teven verify                # analyze + format check + test
+  ./teven verify                # analyze + format check + test (Flutter)
+  ./teven verify-backend        # backend unit tests
+  ./teven verify-all            # backend tests, then Flutter verify
   ./teven down -v               # full reset, including the database
 EOF
 }
@@ -177,6 +181,8 @@ main() {
     build) cmd_build "$dry_run" ;;
     dev) cmd_dev "$dry_run" ;;
     verify) cmd_verify "$dry_run" ;;
+    verify-backend) cmd_verify_backend "$dry_run" ;;
+    verify-all) cmd_verify_all "$dry_run" ;;
     clean) cmd_clean "$dry_run" ;;
     down) cmd_down "$volumes" "$dry_run" ;;
     status) cmd_simple status "$dry_run" ;;
@@ -311,6 +317,30 @@ cmd_verify() {
         flutter test
     )
   fi
+}
+
+# Backend verification. `gradlew :backend:app:test` would run no tests -- the
+# only test sources live in `core` and `service` -- so run `test` at the root,
+# which applies it to every subproject. Compiling all of them also catches the
+# breakages `:backend:app:assemble` would, and that task (the documented backend
+# build) does not depend on `test`, so this is the only gate on backend tests.
+cmd_verify_backend() {
+  local dry_run="$1"
+  need "${ROOT}/gradlew" "The Gradle wrapper is missing; check out the repo again." || return 1
+  printf '==> Verifying the backend (tests across all modules)\n'
+  if [ "$dry_run" -eq 1 ]; then
+    show ./gradlew test
+  else
+    (cd "$ROOT" && ./gradlew test)
+  fi
+}
+
+# Whole-repo gate: backend first, because a Kotlin compile failure surfaces
+# faster than the Flutter toolchain and there is no reason to wait for it.
+cmd_verify_all() {
+  local dry_run="$1"
+  cmd_verify_backend "$dry_run" || return 1
+  cmd_verify "$dry_run"
 }
 
 cmd_clean() {

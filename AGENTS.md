@@ -9,7 +9,7 @@ This document outlines the conventions and best practices to follow when using L
 - **Modular Architecture:** The backend is designed with a modular structure. Ensure that new code is placed in the appropriate module (`app`, `core`, `data`, `service`, `api`, `auth`).
 - **2-Space Indentation:** Use 2 spaces for indentation in all code files.
 - **No whitespace inside link text:** A link's label must never begin or end with a space. The underline starts in blank space and the hit area extends past the word, which looks broken and is trivially avoidable. Put the separating space in the surrounding sentence, not in the link — `"clicking here."` is three spans (`"clicking "`, `"here"`, `"."`), not one. Applies to both Flutter `TextSpan`s and React/HTML `<a>`.
-- **Confirmation of changes:** Always run the build and tests to confirm any changes. For the Flutter app that is `./teven verify` — see the command reference below.
+- **Confirmation of changes:** Always run the build and tests to confirm any changes. For the Flutter app that is `./teven verify`; for the backend, `./teven verify-backend` — see the command reference below.
 - **Do not check in code:** Unless specifically instructed to do so, don't set up any git commands.
 
 ## Command reference — use `./teven`, not the raw commands
@@ -22,7 +22,9 @@ a step the script exists to enforce, or is wrong on its own.
 |---|---|---|
 | Start the stack (Flutter) | `./teven up` | `WEB_SOURCE=flutter docker compose up --build -d` |
 | Start the stack (React) | `./teven up-react` | `WEB_SOURCE=react docker compose up --build -d` |
-| Analyze + format-check + test | `./teven verify` | `flutter analyze && dart format --output=none --set-exit-if-changed . && flutter test` |
+| Analyze + format-check + test (Flutter) | `./teven verify` | `flutter analyze && dart format --output=none --set-exit-if-changed . && flutter test` |
+| Backend unit tests | `./teven verify-backend` | `./gradlew test` |
+| Whole-repo gate | `./teven verify-all` | `./teven verify-backend && ./teven verify` |
 | Run the app with hot reload | `./teven dev` | `flutter run -d chrome` |
 | Build the web bundle only | `./teven build` | `flutter build web --release --no-web-resources-cdn` |
 | Stop / reset | `./teven down`, `./teven down -v` | `docker compose down [-v]` |
@@ -44,12 +46,19 @@ Three of those are not stylistic preferences, and each has cost someone a run:
 - **`./teven verify` over the three commands by hand.** It is analyze, a
   `dart format --set-exit-if-changed` *check*, and the test run. The format check
   is the one that gets dropped, and formatting is enforced in this repo.
+- **`./teven verify-backend` over `:backend:app:assemble`.** The documented
+  backend build compiles and packages but does **not** depend on `test`, so a
+  failing unit test ships in the image. `gradlew test` at the root is needed
+  rather than `:backend:app:test`, because the test sources live in `core` and
+  `service`, not `app`.
 
 Add `-n`/`--dry-run` to any of them to print the commands without running them.
 
 ## Backend (Kotlin/Ktor)
 
-- **Building:** Build and test backend with `gradlew :backend:app:assemble`
+- **Building:** Build the backend with `gradlew :backend:app:assemble`. Run its
+  tests with `./teven verify-backend` (`./gradlew test`) — `assemble` does not run
+  them.
 - **Import Wildcards:** Always expand import wildcards (`.*`) for clarity and to avoid potential conflicts.
 - **Trailing Commas:** Always use trailing commas where possible, for parameters, enums, etc.
 - **Named Parameters:** Any time there's more than one parameter or there's any chance for confusion, use named parameters in method calls.
