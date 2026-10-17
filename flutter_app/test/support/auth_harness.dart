@@ -61,11 +61,18 @@ String userContextJson({List<String> permissions = const []}) => jsonEncode({
 /// rendered the harness's two canned organizations, and a stubbed *failure* on
 /// its endpoint had no effect at all. It receives the query string so a caller
 /// can tell the chrome's `limit=1000` request from the screen's `limit=25`.
+///
+/// [rolesResponder] does the same for `/api/roles`, for the same reason.
+/// `CreateInvitationForm` needs a role to exist before it can mint anything, and
+/// the canned empty list would leave every test unable to get past the form's own
+/// "Please select one role." guard — a test that passes for the wrong reason
+/// rather than one that fails loudly.
 StubAdapter contextAdapter({
   List<String> permissions = const [],
   String token = 'token',
   List<String> organizationNames = const ['Acme', 'Globex'],
   StubResponse Function(String? query)? organizationsResponder,
+  StubResponse Function()? rolesResponder,
   StubResponse? Function(RequestOptions options)? forOtherRoutes,
 }) => StubAdapter((options) {
   if (options.path == '/api/users/context') {
@@ -117,10 +124,12 @@ StubAdapter contextAdapter({
   if (options.method == 'GET' && options.path == '/api/roles') {
     // Answered for the same reason as `/api/users/{id}` above: the create-user
     // screen lists roles on arrival, and a test that only means to assert that
-    // the *guard* admitted the route should not have to know that. Empty,
-    // because a role list is `services_test.dart`'s subject and nobody is
-    // asserting on its contents through this harness.
-    return const StubResponse.json('{"success":true,"data":[]}');
+    // the *guard* admitted the route should not have to know that. Empty
+    // unless [rolesResponder] says otherwise, because the role list's contents
+    // are `services_test.dart`'s subject and nobody else asserts on them
+    // through this harness.
+    return rolesResponder?.call() ??
+        const StubResponse.json('{"success":true,"data":[]}');
   }
   if (options.method == 'POST' && options.path == '/api/users/login') {
     return StubResponse.json(

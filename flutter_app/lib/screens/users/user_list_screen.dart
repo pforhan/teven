@@ -591,8 +591,21 @@ class _InvitationLinkCell extends StatelessWidget {
 /// invitation test failed with `Bad state: Origin is only applicable schemes
 /// http and https`, which is the same crash a native build would produce the
 /// first time someone opened `/users` on a device.
-String invitationUrl(String token) =>
-    '${_appOrigin()}${AppRoutes.register}?token=$token';
+///
+/// The token is interpolated, not percent-encoded. `InvitationRoutes` mints
+/// `UUID.randomUUID()`, which is `[0-9a-f-]` and needs no encoding, and
+/// `Uri(queryParameters: ...)` would encode the separator-free token
+/// identically — so the readable form is kept and the constraint is recorded
+/// here rather than the other way round.
+/// [base] exists so the origin branches can be tested at all, and defaults to
+/// [Uri.base]. **`flutter test` runs against a `file:` URI**, so every widget
+/// test in this repo sees the empty-origin branch and nothing has ever executed
+/// the `http`/`https` one — which is the branch that runs in production and the
+/// branch `UserList.tsx` was actually ported from. It is a parameter rather than
+/// a private helper so a test can hold the production function to its real
+/// contract rather than to a copy of it.
+String invitationUrl(String token, {Uri? base}) =>
+    '${_appOrigin(base ?? Uri.base)}${AppRoutes.register}?token=$token';
 
 /// The app's own origin, or an empty string when there isn't a usable one.
 ///
@@ -601,10 +614,24 @@ String invitationUrl(String token) =>
 /// `/register?token=…`, which is at least a link they can resolve against
 /// whatever page they are on, rather than a crash on the screen listing their
 /// colleagues' invitations.
-String _appOrigin() {
-  final base = Uri.base;
+///
+/// **The path is dropped, and that is a real decision rather than a detail of
+/// `origin`.** On web [Uri.base] is the whole document URL, so a user sitting
+/// on `/users` would otherwise email their colleagues a link to `/users/register`
+/// — which the SPA fallback would serve, and which `App.tsx` would then redirect
+/// away from, losing the token. The React original got this right by accident:
+/// `window.location.origin` has no path to keep.
+String _appOrigin(Uri base) {
   if (base.scheme == 'http' || base.scheme == 'https') return base.origin;
-  if (base.hasAuthority) return '${base.scheme}://${base.authority}';
+  // **`base.authority.isNotEmpty`, not `base.hasAuthority`, and the difference
+  // is a real link.** `file:///srv/teven` has a *present but empty* authority,
+  // so `hasAuthority` is true and the naive guard produces the origin
+  // `"file://"` — which yields `file:///register?token=…`, a URL that no
+  // browser will open and that no invitee can be shown. The empty origin gives
+  // `/register?token=…` instead, which is the degradation the doc comment above
+  // promises. `flutter test` runs against exactly such a `file:` URI, so every
+  // widget test in this repo was asserting against the worse of the two.
+  if (base.authority.isNotEmpty) return '${base.scheme}://${base.authority}';
   return '';
 }
 

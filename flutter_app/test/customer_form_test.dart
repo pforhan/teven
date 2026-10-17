@@ -195,6 +195,36 @@ void main() {
     await settleRequests(tester);
   }
 
+  /// The validation message rendered **under the field at [index]**, if any.
+  ///
+  /// Per field rather than a count, and that is the whole point of this
+  /// helper. `findsNWidgets(4)` was the first version of the empty-form test
+  /// and it pins almost nothing: a form that reported "required" on all four
+  /// fields while attributing it to the wrong one — a copy-paste slip in a
+  /// validator index — satisfies it exactly. `CreateCustomerForm.tsx:92,96,99,102`
+  /// puts `required` on all four, so *which four* is the only question the
+  /// count cannot answer.
+  String? errorForField(WidgetTester tester, int index) {
+    final texts = tester
+        .widgetList<Text>(
+          find.descendant(
+            of: find.byType(TextFormField).at(index),
+            matching: find.byType(Text),
+          ),
+        )
+        .map((t) => t.data)
+        .whereType<String>();
+    for (final text in texts) {
+      if (text == 'This field is required') return text;
+    }
+    return null;
+  }
+
+  /// [errorForField] for all four fields.
+  List<String?> errorsForAllFields(WidgetTester tester) => [
+    for (var i = 0; i < 4; i++) errorForField(tester, i),
+  ];
+
   group('form convention (5.1)', () {
     // Plain Dart rather than widget tests: `Validators` has no Flutter
     // dependency, and asserting it through a form would only prove that a form
@@ -233,10 +263,62 @@ void main() {
       await submit(tester);
 
       // `required` on all four (`CreateCustomerForm.tsx:92,96,99,102`).
-      expect(find.text('This field is required'), findsNWidgets(4));
+      // Asserted **per field**, so a mis-attributed error fails here rather
+      // than passing as a count.
+      expect(
+        errorsForAllFields(tester),
+        everyElement('This field is required'),
+      );
       // And nothing was sent — the point of a validator.
       expect(adapter.requests.where((o) => o.method == 'POST'), isEmpty);
       expect(currentPath(container), AppRoutes.customerCreate);
+    });
+
+    testWidgets('the error lands on the field that is empty, and only there', (
+      tester,
+    ) async {
+      final adapter = customerFormAdapter();
+      await openCreate(tester, adapter);
+
+      // Three of the four filled, in field order: name, phone, address, notes.
+      await fillFields(tester, phone: '', address: '1 Example Street');
+      await submit(tester);
+
+      // The empty field is reported and the three completed ones are not. A
+      // count of 1 would be satisfied by a form that reported the wrong field;
+      // this says which one, which is the information the user needs in order to
+      // know what to fix.
+      expect(errorsForAllFields(tester), [
+        null, // name
+        'This field is required', // phone
+        null, // address
+        null, // notes
+      ]);
+      expect(adapter.requests.where((o) => o.method == 'POST'), isEmpty);
+    });
+
+    testWidgets('a corrected field clears its error on the next submit', (
+      tester,
+    ) async {
+      final adapter = customerFormAdapter();
+      await openCreate(tester, adapter);
+
+      await fillFields(tester, phone: '');
+      await submit(tester);
+      expect(errorForField(tester, 1), 'This field is required');
+
+      // **The half of validation that is easy to get wrong.** A validator that
+      // only ever adds errors passes everything above; `FormState.validate()`
+      // recomputes from the current values, so the stale message has to go on
+      // its own. Only a second submit can show that.
+      await fillFields(tester, phone: '555-0100');
+      await submit(tester);
+
+      // **No per-field assertion here, and there cannot be one** — a successful
+      // submit navigates to `/customers`, so the form is gone. The request is
+      // the proof: it only goes out if `FormState.validate()` returned true,
+      // which it cannot do while the phone field is still reporting an error.
+      expect(adapter.requests.where((o) => o.method == 'POST'), hasLength(1));
     });
 
     testWidgets('a whitespace-only field is rejected as empty', (tester) async {
@@ -249,7 +331,8 @@ void main() {
       await fillFields(tester, name: '   ');
       await submit(tester);
 
-      expect(find.text('This field is required'), findsOneWidget);
+      // On the name field specifically, not merely somewhere on the screen.
+      expect(errorForField(tester, 0), 'This field is required');
       expect(adapter.requests.where((o) => o.method == 'POST'), isEmpty);
     });
   });
@@ -644,14 +727,10 @@ void main() {
       // scroll view", because the scroll view existed while the fields could
       // still be taller than the viewport.
       final adapter = customerFormAdapter();
-      await pumpApp(
-        tester,
-        width: 360,
-        height: 640,
-        token: 'token',
-        adapter: adapter,
-      );
-
+      // One `pumpApp`. The original called it twice — the first result was
+      // discarded, leaving two `ProviderContainer`s and two `addTearDown`
+      // registrations for one test, and the screen the assertions ran against
+      // was whichever tree the second `pumpWidget` replaced.
       final container = await pumpApp(
         tester,
         width: 360,

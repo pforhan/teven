@@ -12,6 +12,7 @@ import 'package:teven_app/models/invitation.dart';
 import 'package:teven_app/models/user.dart';
 import 'package:teven_app/routing/app_router.dart';
 import 'package:teven_app/screens/users/user_list_screen.dart';
+import 'package:teven_app/widgets/create_invitation_form.dart';
 import 'package:teven_app/widgets/responsive_list_view.dart';
 
 import 'support/auth_harness.dart';
@@ -31,6 +32,20 @@ void main() {
   const viewUsers = 'VIEW_USERS_ORGANIZATION';
   const viewUsersGlobal = 'VIEW_USERS_GLOBAL';
   const manageUsers = 'MANAGE_USERS_ORGANIZATION';
+
+  /// The permissions the *form* needs, which are not the ones its button needs.
+  ///
+  /// **Two different sets gate one control, and the React original has the same
+  /// split.** `UserList.tsx:206` puts the "Create Invitation" button under
+  /// `MANAGE_USERS_GLOBAL || MANAGE_USERS_ORGANIZATION`; `CreateInvitationForm`
+  /// re-checks `MANAGE_INVITATIONS_*` on itself and renders a refusal
+  /// otherwise. Reproduced rather than reconciled — it is the server that
+  /// enforces the second set (`InvitationRoutes.kt:77`), so the form's check is
+  /// the load-bearing one and the button's is merely a wider door onto a
+  /// message. Pinned by "the button and the form gate on different permissions"
+  /// below.
+  const manageInvitations = 'MANAGE_INVITATIONS_ORGANIZATION';
+  const inviteManager = [viewUsers, manageUsers, manageInvitations];
 
   StubResponse usersPage(List<String> usernames) => StubResponse.json(
     jsonEncode({
@@ -97,20 +112,57 @@ void main() {
   ///
   /// Anything still unrecognised falls through to the same 401, so a genuinely
   /// accidental call fails the test rather than passing quietly.
+  /// What `POST /api/invitations` answers.
+  ///
+  /// A whole `InvitationResponse`, because `InvitationService.createInvitation`
+  /// decodes one and a stub answering a bare string would fail inside
+  /// deserialization rather than on an assertion.
+  StubResponse createdInvitation({
+    int invitationId = 11,
+    String token = 'minted-token',
+  }) => StubResponse.json(
+    jsonEncode({
+      'success': true,
+      'data': {
+        'invitationId': invitationId,
+        'organizationId': 1,
+        'roleId': 1,
+        'roleName': 'Staff',
+        'token': token,
+        'expiresAt': '2026-12-31T00:00:00',
+        'createdAt': '2026-10-01T00:00:00',
+      },
+    }),
+  );
+
   StubAdapter userAdapter({
     List<String> usernames = const ['grace', 'alan'],
     List<String> permissions = const [viewUsers, manageUsers],
     StubResponse? invitations,
     StubResponse? usersFailure,
     StubResponse? invitationsFailure,
+    List<String> roles = const [],
+    StubResponse? createInvitationResponse,
   }) => contextAdapter(
     permissions: permissions,
+    rolesResponder: () => StubResponse.json(
+      jsonEncode({
+        'success': true,
+        'data': [
+          for (var i = 0; i < roles.length; i++)
+            {'roleId': i + 1, 'roleName': roles[i], 'permissions': <String>[]},
+        ],
+      }),
+    ),
     forOtherRoutes: (options) {
       if (options.path == '/api/users' && options.method == 'GET') {
         return usersFailure ?? usersPage(usernames);
       }
       if (options.path == '/api/invitations' && options.method == 'GET') {
         return invitationsFailure ?? invitations ?? invitationsList(const []);
+      }
+      if (options.path == '/api/invitations' && options.method == 'POST') {
+        return createInvitationResponse ?? createdInvitation();
       }
       if (options.path == '/api/invitations/7' && options.method == 'DELETE') {
         return const StubResponse.json(
@@ -536,9 +588,58 @@ void main() {
       // Task 5.10. `UserList.tsx:157,179` writes `window.location.origin`
       // twice, once for the copy and once for the displayed text; one
       // `invitationUrl` means the two cannot disagree.
-      final expected = invitationUrl('tok-42');
-      expect(find.textContaining(expected), findsOneWidget);
-      expect(expected, contains('/register?token=tok-42'));
+      //
+      // **The expected value is spelled out rather than computed from
+      // `invitationUrl`.** The first version of this test was
+      // `expect(find.textContaining(invitationUrl('tok-42')), findsOneWidget)`,
+      // which asserts that the screen shows what `invitationUrl` produces — a
+      // statement about nothing at all, true of a function that returned the
+      // token on its own. What 5.13 asks is that the link be *derived from
+      // `Uri.base`* and *carry the token as a query param*, and both are
+      // visible here as literal text.
+      //
+      // The origin is empty because `Uri.base` is a `file:` URI under
+      // `flutter test`, so this asserts the relative form.
+      // `invitation_url_test.dart` is where the `http`/`https` branch — the one
+      // production runs on — is actually exercised.
+      expect(find.text('/register?token=tok-42'), findsOneWidget);
+    });
+
+    testWidgets('every invitation gets its own link, and nothing else', (
+      tester,
+    ) async {
+      await openUsers(
+        tester,
+        userAdapter(
+          invitations: invitationsList([
+            {
+              'invitationId': 1,
+              'organizationId': 1,
+              'roleId': 2,
+              'roleName': 'Volunteer',
+              'token': 'token-one',
+              'expiresAt': '2026-12-31T00:00:00',
+              'createdAt': '2026-10-01T00:00:00',
+            },
+            {
+              'invitationId': 2,
+              'organizationId': 1,
+              'roleId': 3,
+              'roleName': 'Staff',
+              'token': 'token-two',
+              'expiresAt': '2026-12-31T00:00:00',
+              'createdAt': '2026-10-02T00:00:00',
+            },
+          ]),
+        ),
+      );
+
+      // `UserList.tsx:157` builds one link per row from that row's token. A
+      // single shared `invitationUrl(...)` value reused across rows would give
+      // both invitees the same link, and the first one to accept it would
+      // consume it.
+      expect(find.text('/register?token=token-one'), findsOneWidget);
+      expect(find.text('/register?token=token-two'), findsOneWidget);
     });
   });
 
@@ -579,6 +680,314 @@ void main() {
       expect(find.text('Copied!'), findsNothing);
       expect(find.text('Copy Link'), findsOneWidget);
     });
+  });
+
+  group('create an invitation (5.7, and the link half of 5.13)', () {
+    /// A backend for this group: [inviteManager] by default, because the form gates
+    /// on `MANAGE_INVITATIONS_*` while the button that opens it gates on
+    /// `MANAGE_USERS_*`. See [inviteManager].
+    StubAdapter inviteAdapter({
+      List<String> roles = const ['Organizer', 'Staff'],
+      List<String> permissions = inviteManager,
+      StubResponse? invitations,
+      StubResponse? createInvitationResponse,
+    }) => userAdapter(
+      permissions: permissions,
+      roles: roles,
+      invitations: invitations,
+      createInvitationResponse: createInvitationResponse,
+    );
+
+    /// Opens the inline form and lets it load its roles.
+    ///
+    /// `UserList.tsx:206` toggles the form in place and there is no route for
+    /// it, so it is reached the only way a user reaches it. `settleRequests`
+    /// rather than `pumpAndSettle`, because `_load` issues `GET /api/roles` from
+    /// `initState` and the screen renders a `CircularProgressIndicator` until
+    /// that lands.
+    Future<void> openInvitationForm(
+      WidgetTester tester,
+      StubAdapter adapter, {
+      List<String> roles = const ['Organizer', 'Staff'],
+    }) async {
+      await openUsers(tester, adapter);
+      await tester.tap(find.text('Create Invitation'));
+      await settleRequests(tester);
+      expect(find.text('Select Role:'), findsOneWidget);
+      expect(roles, isNotEmpty);
+    }
+
+    /// `POST /api/invitations` bodies, decoded.
+    List<Map<String, dynamic>> createBodies(StubAdapter adapter) => adapter
+        .requests
+        .where((o) => o.method == 'POST' && o.path == '/api/invitations')
+        .map((o) => jsonDecode(adapter.bodyOf(o)!) as Map<String, dynamic>)
+        .toList();
+
+    testWidgets('offers the roles the server sent', (tester) async {
+      await openInvitationForm(
+        tester,
+        inviteAdapter(roles: ['Organizer', 'Staff', 'SuperAdmin']),
+      );
+
+      expect(find.widgetWithText(ChoiceChip, 'Organizer'), findsOneWidget);
+      expect(find.widgetWithText(ChoiceChip, 'Staff'), findsOneWidget);
+      expect(find.widgetWithText(ChoiceChip, 'SuperAdmin'), findsOneWidget);
+      // No role is selected on arrival — `CreateInvitationForm.tsx:40` seeds
+      // `_selectedRoleId` with null and requires a click.
+      expect(
+        tester
+            .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+            .every((chip) => !chip.selected),
+        isTrue,
+      );
+    });
+
+    testWidgets('refuses to create anything until a role is picked', (
+      tester,
+    ) async {
+      final adapter = inviteAdapter();
+      await openInvitationForm(tester, adapter);
+
+      await tester.tap(find.text('Create Invitation').last);
+      await settleRequests(tester);
+
+      // `CreateInvitationForm.tsx:47` — the guard, not a field validator. Note
+      // that this is not a `Validators` case: the roles are `ChoiceChip`s, not a
+      // form field, so there is nothing for the form convention to attach a
+      // message to. It is the one submission guard in Phase 5 that a
+      // `TextFormField` validator cannot express.
+      expect(find.text('Please select one role.'), findsOneWidget);
+      expect(createBodies(adapter), isEmpty);
+    });
+
+    testWidgets('sends the picked role and the user\'s own organization', (
+      tester,
+    ) async {
+      final adapter = inviteAdapter();
+      await openInvitationForm(tester, adapter);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Staff'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Create Invitation').last);
+      await settleRequests(tester);
+
+      final bodies = createBodies(adapter);
+      expect(bodies, hasLength(1));
+      // Role 2 of the harness's list, so this distinguishes "the picked role"
+      // from "the first role".
+      expect(bodies.single['roleId'], 2);
+      // `CreateInvitationForm.tsx:59` reads the signed-in user's organization
+      // from the context rather than sending the dropdown's value, because a
+      // non-global manager is never shown the dropdown. The harness's context
+      // user is in organization 1.
+      expect(bodies.single['organizationId'], 1);
+      // The note is optional and blank, so it goes as an explicit null —
+      // `CreateInvitationForm.tsx:71` sends `note || null`, and the port sends
+      // the same thing. Asserting on `containsKey` would be the wrong claim
+      // here: `json_serializable` includes nulls by default, and the React
+      // request had the key too.
+      expect(bodies.single['note'], isNull);
+    });
+
+    testWidgets('sends a note when one is typed', (tester) async {
+      final adapter = inviteAdapter();
+      await openInvitationForm(tester, adapter);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Staff'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Note (Optional)'),
+        '  Contract reviewer  ',
+      );
+      await tester.tap(find.text('Create Invitation').last);
+      await settleRequests(tester);
+
+      // Trimmed, because `CreateInvitationForm.tsx:71` trims before sending.
+      expect(createBodies(adapter).single['note'], 'Contract reviewer');
+    });
+
+    testWidgets('the minted link lands in the invitations table, not the form', (
+      tester,
+    ) async {
+      // **This is 5.13's invite-link claim at the widget level**, and the
+      // interesting part is *where the link appears*.
+      //
+      // `CreateInvitationForm` builds the link and hands it to
+      // `onInvitationCreated`, and `UserList.tsx:210` responds by closing the
+      // form — so the link is never displayed by the form itself. It appears
+      // in the invitations table above, which is refetched and now holds the
+      // new invitation. A manager mints, the form closes, and the link is
+      // sitting in the list with a copy button beside it.
+      //
+      // The first version of this test asserted the link appeared *in the
+      // form*, which is what reading `_handleCreate` alone suggests. It fails,
+      // and the failure is the behaviour.
+      final adapter = inviteAdapter(
+        // The server now lists what it just created — which is what makes
+        // "the form closed" and "the link is still on screen" both true.
+        invitations: invitationsList([
+          {
+            'invitationId': 11,
+            'organizationId': 1,
+            'roleId': 2,
+            'roleName': 'Staff',
+            'token': 'minted-token',
+            'expiresAt': '2026-12-31T00:00:00',
+            'createdAt': '2026-10-01T00:00:00',
+          },
+        ]),
+      );
+      await openInvitationForm(tester, adapter);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Staff'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Create Invitation').last);
+      await settleRequests(tester);
+
+      // The form is gone, and the link is on the page.
+      expect(find.text('Select Role:'), findsNothing);
+      expect(find.text('/register?token=minted-token'), findsOneWidget);
+
+      // Parsed, not substring-matched: a link that put the token in the path
+      // or the fragment would satisfy a `contains` and be useless to the
+      // invitee.
+      final shown = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((t) => t.data ?? '')
+          .firstWhere((s) => s.startsWith('/register?token='));
+      final parsed = Uri.parse(shown);
+      expect(parsed.queryParameters['token'], 'minted-token');
+      expect(parsed.path, '/register');
+    });
+
+    testWidgets('the link is handed to the screen, which closes the form', (
+      tester,
+    ) async {
+      final adapter = inviteAdapter();
+      await openInvitationForm(tester, adapter);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Staff'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Create Invitation').last);
+      await settleRequests(tester);
+
+      // `UserList.tsx:210` calls `onInvitationCreated` and clears the form, so
+      // the manager is returned to the list rather than left looking at a link
+      // they have to dismiss themselves.
+      expect(find.text('Select Role:'), findsNothing);
+      // And the invitations table is refetched — the new invitation is
+      // outstanding and should be visible without a manual reload.
+      expect(invitationRequests(adapter).length, greaterThanOrEqualTo(2));
+    });
+
+    testWidgets('refuses SuperAdmin and disables the button', (tester) async {
+      final adapter = inviteAdapter(roles: ['Organizer', 'SuperAdmin']);
+      await openInvitationForm(tester, adapter);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'SuperAdmin'));
+      await tester.pumpAndSettle();
+
+      // `CreateInvitationForm.tsx:52-56`. The assertion that matters is the
+      // disabled button: the warning is *also* stated in `_handleCreate`, but
+      // that copy is unreachable through the UI because the button cannot be
+      // pressed. Asserting both messages would pin the second one as live,
+      // which it is not — a presence-only check here would be describing a
+      // defence that a form that showed the warning and let the request through
+      // would also satisfy.
+      expect(
+        find.textContaining(
+          'Invitations can only be created for Organizer or Staff roles',
+        ),
+        findsOneWidget,
+      );
+      // Scoped to the form, because the screen's own header has a button with the
+      // same label — `find.widgetWithText(FilledButton, 'Create Invitation')`
+      // matches both and throws "Bad state: Too many elements".
+      final formButton = find.descendant(
+        of: find.byType(CreateInvitationForm),
+        matching: find.widgetWithText(FilledButton, 'Create Invitation'),
+      );
+      expect(tester.widget<FilledButton>(formButton).onPressed, isNull);
+
+      // And nothing was sent.
+      expect(createBodies(adapter), isEmpty);
+    });
+
+    testWidgets('shows the server message and stays open on failure', (
+      tester,
+    ) async {
+      final adapter = inviteAdapter(
+        createInvitationResponse: const StubResponse.json(
+          '{"success":false,"data":{},'
+          '"error":{"message":"Invitation service unavailable"}}',
+          status: 500,
+        ),
+      );
+      await openInvitationForm(tester, adapter);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Staff'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Create Invitation').last);
+      await settleRequests(tester);
+
+      expect(find.text('Invitation service unavailable'), findsOneWidget);
+      // Still the form, so the manager can retry rather than start over.
+      expect(find.text('Select Role:'), findsOneWidget);
+      expect(find.text('/register?token=minted-token'), findsNothing);
+    });
+
+    testWidgets('the button and the form gate on different permissions', (
+      tester,
+    ) async {
+      // A user manager with no invitation permission gets the button and a
+      // refusal, which is what `UserList.tsx:206` does today. Pinned because
+      // it is the kind of thing a future "tighten the button's gate" change
+      // would silently alter, and because a reader would otherwise assume the
+      // two gates were the same set and be wrong.
+      final adapter = inviteAdapter(
+        permissions: const [viewUsers, manageUsers],
+      );
+      await openUsers(tester, adapter);
+      await tester.tap(find.text('Create Invitation'));
+      await settleRequests(tester);
+
+      expect(
+        find.text('You do not have permission to create invitations.'),
+        findsOneWidget,
+      );
+      expect(createBodies(adapter), isEmpty);
+    });
+
+    testWidgets(
+      'a failure to load the roles is reported, not spun on forever',
+      (tester) async {
+        // `CreateInvitationForm.tsx:44-48` renders `Loading...` for as long as
+        // the fetch is outstanding and shows `error` beneath it, so a fetch
+        // that never answers leaves a spinner with no way forward. This is the
+        // reachable version: the request fails.
+        final adapter = contextAdapter(
+          permissions: inviteManager,
+          rolesResponder: () => const StubResponse.json(
+            '{"success":false,"data":{},'
+            '"error":{"message":"Role service unavailable"}}',
+            status: 500,
+          ),
+          forOtherRoutes: (options) =>
+              options.path == '/api/users' && options.method == 'GET'
+              ? usersPage(const ['grace'])
+              : options.path == '/api/invitations' && options.method == 'GET'
+              ? invitationsList(const [])
+              : null,
+        );
+        await openUsers(tester, adapter);
+        await tester.tap(find.text('Create Invitation'));
+        await settleRequests(tester);
+
+        expect(find.text('Role service unavailable'), findsOneWidget);
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+      },
+    );
   });
 
   group('delete an invitation', () {
