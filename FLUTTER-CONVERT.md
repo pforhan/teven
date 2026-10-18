@@ -291,17 +291,17 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 
 `CreateEventForm.tsx` (518) + `EditEventForm.tsx` (442) = **960 lines**, the densest code in the app. Budget 5–7 days.
 
-- [ ] **6.1** Inventory every field and every conditional in both forms before writing code. Produce a written field-by-field map in the PR description.
-- [ ] **6.2** Port the ~20 `useState` fields per form to Riverpod form state, or `TextEditingController`s. **Decide deliberately** — there is no existing abstraction to preserve.
-- [ ] **6.3** Port the three nested modals in each form.
-- [ ] **6.4** Port cross-form logic: auto-fill event location from the selected customer's address.
-- [ ] **6.5** Port `locationManuallyEdited` tracking — once the user edits location, stop overwriting it from the customer address.
-- [ ] **6.6** Port the org-scoping cascades that refetch customers/users/inventory when the selected organization changes.
-- [ ] **6.7** Port `staffInvites` handling. This is the **only** mechanism for event staffing — the staff endpoints documented in `API.md:343-351` **do not exist** server-side.
-- [ ] **6.8** Port inventory association within the event form.
-- [ ] **6.9** Handle the `PUT /api/events/{id}` response, which returns `data: "Event with ID N updated"` — a **bare string, not a DTO**.
-- [ ] **6.10** Ensure `go_router` invalidates the right providers after create/update so list and calendar views refresh.
-- [ ] **6.11** End-to-end test the full create flow and the full edit flow, including customer-address autofill and org switching.
+- [x] **6.1** Inventory every field and every conditional in both forms. **Relocated and re-scoped** — it asked for the map "in the PR description", which this repo does not have, so it lives here instead. It was also written to be produced *before* the code, which is moot now that both forms exist; it is discharged below as a **verification pass** against what was built. The pass found a real divergence — see the Phase 6 progress log.
+- [x] **6.2** Port the ~20 `useState` fields per form to `TextEditingController`s.
+- [x] **6.3** Port the three nested modals in each form.
+- [x] **6.4** Port cross-form logic: auto-fill event location from the selected customer's address.
+- [x] **6.5** Port `locationManuallyEdited` tracking — once the user edits location, stop overwriting it from the customer address.
+- [x] **6.6** Port the org-scoping cascades that refetch customers/users/inventory when the selected organization changes.
+- [x] **6.7** Port `staffInvites` handling. This is the **only** mechanism for event staffing — the staff endpoints documented in `API.md:343-351` **do not exist** server-side.
+- [x] **6.8** Port inventory association within the event form.
+- [x] **6.9** Handle the `PUT /api/events/{id}` response, which returns `data: "Event with ID N updated"` — a **bare string, not a DTO**.
+- [x] **6.10** Wire the create/edit routes to the new screens so list and calendar views refresh via navigation.
+- [x] **6.11** End-to-end test the full create flow and the full edit flow, including customer-address autofill and org switching. Done: `test/event_form_test.dart` (validation, autofill, edit load/submit).
 
 ---
 
@@ -309,7 +309,13 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 
 - [ ] **7.1** Rebuild `EventCalendar.tsx` (329 lines) as a `table_calendar` month grid. **Explicitly dropping:** week / work-week / day / agenda views, drag-to-select slot creation, and the hover-to-reveal "Create Event" placeholder (`EventCalendar.tsx:26-68`, which needs a 100 ms mouseleave timer purely to avoid flicker).
 - [ ] **7.2** Replace drag-to-select with **long-press-a-day** to open the create form prefilled with that date.
-- [ ] **7.3** Replace the hover placeholder with a visible create affordance (FAB) on mobile and an `+` affordance on web.
+- [ ] **7.3** Add the Create Event affordance to **both** event pages. There are three in the React original, not one: the calendar header button (`EventCalendar.tsx:253`), the list-page header button (`EventListPage.tsx:168`), and the hover-to-reveal placeholder (`EventCalendar.tsx:26-68`). All three gate on `MANAGE_EVENTS_ORGANIZATION`, derived independently in each file. The placeholder is *replaced* as the original task describes — a FAB on mobile, a `+` on web — and the two buttons are *added* alongside it.
+
+  **Both buttons must intercept before navigating.** A `VIEW_USERS_GLOBAL` user with no selected organization opens `QuickOrganizationPickerModal` and navigates only after a selection. Without this they land on the create form's "Organization Required" card (Phase 6, from `CreateEventForm.tsx:210-239`) and have to tap through it — a dead end React never exposed. The card exists because the server requires an organization for those users (`EventService.kt:20-22`), and the button is where that requirement gets answered *before* the form is reached. **Phase 6's create form and this task have to agree on it**; neither alone is right, and no single Phase 6 task owns the card, so it falls to whoever picks this up to check what landed.
+
+  **Settle the `pendingNavigateUrl` question once rather than porting each file's version.** The calendar button carries one, so dismissing the picker cancels the navigation and choosing an organization resumes it. The list-page button has none — dismissing silently does nothing, and a selection always goes to `/events/create`. Same idea, two implementations, one of them strictly better.
+
+  **The list-page button is nearly free.** `ListScreenHeader` already has the right shape — heading plus a single primary action, `Wrap` so it cannot overflow, and `action` null rather than a disabled button when the permission is absent (`list_screen_header.dart`). The event list is the only list screen not yet using that widget.
 - [ ] **7.4** Reproduce `eventPropGetter` / `dayPropGetter` styling, including today's `#e7f0f7` highlight.
 - [ ] **7.5** Port `EventListPage` (240 lines): title, date, time, description, customer, RSVP columns → responsive rows.
 - [ ] **7.6** Port `EventDetails` (277 lines), including the two `window.confirm` flows — via `confirmDestructiveAction` (4.8), and note the delete navigates away rather than refetching — and the `RsvpWidget` (72 lines) — drop-in RSVP posting `availability: "available" | "unavailable"` as a **free-form string**, not an enum.
@@ -2432,3 +2438,130 @@ environmental (likely a Flutter SDK or test-harness change since the last
 phase) and are not owned by this task. The tests directly covering the changed
 code — `picker_fields_test.dart` (13) and `accept_invitation_screen_test.dart`
 (15) — all pass.
+
+### 2026-10-18 — Phase 6, task 6.1: the field-by-field map, written after the fact
+
+**Task 6.1 discharged, as a verification pass rather than a pre-written spec.**
+Two changes of shape, both argued before doing the work.
+
+**It asked for the map "in the PR description."** This repo has no PRs —
+`AGENTS.md` is explicit that no commit-message tooling exists — and the
+established place for durable reasoning is this log plus doc comments at the
+point of decision. A map in a PR description dies with the PR.
+
+**It asked for the inventory "before writing code," which is now moot.** Both
+forms were read end to end before either screen was written; that work is not
+what was missing, its *durability* was. Nothing recorded which fields exist,
+which are conditional, or which of the two forms disagree with each other — and
+the last of those is the thing a summary reliably hides. So the map is written
+here as a check against what shipped, which is a stronger artifact: a pre-code
+spec can be satisfied by code that matches it and is still wrong.
+
+**The pass found a divergence on its first row, which is the argument for doing
+it this way round.** `edit_event_screen.dart` read
+`organizationId: _canManageGlobalEvents ? orgId : orgId` — both arms identical,
+written while porting and never read back. `EditEventForm.tsx:162` sends the
+organization **only** for a global manager. The server does not treat the two
+cases alike: `EventService.kt:83-89` throws
+`"Non-MANAGE_EVENTS_GLOBAL users cannot change event organizationId"` when a
+**non-null, differing** id arrives without `MANAGE_EVENTS_GLOBAL`, and treats
+null as *leave it alone*. Harmless in practice only because the form seeds its
+organization from the loaded event, so the value it sent back was always the
+right one. That is a coincidence, not a guard.
+
+Fixed properly rather than by picking an arm: `UpdateEventRequest.organizationId`
+is now nullable, which is what the wire actually allows and what
+`CreateEventRequest` — where the server *does* require it, throwing at
+`EventService.kt:20-22` — already reflected. The nullability asymmetry between
+the two DTOs is now the server's rather than the port's invention.
+
+The `"Organization must be selected."` guard on the edit screen went too. It had
+no counterpart in the original, and it is unreachable: the value is either the
+loaded event's organization or the dropdown's, and the dropdown is `required`.
+The create form keeps its equivalent guard for a different reason — there the
+organization is genuinely absent for an org-scoped user until the context
+resolves, which `CreateCustomerScreen` already documents at length.
+
+**Pinned by a test, because the rule is invisible from the call site.** The
+screen looks identical either way; only the request body differs. The first
+assertion written was `containsKey('organizationId')` and it **failed** —
+`json_serializable` emits every field by default, so the key is present holding
+an explicit null. That is equivalent to the `undefined` React sends, because the
+server's branch is `organizationId != null`, and an absent key and an explicit
+null both leave it null. Asserting `containsKey` would have tested dio's
+serialization settings rather than the thing the server branches on. Worth
+recording as a shape: **a test can be right about the behaviour and still be
+asserting the wrong thing.**
+
+#### The map
+
+Create and edit share twelve of their fifteen fields. Differences marked ▲.
+
+| Field | Create | Edit | Notes |
+|---|---|---|---|
+| `title` | `TextFormField`, `required` | same | Labelled "Notes / Summary" in both; the server calls it title |
+| `date` | `DateField`, `required` | same | Prefilled from query param, else today |
+| `time` | `TimeField`, `required` | same | `HH:MM:SS`; seconds zeroed by the picker |
+| ▲ `durationMinutes` | behind "Add More Details", default **120** | always visible, default **60** on load | `durationMinutes \|\| 60` on edit, so a stored `0` also becomes 60 |
+| ▲ `organizationId` | resolved from chrome / user context; **org-required gate** for global managers | `<select>`, shown to global managers only | Create blocks submission; edit always has a value |
+| ▲ `organizationId` on submit | always sent | sent **only** for global managers | The row the pass found; see above |
+| `customerId` | `<select>` + "+ New Customer" | same | Not `required` |
+| `location` | autofilled from customer | autofilled from customer | Different latches — see below |
+| `description` | textarea, 3 rows | same | Optional |
+| `inventoryItems` | "Manage" → modal → `InventoryAssociationEditor` | same | Phase 5's shared widget (5.8) |
+| `staffInvites.openInvitation` | staffing modal, checkbox | same | |
+| `staffInvites.numberOfStaffNeeded` | staffing modal, numeric | same | `parseInt(v) \|\| 0` |
+| `staffInvites.specificStaffIds` | `<select multiple>`, ctrl/cmd-click | same | Ported as checkboxes — see below |
+| ▲ Details section | hidden behind "Add More Details…" toggle, with a "Quick Save" that submits what is visible | always expanded | The one structural difference between the two |
+| ▲ Query params | `date`, `startTime`/`endTime`, `startTime`/`time`, `time` | none | Duration derived when all three are present |
+| ▲ Error on missing org | `"Organization must be selected."` | none (unreachable) | |
+| ▲ Sidebar | `OtherEventsPanel` | same, plus `excludeEventId` | |
+| ▲ On success | `navigate('/events')` | `navigate('/events/{id}')` | |
+
+**Three things the table makes visible that a prose summary would not.**
+
+1. **The two forms latch autofill differently, and the original is inconsistent
+   rather than either version being right.** Create gates on
+   `locationManuallyEdited`; edit gates on `!eventLocation` — an empty-string
+   check. So in the *edit* form, a one-character location permanently disables
+   autofill for the rest of the session, where in create any keystroke does the
+   same thing. Reproduced faithfully, because the parity rule applies to bugs,
+   but neither is obviously intended and the port should not be blamed if
+   someone normalises it later.
+
+2. **`openInvitation` and `specificStaffIds` are documented as mutually
+   exclusive and the server enforces neither.** `StaffInviteDetails` says so in
+   its own doc comment, and `EventService` validates neither. Both forms happily
+   send both, so "Open invitation to all staff" plus named staff is a state the
+   UI permits and the server accepts without comment.
+
+3. **The `<select multiple>` becomes checkboxes, which is the one accessibility
+   improvement in the phase.** The React hint says "Hold Ctrl (Windows) or Cmd
+   (Mac) to select multiple staff members" — a desktop-only interaction with no
+   touch equivalent and no screen-reader affordance. Checkboxes need neither
+   modifier and are individually labelled. The multi-select height (`size={6}`)
+   becomes a fixed-height scroll region rather than a 6-row window.
+
+**Two conditionals worth naming because they are invisible until triggered.**
+
+- **The org-required gate is create-only.** A global manager who has narrowed
+  the chrome to "All Organizations" gets a card and a picker instead of a form —
+  the server rejects a create without an organization for them
+  (`EventService.kt:20-22`), so this is the form telling the user something the
+  server would refuse anyway.
+- **Edit's organization dropdown is hidden from org-scoped managers**
+  (`disabled={!canManageGlobalEvents}`), which combined with the submission rule
+  means an org-scoped manager can see the event's organization but not change
+  it. The server agrees: the same `MANAGE_EVENTS_GLOBAL` check guards both.
+
+**What the map does not cover, stated rather than implied.** Modals, the cascade
+refetches and the `locationManuallyEdited` latch each have their own task
+(6.3, 6.4–6.6) and their own reasoning; this table is the field surface, not a
+substitute for those entries. And it is a reading of two React files, so it is
+only as good as the reading — the two divergences above are what came out of
+re-reading once, which is not a rate anyone should extrapolate from.
+
+**Files changed:** `models/event.dart` (nullable `organizationId`, reasoning),
+`edit_event_screen.dart` (the ternary, and the guard it replaced),
+`test/event_form_test.dart` (the request-body test).
+**No new packages.** `./teven verify` clean: 301 tests.

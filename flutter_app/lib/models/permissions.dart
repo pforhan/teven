@@ -16,6 +16,7 @@ enum Permission {
   manageUsersGlobal('MANAGE_USERS_GLOBAL'),
   viewEventsOrganization('VIEW_EVENTS_ORGANIZATION'),
   manageEventsOrganization('MANAGE_EVENTS_ORGANIZATION'),
+  manageEventsGlobal('MANAGE_EVENTS_GLOBAL'),
   viewCustomersOrganization('VIEW_CUSTOMERS_ORGANIZATION'),
   manageCustomersOrganization('MANAGE_CUSTOMERS_ORGANIZATION'),
 

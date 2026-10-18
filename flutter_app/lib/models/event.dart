@@ -175,7 +175,22 @@ abstract class CreateEventRequest with _$CreateEventRequest {
 /// than forcing every caller to spell it out.
 const StaffInviteDetails _noStaffInvites = StaffInviteDetails();
 
-/// All fields optional except [organizationId].
+/// All fields optional, including [organizationId].
+///
+/// [organizationId] is nullable here but **required** on
+/// [CreateEventRequest], and that asymmetry is the server's rather than an
+/// accident. `EventService.kt:20-22` throws `"organizationId is required for
+/// MANAGE_EVENTS_GLOBAL users"` on create; on update `:83-89` treats a missing
+/// id as "leave it alone" and throws only when a **non-null, differing** id
+/// arrives from someone without `MANAGE_EVENTS_GLOBAL`. `EditEventForm.tsx:162`
+/// sends nothing for an org-scoped manager, and so does this — as an explicit
+/// null, which is the same thing to `organizationId != null`.
+///
+/// **Modelling it as required would be a latent 500.** Sending the event's own
+/// organization back is harmless only because that is the value the screen seeds
+/// from; any change to how the form resolves the organization would turn it
+/// into `Non-MANAGE_EVENTS_GLOBAL users cannot change event organizationId`,
+/// with nothing on the client saying the field was the problem.
 ///
 /// Note `PUT /api/events/{id}` answers with `data: "Event with ID N updated"`
 /// — a **bare string, not an [EventResponse]** (`EventRoutes.kt:71`). Task
@@ -195,7 +210,7 @@ abstract class UpdateEventRequest with _$UpdateEventRequest {
     List<EventInventoryItem>? inventoryItems,
     int? customerId,
     StaffInviteDetails? staffInvites,
-    required int organizationId,
+    int? organizationId,
   }) = _UpdateEventRequest;
 
   factory UpdateEventRequest.fromJson(Map<String, dynamic> json) =>

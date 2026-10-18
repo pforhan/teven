@@ -28,6 +28,8 @@ class ListQuery {
     this.sortBy,
     this.sortOrder,
     this.organizationId,
+    this.startDate,
+    this.endDate,
   });
 
   final int? limit;
@@ -36,6 +38,8 @@ class ListQuery {
   final String? sortBy;
   final SortOrder? sortOrder;
   final int? organizationId;
+  final String? startDate;
+  final String? endDate;
 
   /// Converts to dio's `queryParameters`, omitting nulls.
   ///
@@ -49,6 +53,8 @@ class ListQuery {
     if (sortBy != null) 'sortBy': sortBy,
     if (sortOrder != null) 'sortOrder': sortOrder!.wireName,
     if (organizationId != null) 'organizationId': organizationId,
+    if (startDate != null && startDate!.isNotEmpty) 'startDate': startDate,
+    if (endDate != null && endDate!.isNotEmpty) 'endDate': endDate,
   };
 
   ListQuery copyWith({
@@ -58,6 +64,8 @@ class ListQuery {
     String? sortBy,
     SortOrder? sortOrder,
     int? organizationId,
+    String? startDate,
+    String? endDate,
   }) => ListQuery(
     limit: limit ?? this.limit,
     offset: offset ?? this.offset,
@@ -65,6 +73,8 @@ class ListQuery {
     sortBy: sortBy ?? this.sortBy,
     sortOrder: sortOrder ?? this.sortOrder,
     organizationId: organizationId ?? this.organizationId,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate ?? this.endDate,
   );
 
   /// Value equality, so a [ListQuery] can key a provider family.
@@ -84,11 +94,21 @@ class ListQuery {
           search == other.search &&
           sortBy == other.sortBy &&
           sortOrder == other.sortOrder &&
-          organizationId == other.organizationId;
+          organizationId == other.organizationId &&
+          startDate == other.startDate &&
+          endDate == other.endDate;
 
   @override
-  int get hashCode =>
-      Object.hash(limit, offset, search, sortBy, sortOrder, organizationId);
+  int get hashCode => Object.hash(
+    limit,
+    offset,
+    search,
+    sortBy,
+    sortOrder,
+    organizationId,
+    startDate,
+    endDate,
+  );
 
   @override
   String toString() =>

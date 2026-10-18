@@ -8,6 +8,8 @@ import '../models/permissions.dart';
 import '../providers/auth_controller.dart';
 import '../screens/accept_invitation_screen.dart';
 import '../screens/customers/create_customer_screen.dart';
+import '../screens/events/create_event_screen.dart';
+import '../screens/events/edit_event_screen.dart';
 import '../screens/customers/customer_list_screen.dart';
 import '../screens/customers/edit_customer_screen.dart';
 import '../screens/inventory/create_inventory_screen.dart';
@@ -300,6 +302,16 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   _guarded(ref, AppRoutes.eventList, [
     Permission.viewEventsOrganization,
   ], (_) => const PlaceholderScreen.route(AppRoutes.eventList)),
+  _guarded(ref, AppRoutes.eventCreate, [
+    Permission.manageEventsOrganization,
+  ], (_) => const CreateEventScreen()),
+  _guarded(
+    ref,
+    AppRoutes.eventEdit,
+    [Permission.manageEventsOrganization],
+    (state) =>
+        EditEventScreen(eventId: int.parse(state.pathParameters['eventId']!)),
+  ),
   // `App.tsx:44`
   _guarded(
     ref,
@@ -307,18 +319,6 @@ List<RouteBase> _shellRoutes(Ref ref) => [
     [Permission.viewEventsOrganization],
     (state) => PlaceholderScreen.route(
       AppRoutes.eventDetails,
-      params: state.pathParameters,
-    ),
-  ),
-  _guarded(ref, AppRoutes.eventCreate, [
-    Permission.manageEventsOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.eventCreate)),
-  _guarded(
-    ref,
-    AppRoutes.eventEdit,
-    [Permission.manageEventsOrganization],
-    (state) => PlaceholderScreen.route(
-      AppRoutes.eventEdit,
       params: state.pathParameters,
     ),
   ),
