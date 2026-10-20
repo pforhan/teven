@@ -2448,6 +2448,16 @@ per device: the mouse still clicks and the finger still holds. The hint follows
 the last pointer that went down, so it says the right thing for whichever
 input was just used.
 
+**A mouse long-press also creates, which is redundant, and it was reviewed and
+kept.** Holding the button down on a day is a second way to do something a
+click already does. The alternative is a rule with two branches — "the long
+press does nothing *on a mouse*" — rather than one, "a long press creates", and
+the second is easier to reason about and easier to test. It is also not two
+creates: the long-press recogniser wins the arena, so the tap is rejected when
+the pointer comes up and only one of the two callbacks fires. There is a test
+for it, because "redundant but deliberate" is exactly the kind of behaviour a
+later reader mistakes for an oversight.
+
 #### A long press on a bar opens the event, and it nearly did not
 
 The day cell's long press creates an event *for that day*, and the cell is the
@@ -2479,10 +2489,12 @@ The line is small, and it is the only thing that makes the touch half usable.
 
 #### Tests
 
-Five new cases in `test/event_calendar_screen_test.dart`, all green on the VM
+Six new cases in `test/event_calendar_screen_test.dart`, all green on the VM
 and on Chrome:
 
 - a mouse click on a day opens the create form for that day;
+- a mouse long-press on a day opens the create form too — redundant, and
+  deliberately so;
 - a finger long-press on a day opens the create form for that day;
 - a finger's tap on a day does **not** open the create form;
 - the hint names the gesture the last pointer used — and a mouse turns it back;

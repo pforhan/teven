@@ -147,7 +147,7 @@ void main() {
     return location;
   }
 
-  /// Long-presses [finder] with a touch pointer, then reads the route.
+  /// Long-presses [finder] with a pointer of [kind], then reads the route.
   ///
   /// **The hold has to outlast the recogniser's own deadline**, which is
   /// [kLongPressTimeout]. A widget test runs on a fake clock, so the timer
@@ -156,9 +156,13 @@ void main() {
   Future<String> longPressAndReadLocation(
     WidgetTester tester,
     ProviderContainer container,
-    Finder finder,
-  ) async {
-    final gesture = await tester.startGesture(tester.getCenter(finder));
+    Finder finder, {
+    PointerDeviceKind kind = PointerDeviceKind.touch,
+  }) async {
+    final gesture = await tester.startGesture(
+      tester.getCenter(finder),
+      kind: kind,
+    );
     await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
     await gesture.up();
     await tester.pump();
@@ -491,6 +495,32 @@ void main() {
         tester,
         container,
         dayCell(target),
+      );
+
+      expect(path, '/events/create?date=${formatLocalDate(target)}');
+    });
+
+    testWidgets('a mouse long-press on a day opens the create form too', (
+      tester,
+    ) async {
+      final container = await openCalendar(tester, calendarAdapter());
+      final target = targetDay();
+
+      // **Redundant on a mouse, and deliberately so.** A click already creates,
+      // so holding the button down is a second way to do the same thing —
+      // reviewed and accepted, because the alternative is a rule with two
+      // branches ("the long press does nothing *on a mouse*") rather than one
+      // ("a long press creates"), and the second is the easier one to reason
+      // about.
+      //
+      // It is also not *two* creates: the long-press recogniser wins the
+      // arena, so the tap is rejected when the pointer comes up and only one
+      // of the two callbacks fires.
+      final path = await longPressAndReadLocation(
+        tester,
+        container,
+        dayCell(target),
+        kind: PointerDeviceKind.mouse,
       );
 
       expect(path, '/events/create?date=${formatLocalDate(target)}');
