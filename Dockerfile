@@ -132,7 +132,24 @@ RUN chown circleci:circleci /app
 USER circleci
 
 COPY --chown=circleci:circleci --from=gradle-setup /app/ /app/
-COPY --chown=circleci:circleci --from=gradle-setup /home/circleci/.gradle/ /home/circleci/.gradle/
+
+# The Gradle *distribution* is bind-mounted from `gradle-setup` for the compile
+# step, rather than copied into this stage. Two reasons:
+#
+# 1. It must not be copied, because the cache mount below would shadow it. A
+#    cache mount overlays its target directory and hides whatever the image
+#    layer had underneath. Mounting at `/home/circleci/.gradle` therefore hid
+#    the distribution the COPY had just placed there, and the wrapper
+#    re-downloaded gradle-9.8.1-bin.zip from the network.
+# 2. It must not be copied, because this stage is not the image that ships.
+#    The distribution is ~166 MB, and the stage that ends up as the runtime
+#    image would carry it for no reason.
+#
+# The bind mount is read-write: the Gradle wrapper takes a lock file inside the
+# distribution directory, and a read-only bind fails with
+# "FileNotFoundException: .../gradle-9.8.1-bin.zip.lck (Read-only file system)".
+RUN mkdir -p /home/circleci/.gradle \
+  && chown circleci:circleci /home/circleci/.gradle
 
 COPY --chown=circleci:circleci backend ./backend
 
@@ -142,20 +159,32 @@ COPY --chown=circleci:circleci backend ./backend
 #
 # The Gradle user home is mounted from a BuildKit cache rather than baked into
 # a layer, because it has to survive a layer it cannot be allowed to invalidate.
-# The distribution and the resolved dependencies cost minutes to fetch and
-# depend on nothing but the build scripts, but as a layer that cache would sit
-# behind the COPY above, whose cache key spans all backend source -- so any .kt
-# edit would re-download everything. Working round that meant copying only the
-# build scripts, which Docker cannot do: a recursive copy does not preserve
-# directory structure (`COPY backend/*/build.gradle.kts backend/` flattens every
-# module's script into one path, where they collide), so each module had to be
-# named individually. Copy-then-delete fails the same way by a different route,
-# since its COPY still covers all the source.
+# The resolved dependencies cost minutes to fetch and depend on nothing but the
+# build scripts, but as a layer that cache would sit behind the COPY above,
+# whose cache key spans all backend source -- so any .kt edit would
+# re-download everything. Working round that meant copying only the build
+# scripts, which Docker cannot do: a recursive copy does not preserve directory
+# structure (`COPY backend/*/build.gradle.kts backend/` flattens every module's
+# script into one path, where they collide), so each module had to be named
+# individually. Copy-then-delete fails the same way by a different route, since
+# its COPY still covers all the source.
 #
 # A cache mount persists across builds independently of any layer, so no source
 # has to be held out of the tree to protect it and the module list disappears.
 # `id=teven-gradle` is what makes it shared: `final` mounts the same one and
-# reuses the distribution and the dependencies resolved here.
+# reuses the dependencies resolved here.
+#
+# The target is `caches/`, NOT the whole `/home/circleci/.gradle`, and the
+# distinction is load-bearing. A cache mount *shadows* its target: it overlays
+# the directory and hides whatever was underneath. Mounting at
+# `/home/circleci/.gradle` therefore hid the distribution -- which is why the
+# wrapper re-downloaded gradle-9.8.1-bin.zip, and why `final`, which does not
+# inherit this directory, re-downloaded it and every dependency itself whenever
+# this step was served from the layer cache.
+#
+# Mounting at `caches/` also keeps the execution history
+# (`caches/<version>/executionHistory`), which is what lets the `final` stage
+# see the compile tasks as UP-TO-DATE.
 #
 # This replaces a "copy the build scripts, then resolve dependencies" step that
 # never worked. It ran `mkdir -p backend && find backend -name
@@ -163,7 +192,8 @@ COPY --chown=circleci:circleci backend ./backend
 # stage, so find matched nothing, `dependencies` resolved nothing, and every
 # build re-downloaded. Gradle 8 tolerated the project directories that were then
 # missing; Gradle 9 rejects them, which is how it surfaced.
-RUN --mount=type=cache,id=teven-gradle,target=/home/circleci/.gradle,uid=1000,gid=1000 \
+RUN --mount=type=bind,from=gradle-setup,source=/home/circleci/.gradle/wrapper,target=/home/circleci/.gradle/wrapper,rw \
+    --mount=type=cache,id=teven-gradle,target=/home/circleci/.gradle/caches,uid=1000,gid=1000 \
     ./gradlew :backend:app:classes --no-daemon
 
 # Stage 4: Build the backend and create the final image
@@ -197,6 +227,15 @@ USER circleci
 # compileKotlin already ran and would redo the full build.
 COPY --chown=circleci:circleci --from=backend-compile /app /app
 
+# The Gradle distribution is bind-mounted from `gradle-setup`, not copied. This
+# stage does not inherit /home/circleci/.gradle from `backend-compile` -- only
+# /app -- so without a mount the wrapper here has no distribution at all and
+# downloads gradle-9.8.1-bin.zip itself. Copying instead of mounting would work,
+# but this is the stage that ships, and the distribution is ~166 MB that the
+# running application has no use for.
+RUN mkdir -p /home/circleci/.gradle \
+  && chown circleci:circleci /home/circleci/.gradle
+
 # Copy the selected web bundle into the backend's static resources, where Ktor
 # serves it from "/" (backend/.../app/Routing.kt, staticResources).
 #
@@ -212,8 +251,9 @@ COPY --chown=circleci:circleci --from=web-assets /web-dist /app/backend/app/src/
 # Package. compileKotlin and friends are UP-TO-DATE here, so this re-runs only
 # resource processing and jar assembly -- seconds, not minutes.
 #
-# Mounts the same cache as the compile stage; see the note there.
-RUN --mount=type=cache,id=teven-gradle,target=/home/circleci/.gradle,uid=1000,gid=1000 \
+# Mounts the same dependency cache as the compile stage; see the note there.
+RUN --mount=type=bind,from=gradle-setup,source=/home/circleci/.gradle/wrapper,target=/home/circleci/.gradle/wrapper,rw \
+    --mount=type=cache,id=teven-gradle,target=/home/circleci/.gradle/caches,uid=1000,gid=1000 \
     ./gradlew :backend:app:assemble --no-daemon
 
 # Expose the port the application runs on
