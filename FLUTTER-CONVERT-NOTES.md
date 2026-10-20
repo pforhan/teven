@@ -2357,3 +2357,151 @@ horizontal drag does not move the month") would have failed on the old code.
 
 **Still open for a browser pass:** the rules at 500 / 900 / 1400 px, and
 whether 100 is right on a phone.
+
+
+---
+
+### 2026-10-20 — Task 7.2: a mouse clicks, a finger holds
+
+**Done.** The month grid creates an event from a **mouse click** or a **finger
+long-press**, and the two are told apart by the device that produced the
+gesture.
+
+`./teven verify` clean: 350 tests on the VM, all green. The calendar's own file
+is green on **Chrome** as well (27 tests), and the full Chrome run still shows
+only the five pre-existing `user_list_screen_test.dart` failures this log
+recorded in the Phase 7 entry — the `Uri.base` / empty-authority problem, which
+is 12.6's and is not touched here.
+
+#### Yes — Flutter tells a mouse from a finger, and it is not a workaround
+
+That was the open question in the task, and the answer is that it is a
+first-class part of the framework. **Every pointer event carries the device it
+came from.** `PointerEvent.kind` is a `PointerDeviceKind`:
+
+| Kind | What produced it |
+|---|---|
+| `mouse` | a mouse, a trackpad, a trackpad's click |
+| `touch` | a finger |
+| `stylus` | a pen |
+
+**The same value on the web and on a device** — the browser reports which
+device produced the event and the framework passes it through — so there is
+**no `kIsWeb` branch and no platform sniff anywhere in this.** That is worth
+contrasting with the other pointer-sensitive work in the port: task 4.2's
+hover-revealed row actions *are* gated on `kIsWeb`, because **hover** has no
+cross-platform equivalent — it does not exist on a phone. **The device that
+made the gesture does**, and that is the difference between the two problems.
+
+**The obstacle was that `table_calendar` does not pass it on.** `onDaySelected`'s
+signature is two `DateTime`s and nothing else, and `onDayLongPressed` is the
+same shape. So the kind is read from a **`Listener`** wrapped around the grid.
+
+**A `Listener`, and not a `GestureDetector`.** This is the part worth writing
+down, because the obvious alternative fails *silently*. A `GestureDetector`
+**competes** for the gesture: the day cell's own tap recogniser would lose the
+arena to ours, `onDaySelected` would stop firing, and the calendar would stop
+creating events **with no error anywhere**. A `GestureDetector` that wins an
+arena it was never supposed to enter does not complain — it just works, in the
+wrong direction. A `Listener` sees raw pointer events without claiming them,
+which is exactly what is wanted.
+
+**And a `ValueNotifier` rather than a `setState`,** because the hint under the
+grid has to change when the pointer does, and a `setState` would rebuild the
+grid **in the middle of the gesture that is about to create an event**. The
+notifier has exactly one listener — the hint — and the grid is not rebuilt at
+all.
+
+#### The rule, and why the touch half does nothing
+
+| | Creates an event |
+|---|---|
+| Mouse click | yes |
+| Trackpad click | yes |
+| Pen tap | yes |
+| Keyboard | yes |
+| **Finger tap** | **no** |
+| **Finger long-press** | **yes** |
+
+**The finger's tap does nothing, and that is the point.** It is the mobile
+calendar idiom: a tap on a day means "show me this day", and a long press means
+"I want to do something *with* this day". This app has no day view for the tap
+to open, so on a touch screen the tap is left inert rather than throwing a
+create form under a finger that was on its way to scrolling — which is what a
+single-gesture design does on a phone, every time.
+
+**The inert tap is a gap, and it now has a task: 7.11.** The split is only
+half a design until the tap has something to open. 7.11 files a day view —
+and asks whether a package can draw an hourly schedule with overlapping
+events, since `table_calendar` has no day view and task 11.7 already notes
+that a week view would have to be hand-built. **When that lands, the tap opens
+the day and the long press stays as the create gesture; the split by device
+does not change.** The one thing that would change is the reason the tap does
+nothing today, which is "there is nowhere to go" rather than "a tap is not a
+create gesture".
+
+**Null means "not a finger",** so a keyboard activation — which sends no
+pointer event at all — creates, like a click does.
+
+**A hybrid device gets both**, because the rule is *per pointer* rather than
+per device: the mouse still clicks and the finger still holds. The hint follows
+the last pointer that went down, so it says the right thing for whichever
+input was just used.
+
+#### A long press on a bar opens the event, and it nearly did not
+
+The day cell's long press creates an event *for that day*, and the cell is the
+bar's ancestor — so the question is which recogniser wins the arena.
+
+**The bar's does.** Its `InkWell` is nearer the pointer than the cell's
+`GestureDetector` and is added to the arena first, so it is the one that is
+eager when the deadline passes and the cell's long press never runs. **Which
+means that without a handler of its own, a long press on a bar does *nothing
+at all*** — silently, on a bar that a click opens. (Measured, not assumed: with
+the bar's `onLongPress` removed, the long press leaves the route at `/events`
+rather than opening the create form.) So the bar carries an `onLongPress` that
+opens the event, the same as its `onTap`. **A long press on a link should go
+where a click on it goes.**
+
+#### The hint under the grid
+
+**"Click a day to create an event."** / **"Long-press a day to create an
+event."**
+
+It follows the last pointer, and it exists because the finger's tap does
+nothing: **a gesture that is silently inert is indistinguishable from a broken
+cell.** There is no day view behind it and no toast to explain it, so without
+the hint the long press is a gesture nobody is going to discover.
+
+**It is a divergence from the original.** The React calendar had one gesture
+for one device class and no hint; this has two gestures and one line of text.
+The line is small, and it is the only thing that makes the touch half usable.
+
+#### Tests
+
+Five new cases in `test/event_calendar_screen_test.dart`, all green on the VM
+and on Chrome:
+
+- a mouse click on a day opens the create form for that day;
+- a finger long-press on a day opens the create form for that day;
+- a finger's tap on a day does **not** open the create form;
+- the hint names the gesture the last pointer used — and a mouse turns it back;
+- a long press on a bar opens the event, not the create form.
+
+**`tester.tap` sends a *touch* pointer,** which is the detail the whole file
+turns on. The harness's tap helper takes the pointer kind as a parameter for
+that reason, and the pre-existing "tapping a day opens the create form" case
+now says `kind: PointerDeviceKind.mouse` explicitly rather than leaning on a
+default that means the opposite of what the test is about.
+
+**Verified by mutation.** Removing the touch guard fails the tap case; making
+the long-press handler a no-op fails the long-press case; removing the bar's
+`onLongPress` fails the bar case. Each of the three fails loudly rather than
+passing vacuously.
+
+**Not verified in a browser.** The pointer kinds in a widget test are the
+framework's own, so the tests say that the rule is *implemented*; they cannot
+say that a browser's mouse is reported as `mouse` and its finger as `touch`.
+A browser pass — a click and a long press on the same day, and a real
+touchscreen — is the check that would close it.
+

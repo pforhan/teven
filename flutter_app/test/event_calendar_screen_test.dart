@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart' show RequestOptions;
+import 'package:flutter/gestures.dart'
+    show PointerDeviceKind, kLongPressTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -99,9 +101,17 @@ void main() {
       .where((o) => o.path == '/api/events' && o.method == 'GET')
       .toList();
 
-  /// Taps [finder], then reads the route **after one pump and no settling**.
+  /// Taps [finder] with a pointer of [kind], then reads the route **after one
+  /// pump and no settling**.
   ///
-  /// **This is not laziness, it is the only way to assert the destination.**
+  /// **The pointer kind is a parameter, and it is not a detail.**
+  /// `tester.tap` sends a *touch* pointer, and the calendar's rule — task 7.2 —
+  /// is that a touch does not create an event: a finger has to long-press. So
+  /// a test that means "a mouse clicked this" has to say so, and the default
+  /// is a mouse because that is the gesture the app treats as the creating
+  /// one.
+  ///
+  /// **This is not the only way to assert the destination.**
   /// The create form fetches customers, users and inventory on arrival, and the
   /// harness's fallback for an unanswered path is a 401 — which raises
   /// `UnauthorizedException`, trips the single-flight 401 redirect and signs the
@@ -123,9 +133,34 @@ void main() {
   Future<String> tapAndReadLocation(
     WidgetTester tester,
     ProviderContainer container,
+    Finder finder, {
+    PointerDeviceKind kind = PointerDeviceKind.mouse,
+  }) async {
+    final gesture = await tester.startGesture(
+      tester.getCenter(finder),
+      kind: kind,
+    );
+    await gesture.up();
+    await tester.pump();
+    final location = currentLocation(container);
+    await settleRequests(tester);
+    return location;
+  }
+
+  /// Long-presses [finder] with a touch pointer, then reads the route.
+  ///
+  /// **The hold has to outlast the recogniser's own deadline**, which is
+  /// [kLongPressTimeout]. A widget test runs on a fake clock, so the timer
+  /// only fires when the clock is advanced past it — `tester.pump` with a
+  /// duration is that advance.
+  Future<String> longPressAndReadLocation(
+    WidgetTester tester,
+    ProviderContainer container,
     Finder finder,
   ) async {
-    await tester.tap(finder);
+    final gesture = await tester.startGesture(tester.getCenter(finder));
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+    await gesture.up();
     await tester.pump();
     final location = currentLocation(container);
     await settleRequests(tester);
@@ -406,11 +441,136 @@ void main() {
           ? DateTime(today.year, today.month, 16)
           : DateTime(today.year, today.month, 15);
 
-      final path = await tapAndReadLocation(tester, container, dayCell(target));
+      // **A mouse**, because the default pointer in a widget test is a finger
+      // and a finger's tap does not create — see the gesture group below.
+      final path = await tapAndReadLocation(
+        tester,
+        container,
+        dayCell(target),
+        kind: PointerDeviceKind.mouse,
+      );
 
       // The date is the whole payload; there is no time, because a month cell
       // has no time to give.
       expect(path, '/events/create?date=${formatLocalDate(target)}');
+    });
+  });
+
+  group('which gesture creates — task 7.2', () {
+    /// A day in this month, not today, and not a padding cell.
+    DateTime targetDay() {
+      final today = DateTime.now();
+      return today.day == 15
+          ? DateTime(today.year, today.month, 16)
+          : DateTime(today.year, today.month, 15);
+    }
+
+    testWidgets('a mouse click on a day opens the create form', (tester) async {
+      final container = await openCalendar(tester, calendarAdapter());
+      final target = targetDay();
+
+      final path = await tapAndReadLocation(
+        tester,
+        container,
+        dayCell(target),
+        kind: PointerDeviceKind.mouse,
+      );
+
+      expect(path, '/events/create?date=${formatLocalDate(target)}');
+    });
+
+    testWidgets('a finger long-press on a day opens the create form', (
+      tester,
+    ) async {
+      final container = await openCalendar(tester, calendarAdapter());
+      final target = targetDay();
+
+      // **The long press is the touch gesture.** A finger cannot create with a
+      // tap, so this is the only way a phone creates an event from the grid.
+      final path = await longPressAndReadLocation(
+        tester,
+        container,
+        dayCell(target),
+      );
+
+      expect(path, '/events/create?date=${formatLocalDate(target)}');
+    });
+
+    testWidgets("a finger's tap on a day does not open the create form", (
+      tester,
+    ) async {
+      final container = await openCalendar(tester, calendarAdapter());
+      final target = targetDay();
+
+      await tester.tap(dayCell(target));
+      await tester.pump();
+
+      // **Still on the calendar.** A tap on a day means "show me this day" in
+      // the mobile calendar idiom, and this app has no day view — so the tap
+      // is left doing nothing rather than opening a form under a finger that
+      // was on its way to scrolling.
+      expect(currentPath(container), '/events');
+
+      await settleRequests(tester);
+      expect(currentPath(container), '/events');
+    });
+
+    testWidgets('the hint names the gesture the last pointer used', (
+      tester,
+    ) async {
+      await openCalendar(tester, calendarAdapter());
+
+      // **Before anything has been touched**, the hint offers the click —
+      // the common case, and the one a keyboard activation would use.
+      expect(find.text('Click a day to create an event.'), findsOneWidget);
+      expect(find.text('Long-press a day to create an event.'), findsNothing);
+
+      // A finger turns it around. **The hint is the only thing that makes the
+      // long press discoverable**, because the tap it replaces does nothing at
+      // all — a gesture that is silently inert is indistinguishable from a
+      // broken cell.
+      await tester.tap(dayCell(targetDay()));
+      await tester.pump();
+      expect(find.text('Long-press a day to create an event.'), findsOneWidget);
+      expect(find.text('Click a day to create an event.'), findsNothing);
+
+      // **And a mouse turns it back**, which is the hybrid case: the same
+      // device has both a finger and a mouse, and the gesture each of them
+      // gets is the one that works for it. The pointer is cancelled rather
+      // than released, because releasing it on a day is a click — and a click
+      // creates, which would navigate off the screen the hint is on.
+      final gesture = await tester.startGesture(
+        tester.getCenter(dayCell(targetDay())),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      expect(find.text('Click a day to create an event.'), findsOneWidget);
+      await gesture.cancel();
+      await tester.pump();
+    });
+
+    testWidgets('a long press on a bar opens the event, not the create form', (
+      tester,
+    ) async {
+      final today = DateTime.now();
+      final adapter = calendarAdapter(
+        events: [
+          eventJson(id: 43, title: 'Site visit', date: formatLocalDate(today)),
+        ],
+      );
+      final container = await openCalendar(tester, adapter);
+
+      final path = await longPressAndReadLocation(
+        tester,
+        container,
+        find.textContaining('Site visit'),
+      );
+
+      // **The bar is a link to one event**, and a long press on a link should
+      // go where a click on it goes. Without a handler of its own the bar's
+      // long press would fall through to the cell's — which creates an event
+      // for the day, on a day that already has one.
+      expect(path, '/events/43');
     });
   });
 

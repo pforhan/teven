@@ -1,5 +1,7 @@
 import 'dart:async' show unawaited;
 
+import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,10 +37,16 @@ import '../../widgets/list_screen_header.dart';
 /// calendar this replaced branched on the gesture: `'select'` was the drag and
 /// `'click'` a plain tap on a day cell, and only the latter carried a date
 /// with no time attached. That branch is the whole of what survives, and
-/// `onDaySelected` is exactly it. Task 7.2 asks for a *long press* instead; a
-/// tap is what the previous calendar had and `table_calendar` routes both
-/// gestures through one callback, so the difference would be a gesture rather
-/// than a second affordance. Noted on 7.2 rather than silently re-decided.
+/// `onDaySelected` is exactly it.
+///
+/// **Task 7.2 splits that one gesture in two, by the device that made it.** A
+/// mouse click creates the event; a finger has to long-press. The reason is
+/// the mobile calendar idiom — a tap on a day means "show me this day", and a
+/// long press means "I want to do something *with* this day" — and the app has
+/// no day view for a tap to open, so on a phone the tap is left doing nothing
+/// rather than opening a form under a finger that was only scrolling. **A
+/// hybrid device gets both**: the mouse still clicks, the finger still holds.
+/// See [_pointerKind] for how the two are told apart.
 ///
 /// **This screen does not page.** See [kCalendarEventLimit] — the calendar this
 /// replaced was handed the whole visible range and had no paging model to
@@ -64,6 +72,43 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
 
   String _searchTerm = '';
 
+  /// The kind of pointer that last went down inside the calendar.
+  ///
+  /// **This is how a mouse is told from a finger — task 7.2.**
+  ///
+  /// Flutter tags every pointer event with the *device* it came from:
+  /// `PointerEvent.kind` is `PointerDeviceKind.mouse` for a mouse or a
+  /// trackpad, `.touch` for a finger, `.stylus` for a pen. That is the
+  /// standard answer, and it works on the web and on a device alike — the
+  /// browser reports which device produced the event, and so does the
+  /// framework.
+  ///
+  /// `table_calendar`'s `onDaySelected` does not pass it on — the callback's
+  /// signature is two `DateTime`s and nothing else — so the kind is read from
+  /// a [Listener] wrapped around the grid. A [Listener] is the widget that
+  /// sees raw pointer events *without claiming them*.
+  ///
+  /// **A [Listener] and not a [GestureDetector], because a gesture detector
+  /// would compete for the tap.** The day cell's own tap recogniser would
+  /// lose the arena to ours, and `onDaySelected` would stop firing at all —
+  /// which is a worse bug than the one this is here to fix.
+  ///
+  /// A [ValueNotifier] rather than a plain field, because the hint that reads
+  /// it has to change when the pointer does, and a `setState` would rebuild
+  /// the grid **in the middle of the gesture that is about to create an
+  /// event**.
+  ///
+  /// Null until the first pointer event. Null is treated as "not a finger",
+  /// which is right: a keyboard activation sends no pointer event at all, and
+  /// it should create an event like a click does.
+  final ValueNotifier<PointerDeviceKind?> _pointerKind = ValueNotifier(null);
+
+  @override
+  void dispose() {
+    _pointerKind.dispose();
+    super.dispose();
+  }
+
   /// The query for the month on screen.
   ///
   /// The window is the **first and last day of the month, not the visible
@@ -88,7 +133,17 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
     search: _searchTerm.isEmpty ? null : _searchTerm,
   );
 
-  /// A tapped day: open the create form for that date.
+  /// A day was tapped.
+  ///
+  /// **A tap creates an event only when a mouse made it.**
+  ///
+  /// The finger's half of the rule is [_onDayLongPressed], and the reason for
+  /// the split is the mobile calendar idiom: a tap on a day means "show me
+  /// this day", and the app has no day view for it to open — so on a touch
+  /// screen a tap is left doing nothing rather than throwing a create form
+  /// under a finger that was on its way to scrolling.
+  ///
+  /// A mouse, a trackpad and a keyboard all land here, and all three create.
   ///
   /// The `VIEW_USERS_GLOBAL` / no-organization check is deliberately *not*
   /// repeated here: it belongs to [CreateEventButton], and having it in two
@@ -96,15 +151,44 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
   /// drifted apart in the first place. A day tap carries a date, so it passes
   /// one.
   void _onDaySelected(DateTime day, DateTime focusedDay) {
-    // Only a *month* change re-queries. `table_calendar` fires this on every
-    // day tap as well as every page swipe, and a query is a request for a
-    // month — rebuilding an identical one would refetch a month already on
-    // screen.
+    _syncFocusedMonth(focusedDay);
+
+    if (_pointerKind.value == PointerDeviceKind.touch) {
+      // A finger's tap. The month still follows the focused day — that is
+      // table_calendar's own doing and it is not ours to undo — but no form
+      // opens.
+      return;
+    }
+
+    unawaited(CreateEventButton.createForDay(context, ref, day));
+  }
+
+  /// A day was long-pressed.
+  ///
+  /// **This is the touch gesture, and it is the same form the mouse's click
+  /// opens.** There is one create path — [CreateEventButton.createForDay] —
+  /// so a long press and a click differ in nothing but how they were made.
+  ///
+  /// A long press with a *mouse* lands here too, and creates. That is not a
+  /// special case: a long press and a click cannot both fire for one gesture,
+  /// because the long-press recogniser wins the arena and the tap recogniser
+  /// is rejected when the pointer comes up. So one press opens one form.
+  void _onDayLongPressed(DateTime day, DateTime focusedDay) {
+    _syncFocusedMonth(focusedDay);
+    unawaited(CreateEventButton.createForDay(context, ref, day));
+  }
+
+  /// Keeps the loaded month in step with the month the grid is showing.
+  ///
+  /// Only a *month* change re-queries. `table_calendar` fires the day
+  /// callbacks on every tap and long press as well as on every page swipe, and
+  /// a query is a request for a month — rebuilding an identical one would
+  /// refetch a month already on screen.
+  void _syncFocusedMonth(DateTime focusedDay) {
     final month = _monthOf(focusedDay);
     if (month != _focusedMonth) {
       setState(() => _focusedMonth = month);
     }
-    unawaited(CreateEventButton.createForDay(context, ref, day));
   }
 
   @override
@@ -125,14 +209,63 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
             const SizedBox(height: 16),
             _Toolbar(onSearch: (value) => setState(() => _searchTerm = value)),
             const SizedBox(height: 16),
-            _CalendarCard(
-              state: events,
-              focusedMonth: _focusedMonth,
-              onPageChanged: (month) =>
-                  setState(() => _focusedMonth = _monthOf(month)),
-              onDaySelected: _onDaySelected,
+            // **The [Listener] that tells a mouse from a finger.** It wraps the
+            // grid rather than sitting inside a day cell, because the cell is
+            // table_calendar's and the marker bars are laid over it — a
+            // listener inside the cell would miss a pointer that landed on a
+            // bar, and a bar's own tap opens the *event*, which never needed
+            // the kind anyway.
+            //
+            // `setState` is deliberately not called: the notifier is its own
+            // listener, and the grid must not be rebuilt in the middle of the
+            // gesture that is about to create an event.
+            Listener(
+              onPointerDown: (event) => _pointerKind.value = event.kind,
+              child: _CalendarCard(
+                state: events,
+                focusedMonth: _focusedMonth,
+                onPageChanged: (month) =>
+                    setState(() => _focusedMonth = _monthOf(month)),
+                onDaySelected: _onDaySelected,
+                onDayLongPressed: _onDayLongPressed,
+              ),
             ),
+            const SizedBox(height: 8),
+            _GestureHint(kind: _pointerKind),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The line under the grid that says which gesture creates an event.
+///
+/// **It follows the last pointer that went down, because the rule does.**
+/// A mouse gets a click; a finger gets a long press. Before anything has been
+/// touched the hint says "click", which is the common case; the first pointer
+/// event replaces that with what actually happened.
+///
+/// **The hint exists because the finger's tap does nothing.** A gesture that
+/// is silently inert is indistinguishable from a broken cell, and the long
+/// press is not a gesture anyone discovers on their own.
+class _GestureHint extends StatelessWidget {
+  const _GestureHint({required this.kind});
+
+  /// The pointer kind to describe.
+  final ValueListenable<PointerDeviceKind?> kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ValueListenableBuilder<PointerDeviceKind?>(
+      valueListenable: kind,
+      builder: (context, value, _) => Text(
+        value == PointerDeviceKind.touch
+            ? 'Long-press a day to create an event.'
+            : 'Click a day to create an event.',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.outline,
         ),
       ),
     );
@@ -186,12 +319,14 @@ class _CalendarCard extends StatelessWidget {
     required this.focusedMonth,
     required this.onPageChanged,
     required this.onDaySelected,
+    required this.onDayLongPressed,
   });
 
   final AsyncValue<List<EventResponse>> state;
   final DateTime focusedMonth;
   final ValueChanged<DateTime> onPageChanged;
   final void Function(DateTime day, DateTime focusedDay) onDaySelected;
+  final void Function(DateTime day, DateTime focusedDay) onDayLongPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -228,6 +363,7 @@ class _CalendarCard extends StatelessWidget {
                 focusedMonth: focusedMonth,
                 onPageChanged: onPageChanged,
                 onDaySelected: onDaySelected,
+                onDayLongPressed: onDayLongPressed,
                 events: events ?? const [],
               ),
             ),
@@ -248,12 +384,14 @@ class _CalendarGrid extends ConsumerWidget {
     required this.focusedMonth,
     required this.onPageChanged,
     required this.onDaySelected,
+    required this.onDayLongPressed,
     required this.events,
   });
 
   final DateTime focusedMonth;
   final ValueChanged<DateTime> onPageChanged;
   final void Function(DateTime day, DateTime focusedDay) onDaySelected;
+  final void Function(DateTime day, DateTime focusedDay) onDayLongPressed;
   final List<EventResponse> events;
 
   @override
@@ -378,6 +516,15 @@ class _CalendarGrid extends ConsumerWidget {
       ),
       eventLoader: (day) => byDay[formatLocalDate(day)] ?? const [],
       onDaySelected: onDaySelected,
+      // **The long press is the touch gesture — task 7.2.**
+      //
+      // `table_calendar` routes both the tap and the long press to callbacks
+      // of the same shape, so the split between them is made above, in the
+      // screen, by the kind of pointer that produced the gesture. Setting
+      // this is what makes the long press exist at all: with it null the
+      // package's long press falls through to its range-selection branch,
+      // which this calendar does not use.
+      onDayLongPressed: onDayLongPressed,
       onPageChanged: onPageChanged,
     );
   }
@@ -660,6 +807,25 @@ class _EventPill extends StatelessWidget {
         // of opening one.
         child: InkWell(
           onTap: () => context.go(AppRoutes.eventDetailsPath(event.eventId)),
+          // **The long press opens the event too, and it has to.**
+          //
+          // The day cell's long press creates an event for that day, and the
+          // cell is this pill's ancestor — so the pill's own recogniser is the
+          // nearer one, it wins the arena, and the cell's long press never
+          // runs. Which means that without a handler here a long press on a
+          // bar does **nothing at all**, silently, on a bar that a click
+          // opens. A long press on a link should go where a click on it goes.
+          //
+          // **It also takes the tooltip's long press away.** The [Tooltip]
+          // above shows on a long press on a touch screen, and this
+          // recogniser is nearer the pointer than the tooltip's — so the
+          // tooltip no longer appears there. That is the trade: on a phone the
+          // bar's label is truncated, and the tooltip was how the full one was
+          // read. Opening the event carries the same information and more, and
+          // task 4.3's position is that a tooltip is a pointer affordance and
+          // a touch screen wants [Semantics] instead.
+          onLongPress: () =>
+              context.go(AppRoutes.eventDetailsPath(event.eventId)),
           borderRadius: BorderRadius.circular(5),
           child: Container(
             width: double.infinity,
