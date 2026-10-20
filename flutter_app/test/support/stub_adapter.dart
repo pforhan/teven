@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -43,7 +44,14 @@ class StubAdapter implements HttpClientAdapter {
 
   /// Supplies the response for a request. Returning `null` yields a 404
   /// envelope, mirroring the server's `/api` catch-all.
-  StubResponse Function(RequestOptions options)? handler;
+  ///
+  /// **May be asynchronous.** A `FutureOr` rather than a plain function, and
+  /// the reason is ordering: a test that needs one answer to land *after*
+  /// another has no other way to say so. The shared stub answered
+  /// immediately, so the case a widget's request counter exists for — a slow
+  /// answer for a query the widget has already moved on from — could not be
+  /// built with it.
+  FutureOr<StubResponse?> Function(RequestOptions options)? handler;
 
   /// Every request made, in order.
   final List<RequestOptions> requests = [];
@@ -96,7 +104,7 @@ class StubAdapter implements HttpClientAdapter {
   ) async {
     requests.add(options);
     lastRequestBody = bodies[options] = await _decode(requestStream);
-    final response = handler?.call(options);
+    final response = await handler?.call(options);
 
     if (response == null) {
       return _body(

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
+import '../../core/util/local_date.dart';
 import '../../models/common.dart';
 import '../../models/customer.dart';
 import '../../models/event.dart';
@@ -50,6 +51,19 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
   List<OrganizationResponse> _availableOrganizations = [];
   List<CustomerResponse> _availableCustomers = [];
   List<UserResponse> _availableUsers = [];
+
+  /// The day the "other events" panel is showing, mirrored out of [_date].
+  ///
+  /// **A second copy of [_date.text], and the reason is the controller's
+  /// silence.** A `TextEditingController` notifies the field that owns it, not
+  /// the widget that read it — so picking a date rebuilt the date field and
+  /// left this screen, and the panel in its sidebar, showing the day the event
+  /// was loaded with. The original keeps the date in state, so its panel
+  /// follows the picker.
+  ///
+  /// The two are written together: the controller by `DateField`, this by
+  /// [DateField.onChanged]. Only the panel reads this one.
+  String _dateValue = '';
 
   bool _loading = true;
   bool _submitting = false;
@@ -98,6 +112,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
         _numberOfStaffNeeded = event.numberOfStaffNeeded;
         _selectedUserIds = event.rsvps.map((r) => r.userId).toList();
         _selectedOrganizationId = event.organization.organizationId.toString();
+        _dateValue = _date.text;
       });
       // Fetch orgs for global managers.
       if (_canManageGlobalEvents) {
@@ -218,8 +233,8 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
           numberOfStaffNeeded: _numberOfStaffNeeded,
           specificStaffIds: _selectedUserIds,
         ),
-        // `EditEventForm.tsx:162` sends the organization **only** for a global
-        // manager, and sends `undefined` otherwise. Not a stylistic choice:
+        // The organization goes out **only** for a global manager, and is
+        // omitted otherwise. Not a stylistic choice:
         // `EventService.kt:83-89` throws
         // `"Non-MANAGE_EVENTS_GLOBAL users cannot change event organizationId"`
         // when a non-null, differing id arrives from an org-scoped user, and
@@ -435,6 +450,15 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
                           controller: _date,
                           label: 'Date',
                           validator: Validators.requiredText,
+                          // **The panel follows the picker.** Without this the
+                          // "other events" sidebar would keep listing the day
+                          // the event was loaded with.
+                          onChanged: (picked) {
+                            if (picked == null) return;
+                            setState(
+                              () => _dateValue = formatLocalDate(picked),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -649,7 +673,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
             );
 
             final sidebar = OtherEventsPanel(
-              date: _date.text,
+              date: _dateValue,
               organizationId: _selectedOrganizationId,
               excludeEventId: '${widget.eventId}',
             );

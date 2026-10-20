@@ -39,8 +39,9 @@ import '../../widgets/responsive_list_view.dart';
 ///   (task 10.12); `UserList.tsx:95` deletes an invitation, which is real. Both
 ///   go through the shared [confirmDestructiveAction], and both refetch rather
 ///   than navigate away — the *consequence* of a delete stays at the call site,
-///   which is the whole reason the dialog is shared (task 4.8). This is 4.8's
-///   fifth and sixth wired flows; only Phase 7's event delete remains.
+///   which is the whole reason the dialog is shared (task 4.8). These are 4.8's
+///   fifth and sixth wired flows; the last two arrived with Phase 7 (7.5's
+///   event list and 7.6's event details), so all six are now wired.
 /// - **The organization column is conditional.** `UserList.tsx:142-152` adds it
 ///   only for a caller holding `VIEW_USERS_GLOBAL`. An organization-scoped
 ///   admin sees users in their own organization already, so the column would

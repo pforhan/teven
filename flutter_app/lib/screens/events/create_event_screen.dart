@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
+import '../../core/util/local_date.dart';
 import '../../models/customer.dart';
 import '../../models/event.dart';
 import '../../models/organization.dart';
@@ -23,10 +24,10 @@ import '../../widgets/picker_fields.dart';
 
 /// The create-event form.
 ///
-/// `CreateEventForm.tsx` (518 lines). The densest form in the app: ~20 state
-/// fields, an organization-required gate for global managers, customer-address
-/// autofill with a `locationManuallyEdited` latch, org-scoping cascades for
-/// customers and users, and three nested modals (inventory, staffing, customer).
+/// The densest form in the app: ~20 state fields, an organization-required gate
+/// for global managers, customer-address autofill with a
+/// `locationManuallyEdited` latch, org-scoping cascades for customers and
+/// users, and three nested modals (inventory, staffing, customer).
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({super.key});
 
@@ -54,6 +55,19 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   int _numberOfStaffNeeded = 0;
   List<int> _selectedUserIds = [];
   String _selectedOrganizationId = '';
+
+  /// The day the "other events" panel is showing, mirrored out of [_date].
+  ///
+  /// **A second copy of [_date.text], and the reason is the controller's
+  /// silence.** A `TextEditingController` notifies the field that owns it, not
+  /// the widget that read it — so picking a date rebuilt the date field and
+  /// left this screen, and the panel in its sidebar, showing the day the
+  /// screen was opened on. The original keeps the date in state, so its panel
+  /// follows the picker.
+  ///
+  /// The two are written together: the controller by `DateField`, this by
+  /// [DateField.onChanged]. Only the panel reads this one.
+  String _dateValue = '';
   bool _showMoreDetails = false;
   ApiException? _error;
   bool _locationManuallyEdited = false;
@@ -81,7 +95,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     super.didChangeDependencies();
     if (_didInitParams) return;
     _didInitParams = true;
-    // Query params from the calendar's long-press (`CreateEventForm.tsx:59-77`).
+    // Query params from the calendar's long-press.
     final params = GoRouterState.of(context).uri.queryParameters;
     final dateParam = params['date'];
     final startTimeParam = params['startTime'];
@@ -107,6 +121,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     if (_duration.text.isEmpty) {
       _duration.text = '120';
     }
+    _dateValue = _date.text;
   }
 
   @override
@@ -524,6 +539,15 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                           controller: _date,
                           label: 'Date',
                           validator: Validators.requiredText,
+                          // **The panel follows the picker.** Without this the
+                          // "other events" sidebar would keep listing the day
+                          // the form was opened on.
+                          onChanged: (picked) {
+                            if (picked == null) return;
+                            setState(
+                              () => _dateValue = formatLocalDate(picked),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -747,7 +771,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             );
 
             final sidebar = OtherEventsPanel(
-              date: _date.text,
+              date: _dateValue,
               organizationId: _selectedOrganizationId,
             );
 

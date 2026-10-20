@@ -324,6 +324,99 @@ suspend fun populateTestData() {
       it[numberOfStaffNeeded] = 0
     }
 
+    // Events that share a day, so the "Other events on {date}" panel has
+    // something to show.
+    //
+    // **Every event seeded above is alone on its day**, so the panel was
+    // always empty: the one screen it exists on had nothing to list, and the
+    // feature could not be checked by hand at all. Two clusters, one per
+    // organization, so the organization scoping is visible too -- signing in as
+    // alice (Green Vistas) and as charlie (Urban Bloom) gives different lists
+    // for the same day.
+    //
+    // **On `today` rather than a fixed date**, because the create form
+    // defaults its date to today (`CreateEventForm.tsx:47`), which is where a
+    // user meets the panel first.
+    //
+    // The times are deliberately spread and one event carries no location, so
+    // the panel's three visible behaviours are all exercisable at a glance:
+    // the sort by time, the duration, and the location that is only rendered
+    // when there is one.
+    Events.insert {
+      it[title] = "Morning Irrigation Check"
+      it[date] = today.toString()
+      it[time] = "07:30"
+      it[durationMinutes] = 45
+      it[location] = "123 Main St"
+      it[description] = "Check every sprinkler head"
+      it[customerId] = cust1Id
+      it[organizationId] = org1Id
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 0
+    }
+    Events.insert {
+      it[title] = "Fence Repair"
+      it[date] = today.toString()
+      it[time] = "10:00"
+      it[durationMinutes] = 120
+      it[location] = "456 Business Ave"
+      it[description] = "Replace two broken panels"
+      it[customerId] = cust2Id
+      it[organizationId] = org1Id
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 0
+    }
+    Events.insert {
+      it[title] = "Mulch Delivery"
+      it[date] = today.toString()
+      it[time] = "13:15"
+      it[durationMinutes] = 30
+      // **No location, on purpose.** The panel renders the location only when
+      // the event has one (`OtherEventsPanel.tsx:88`), and without an event
+      // that lacks it the branch is never exercised by hand.
+      it[description] = "Drop eight bags at the depot"
+      it[customerId] = cust2Id
+      it[organizationId] = org1Id
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 0
+    }
+    Events.insert {
+      it[title] = "Gutter Cleaning"
+      it[date] = today.toString()
+      it[time] = "16:00"
+      it[durationMinutes] = 90
+      it[location] = "123 Main St"
+      it[description] = "Clear the downspouts"
+      it[customerId] = cust1Id
+      it[organizationId] = org1Id
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 0
+    }
+    Events.insert {
+      it[title] = "Planter Maintenance"
+      it[date] = today.toString()
+      it[time] = "09:00"
+      it[durationMinutes] = 60
+      it[location] = "789 Park Rd"
+      it[description] = "Weed and re-stake the planters"
+      it[customerId] = cust3Id
+      it[organizationId] = org2Id
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 0
+    }
+    Events.insert {
+      it[title] = "Greenhouse Repotting"
+      it[date] = today.toString()
+      it[time] = "14:00"
+      it[durationMinutes] = 120
+      it[location] = "321 High St"
+      it[description] = "Move the seedlings into larger pots"
+      it[customerId] = cust4Id
+      it[organizationId] = org2Id
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 0
+    }
+
     // Create 14 more events to test pagination
     for (i in 1..14) {
       val evtDate = if (i % 2 == 0) today.plusDays(i.toLong()) else today.minusDays(i.toLong())

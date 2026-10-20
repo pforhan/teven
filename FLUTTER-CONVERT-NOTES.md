@@ -348,6 +348,30 @@ Consequence: Chrome now runs **38 of 48** tests instead of 22, and the 2 skipped
 
 **Test tasks added to the phases that had none:** 3.14 (responsive chrome), 4.12 (`ResponsiveListView`), 5.13 (form validators, invite link), 7.11 (calendar date placement), 8.6 (client-side org filtering — worth testing because the server applies no scoping), 9.11 (error boundary). Phases 3, 4, 5, 7, 8, and 9 had no test task at all before this.
 
+#### What the service and model files pin
+
+**Services — assert on the *request*, not the decoded response,** since a fake
+body is not the point. Each service hits the documented path; `deleteCustomer`
+targets `/api/customers/{id}`; `trackInventoryUsage` posts to
+`/api/inventory/{id}/usage`; `validateInvitation` passes `token` as a query
+param; the reports pass both dates. Plus the behaviours that are easy to
+regress: `getAllEvents` sends `limit=10` when unspecified and honours an
+explicit override, non-event lists send **no** limit, and the three update
+methods return `String` rather than a model.
+
+**Models — the cases whose behaviour is *not* visible at the call site:**
+
+- `ApiResponse.fromJson` does **not** invoke `decode` on a failure envelope,
+  even though `data` is `{}`. This is the whole reason the callback form
+  exists.
+- `EventResponse.startAt` / `endAt` stay naive-local — `"2026-03-04"` +
+  `"09:30:00"` + 90 min must yield `11:00` local, **not** a UTC-shifted
+  instant.
+- `Permissions.hasAny` uses OR-semantics, and an empty requirement grants
+  access.
+- `PaginatedResponse.fromJson` decodes nested items through the supplied
+  decoder.
+
 ### Phase 2 — Auth, permissions, routing (undated entry)
 
 Tasks 2.1–2.12 are done, which closes the phase. The route table is complete but every screen below Phase 2 is still a `PlaceholderScreen` naming its own path — each is replaced as its phase lands, and `grep PlaceholderScreen` is the checklist. `HomeScreen` (task 0.8) and `widget_test.dart` are gone, superseded by the router.
@@ -745,15 +769,26 @@ redesign.** `MainLayout.tsx:14` is `navbar navbar-expand-lg navbar-dark
 bg-dark` — inline nav items, collapsing behind `navbar-toggler` below 992px.
 Mobile does collapse to a hamburger and a flyout, as expected.
 
+What actually changed, and why it is not parity:
+
+| | React | Port |
+|---|---|---|
+| Desktop | top bar, one row | extended rail |
+| Tablet | top bar, hamburger | collapsed rail |
+| Mobile | hamburger → collapse | hamburger → `NavigationDrawer` |
+| Org switcher | `<select>` inside the navbar | rail at ≥700, bottom sheet below |
+| Profile / Logout | right end of the bar | foot of the rail / drawer |
+
 The reason for changing it was already recorded when 3.6 was written, and this
 is the first time it has been worth stating plainly: **the React navbar's own
 contents were unreachable below 992px.** The organization `<select>` sat inside
 the collapse, so a super-admin on a phone could not switch organization at all,
 and `QuickOrganizationPickerModal` — the searchable list — was wired only to the
 event forms. A rail shows the six items without a hamburger from 700px up and
-gives the switcher a home at every size. The trade is that it is **not**
-visually faithful, and it should be revisited if matching the current look
-matters more than closing the responsive gap.
+gives the switcher a home at every size. The React layout was desktop-only and
+had one breakpoint; this has three. The trade is that it is **not** visually
+faithful, and it should be revisited if matching the current look matters more
+than closing the responsive gap.
 
 **Also confirmed after the `ShellRoute` restructure: the address bar follows
 in-app navigation.** This had been retired in the Phase 2 log, but nesting the
@@ -1210,6 +1245,16 @@ from the UI", which is backwards — `CustomerDao.getCustomers:68-71` switches o
 Hiding them would be a visible divergence from the React original on the strength
 of a backend reading, which is exactly what the parity rule is meant to prevent,
 and the audit's job was to find it, not to act on it. Recorded in the 4.11 task.
+
+**The Organization column is conditional on `VIEW_USERS_GLOBAL`, and that is
+what the scoping tests pin.** An org-scoped admin's users are all in one
+organization by construction, so the column would be the same value on every
+row — which is also why the query is scoped to the selected organization for
+exactly that caller. The test asserts the column is *present* for a caller
+holding `VIEW_USERS_GLOBAL` and *absent* for an org-scoped one, and that the
+users themselves are unaffected either way — the gate is on the column, not on
+the list. A screen that always rendered the column would pass every other
+assertion and show the scope it is supposed to be hiding.
 
 **This screen is the first with enough columns to overflow a table header, and
 the fix belongs to all four.** Five columns plus an actions column pushed the
@@ -1749,6 +1794,46 @@ phase) and are not owned by this task. The tests directly covering the changed
 code — `picker_fields_test.dart` (13) and `accept_invitation_screen_test.dart`
 (15) — all pass.
 
+### 2026-10-16 — Task 5.13: the form tests, and an origin that was wrong on every non-http scheme
+
+**Done.** `test/customer_form_test.dart`, `test/invitation_url_test.dart` (11
+tests) and additions to `test/user_list_screen_test.dart`.
+
+**The forms are the largest surface in the port and the least covered,** so
+this task starts with one representative form rather than all seven.
+
+**The error is asserted per field, not as a count.** A count says "something
+failed"; a per-field assertion says *which* input rejected what, and a count
+passes just as happily when the wrong field rejects the wrong value. The
+customer form's cases also cover a whitespace-only value (which the required
+validator must reject) and a corrected field clearing its error.
+
+**The invite link's origin derivation was wrong, and the test that found it is
+the reason to keep the test.** `Uri.base.origin` throws for any scheme that is
+not http or https — which is every native URL scheme, and `file:` under
+`flutter test`. The first version guarded the throw but still **produced
+`file:///register?token=…`**, an origin with no authority at all, because a
+`file:` URL's authority is empty rather than absent. `_appOrigin` now derives
+the origin from the scheme, the authority and the path in a way that holds for
+`http`, `https`, `file:` and no-origin at all.
+
+**That is the whole point of the task, and it is worth stating as a shape: the
+one-liner that satisfies "derive the origin from `Uri.base`" is the one-liner
+that does not survive contact with a non-web platform.** Task 5.10 exists
+because invitees receive a link they open in a browser — so the *link* must be
+absolute and correct everywhere, and the app's own platform is not the platform
+the link is opened on.
+
+**The minted link is pinned as a parsed query param, not as a string.** The
+user list's test asserts the link that lands in the invitations table carries
+the token as a query parameter — parsing it rather than matching text — so a
+change in the link's *order* or encoding does not break the test, and a change
+that drops the token does. The same file also pins the form's own permission
+gate separately from the button's, which are two different permissions and were
+easy to conflate.
+
+---
+
 ### 2026-10-18 — Phase 6, task 6.1: the field-by-field map, written after the fact
 
 **Task 6.1 discharged, as a verification pass rather than a pre-written spec.**
@@ -2032,12 +2117,34 @@ one shows more. Worth stating because a side-by-side reviewer will notice.
 
 #### `CreateEventButton` settles 7.3's `pendingNavigateUrl` question
 
+**Both buttons intercept before navigating, and the reason is a card the create
+form does not own.** A `VIEW_USERS_GLOBAL` user with no selected organization
+cannot create an event without one — the server requires it
+(`EventService.kt:20-22`) — so the create form shows an "Organization Required"
+card (`CreateEventForm.tsx:210-239`). Without an intercept, the button would
+navigate *to* that card and the user would have to tap through it: a dead end
+React never exposed, because React had no button to press. The card exists
+because the server requires an organization for those users, and the button is
+where that requirement gets answered *before* the form is reached.
+
+**Phase 6's create form and 7.3 have to agree on this,** and neither alone is
+right — no single Phase 6 task owns the card, so it falls to whoever picks 7.3
+up to check what landed. Checked against Phase 6: the card is there, and the two
+buttons now answer the requirement before it.
+
 One widget, nullable `resumeUrl`. The calendar's button carried a pending URL and
 resumed after a selection; the list page's had none, so dismissing the picker
 did nothing and a selection always went to a bare `/events/create` — dropping the
 `?date=` a calendar tap had supplied. The day cell now goes through the same
 static helper (`CreateEventButton.createForDay`) as the header button, so the
 list page gets the better behaviour rather than the calendar losing it.
+
+**The list-page button was nearly free.** `ListScreenHeader` already had the
+right shape — heading plus a single primary action, a `Wrap` so it cannot
+overflow, and `action` null rather than a disabled button when the permission is
+absent (`list_screen_header.dart`). The event list was the only list screen not
+yet using that widget, and now renders a `const` header with
+`CreateEventButton` as the action.
 
 **The FAB / `+` half of 7.3 is not done.** 7.3 asks for the placeholder to be
 *replaced* by a FAB on mobile and a `+` on web. The two header buttons are in;
@@ -2793,3 +2900,213 @@ the failure case. Each fails loudly and each fails the right one.
 `find.widgetWithText(OutlinedButton, 'Going')` matches **nothing at all**, and
 the failure reads as "the button is not there" rather than "you named the
 wrong class". The finder is `byWidgetPredicate((w) => w is OutlinedButton)`.
+
+---
+
+### 2026-10-20 — Task 7.7: the panel that had nothing to show
+
+**Done.** `OtherEventsPanel.tsx` (97 lines).
+
+**The widget already existed.** It was written in Phase 6 (`3e36ef4`) as a
+supporting piece for the create and edit forms, which is why 7.7 was still open
+and why this entry is about the parts around it rather than about the widget.
+
+**398 tests pass on the VM** (up from 380 — the 18 new ones are all here);
+`flutter analyze` and `dart format` clean. **The new test file passes on Chrome
+as well as the VM** (18 tests).
+
+**Files added:** `test/other_events_panel_test.dart`.
+**Files changed:** `lib/widgets/other_events_panel.dart` (rewritten),
+`lib/screens/events/create_event_screen.dart` and
+`edit_event_screen.dart` (the date wiring), `test/support/stub_adapter.dart`
+(the handler may now be asynchronous — see the race test).
+**Backend:** `backend/data/.../TestDataProvider.kt` — seed data only, behind
+`DEV_MODE`.
+
+#### The panel's comments cite no TypeScript file
+
+`frontend/` is deleted in Phase 10, so a comment naming a file inside it is a
+citation that will not resolve — and one that *looks* resolvable, which is the
+worse failure. The panel's comments therefore describe the original rather than
+pointing at it: "the original replaces the whole card body with this", not "the
+React original replaces the card body (`OtherEventsPanel.tsx:61-68`)".
+
+**The rule is now in `AGENTS.md`,** so it applies to new code from here on and
+to whoever does task 10.8's sweep. **The React sources stay citable in this
+file**, which is the historical record and keeps them deliberately — the
+citations here are how a reader checks a claim, and this file outlives
+`frontend/`.
+
+**What this leaves, stated rather than hidden:** the panel, the two event forms
+and the new test file are clean, and **the rest of the port is not.** There are
+**388 `.ts`/`.tsx` citations** across **71 files** — 53 in `flutter_app/lib/`
+and 18 in `flutter_app/test/` — carried over from Phases 1–6 and not yet
+swept. That is task **10.8**, which the plan has owned since the port began
+and which nobody has picked up yet; the calendar screen was done separately, as
+a demonstration of the shape.
+
+The count is worth having because it is a **mechanical** job rather than a
+design one — every one of those citations is a path to be replaced by a
+sentence saying what it pointed at — and because the reasoning each one
+carries is the part worth keeping. A sweep that deletes the citations without
+rewriting the reasoning would be a loss; a sweep that rewrites them is
+task 10.8's work, done properly, when someone has the time for it.
+
+#### The seeded database could not show the feature at all
+
+**Every seeded event was alone on its day.** The six named events sit on
+`today+1`, `today+2`, `today-1`, `today+5`, `today-3` and `today+7`, and the
+fourteen pagination events alternate between `today+i` and `today-i` — so no
+day holds two of them, except by accident in a second organization.
+
+The panel lists the events on a day. With the seed as it stood, it was empty
+everywhere, on every screen, all the time. **That is not a bug in the panel —
+it is the seed making the feature unobservable.** The create form defaults its
+date to today, and today held nothing at all.
+
+Two clusters now seed on `today`, one per organization:
+
+| Organization | Events |
+|---|---|
+| `TEST_ORG_Green Vistas Landscaping` | Morning Irrigation Check 07:30/45 min, Fence Repair 10:00/120 min, **Mulch Delivery 13:15/30 min, no location**, Gutter Cleaning 16:00/90 min |
+| `TEST_ORG_Urban Bloom Gardens` | Planter Maintenance 09:00/60 min, Greenhouse Repotting 14:00/120 min |
+
+Four things are deliberate about that shape:
+
+- **On `today`,** because that is where the create form starts and where the
+  panel is met first.
+- **Two organizations,** so the scoping is visible by hand: alice sees one
+  list, charlie sees another, and the date is the same.
+- **Spread times,** so the sort is visible without reading the code.
+- **One event with no location,** because the location is rendered only when
+  there is one (`OtherEventsPanel.tsx:88`) and no other seeded event exercises
+  that branch.
+
+This is the only backend file Phase 7 touches, and it is seed data behind
+`DEV_MODE` rather than a behaviour change. The rule that the backend is frozen
+through Phase 8 is about the API; a dev-only fixture that exists so a screen
+can be looked at is not the API.
+
+#### The date never reached the panel
+
+**The React forms keep the date in state** — `CreateEventForm.tsx:31` and
+`EditEventForm.tsx:32` both hold a `date` — so changing it re-renders the form
+and the panel in its sidebar gets the new day.
+
+**The Flutter forms keep it in a `TextEditingController`,** and a controller
+notifies the field that owns it, not the widget that read it. The date field
+rebuilt itself when the user picked a date; the screen did not, so
+`date: _date.text` in the sidebar's `build` went on returning the day the form
+was **opened** with. The panel listed the wrong day's events, for as long as
+the form was open.
+
+The fix follows the convention the event list already set (task 7.5): the
+screen holds the date as a `String`, `DateField.onChanged` writes it, and the
+panel is given that rather than the controller's text.
+
+**This is the kind of defect a seeded database would never have shown** — with
+one event per day, every day looks the same and the wrong one is not
+distinguishable from the right one.
+
+#### Three deliberate divergences
+
+1. **The heading stays put while the list loads.** React returns the spinner
+   *instead of* the card body (`OtherEventsPanel.tsx:61-68`) — heading and all —
+   so the card collapses to the height of a spinner and grows back when the
+   answer lands. Here the heading stays and only the body changes.
+
+2. **A failed request says what went wrong.** React catches, logs to the
+   console, and leaves the empty list in place — so a 500 renders **"No other
+   events scheduled for this day."**, which is a statement about the day that
+   the failure makes untrue. The port shows the error through the shared
+   `ErrorDisplay` instead. This is the same call the event details screen made
+   in task 7.6, and the same one task 4.14 made for the list screens.
+
+3. **The list says how many events it is not showing.** React asks for no
+   limit at all, which the server reads as "no cap" (`EventDao.kt:176` does
+   `limit?.let { query.limit(it) }`) — it returns every event on the day. The
+   port has to send a limit, because `EventService.getAllEvents` defaults to
+   ten and ten would silently truncate a busy day, so the port sends a
+   thousand and **says so** when the server sends fewer than the day holds.
+
+   The count is `total - items.length`, which is the rows the *server* did not
+   send — **not** the row the exclusion removed. The excluded event is the one
+   the panel is shown beside; the user already knows about it, and counting it
+   would put a "and 1 more" under a list that is showing everything.
+
+#### Smaller things, and the ones that are not smaller
+
+- **Material icons for the clock and the location.** `<i className="bi
+  bi-clock">` renders as an *empty tag* in the React app — the Bootstrap Icons
+  were never installed — so there is nothing to match. Task 3.11 settles it:
+  Material icons throughout.
+
+- **A rule between the rows.** React gives every `list-group-item` a
+  `border-bottom` (`OtherEventsPanel.tsx:82`), so the list is ruled rather than
+  floating. The port puts a `Divider` between the rows and not after the last.
+
+- **A request counter.** The React original has no such guard and gets away
+  with it, because its refetches are rare. This one refetches whenever the
+  date changes, which on the create and edit forms is every time the user
+  picks one — so a slow answer for a day they have moved on from can land
+  after a faster one for the day they are on, and quietly replace it. The
+  counter is three lines.
+
+- **`int.tryParse` is stricter than the original's `parseInt`.** `parseInt("12x")`
+  is 12 and `parseInt("")` is NaN; `int.tryParse` refuses both. The stricter
+  reading is the one the server would agree with, and no caller passes
+  anything but digits.
+
+#### The tests
+
+**18 new cases**, green on the VM and on Chrome.
+
+The harness needed one change to make the race test possible: `StubAdapter`'s
+handler is now a `FutureOr` rather than a plain function, so a test can hold
+one answer back and release it after another has landed. The shared stub
+answered immediately, so the case the request counter exists for could not be
+built with it at all.
+
+The race test is the interesting one. It holds the answer for the first day
+open, moves to the second day, lets that one land and be shown, and *then*
+releases the first — and asserts the panel still shows the second day's event.
+**Without the counter the late answer replaces what is on screen**, which is
+the whole defect.
+
+**Verified by mutation,** which is the only way to know a test is not
+vacuous. Four mutations, four failures, each in the right case:
+
+| Mutation | Case that failed |
+|---|---|
+| Drop the sort | lists the day, earliest first |
+| Drop the exclusion | leaves out the event it is shown beside |
+| Swallow the failure | says what went wrong rather than claiming the day is empty |
+| Drop the stale-response guard | a slow answer for the old day does not replace the new one |
+
+#### Verified in a browser
+
+**The stack was rebuilt with the new bundle and the new seed, and the panel was
+checked against the live backend.**
+
+The request the panel makes, from the browser's own network log:
+
+```
+GET /api/events?limit=1000&organizationId=59&startDate=2026-10-20&endDate=2026-10-20
+```
+
+— org-scoped, one day, with the limit the port sends rather than the ten the
+service would default to.
+
+On `/events/567` — the seeded *Morning Irrigation Check* — the panel lists
+**Fence Repair 10:00/120 min/456 Business Ave**, **Mulch Delivery
+13:15/30 min**, and **Gutter Cleaning 16:00/90 min/123 Main St**: sorted by
+time, the duration and the location on each row, **the location absent on the
+one event that has none**, a rule between the rows, and **the event the panel
+is shown beside excluded from its own list**.
+
+And the user picked different dates on the create form and watched the list
+change — which is the date wiring above, verified against the live backend
+rather than in a widget test. The seeded clusters are what made that check
+possible: with one event per day, every day looked the same and a panel
+showing the wrong one would have been indistinguishable from a panel showing
+the right one.
