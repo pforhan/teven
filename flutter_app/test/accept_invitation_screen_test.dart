@@ -139,7 +139,7 @@ void main() {
 
       await _fillForm(tester);
       await tester.tap(find.widgetWithText(FilledButton, 'Accept Invitation'));
-      await _settleAsync(tester);
+      await settleRequests(tester);
 
       expect(
         find.text('Invitation accepted and user created.'),
@@ -169,7 +169,7 @@ void main() {
         displayName: 'Ada L',
       );
       await tester.tap(find.widgetWithText(FilledButton, 'Accept Invitation'));
-      await _settleAsync(tester);
+      await settleRequests(tester);
 
       expect(adapter.requests.last.path, '/api/invitations/accept');
       expect(adapter.requests.last.method, 'POST');
@@ -198,7 +198,7 @@ void main() {
 
       await _fillForm(tester);
       await tester.tap(find.widgetWithText(FilledButton, 'Accept Invitation'));
-      await _settleAsync(tester);
+      await settleRequests(tester);
 
       expect(find.textContaining('Username already taken.'), findsOneWidget);
       // No redirect, and the form comes back so the user can correct one field.
@@ -229,7 +229,7 @@ void main() {
 
       // Drain the in-flight request, or its dio timer is still pending when the
       // test tears down and the binding reports it as a leak.
-      await _settleAsync(tester);
+      await settleRequests(tester);
     });
   });
 
@@ -333,9 +333,14 @@ void main() {
       );
 
       await _tapHereLink(tester);
-      await tester.pumpAndSettle();
-
+      // **Settle in the same order as everywhere else.** `/events` is the month
+      // grid since task 7.1, so navigating here starts a fetch and puts a
+      // `CircularProgressIndicator` on screen — and `pumpAndSettle` cannot settle
+      // an indeterminate animation. Draining first (below) then settling is the
+      // rule; this test simply settles on its own and so hangs.
+      await tester.pump();
       expect(currentPath(container), AppRoutes.events);
+      await settleRequests(tester);
     });
 
     testWidgets('only the link navigates, not the sentence around it', (
@@ -426,19 +431,9 @@ Future<ProviderContainer> _pumpRegister(
   );
 
   container.read(routerProvider).go(location);
-  await _settleAsync(tester);
+  await settleRequests(tester);
 
   return container;
-}
-
-/// Lets the stubbed transport finish, then settles the widget tree.
-///
-/// The order matters and is not interchangeable: `runAsync` first so the real
-/// async completes, then `pumpAndSettle` so the rebuilt frame lands. Doing it
-/// the other way round would settle against a spinner that never stops.
-Future<void> _settleAsync(WidgetTester tester) async {
-  await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-  await tester.pumpAndSettle();
 }
 
 /// The span carrying the link's gesture recognizer.
@@ -595,6 +590,16 @@ StubAdapter invitationAdapter({
           },
         }),
         status: acceptStatus,
+      );
+    case '/api/events':
+      // The router's `initialLocation` is `/events` (`app_router.dart:142`), so
+      // booting the app renders the calendar once before this navigates to
+      // `/register` — and the calendar fetches. Unanswered it would 401, and
+      // the single-flight redirect would sign the user out before the test
+      // could assert that a *signed-in* visitor sees `Already Logged In`.
+      // Empty is enough: nothing here is about events.
+      return const StubResponse.json(
+        '{"success":true,"data":{"items":[],"total":0,"limit":25,"offset":0}}',
       );
   }
 

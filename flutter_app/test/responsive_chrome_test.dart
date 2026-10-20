@@ -310,7 +310,10 @@ void main() {
       final container = await pumpAt(tester, tabletWidth);
 
       await tester.tap(find.byIcon(Icons.person));
-      await tester.pumpAndSettle();
+      // `settleRequests`, not `pumpAndSettle`: `/profile` fetches the user's
+      // details on arrival, so a bare settle runs against its
+      // `CircularProgressIndicator` and times out. See `settleRequests`.
+      await settleRequests(tester);
 
       expect(currentPath(container), AppRoutes.profile);
     });

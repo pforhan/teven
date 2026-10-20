@@ -93,7 +93,7 @@ void main() {
       prefs: prefs,
       adapter: adapter,
     );
-    await goToAndLoad(tester, container, AppRoutes.customers);
+    await goTo(tester, container, AppRoutes.customers);
     return container;
   }
 

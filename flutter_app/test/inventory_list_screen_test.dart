@@ -96,7 +96,7 @@ void main() {
       prefs: prefs,
       adapter: adapter,
     );
-    await goToAndLoad(tester, container, AppRoutes.inventory);
+    await goTo(tester, container, AppRoutes.inventory);
     return container;
   }
 

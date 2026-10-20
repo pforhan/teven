@@ -154,7 +154,7 @@ Future<ProviderContainer> openCreate(
     token: 'token',
     adapter: adapter,
   );
-  await goToAndLoad(tester, container, AppRoutes.eventCreate);
+  await goTo(tester, container, AppRoutes.eventCreate);
   return container;
 }
 
@@ -169,7 +169,7 @@ Future<ProviderContainer> openEdit(
     token: 'token',
     adapter: adapter,
   );
-  await goToAndLoad(tester, container, path);
+  await goTo(tester, container, path);
   return container;
 }
 

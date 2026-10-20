@@ -87,7 +87,7 @@ void main() {
       prefs: prefs,
       adapter: adapter,
     );
-    await goToAndLoad(tester, container, AppRoutes.organizations);
+    await goTo(tester, container, AppRoutes.organizations);
     return container;
   }
 
@@ -222,11 +222,7 @@ void main() {
         ),
       );
 
-      final landed = await goToAndLoad(
-        tester,
-        container,
-        AppRoutes.organizations,
-      );
+      final landed = await goTo(tester, container, AppRoutes.organizations);
 
       // `ProtectedRoute.tsx:27` sends an unauthorized user to `/events`, and
       // this user holds the permission that route needs — so the fallback is

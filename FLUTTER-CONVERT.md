@@ -244,7 +244,7 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [x] **4.5** Port `InventoryList` (144 lines). **Done** — search, sort by name or quantity, create, delete. The `events` list is capped at 3 per row with a `+N more` count, and that cap is the one place this screen is not a transcription: `InventoryDao.toInventoryItemResponse` selects *every* `EventInventory` row for an item, so the list is unpaginated on `GET /api/inventory` too, not only on `GET /api/inventory/{id}`. Delete uses `confirmDestructiveAction` (4.8). The server-side N+1 behind it is **10.21**.
 - [x] **4.6** Port `OrganizationList` (134 lines), gated on `VIEW_ORGANIZATIONS_GLOBAL`. **Done**, including the one thing that is *not* shared with the other two lists: this screen is deliberately **not** scoped to the selected organization. Delete uses `confirmDestructiveAction` (4.8).
 - [x] **4.7** Port `UserList` (264 lines) — the largest list screen. Includes role display and sort controls. **Two** delete flows (`UserList.tsx:79,94`), both via `confirmDestructiveAction` (4.8); the user one still calls an endpoint that does not exist (10.12). **Done.** The only screen in the app that renders **two** tables in one route — unused invitations above the users — and the only one whose manage-gate ORs two scopes (`UserList.tsx:25`), which a copy of the organization screen's single-scope gate would have got wrong and locked every super-admin out of. The Organization column is conditional on `VIEW_USERS_GLOBAL`, so that column is what the scoping tests pin. The user delete **reproduces the broken call** — `UserService.deleteUser` now exists and 404s, with a test asserting the 404, so 10.12 will fail that test when it lands. "Create Invitation" is **omitted**: `UserList.tsx:206` toggles an inline form (182 lines) that is task 5.7, and there is no route for it, so a button would open nothing.
-- [x] **4.8** Port the 6 `window.confirm` delete flows as async dialogs (`CustomerList.tsx:60`, `InventoryList.tsx:60`, `OrganizationList.tsx:51`, `UserList.tsx:79,94`, plus events in Phase 7). **Done as one shared widget rather than six dialogs** — `confirmDestructiveAction` in `lib/widgets/confirm_dialog.dart`, used by the customer, inventory and organization screens. Ticked with 3 of 6 wired, because the wiring is not separate work: it is a call each screen makes while being ported, and 4.7 and 7.6 are already open for that. **Each of those two tasks carries the obligation to use the shared dialog** — a closed task is a claim nobody re-reads, and a hand-rolled fourth dialog would be silent. The *consequence* of a confirmed delete (refetch vs redirect) stays at the call site in every case, because `UserList.tsx:94` deletes an invitation and `EventDetails.tsx:49` navigates away. **5 of 6 now wired** (4.7 added both of this screen's); only Phase 7's event delete remains.
+- [x] **4.8** Port the 6 `window.confirm` delete flows as async dialogs (`CustomerList.tsx:60`, `InventoryList.tsx:60`, `OrganizationList.tsx:51`, `UserList.tsx:79,94`, plus events in Phase 7). **Done as one shared widget rather than six dialogs** — `confirmDestructiveAction` in `lib/widgets/confirm_dialog.dart`, used by the customer, inventory and organization screens. Ticked with 3 of 6 wired, because the wiring is not separate work: it is a call each screen makes while being ported, and 4.7 and 7.6 are already open for that. **Each of those two tasks carries the obligation to use the shared dialog** — a closed task is a claim nobody re-reads, and a hand-rolled fourth dialog would be silent. The *consequence* of a confirmed delete (refetch vs redirect) stays at the call site in every case, because `UserList.tsx:94` deletes an invitation and `EventDetails.tsx:49` navigates away. **6 of 6 now wired** — 4.7 added both of the user screen's, and task 7.5 added the event list's (`EventListPage.tsx:64`). `EventDetails.tsx:49` is 7.6's and navigates away rather than refetching, which is the one case where *not* refetching is the point.
 - [x] **4.9** **Reopened and implemented — pagination is now real.** Originally closed as "premise did not hold": `grep` finds no pagination control in any React list, and all four fetch a single fixed page (`CustomerList.tsx:27` uses `25, 0`) with no way to reach the rest, so there was genuinely nothing to *port*. Reopened because adding paging is a **product decision**, and it was made. The page *size* stays 25 — the original's own number, now `kListPageSize` — and what is new is a way to ask for the next one. Seamless loading on scroll, with a "Load more" button as the reachable floor; the progress entry gives the two reasons both exist. Applies to all four list screens. **This is a divergence from the original, not parity:** the React app can only ever see the first 25 rows, and now this one can see all of them.
 - [x] **4.10** Port the search-debounce pattern. The React lists use plain `useState`; pick a deliberate debounce and note the interval.
 - [x] **4.11** Verify sort controls against each endpoint. **`sortBy` is silently ignored on `/api/events`**, and `GET /api/events` defaults `sortOrder` to `asc`. **Verified against every DAO rather than taken on the plan's word, and the answer is a table, not a yes/no** — see the progress entry. Three of the five list screens agree with the server; the customer screen offers **three sort headers the server ignores** (`CustomerDao` switches on `name` alone and falls back to `id`), which is the one real mismatch and is left as-is under the parity rule. Events remain the outlier and stay **10.11**.
@@ -307,23 +307,23 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 
 ## Phase 7 — Calendar, list, details, RSVP
 
-- [ ] **7.1** Rebuild `EventCalendar.tsx` (329 lines) as a `table_calendar` month grid. **Explicitly dropping:** week / work-week / day / agenda views, drag-to-select slot creation, and the hover-to-reveal "Create Event" placeholder (`EventCalendar.tsx:26-68`, which needs a 100 ms mouseleave timer purely to avoid flicker).
-- [ ] **7.2** Replace drag-to-select with **long-press-a-day** to open the create form prefilled with that date.
-- [ ] **7.3** Add the Create Event affordance to **both** event pages. There are three in the React original, not one: the calendar header button (`EventCalendar.tsx:253`), the list-page header button (`EventListPage.tsx:168`), and the hover-to-reveal placeholder (`EventCalendar.tsx:26-68`). All three gate on `MANAGE_EVENTS_ORGANIZATION`, derived independently in each file. The placeholder is *replaced* as the original task describes — a FAB on mobile, a `+` on web — and the two buttons are *added* alongside it.
+- [x] **7.1** Rebuild `EventCalendar.tsx` (329 lines) as a `table_calendar` month grid. **Explicitly dropping:** week / work-week / day / agenda views, drag-to-select slot creation, and the hover-to-reveal "Create Event" placeholder (`EventCalendar.tsx:26-68`, which needs a 100 ms mouseleave timer purely to avoid flicker). **See the Phase 7 progress log** — tap-to-create survives (it is the `action === 'click'` branch, not drag-select), and 7.4 came along with it because a bar cannot be drawn without a colour.
+- [ ] **7.2** Replace drag-to-select with **long-press-a-day** to open the create form prefilled with that date. **Already satisfied in shape by 7.1, with a different gesture** — `onDaySelected` receives both a tap and a long press, and a tap is what the original had (`EventCalendar.tsx:139`, `action === 'click'`). Unticked because it asks for a *long press*, which would be a deliberate divergence from the original rather than parity; left for whoever decides.
+- [x] **7.3** Add the Create Event affordance to **both** event pages. There are three in the React original, not one: the calendar header button (`EventCalendar.tsx:253`), the list-page header button (`EventListPage.tsx:168`), and the hover-to-reveal placeholder (`EventCalendar.tsx:26-68`). All three gate on `MANAGE_EVENTS_ORGANIZATION`, derived independently in each file. The placeholder is *replaced* as the original task describes — a FAB on mobile, a `+` on web — and the two buttons are *added* alongside it. **Two of the three landed with 7.1/7.5; the FAB does not** — see the progress log.
 
-  **Both buttons must intercept before navigating.** A `VIEW_USERS_GLOBAL` user with no selected organization opens `QuickOrganizationPickerModal` and navigates only after a selection. Without this they land on the create form's "Organization Required" card (Phase 6, from `CreateEventForm.tsx:210-239`) and have to tap through it — a dead end React never exposed. The card exists because the server requires an organization for those users (`EventService.kt:20-22`), and the button is where that requirement gets answered *before* the form is reached. **Phase 6's create form and this task have to agree on it**; neither alone is right, and no single Phase 6 task owns the card, so it falls to whoever picks this up to check what landed.
+  **Both buttons must intercept before navigating.** A `VIEW_USERS_GLOBAL` user with no selected organization opens `QuickOrganizationPickerModal` and navigates only after a selection. Without this they land on the create form's "Organization Required" card (Phase 6, from `CreateEventForm.tsx:210-239`) and have to tap through it — a dead end React never exposed. The card exists because the server requires an organization for those users (`EventService.kt:20-22`), and the button is where that requirement gets answered *before* the form is reached. **Phase 6's create form and this task have to agree on it**; neither alone is right, and no single Phase 6 task owns the card, so it falls to whoever picks this up to check what landed. **Checked against Phase 6:** the card is there, and the two buttons now answer the requirement before it.
 
-  **Settle the `pendingNavigateUrl` question once rather than porting each file's version.** The calendar button carries one, so dismissing the picker cancels the navigation and choosing an organization resumes it. The list-page button has none — dismissing silently does nothing, and a selection always goes to `/events/create`. Same idea, two implementations, one of them strictly better.
+  **Settle the `pendingNavigateUrl` question once rather than porting each file's version.** The calendar button carries one, so dismissing the picker cancels the navigation and choosing an organization resumes it. The list-page button has none — dismissing silently does nothing, and a selection always goes to `/events/create`. Same idea, two implementations, one of them strictly better. **Settled** — one `CreateEventButton` with a nullable `resumeUrl`, and a day cell's `?date=` is now the thing the list page got wrong.
 
-  **The list-page button is nearly free.** `ListScreenHeader` already has the right shape — heading plus a single primary action, `Wrap` so it cannot overflow, and `action` null rather than a disabled button when the permission is absent (`list_screen_header.dart`). The event list is the only list screen not yet using that widget.
-- [ ] **7.4** Reproduce `eventPropGetter` / `dayPropGetter` styling, including today's `#e7f0f7` highlight.
-- [ ] **7.5** Port `EventListPage` (240 lines): title, date, time, description, customer, RSVP columns → responsive rows.
+  **The list-page button is nearly free.** `ListScreenHeader` already has the right shape — heading plus a single primary action, `Wrap` so it cannot overflow, and `action` null rather than a disabled button when the permission is absent (`list_screen_header.dart`). The event list is the only list screen not yet using that widget. **Done** — and it now renders a `const` header with `CreateEventButton` as the action.
+- [x] **7.4** Reproduce `eventPropGetter` / `dayPropGetter` styling, including today's `#e7f0f7` highlight. **Landed with 7.1** rather than separately: `CalendarStyle` in table_calendar 3.3.0 has no full-cell today highlight (only the `todayDecoration` dot), so the day cell is written by hand — which the colour is inseparable from.
+- [x] **7.5** Port `EventListPage` (240 lines): title, date, time, description, customer, RSVP columns → responsive rows. **One deliberate divergence: a "Calendar view" button.** The React original links *out* to this list (`EventCalendar.tsx:253`) but has no way back — the only route to the calendar is the nav rail's "Events" item, which is a drawer on a phone. The port adds the missing half, beside the search box, so the two screens are mirror images; see the progress log.
 - [ ] **7.6** Port `EventDetails` (277 lines), including the two `window.confirm` flows — via `confirmDestructiveAction` (4.8), and note the delete navigates away rather than refetching — and the `RsvpWidget` (72 lines) — drop-in RSVP posting `availability: "available" | "unavailable"` as a **free-form string**, not an enum.
 - [ ] **7.7** Port `OtherEventsPanel` (97 lines).
 - [ ] **7.8** Replace `moment` with `intl` + `DateTime`. The existing parsing is fragile — `new Date(event.date + 'T' + event.time)` at `EventCalendar.tsx:230` — so use explicit `DateTime` construction.
 - [ ] **7.9** Handle timezone-naive timestamps. The API returns `"YYYY-MM-DD"` / `"HH:MM:SS"` strings with **no timezone**. Do not silently re-interpret as UTC; keep naive local semantics to match current behavior, and note this as a known limitation.
 - [ ] **7.10** Route `/events/rsvps/requested` into the UI. It is **undocumented in `API.md`** but real (`EventRoutes.kt:118`). Confirm whether the React app uses it — if not, decide whether to expose it.
-- [ ] **7.11** Tests for the calendar's date handling, which is where the fragile logic lives: naive-local date construction (7.8/7.9), and the month grid rendering the right events on the right days. Golden tests for the grid itself are 12.5 — here it is the placement logic, not the pixels.
+- [ ] **7.11** Tests for the calendar's date handling, which is where the fragile logic lives: naive-local date construction (7.8/7.9), and the month grid rendering the right events on the right days. Golden tests for the grid itself are 12.5 — here it is the placement logic, not the pixels. **The placement half landed with 7.1** (`test/event_calendar_screen_test.dart`, four cases); the naive-local construction is covered by the existing `models_test.dart` case, so what is left is the golden half, which 12.5 owns.
 
 ---
 
@@ -703,7 +703,7 @@ The distinction: per-task tests cover logic whose behaviour is not obvious from 
 - [ ] **12.3** Broaden `ApiClient` coverage beyond task 1.19 — currently the five response-shape cases only.
 - [ ] **12.4** Widget tests for the permission guard and the responsive list.
 - [ ] **12.5** Golden tests for the calendar month grid and the event forms.
-- [ ] **12.6** Ensure the suite runs on both VM and Chrome. **Partly done:** `flutter test` (48 passing) and `flutter test --platform chrome` (22 passing, 2 skipped) both work as of task 1.20. The socket-based tests skip on web because `dart:io`'s `HttpServer` is unavailable there — they skip explicitly rather than passing vacuously. Remaining: any widget tests added in Phases 3–9 must be verified on both.
+- [ ] **12.6** Ensure the suite runs on both VM and Chrome. **Partly done:** `flutter test` and `flutter test --platform chrome` both work; the socket-based tests skip on web because `dart:io`'s `HttpServer` is unavailable there — they skip explicitly rather than passing vacuously. Every widget test added in Phases 3–7 has been verified on both, and two failure classes found only on Chrome are now written down in the Phase 7 log. **Not done:** a green full-suite Chrome run — see the Phase 7 entry for the counts and what is still unowned.
 
 ---
 
@@ -2565,3 +2565,335 @@ re-reading once, which is not a rate anyone should extrapolate from.
 `edit_event_screen.dart` (the ternary, and the guard it replaced),
 `test/event_form_test.dart` (the request-body test).
 **No new packages.** `./teven verify` clean: 301 tests.
+
+---
+
+### 2026-10-18 — Phase 7, tasks 7.1, 7.3 (buttons only), 7.4, 7.5
+
+**Done.** The month grid at `/events` and the event list at `/events/list`.
+339 tests pass on the VM (up from 301); `flutter analyze` and `dart format`
+clean; web build succeeds. **Both new test files pass on Chrome as well as the
+VM**, and taking them there uncovered a defect this log had been describing
+since Phase 3 without naming — see the Chrome section below, which takes the
+suite's Chrome failures from 18 to 5.
+
+**They went in together because they are one feature split across two URLs**, and
+because 7.3's two buttons are a shared widget that both screens had to reach
+for. Splitting them would have produced a commit where the calendar linked to a
+list that was still a placeholder — the same argument as 4.5/4.6 sharing a
+commit.
+
+**Files added:** `lib/screens/events/event_calendar_screen.dart`,
+`lib/screens/events/event_list_screen.dart`, `lib/providers/event_list.dart`,
+`lib/widgets/create_event_button.dart`, `lib/core/util/local_date.dart`,
+`test/event_calendar_screen_test.dart`, `test/event_list_screen_test.dart`.
+**Files changed:** `app_router.dart` (both routes, plus `eventDetailsPath` /
+`eventEditPath` — **this is the first route in the app whose `…Details` link is
+not dead**), `picker_fields.dart` (`DateField.onChanged`),
+`auth_harness.dart` (`/api/events`, `eventsResponder`, `currentLocation`,
+`pumpApp`'s settle, the collapsed `goTo`), `create_event_screen.dart` (a no-op
+ternary found while reading it), and — **outside this task** —
+`accept_invitation_screen_test.dart`, `customer_form_test.dart`,
+`responsive_chrome_test.dart`, `router_test.dart` and `user_list_screen_test.dart`
+for the settle consolidation described above.
+**No new packages** — `table_calendar` was added in task 0.3.
+
+#### Three things the grid could not do the obvious way
+
+**1. `Positioned.fill(top: …)` left the width unbounded, so every bar threw.**
+The marker builder returns the day's bars, and a `Container(width:
+double.infinity)` inside a `Positioned` with `left`/`right` left null resolves to
+infinite width. The symptom was not a crash report but **every pill silently
+absent** — `find.byKey` found nothing and the placement tests failed as "the
+event is not on its day", which is precisely the bug the tests exist to catch.
+Worse, the *other* four calendar tests passed, so a suite run showed a plausible
+failure rather than an obvious one. `Positioned(left: 0, right: 0, top: …,
+bottom: 0)` is the fix, and it is one line.
+
+**2. There is no full-cell today highlight in table_calendar 3.3.0.** 7.4's
+`#e7f0f7` is a *background* behind the whole day cell. `CalendarStyle` in 3.3.0
+offers only `todayDecoration` — a small dot — and unlike some versions it has no
+`todayHighlight` boolean to widen it. So the day cell is written by hand
+(`defaultBuilder` / `outsideBuilder` / `todayBuilder`) rather than left to the
+package. That is also why **7.4 was folded into 7.1**: you cannot render a bar
+without choosing a colour, and the cell and the bar share the same builder.
+
+**3. A tapped bar opened the create form instead of the event.** Supplying
+`CalendarBuilders.markerBuilder` *replaces* the widget `table_calendar` builds,
+so `onEventTap` — which only fires for its own marker — never runs. A pill with
+no handler falls through to the cell's gesture, which creates. `_EventPill`
+carries its own `InkWell` to `/events/{id}`, and there is a test that taps a bar
+and asserts the destination, because the wrong answer is a *working* screen.
+
+#### The list had no way back to the calendar, and neither does the React app
+
+**The React original links *out* to the list and nowhere back.** `EventCalendar.tsx:253`
+is the only link to `/events/list` in the whole app, and `EventListPage.tsx`
+links nowhere at all — the sole route back to the calendar is the nav rail's
+"Events" item (`MainLayout.tsx:22`), which is **a drawer on a phone**. So a
+user who followed "View All Events" and then wanted the month view had to know
+that the rail's top item was the calendar rather than a section heading.
+
+The port adds the missing half: a **"Calendar view" button beside the search
+box**. The placement is the point, and it is the placement the calendar page
+already uses — `EventCalendar.tsx:244-252` is the 250px search input, then
+"View All Events", then Create. The two pages now read as mirror images, each
+offering the other.
+
+**This is a divergence from the original, and the second one in Phase 7** (the
+first is the shared 25-row page size, and 4.9's pagination is the precedent for
+the kind). It is recorded rather than buried because "the port shows a control
+the original does not have" is exactly what a side-by-side reviewer notices.
+
+**The date fields moved to their own row, and that is what makes the placement
+possible.** React had the search box and the start-date filter side by side
+(`EventListPage.tsx:190-215` — two `col-md-4` columns), which put a *filter*
+next to what is now a *view switch*. Separating the two kinds of control is the
+change; the button's position is the consequence.
+
+**The test pins the relationship, not the presence.** A test that only checked
+the button existed would pass on any arrangement — including the one this
+replaced, where there was no view switch at all. So the assertion compares the
+*centres* of three controls: the button and the search box share a `dy` (a
+`Wrap` centres its children on the cross axis, so two controls in one row have
+identical centres), and the date field's `dy` is strictly greater. **A relative
+measurement, not a pixel threshold** — the Phase 4 log records that an absolute
+one measures the test font rather than the layout. Verified by mutation: moving
+the date field back up into the first row fails it with
+`Expected: a value greater than <108.0> Actual: <108.0>`.
+
+#### Two date decisions, and one is a divergence
+
+**`formatLocalDate` exists because `toIso8601String()` is UTC.** React uses
+`new Date().toISOString().split('T')[0]` for the list's start-date default
+(`EventListPage.tsx:26-29`) and `moment(...).format('YYYY-MM-DD')` for the
+calendar's window. The first converts to UTC *before* taking the day: at local
+midnight in `UTC+13` it reports **yesterday**, so the list would silently filter
+from a day that is not today. Everywhere west of UTC it happens to be right,
+which is why it has survived. The new helper formats from the fields, which is
+the same reasoning as `EventResponse.startAt` and the same outcome 7.9 asks
+for.
+
+**The calendar's window is the month, not the six-week grid.** `EventCalendar.tsx:119-123`
+takes `startOf('month')`/`endOf('month')`, so the leading and trailing days from
+the neighbouring months — which react-big-calendar drew, greyed and always
+empty — are excluded from the query. They are still drawn (dimmed). Widening the
+query to the grid would be a fix rather than a port, so it is not done.
+
+**The `1000`-event ceiling is inherited, not chosen.** `kCalendarEventLimit` is
+`EventCalendar.tsx:88`'s number, and it is large for an endpoint that embeds
+rsvps, inventory, customer and organization per row with no compression
+(task 1.18 sets a default of 10 for exactly that reason). It is **not**
+pagination: there is no second page, and a month with more than a thousand
+events would render short. Reducing it would be a visible behaviour change, so
+it is pinned by a test rather than quietly changed.
+
+**A cap the original did not have.** `table_calendar` gives every cell a fixed
+height and clips marker overflow, so a day with a dozen events would render one
+truncated bar and lose the rest silently. `kMaxEventsPerDay` is 3 plus a count —
+the same shape `InventoryListScreen` already uses for its unbounded per-row
+event list, and a client-side invention for the same reason. **Whether three
+reads as the right number is the open question**; widget tests cannot judge that.
+
+#### The list screen is mostly shared widgets, and the one part that is not
+
+Search, sort, pagination, the delete dialog and the create button are the
+Phase 4–6 furniture, unchanged. What is genuinely this screen is **the RSVP
+column**: three buttons per row that post an availability and refetch, in a table
+cell, on a screen whose other cells are text.
+
+**`'no response'` is reproduced verbatim and is not a named constant.**
+`EventListPage.tsx:153` posts it for the clear button. It is not `''`, not
+`'none'`, and not one of `RsvpAvailability`'s three values — and the server
+stores it as a free-form string. "Improving" it would change what lands in
+`rsvps.availability` and every existing filter over it, so `kRsvpCleared` carries
+the original's literal and task 10.17 still owns the question.
+
+**The three buttons are one size in both layouts, deliberately.**
+`ResponsiveListView` picks table-vs-card from *its own* `LayoutBuilder` width —
+after the rail has come off — so a screen cannot ask which layout it is in from
+the window, and `context.layoutSize` would disagree with it. `kRsvpButtonSize` is
+therefore one compromise chosen to fit three across a table cell and still be a
+usable target in a card. Task 9.4 audits touch targets.
+
+**The page size is `kListPageSize` (25), not the original's 10.** Same direction
+as 4.9's divergence: the React list could only ever see the first page, and this
+one shows more. Worth stating because a side-by-side reviewer will notice.
+
+#### `CreateEventButton` settles 7.3's `pendingNavigateUrl` question
+
+One widget, nullable `resumeUrl`. The calendar's button carried a pending URL and
+resumed after a selection; the list page's had none, so dismissing the picker
+did nothing and a selection always went to a bare `/events/create` — dropping the
+`?date=` a calendar tap had supplied. The day cell now goes through the same
+static helper (`CreateEventButton.createForDay`) as the header button, so the
+list page gets the better behaviour rather than the calendar losing it.
+
+**The FAB / `+` half of 7.3 is not done.** 7.3 asks for the placeholder to be
+*replaced* by a FAB on mobile and a `+` on web. The two header buttons are in;
+the third affordance is not, and 7.3 is left unticked for that reason rather than
+counted as two-thirds.
+
+#### The Chrome run, and a bug this log has been describing for three phases without naming
+
+`flutter test --platform chrome` had been recorded as "N pre-existing failures"
+and "13 tests of unowned web behaviour" since the Phase 3 entry, always with the
+same symptom: a test fails and **the reason is not printed**. That was treated as
+noise to be noted and moved past. It is not noise, and naming it is the most
+useful thing in this entry.
+
+**`flutter test --platform chrome` does not surface Dart errors from the test
+body.** The whole output is:
+
+```
+00:03 +0 -1: signed out the credentials entered are what gets posted [E]
+  Test failed. See exception logs above.
+```
+
+...with nothing above it. The `--machine` reporter agrees and shows why:
+`"error":"Test failed. See exception logs above.\nThe test description was: ..."`,
+`"stackTrace":""`. So **a real `FlutterError` — including a timeout — and a real
+failed assertion are indistinguishable in the output**, and both read as "the test
+failed" rather than "the diagnostic is missing". Every earlier note here that
+called a Chrome failure *silent*, *no message*, or *byte-for-byte the signature
+of* something else was describing this.
+
+The recovery is an explicit hook, which nobody writes when the output looks like a
+failure rather than a missing diagnostic:
+
+```dart
+final old = FlutterError.onError;
+FlutterError.onError = (d) { print(d.exceptionAsString()); print(d.stack); old?.call(d); };
+```
+
+**What it found, in `accept_invitation_screen_test.dart`: `"pumpAndSettle timed
+out"`, ten times.** And the cause is a real defect, not an environment quirk.
+That file had its own private settle routine:
+
+```dart
+await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+await tester.pumpAndSettle();
+```
+
+**A zero-duration real-timer hop is enough on the VM and not enough in the
+browser.** On the VM dio's pipeline is microtask-based, so one hop drains it. In
+the browser dio's web transport needs a genuine event-loop turn, so the request
+was still in flight, the loading box was still showing its
+`CircularProgressIndicator`, and the closing `pumpAndSettle` — which cannot
+settle an indeterminate animation — timed out. **Ten tests passed on the VM and
+failed on Chrome, with no message.**
+
+The fix is `settleRequests`, which the Phase 4 log already introduced *for
+exactly this class of problem* and which simply had not been applied here. The
+pattern existed, was documented, and was duplicated wrong.
+
+**Which makes the second half of the fix the more important one: the duplicate
+is deleted.** That file now calls the shared helper at all six sites and the
+reasoning lives on `settleRequests` itself. **Two copies of a settle routine is
+the defect, not a style preference** — the wrong one still looks correct, because
+it is right on the platform it was written on, and no compiler or reviewer signal
+distinguishes the two.
+
+**The same defect had taken root in the navigation helpers, and that is the part
+worth generalising.** There were three of them — `goTo` (settle only),
+`goToAndLoad` (pump, drain, settle) and `goToSettled` (settle, drain, settle) —
+and they differed only in whether the destination fetched on arrival. **That is
+not a property of a route; it is a property of whether the caller happened to
+know.** Twelve call sites used the unsafe `goTo`, fourteen used `goToAndLoad`,
+one used `goToSettled`, and `goTo` at a fetching destination is the silent
+timeout described above.
+
+So the three are now **one** `goTo` that drains before it settles, and the other
+two are deleted. The cost is a few milliseconds of real waiting on a route that
+renders instantly. The benefit is the one that matters here: **a new screen
+cannot be added to a test in a way that quietly breaks it on one platform**, which
+is precisely how ten tests in this entry were invisible for three phases. A
+convenience API that silently differs by platform is worse than a slightly slower
+one, because its cost is paid as *missing information* rather than as time.
+
+**Four more Chrome failures were 7.1's own doing and are fixed:** the calendar
+made `/events` a fetching screen, so every test that navigated there and then
+called `pumpAndSettle` inherited the same timeout — `the "here" link returns to
+the app`, `cancel returns to the list` (to `/customers`), `Profile navigates`
+(to `/profile`, which fetches its details) and `either scope suffices for
+/users/create`. All four now use `settleRequests` / `goToSettled`, which is what
+those helpers already existed for.
+
+**Chrome: **18 failures to 5**, and the whole of the remainder is one
+platform assumption in `user_list_screen_test.dart`.** The remaining five are one cause and are **not**
+from this task: `user_list_screen_test.dart`'s invitation tests hard-code the
+VM's `Uri.base`, which is `file:///...` and therefore has an **empty authority**,
+so the link renders as `/register?token=tok-42`. On Chrome `Uri.base` is
+`http://localhost:<port>/...`, so the same screen correctly renders an absolute
+URL and the literal assertion fails. The test's own comment states the `file:`
+assumption — it was written for the VM and never checked on the other platform.
+Left alone as out of scope here, but it is the *whole* of the remaining Chrome
+backlog and it is a one-line-per-test fix for whoever takes 12.6.
+
+#### Three more things the harness learned, all found by these tests
+
+**`pumpApp` ended in a bare `pumpAndSettle`, which the calendar broke.** The
+router's `initialLocation` is `/events`; while that was a placeholder nothing
+happened on boot, and now it is a screen that fetches and shows a
+`CircularProgressIndicator`. `pumpApp` now calls `settleRequests` — which also
+means the app arrives *settled* rather than mid-flight, which is what a test
+wants to reason about.
+
+**`/api/events` is now the third endpoint `contextAdapter` has to answer, and the
+first where the order matters.** It is both the app's initial location and the
+event screens' own endpoint, so leaving it to fall through to the harness's 401
+signed every test out mid-assertion — twenty-odd failures whose first symptom
+was landing on `/login` with no rail. But answering it *before* `forOtherRoutes`
+— which is what `/api/organizations` does, and the exact trap
+`organization_list_screen_test.dart` recorded — then made every event test render
+an empty list while looking like it worked. So this branch consults
+`forOtherRoutes` first, and the comment says why the two differ.
+
+**Hover-revealed actions do not exist on web until the row is hovered.** Four of
+the list's tests passed on the VM and failed on Chrome for this alone. The VM
+passes because `kIsWeb` is false there, which is the same lesson as 4.2's
+`revealActionsOnHover` parameter: **the VM-only green is not evidence about the
+browser this app ships to.** `hoverFirstRow` is now called unconditionally.
+
+**Also: `RequestOptions.data` is the typed request, not a JSON string.** The
+stub adapter sits *under* dio's transformer, so an RSVP assertion written as
+`contains('"availability":"available"')` fails on a perfectly correct request
+for a reason that has nothing to do with availability.
+
+#### Two API-shape findings worth keeping
+
+**`GET /api/events/{id}` must answer a bare event, not a paged envelope.**
+Reusing the list page's stub for the edit form's load decodes
+`{"items":[…]}` as an `EventResponse` and throws inside generated
+deserialization — which reads as a broken fixture rather than a wrong one. Same
+class of mistake the Phase 1 log records about service fixtures.
+
+**`TableRow` is not in the element tree, and `TableCell` does not exist.** Both
+are the obvious things to use to scope a finder to one table row, and both answer
+zero matches — a failure that reads as "the row is not there" rather than "you
+named the wrong class". The nearest findable ancestor is the `Table`. The same
+applies inside `table_calendar`: its `TableRow` is layout data, not a widget, and
+it lays a *week* out per `Table`, so "the bar is not in today's cell" is
+unanswerable by ancestry. That is why the day's bar area carries a key.
+
+#### Test count and what is verified
+
+38 new tests, all green on **both** platforms. Calendar: the month's first and last
+day, the inherited ceiling, no `offset`, refetch on paging, placement on the
+right day *and not on a neighbouring one*, an out-of-month event staying off
+screen, today's `#e7f0f7`, the orange "requested" bar for this user and the blue
+bar for someone else's, tapping a bar → `/events/42`, tapping a day →
+`/events/create?date=…`, and the create button's permission gate and picker
+intercept. List: all six columns, `N/A` for a customerless event, the request
+parameters, the start-date picker and "Today", sorting, all three RSVP posts,
+this user's answer winning over another's, the permission-gated row actions, the
+delete dialog and its consequence, and a server error.
+
+**Not verified in a browser.** As with every phase since 3.12, this is the gap
+the tests cannot close. It matters more here than in Phase 4: this is the first
+screen whose layout depends on a **third-party widget's** rendering rather than
+only on this repo's, and `table_calendar`'s grid at 500 / 900 / 1400 px is
+something no assertion in this file can speak to. A browser pass should confirm
+the grid is legible at three widths, that `rowHeight: 64` is enough for a
+number plus two bars, and that the hover reveal on bars does not fight the day's
+tap.

@@ -205,7 +205,7 @@ void main() {
       prefs: prefs,
       adapter: adapter,
     );
-    await goToAndLoad(tester, container, AppRoutes.users);
+    await goTo(tester, container, AppRoutes.users);
     return container;
   }
 
@@ -368,7 +368,7 @@ void main() {
         adapter: userAdapter(permissions: const ['VIEW_EVENTS_ORGANIZATION']),
       );
 
-      final landed = await goToAndLoad(tester, container, AppRoutes.users);
+      final landed = await goTo(tester, container, AppRoutes.users);
 
       expect(landed, AppRoutes.events);
       expect(find.byType(UserListScreen), findsNothing);

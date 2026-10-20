@@ -17,6 +17,7 @@ class DateField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.label,
+    this.onChanged,
     this.validator,
     this.firstDate,
     this.lastDate,
@@ -24,6 +25,16 @@ class DateField extends StatelessWidget {
 
   final TextEditingController controller;
   final String label;
+
+  /// Called with the newly picked date, or null when the picker is dismissed.
+  ///
+  /// Added for task 7.5's start-date filter, which has to push the value up into
+  /// screen state to build a query. The six Phase 6 form fields all own a
+  /// controller and read it at submit time, so they did not need a callback and
+  /// this was not part of the widget until a screen wanted to react to a change
+  /// rather than hold it.
+  final ValueChanged<DateTime?>? onChanged;
+
   final String? Function(String?)? validator;
   final DateTime? firstDate;
   final DateTime? lastDate;
@@ -71,6 +82,10 @@ class DateField extends StatelessWidget {
     if (picked != null) {
       controller.text = _formatDate(picked);
     }
+    // Reported whether or not anything was picked, so a caller can distinguish
+    // "dismissed" from "picked the date that was already there" — the latter is
+    // not a no-op for a screen that has just reset its filter.
+    onChanged?.call(picked);
   }
 }
 

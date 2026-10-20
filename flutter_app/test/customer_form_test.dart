@@ -124,13 +124,7 @@ void main() {
       prefs: prefs,
       adapter: adapter,
     );
-    // A form fetches nothing on arrival unless it shows the organization
-    // dropdown, so `goTo` rather than `goToAndLoad`.
-    // A form fetches nothing on arrival unless it shows the organization
-    // dropdown, so `goTo` would do — `goToAndLoad` is used throughout because
-    // a dropdown *does* fetch, and a test that forgets which kind of screen it
-    // opened is the kind that hangs.
-    await goToAndLoad(tester, container, AppRoutes.customerCreate);
+    await goTo(tester, container, AppRoutes.customerCreate);
     return container;
   }
 
@@ -151,7 +145,7 @@ void main() {
       token: 'token',
       adapter: adapter,
     );
-    await goToAndLoad(tester, container, path);
+    await goTo(tester, container, path);
     return container;
   }
 
@@ -488,7 +482,11 @@ void main() {
       final container = await openCreate(tester, adapter);
 
       await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
+      // `settleRequests`, not `pumpAndSettle`: `/customers` is a list screen that
+      // fetches, so a bare settle is called while its `CircularProgressIndicator`
+      // is up and times out. Harmless on the VM, fatal on Chrome — see
+      // `settleRequests` for why the two halves are not interchangeable.
+      await settleRequests(tester);
 
       expect(adapter.requests.where((o) => o.method == 'POST'), isEmpty);
       expect(currentPath(container), AppRoutes.customers);
@@ -738,7 +736,7 @@ void main() {
         token: 'token',
         adapter: adapter,
       );
-      await goToAndLoad(tester, container, AppRoutes.customerCreate);
+      await goTo(tester, container, AppRoutes.customerCreate);
 
       final button = find.text('Create Customer');
       expect(button, findsOneWidget);

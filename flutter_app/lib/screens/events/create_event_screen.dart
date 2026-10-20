@@ -465,11 +465,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                       Text(
                         'Please select an organization to proceed with creating an event.',
                         textAlign: TextAlign.center,
-                        style:
-                            theme.colorScheme.secondary ==
-                                theme.colorScheme.secondary
-                            ? theme.textTheme.bodyMedium
-                            : theme.textTheme.bodyMedium,
+                        style: theme.textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 16),
                       Wrap(

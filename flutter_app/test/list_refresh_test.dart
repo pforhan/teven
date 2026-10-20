@@ -115,7 +115,7 @@ void main() {
       token: 'token',
       adapter: adapter,
     );
-    await goToAndLoad(tester, container, AppRoutes.customers);
+    await goTo(tester, container, AppRoutes.customers);
     return container;
   }
 
@@ -313,7 +313,7 @@ void main() {
         token: 'token',
         adapter: adapter,
       );
-      await goToAndLoad(tester, container, AppRoutes.customers);
+      await goTo(tester, container, AppRoutes.customers);
 
       expect(find.text('Error: Customer service unavailable'), findsOneWidget);
       expect(find.text('No customers found.'), findsNothing);

@@ -10,6 +10,8 @@ import '../screens/accept_invitation_screen.dart';
 import '../screens/customers/create_customer_screen.dart';
 import '../screens/events/create_event_screen.dart';
 import '../screens/events/edit_event_screen.dart';
+import '../screens/events/event_calendar_screen.dart';
+import '../screens/events/event_list_screen.dart';
 import '../screens/customers/customer_list_screen.dart';
 import '../screens/customers/edit_customer_screen.dart';
 import '../screens/inventory/create_inventory_screen.dart';
@@ -40,6 +42,18 @@ abstract final class AppRoutes {
   static const String eventCreate = '/events/create';
   static const String eventEdit = '/events/edit/:eventId';
   static const String eventDetails = '/events/:eventId';
+
+  /// A concrete link to one event's details page.
+  ///
+  /// **Unlike [customerDetails] and its siblings, this route exists.**
+  /// `App.tsx:44` declares `events/:eventId`, so the calendar's pills and the
+  /// list's title links both resolve. Task 7.6 replaces the placeholder at the
+  /// other end of it.
+  static String eventDetailsPath(int eventId) =>
+      eventDetails.replaceFirst(':eventId', '$eventId');
+
+  static String eventEditPath(int eventId) =>
+      eventEdit.replaceFirst(':eventId', '$eventId');
 
   static const String customers = '/customers';
   static const String customerCreate = '/customers/create';
@@ -298,10 +312,10 @@ List<RouteBase> _shellRoutes(Ref ref) => [
 
   _guarded(ref, AppRoutes.events, [
     Permission.viewEventsOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.events)),
+  ], (_) => const EventCalendarScreen()),
   _guarded(ref, AppRoutes.eventList, [
     Permission.viewEventsOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.eventList)),
+  ], (_) => const EventListScreen()),
   _guarded(ref, AppRoutes.eventCreate, [
     Permission.manageEventsOrganization,
   ], (_) => const CreateEventScreen()),

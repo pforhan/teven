@@ -67,12 +67,23 @@ String userContextJson({List<String> permissions = const []}) => jsonEncode({
 /// the canned empty list would leave every test unable to get past the form's own
 /// "Please select one role." guard — a test that passes for the wrong reason
 /// rather than one that fails loudly.
+///
+/// [eventsResponder] is the same story again, for `/api/events`, and it is the
+/// third instance rather than the first. Both `/events` and `/events/list` are
+/// the app's **initial location** — the router opens there, and the `*`
+/// catch-all redirects there — so every test that boots the app requests the
+/// event endpoints whether or not it means to. Left to fall through to the 401,
+/// that raised `UnauthorizedException`, tripped the single-flight 401 redirect,
+/// and signed the user out mid-assertion: twenty-odd tests whose first symptom
+/// was landing on `/login` and no rail, which reads as a broken shell rather
+/// than an unanswered path.
 StubAdapter contextAdapter({
   List<String> permissions = const [],
   String token = 'token',
   List<String> organizationNames = const ['Acme', 'Globex'],
   StubResponse Function(String? query)? organizationsResponder,
   StubResponse Function()? rolesResponder,
+  StubResponse Function(String? query)? eventsResponder,
   StubResponse? Function(RequestOptions options)? forOtherRoutes,
 }) => StubAdapter((options) {
   if (options.path == '/api/users/context') {
@@ -120,6 +131,23 @@ StubAdapter contextAdapter({
         },
       }),
     );
+  }
+  if (options.method == 'GET' && options.path == '/api/events') {
+    // **`forOtherRoutes` first, unlike `/api/organizations` above, and the
+    // difference is deliberate.** This path is both the app's initial location
+    // *and* the event screens' own endpoint, so a test may want either the
+    // harness's blank page (a chrome or router test that merely needs no 401) or
+    // its own rows (an event screen test). Answering the canned page first made
+    // the second impossible: every event test rendered an empty list, and the
+    // stub looked like it was working. That is the trap
+    // `organization_list_screen_test.dart` recorded for the organization
+    // endpoint, met here by the same mechanism and the same silence.
+    final routed = forOtherRoutes?.call(options);
+    if (routed != null) return routed;
+    return eventsResponder?.call(options.uri.query) ??
+        const StubResponse.json(
+          '{"success":true,"data":{"items":[],"total":0,"limit":25,"offset":0}}',
+        );
   }
   if (options.method == 'GET' && options.path == '/api/roles') {
     // Answered for the same reason as `/api/users/{id}` above: the create-user
@@ -240,28 +268,72 @@ Future<ProviderContainer> pumpApp(
   await tester.pumpWidget(
     UncontrolledProviderScope(container: container, child: const TevenApp()),
   );
-  await tester.pumpAndSettle();
+  // `settleRequests`, not a bare `pumpAndSettle`, and the difference is that
+  // **the app's initial location is now a screen that fetches.**
+  //
+  // The router opens at `/events` (`app_router.dart:142`), which since task 7.1
+  // is the calendar rather than a placeholder. It therefore starts a request
+  // during `pumpWidget` and shows a `CircularProgressIndicator` until it lands —
+  // and `pumpAndSettle` cannot settle an indeterminate animation. Every test
+  // that booted the app failed with no message at all, which is the silent
+  // signature this harness has produced before and the reason it is written
+  // down here.
+  //
+  // Draining first also makes the state on arrival *settled* rather than
+  // mid-flight, which is what a test wants to reason about. See
+  // [settleRequests] for why both halves of its loop are needed.
+  await settleRequests(tester);
 
   return container;
 }
 
 /// Gives in-flight stubbed requests a chance to finish, then settles.
 ///
-/// Same constraint as [pumpApp]: the stub is answered through dio's async
-/// machinery, which a widget test's fake clock will not advance, so
-/// `pumpAndSettle` alone can hang on it or time out against a spinner.
+/// **The one settle routine in the suite. Use this, not `pumpAndSettle`, after
+/// anything that starts a request or navigates to a screen that fetches.** The
+/// rule is one line long and easy to get wrong in a way that only shows on one
+/// platform:
+///
+/// > `pumpAndSettle` cannot settle a `CircularProgressIndicator`, so calling it
+/// > while a screen is still loading **times out**, and on `--platform chrome`
+/// > the runner reports that timeout as `Test failed. See exception logs above.`
+/// > **with nothing above it**.
+///
+/// That second half is why this is written down in full. A `FlutterError` raised
+/// inside the web test run is not surfaced by the runner, so a genuine timeout —
+/// and a genuine failed assertion — look identical in the output: a test that
+/// failed, with no reason. Recovering the message needs an explicit
+/// `FlutterError.onError` hook in the test body, which nobody writes when the
+/// output looks like a failure rather than a missing diagnostic. **When a Chrome
+/// test fails with no message, suspect this before suspecting the assertion.**
 ///
 /// The loop does both halves, and **both are needed**. A request started from
 /// inside a frame — a screen's own provider, rather than the boot fetch that
 /// [pumpApp] awaits — registers its zero-duration timers on the *fake* clock,
 /// so `pump()` with no duration never fires them and the request never leaves
 /// `AsyncLoading`. Advancing the clock inside `runAsync` lets the real async
-/// machinery drain. Skipping either half leaves a `CircularProgressIndicator`
-/// spinning and `pumpAndSettle` timing out with no explanation — which is
-/// exactly what it did on Chrome before this was written down.
+/// machinery drain.
+///
+/// **The delay has to be a real one, and that is a platform difference rather
+/// than a tuning choice.** `accept_invitation_screen_test.dart` had its own
+/// private settle that yielded *once* with `Future.delayed(Duration.zero)`, which
+/// is enough on the VM — dio's pipeline there is microtask-based, so one
+/// real-timer hop drains it. In the browser dio's web transport needs a genuine
+/// event-loop turn for the response to arrive, so the request was still in
+/// flight, the loading box was still up, and the closing `pumpAndSettle` timed
+/// out. Ten of that file's tests failed on Chrome and passed on the VM, silently.
+///
+/// That private copy is gone and its six call sites now use this. **Two copies
+/// of a settle routine is the defect, not a style preference**: the wrong one
+/// still looks correct, because it is right on the platform it was written on.
 ///
 /// A few short waits cover a stub that resolves immediately, without the test
 /// having to know which provider a given screen happens to use.
+///
+/// This lives in `auth_harness.dart` rather than a file of its own, and is called
+/// from the customer, inventory, user and event screen tests — so the name is
+/// now a historical accident. Moving it is churn across every one of them for no
+/// behaviour, so it stays.
 Future<void> settleRequests(WidgetTester tester) async {
   for (var i = 0; i < 5; i++) {
     await tester.runAsync(
@@ -272,42 +344,23 @@ Future<void> settleRequests(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Navigates and settles, then reports the resulting path.
+/// Navigates to [path], lets the destination settle, then reports the path.
+///
+/// **One navigation helper, and it drains before it settles.** There were three
+/// — `goTo` (settle only), `goToAndLoad` (pump then drain then settle) and
+/// `goToSettled` (settle then drain then settle) — which differed only in whether
+/// the destination fetched on arrival. **That distinction is not a property of a
+/// route, it is a property of whether the caller happened to know**, and getting
+/// it wrong was silent: `goTo` at a fetching destination calls `pumpAndSettle`
+/// against a `CircularProgressIndicator`, which never settles, so the test times
+/// out and `--platform chrome` reports the timeout with no message at all.
+///
+/// Fourteen call sites used `goToAndLoad`, one used `goToSettled`, and twelve used
+/// the unsafe `goTo`. All of them now use this, and the two others are gone. The
+/// cost is a few milliseconds of real waiting on a route that renders instantly;
+/// the benefit is that a new screen cannot be added to a test in a way that
+/// quietly breaks it on one platform.
 Future<String> goTo(
-  WidgetTester tester,
-  ProviderContainer container,
-  String path,
-) async {
-  container.read(routerProvider).go(path);
-  await tester.pumpAndSettle();
-  return currentPath(container);
-}
-
-/// Navigates to [path] where the destination does not fetch on arrival.
-///
-/// `goTo` settles the navigation animation, which is the right thing for a
-/// route that renders immediately — a placeholder, a static form. A list screen
-/// spins a progress indicator until its first request lands, and
-/// `pumpAndSettle` will never finish against one that is still in flight. Use
-/// [goToAndLoad] for those.
-Future<String> goToSettled(
-  WidgetTester tester,
-  ProviderContainer container,
-  String path,
-) async {
-  final landed = await goTo(tester, container, path);
-  await settleRequests(tester);
-  return landed;
-}
-
-/// Navigates to [path] and lets the screen's own requests finish, then reports
-/// the resulting path.
-///
-/// The counterpart to [goTo] for a route that fetches on arrival: one frame to
-/// build the screen and start its request, then [settleRequests] to let the
-/// answer land. See [settleRequests] for why both halves are required — this
-/// pair is what makes a list screen testable at all.
-Future<String> goToAndLoad(
   WidgetTester tester,
   ProviderContainer container,
   String path,
@@ -320,3 +373,17 @@ Future<String> goToAndLoad(
 
 String currentPath(ProviderContainer container) =>
     container.read(routerProvider).routeInformationProvider.value.uri.path;
+
+/// The full location — path **and** query — as the browser would show it.
+///
+/// [currentPath] drops the query, which is right for asserting where the user
+/// landed and wrong for asserting *what was carried there*. The calendar's day
+/// cells navigate to `/events/create?date=…`, and a test that checked
+/// [currentPath] would pass against a bare `/events/create` while asserting
+/// nothing about the date it exists to check.
+String currentLocation(ProviderContainer container) => container
+    .read(routerProvider)
+    .routeInformationProvider
+    .value
+    .uri
+    .toString();
