@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
+import '../../core/theme/teven_theme.dart';
 import '../../core/util/local_date.dart';
 import '../../models/event.dart';
 import '../../models/organization.dart';
@@ -446,14 +447,14 @@ class _RsvpCell extends StatelessWidget {
           icon: Icons.check,
           tooltip: 'RSVP Yes',
           selected: mine == RsvpAvailability.available,
-          selectedColor: _yes,
+          selectedColor: TevenTheme.success,
           onPressed: () => onRsvp(RsvpAvailability.available),
         ),
         _RsvpButton(
           icon: Icons.close,
           tooltip: 'RSVP No',
           selected: mine == RsvpAvailability.unavailable,
-          selectedColor: _no,
+          selectedColor: TevenTheme.danger,
           onPressed: () => onRsvp(RsvpAvailability.unavailable),
         ),
         _RsvpButton(
@@ -465,9 +466,6 @@ class _RsvpCell extends StatelessWidget {
       ],
     );
   }
-
-  static const _yes = Color(0xFF198754);
-  static const _no = Color(0xFFDC3545);
 }
 
 /// What the clear button posts.

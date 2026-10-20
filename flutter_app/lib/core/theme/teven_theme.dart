@@ -47,6 +47,19 @@ abstract final class TevenTheme {
   /// screen.
   static const Color danger = Color(0xFFDC3545);
 
+  /// Successes. Bootstrap's `$success`, used by the `btn-success` RSVP
+  /// buttons on the event list (`EventListPage.tsx:132`) and the event
+  /// details screen (`EventDetails.tsx:190`).
+  static const Color success = Color(0xFF198754);
+
+  /// The `alert-success` background — Bootstrap's `$success` tinted to
+  /// `#d1e7dd`.
+  static const Color successSurface = Color(0xFFD1E7DD);
+
+  /// The text on [successSurface] — Bootstrap's `$success` darkened to
+  /// `#0f5132`.
+  static const Color onSuccessSurface = Color(0xFF0F5132);
+
   /// Today's date highlight in the calendar, from `EventCalendar.tsx:193`.
   static const Color todayHighlight = Color(0xFFE7F0F7);
 

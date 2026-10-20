@@ -43,6 +43,32 @@ enum Permission {
   /// corresponding UI" — for the one permission this phase could not proceed
   /// without. The other 17 still wait on that task's review.
   manageCustomersGlobal('MANAGE_CUSTOMERS_GLOBAL'),
+
+  /// **One of the 18 that task 10.16 covers, added early because the event
+  /// details screen cannot be ported without it.**
+  ///
+  /// `EventDetails.tsx:20` gates the RSVP buttons on
+  /// `hasPermission('ASSIGN_TO_EVENTS_SELF')` — a **raw string**, not the
+  /// `Permission` const object. That is why the React app never needed it in
+  /// `permissions.ts` to work: `usePermissions().hasPermission` takes a
+  /// `string` and compares it against the server's list
+  /// (`AuthContext.tsx:84`), so a permission the client cannot *name* is still
+  /// a permission it can *ask about*.
+  ///
+  /// The permission is real and widely held. The server's enum has it
+  /// (`Permission.kt:89`), and the seeded `Organizer` and `Staff` roles are
+  /// both granted it (`InitialSetup.kt:69,91`), so it is the difference
+  /// between a user seeing the "Going" / "Not Going" buttons and seeing
+  /// "You don't have permission to RSVP to this event."
+  ///
+  /// **The server does not check it.** `POST /api/events/{id}/rsvp` carries no
+  /// `withPermission` wrapper at all (`EventRoutes.kt:128`), so this
+  /// client-side gate is the only one there is. Task 10.14 calls the
+  /// permission vestigial, because the route it was written for
+  /// (`POST /api/events/{id}/join`) was deleted on the same afternoon it was
+  /// added — this is the one place it is still load-bearing.
+  assignToEventsSelf('ASSIGN_TO_EVENTS_SELF'),
+
   viewInventoryOrganization('VIEW_INVENTORY_ORGANIZATION'),
   manageInventoryOrganization('MANAGE_INVENTORY_ORGANIZATION'),
   viewReportsOrganization('VIEW_REPORTS_ORGANIZATION'),

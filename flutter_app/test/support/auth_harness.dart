@@ -149,6 +149,67 @@ StubAdapter contextAdapter({
           '{"success":true,"data":{"items":[],"total":0,"limit":25,"offset":0}}',
         );
   }
+  if (options.method == 'GET' &&
+      options.path == '/api/events/rsvps/requested') {
+    // **Answered, and the reason is the calendar.**
+    //
+    // The calendar carries the pending-RSVP card (task 7.6), and the router
+    // opens at `/events` — so *every* test that boots the app requests this
+    // path, whether or not it means to. Left to fall through to the 401, that
+    // raised `UnauthorizedException`, tripped the single-flight 401 redirect
+    // and signed the user out mid-assertion: fifty-odd tests whose first
+    // symptom was landing on `/login` and no rail, which reads as a broken
+    // shell rather than an unanswered path.
+    //
+    // `forOtherRoutes` first, like `/api/events` above and for the same
+    // reason — a test that wants rows of its own has to be able to supply
+    // them.
+    final routed = forOtherRoutes?.call(options);
+    if (routed != null) return routed;
+    return const StubResponse.json('{"success":true,"data":[]}');
+  }
+  if (options.method == 'GET' &&
+      RegExp(r'^/api/events/\d+$').hasMatch(options.path)) {
+    // **The event details screen**, which is a real screen now (task 7.6)
+    // and fetches on arrival. Unanswered it 401s, and the single-flight
+    // redirect signs the user out — so a test that only means to assert
+    // *where* a navigation landed would find itself on `/login`.
+    //
+    // The id is echoed back so the screen has a record to render rather than
+    // one whose id disagrees with the URL it was reached at.
+    final routed = forOtherRoutes?.call(options);
+    if (routed != null) return routed;
+    final id = int.parse(
+      RegExp(r'^/api/events/(\d+)$').firstMatch(options.path)!.group(1)!,
+    );
+    return StubResponse.json(
+      jsonEncode({
+        'success': true,
+        'data': {
+          'eventId': id,
+          'title': 'Event $id',
+          'date': '2026-01-01',
+          'time': '09:00:00',
+          'durationMinutes': 60,
+          'location': null,
+          'latitude': null,
+          'longitude': null,
+          'formattedAddress': null,
+          'description': null,
+          'inventoryItems': <Map<String, dynamic>>[],
+          'customer': null,
+          'rsvps': <Map<String, dynamic>>[],
+          'organization': {
+            'organizationId': 1,
+            'name': 'Acme',
+            'contactInformation': '',
+          },
+          'openInvitation': false,
+          'numberOfStaffNeeded': 0,
+        },
+      }),
+    );
+  }
   if (options.method == 'GET' && options.path == '/api/roles') {
     // Answered for the same reason as `/api/users/{id}` above: the create-user
     // screen lists roles on arrival, and a test that only means to assert that

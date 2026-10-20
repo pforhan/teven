@@ -244,11 +244,11 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
   **The list-page button is nearly free.** `ListScreenHeader` already has the right shape — heading plus a single primary action, `Wrap` so it cannot overflow, and `action` null rather than a disabled button when the permission is absent (`list_screen_header.dart`). The event list is the only list screen not yet using that widget. **Done** — and it now renders a `const` header with `CreateEventButton` as the action.
 - [x] **7.4** Reproduce `eventPropGetter` / `dayPropGetter` styling, including today's `#e7f0f7` highlight. **Landed with 7.1** rather than separately: `CalendarStyle` in table_calendar 3.3.0 has no full-cell today highlight (only the `todayDecoration` dot), so the day cell is written by hand — which the colour is inseparable from.
 - [x] **7.5** Port `EventListPage` (240 lines): title, date, time, description, customer, RSVP columns → responsive rows. **One deliberate divergence: a "Calendar view" button.** The React original links *out* to this list (`EventCalendar.tsx:253`) but has no way back — the only route to the calendar is the nav rail's "Events" item, which is a drawer on a phone. The port adds the missing half, beside the search box, so the two screens are mirror images; see the progress log in `FLUTTER-CONVERT-NOTES.md`.
-- [ ] **7.6** Port `EventDetails` (277 lines), including the two `window.confirm` flows — via `confirmDestructiveAction` (4.8), and note the delete navigates away rather than refetching — and the `RsvpWidget` (72 lines) — drop-in RSVP posting `availability: "available" | "unavailable"` as a **free-form string**, not an enum.
+- [x] **7.6** Port `EventDetails` (277 lines), including the two `window.confirm` flows — via `confirmDestructiveAction` (4.8), and note the delete navigates away rather than refetching — and the `RsvpWidget` (72 lines) — drop-in RSVP posting `availability: "available" | "unavailable"` as a **free-form string**, not an enum.
 - [ ] **7.7** Port `OtherEventsPanel` (97 lines).
 - [ ] **7.8** Replace `moment` with `intl` + `DateTime`. The existing parsing is fragile — `new Date(event.date + 'T' + event.time)` at `EventCalendar.tsx:230` — so use explicit `DateTime` construction.
 - [ ] **7.9** Handle timezone-naive timestamps. The API returns `"YYYY-MM-DD"` / `"HH:MM:SS"` strings with **no timezone**. Do not silently re-interpret as UTC; keep naive local semantics to match current behavior, and note this as a known limitation.
-- [ ] **7.10** Route `/events/rsvps/requested` into the UI. It is **undocumented in `API.md`** but real (`EventRoutes.kt:118`). Confirm whether the React app uses it — if not, decide whether to expose it.
+- [x] **7.10** Route `/events/rsvps/requested` into the UI. It is **undocumented in `API.md`** but real (`EventRoutes.kt:118`). Confirm whether the React app uses it — if not, decide whether to expose it. **Half landed with 7.6, and the "confirm" half is now settled: the React app does *not* use it.** `RsvpWidget.tsx` was the only thing that ever fetched it, it was added in the same commit as the route (`f13ae83`), and it has never been imported by anything since. **The port exposes it**, as a card on the calendar — the app's landing page, and the place where a pending request is already marked in orange on the event's bar. What is left here is whether the card belongs there rather than somewhere else; moving it is a one-line change to the calendar screen.
 - [ ] **7.11** come up with a day view for day selection, referenced in the work we did for 7.2.  If there is a widget for an hourly schedule that can potentially handle overlapping events we should use it.
 - [ ] **7.12** Tests for the calendar's date handling, which is where the fragile logic lives: naive-local date construction (7.8/7.9), and the month grid rendering the right events on the right days. Golden tests for the grid itself are 12.5 — here it is the placement logic, not the pixels. **The placement half landed with 7.1** (`test/event_calendar_screen_test.dart`, four cases); the naive-local construction is covered by the existing `models_test.dart` case, so what is left is the golden half, which 12.5 owns.
 
@@ -598,6 +598,30 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 	at io.ktor.server.routing.RoutingCall.respond(RoutingNode.kt:248)
 	at alphainterplanetary.teven.app.invitation.InvitationRoutesKt$publicInvitationRoutes$1$2.invokeSuspend(InvitationRoutes.kt:165)
 ```
+
+- [ ] **10.22** **The server's permission check is not enforced.** Found by hand while porting the event details screen (7.6), against the running dev backend rather than by reading the Kotlin. **This is a security defect, and it is the first one the port has found.**
+
+  **What was measured.** Signing in as `alice` — a seeded **Organizer**, whose role grants neither `VIEW_ORGANIZATIONS_GLOBAL` nor `VIEW_EVENTS_GLOBAL` (`InitialSetup.kt:60-77`) — and asking for an endpoint gated on exactly that:
+
+  ```
+  GET /api/organizations   →  200, and the full organization list
+  ```
+
+  Four organizations, including the `SuperAdmin`'s own, returned to a user with no global permission of any kind. `GET /api/users`, `/api/customers`, `/api/inventory` and `/api/events` all answered 200 for the same caller. **Authentication is enforced** — the same request without a token is a 401 — **and nothing else is.**
+
+  **Where the check is supposed to happen.** `withPermission(...)` (`PermissionInterceptor.kt:7`) installs `AuthorizationPlugin`, whose `onCall` hook looks the caller's permissions up and answers 403 when the check fails (`AuthorizationPlugin.kt:30-33`). The lookup itself is right: `PermissionServiceImpl` returns the caller's real permissions, and `UserPermissions.hasPermission` is a plain membership test.
+
+  **The defect is in how the plugin is wired, not in what it checks.** `AuthorizationPlugin` is built with `createRouteScopedPlugin`, and inside that block `pluginConfig.forEach { permission -> onCall { ... } }` registers **one hook per permission**. Ktor's `onCall` hooks do not short-circuit: the first hook's `call.respond(403)` does not stop the route handler from running, and the handler's own `call.respond(success(...))` is what the client receives. The 403 is written and then overwritten.
+
+  **The obvious suspect is the `vararg`, and it is worth checking before assuming it.** `withPermission(VIEW_ORGANIZATIONS_GLOBAL)` — a single permission — is also not enforced, so this is not an any-of/all-of question. `UserPermissions.hasPermission` returns `true` for a super-admin regardless (`isSuperAdmin || …`), which explains why the `SuperAdmin` account has never noticed.
+
+  **Fix it in one place:** the plugin should answer 403 and **stop the pipeline**, rather than registering a hook per permission and letting the route handler answer over the top. The `onCall` phase is the wrong hook for a decision like this — a route-scoped plugin that short-circuits has to prevent the handler from running at all, which is what `withPermission` should be doing.
+
+  **Why it is not a Phase 9 or Phase 10 task with the rest of the backend work:** it was found during Phase 7, and the ground rules keep the backend frozen until Phase 9. It is filed here for the same reason 10.19 and 10.20 are: **the port found it, and a defect the port found should not be lost.** It is also the one item in this list that is not a matter of taste.
+
+  **What to verify after:** an `Organizer` asking for `GET /api/organizations` gets a 403; the `SuperAdmin` still gets 200; and a user with **one** of two permissions on a two-permission route is still allowed — because the client's route guard is OR-semantics (`ProtectedRoute.tsx:22-25`) and the server has to agree with it, or the app's gates and the server's will disagree in the *other* direction.
+
+  **Until this is fixed, the client-side permission gates are the only thing standing between a user and the whole database.** That is worth saying plainly: the port's route guards, the nav items and the per-screen buttons all work, and none of them is a security boundary.
 ---
 
 ## Phase 11 — Native packaging (deferred, not required for cutover)

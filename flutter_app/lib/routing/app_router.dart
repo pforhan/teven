@@ -11,6 +11,7 @@ import '../screens/customers/create_customer_screen.dart';
 import '../screens/events/create_event_screen.dart';
 import '../screens/events/edit_event_screen.dart';
 import '../screens/events/event_calendar_screen.dart';
+import '../screens/events/event_details_screen.dart';
 import '../screens/events/event_list_screen.dart';
 import '../screens/customers/customer_list_screen.dart';
 import '../screens/customers/edit_customer_screen.dart';
@@ -47,8 +48,8 @@ abstract final class AppRoutes {
   ///
   /// **Unlike [customerDetails] and its siblings, this route exists.**
   /// `App.tsx:44` declares `events/:eventId`, so the calendar's pills and the
-  /// list's title links both resolve. Task 7.6 replaces the placeholder at the
-  /// other end of it.
+  /// list's title links both resolve. Task 7.6 built the screen at the other
+  /// end of it.
   static String eventDetailsPath(int eventId) =>
       eventDetails.replaceFirst(':eventId', '$eventId');
 
@@ -331,9 +332,13 @@ List<RouteBase> _shellRoutes(Ref ref) => [
     ref,
     AppRoutes.eventDetails,
     [Permission.viewEventsOrganization],
-    (state) => PlaceholderScreen.route(
-      AppRoutes.eventDetails,
-      params: state.pathParameters,
+    (state) => EventDetailsScreen(
+      // The route declares `:eventId` and every link in the app builds it
+      // from an `int`, so a non-numeric value means someone hand-edited the
+      // URL. `-1` rather than a throw, for the same reason as the customer
+      // and inventory edit routes: the screen then asks for `/api/events/-1`,
+      // which 404s, which lands on the error branch.
+      eventId: int.tryParse(state.pathParameters['eventId'] ?? '') ?? -1,
     ),
   ),
 

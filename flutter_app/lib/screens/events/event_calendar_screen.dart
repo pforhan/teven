@@ -22,6 +22,7 @@ import '../../widgets/create_event_button.dart';
 import '../../widgets/debounced_search_field.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/list_screen_header.dart';
+import '../../widgets/rsvp_widget.dart';
 
 /// The month grid — task 7.1.
 ///
@@ -206,6 +207,21 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
               title: 'Event Calendar',
               action: CreateEventButton(),
             ),
+            const SizedBox(height: 16),
+            // **The pending-RSVP card.**
+            //
+            // `RsvpWidget.tsx` was written in the same commit that added
+            // `GET /api/events/rsvps/requested` and has never been mounted —
+            // so the endpoint has been reachable and unused for the whole
+            // life of the app. It lives here because the calendar is where
+            // the request is already visible: an event waiting on this user's
+            // answer is drawn in orange on its bar, and this is the control
+            // that answers it. Task 7.10 owns the question of whether the
+            // route should be exposed at all.
+            //
+            // **It renders nothing at all** when there is nothing pending,
+            // so it costs the calendar's layout nothing in the common case.
+            const RsvpWidget(),
             const SizedBox(height: 16),
             _Toolbar(onSearch: (value) => setState(() => _searchTerm = value)),
             const SizedBox(height: 16),

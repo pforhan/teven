@@ -53,6 +53,13 @@ dependencies:
   # wrong — the analyzer's depend_on_referenced_packages lint caught it once
   # models existed.
   freezed_annotation: ^3.1.0
+  # Opens the event location's Google Maps link (`EventDetails.tsx:120`).
+  # Flutter has no built-in way to open a URL — `dart:html` is deprecated and
+  # web-only — and a location that cannot be opened is a location that cannot
+  # be found. On the web this is `window.open(url, '_blank')`, which is what
+  # the original's `target="_blank"` did. Native builds will need the
+  # platform's URL-query configuration, which arrives with Phase 11.
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

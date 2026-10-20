@@ -601,6 +601,13 @@ StubAdapter invitationAdapter({
       return const StubResponse.json(
         '{"success":true,"data":{"items":[],"total":0,"limit":25,"offset":0}}',
       );
+    case '/api/events/rsvps/requested':
+      // **The same trap a second time, one path further.** The calendar
+      // carries the pending-RSVP card (task 7.6), and it asks for this on
+      // arrival — so the boot that renders the calendar asks for it too.
+      // Unanswered it 401s, and the redirect signs the user out mid-assertion:
+      // the "signed in" tests below all fail with the app on `/login`.
+      return const StubResponse.json('{"success":true,"data":[]}');
   }
 
   return const StubResponse.json(

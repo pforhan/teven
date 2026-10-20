@@ -2517,3 +2517,279 @@ say that a browser's mouse is reported as `mouse` and its finger as `touch`.
 A browser pass — a click and a long press on the same day, and a real
 touchscreen — is the check that would close it.
 
+
+---
+
+### 2026-10-20 — Task 7.6: the event details screen, and a widget that was never mounted
+
+**Done.** `EventDetails.tsx` (277 lines) and `RsvpWidget.tsx` (72 lines).
+**380 tests pass on the VM** (up from 351 — the 29 new ones are all here);
+`flutter analyze` and `dart format` clean; web build succeeds. **Both new
+test files pass on Chrome as well as the VM** (29 tests).
+
+**Files added:** `lib/screens/events/event_details_screen.dart`,
+`lib/widgets/rsvp_widget.dart`, `lib/providers/event_details.dart`,
+`test/event_details_screen_test.dart`, `test/rsvp_widget_test.dart`.
+**Files changed:** `app_router.dart` (the route now builds the screen rather
+than a placeholder), `permissions.dart` (one permission added — see below),
+`teven_theme.dart` (`success`, `successSurface`, `onSuccessSurface`),
+`event_calendar_screen.dart` (the pending-RSVP card), `event_list_screen.dart`
+(the two RSVP colours moved to the theme), `pubspec.yaml` (**`url_launcher`**),
+`auth_harness.dart` and `accept_invitation_screen_test.dart` (the trap below).
+
+#### The React screen never shows an error when the event fails to load
+
+**This is the one behavioural divergence, and it is a divergence because the
+original is broken.**
+
+`EventDetails.tsx:80` returns a spinner whenever `event` is null:
+
+```tsx
+if (!event) {
+  return (<div className="container mt-5 text-center"><div className="spinner-border text-primary" …/></div>);
+}
+```
+
+and the `catch` at `:31` only calls `setError(...)` — which is rendered at
+`:133`, **inside the card the spinner's early return never reaches**. So a
+404, a 403 or a dead backend produce an endless spinner and a message nobody
+can read. The error state is unreachable.
+
+The port shows the error instead, in place of the body, and keeps the "Back to
+Events" button so the user is not stranded. This is the same call the event
+list made in task 4.14 — **the port's convention is that a failure is shown** —
+and the alternative is a screen that looks busy while it can never finish.
+
+#### The delete navigates away, and that is the whole point of it
+
+`EventDetails.tsx:44-58`: confirm, `DELETE /api/events/{id}`, then
+`navigate('/events')`. **No refetch**, because the record is gone — there is
+nothing to refetch, and the screen it would refetch does not exist any more.
+
+This is the **sixth and last** of the React app's `window.confirm` delete
+flows, and 4.8's rule holds: the *dialog* is shared (`confirmDestructiveAction`)
+and the *consequence* stays at the call site. The wording matches the event
+list's (7.5) rather than the original's — the dialog names the record, because
+that is what the other five sites do and a generic "Are you sure?" is what made
+six of them worth sharing.
+
+#### `RsvpWidget` was dead code, and the endpoint behind it has never been used
+
+**It has never been imported by anything.** `RsvpWidget.tsx` was added in
+`f13ae83` — *"wip sending RSVPs, selecting users to request rsvps from on
+edit event"* — the same commit that added `GET /api/events/rsvps/requested` —
+and nothing has referenced it since. `git log -S "RsvpWidget"` returns that
+one commit.
+
+So the endpoint has been reachable and unused for the whole life of the app,
+and **7.10's question ("confirm whether the React app uses it — if not,
+decide whether to expose it") has an answer: it does not, because the only
+thing that used it was never mounted.**
+
+The port mounts it, **on the calendar**, and the reason is that the calendar
+is where the request is *already visible*: an event awaiting your answer is
+drawn in orange on its bar (`TevenTheme.requestedRsvp`, task 7.4), and the
+card is the control that answers it. Without it, a user can see that something
+is waiting and has no way to answer it except by opening each event in turn.
+
+**This is a divergence from the original — the app now shows a surface the
+React app does not have** — and it is the third such divergence in Phase 7
+(the first is 7.5's "Calendar view" button, the second is 4.9's pagination).
+It is recorded rather than buried, and **7.10 is left open** with a note that
+the exposure landed here: moving the card is a one-line change to the calendar
+screen if the team would rather it sat elsewhere.
+
+**The availability is a free-form string, exactly as the task says.** The
+server type is `String` with no validation (`RsvpRequest.kt`), so anything
+posted is stored as-is; `RsvpAvailability.available` and `.unavailable` are
+`String` constants for that reason, and a Dart enum would be a closed set the
+server does not enforce. Task 10.17 still owns the question.
+
+**The card renders nothing at all when nothing is pending**, which is the
+React original's `if (rsvps.length === 0) return null` — and it matters for
+more than tidiness: the card is on the app's landing page, and a permanent
+empty card there is noise.
+
+#### The RSVP buttons needed a permission the client could not name
+
+`EventDetails.tsx:20` gates the buttons on
+`hasPermission('ASSIGN_TO_EVENTS_SELF')` — a **raw string**, not the
+`Permission` const object. That is why the React app never needed it in
+`permissions.ts` to work: `usePermissions().hasPermission` takes a `string`
+and compares it against the server's list (`AuthContext.tsx:84`), so a
+permission the client cannot *name* is still a permission it can *ask about*.
+
+The permission is real and widely held — the server's enum has it
+(`Permission.kt:89`) and the seeded `Organizer` and `Staff` roles both hold it
+(`InitialSetup.kt:69,91`) — so the buttons are live for every seeded account.
+It is added to the client's `Permission` enum on the same terms as
+`MANAGE_CUSTOMERS_GLOBAL` (10.16), which was added early for the same reason:
+**a screen cannot be ported without the permission it gates on.**
+
+**The server does not check it.** `POST /api/events/{id}/rsvp` carries no
+`withPermission` wrapper at all (`EventRoutes.kt:128`), so this client-side
+gate is the only one there is. Task 10.14 calls the permission vestigial,
+because the route it was written for (`POST /api/events/{id}/join`) was deleted
+on the same afternoon it was added — this is the one place it is still
+load-bearing.
+
+#### One new package: `url_launcher`
+
+For the location's Google Maps link (`EventDetails.tsx:120`). Flutter has no
+built-in way to open a URL — `dart:html` is deprecated and web-only — and **a
+location that cannot be opened is a location that cannot be found.** On the web
+this is `window.open(url, '_blank')`, which is what the original's
+`target="_blank"` did. Native builds will need the platform's URL-query
+configuration, which arrives with Phase 11.
+
+#### The column split is keyed on the content width, and the browser said so
+
+`col-lg-8` / `col-lg-4` in the original, which splits at a **992px viewport**.
+The port has a rail down the side instead of a navbar across the top, so its
+content is 80px narrower on a tablet layout and 256px narrower on a desktop
+one — **the same window size leaves very different amounts of room.**
+
+The first cut used the app's own desktop threshold (1100) against the
+**content** width, which put the split at about 1360px of window. **The
+browser pass found it immediately:** at a 1074px window the sidebar was
+stacked *under* a 900px-wide main card, and the "Going" / "Not Going" buttons
+were stretched across the full width of the page — a `btn-group w-100` that
+React had confined to a third of the viewport.
+
+The threshold is now **860px of content**, which gives a 2:1 split a ~280px
+sidebar and a ~560px main card. The same browser pass then showed the two
+columns side by side, the sidebar reading as the narrow column the original
+intended.
+
+**The measure is the point, not the number.** The question the split answers
+is "is there room for a main card *and* a sidebar", and that is a question
+about the content — which is why the number is a content width rather than
+another entry in `AppBreakpoints`, whose three sizes are all window widths.
+
+#### The same trap, for the fourth time
+
+The calendar carries the pending-RSVP card, and the router opens at `/events` —
+so **every test that boots the app now requests `/api/events/rsvps/requested`**,
+whether or not it means to. Unanswered, it falls through to the harness's 401,
+which raises `UnauthorizedException`, trips the single-flight 401 redirect and
+**signs the user out mid-assertion**.
+
+That is the same trap `auth_harness.dart` documents for `/api/organizations`,
+`/api/users/{id}`, `/api/roles` and `/api/events` — and the **symptom is
+misleading every time**: the test lands on `/login` with no rail, which reads
+as a broken shell rather than an unanswered path.
+
+**Fifty-one tests failed before the harness was taught the new path**, and the
+count is worth recording because it is the cost of one card on one screen.
+`auth_harness.dart` now answers it, and `accept_invitation_screen_test.dart`
+— which has its own adapter — was the one place it still 401'd. Two more
+failures came from the **details screen itself**: the route now fetches, so
+`router_test.dart`'s deep link and `responsive_chrome_test.dart`'s nested path
+both needed `/api/events/{id}` answered, which the harness now does with the
+id echoed back.
+
+#### The server's permission check is not enforced, and that is a security defect
+
+**Found by hand, against the running dev backend, while porting this screen.**
+It is filed as **task 10.22** and added to the discrepancy table, because it is
+the first security defect the port has found and it does not belong to a
+Phase 7 commit.
+
+Signing in as `alice` — a seeded **Organizer**, whose role grants neither
+`VIEW_ORGANIZATIONS_GLOBAL` nor `VIEW_EVENTS_GLOBAL` — and asking for an
+endpoint gated on exactly that:
+
+```
+GET /api/organizations   →  200, and the full organization list
+```
+
+Four organizations, including the `SuperAdmin`'s own, returned to a user with
+no global permission of any kind. `/api/users`, `/api/customers`,
+`/api/inventory` and `/api/events` all answered 200 for the same caller.
+**Authentication is enforced — the same request without a token is a 401 — and
+nothing else is.**
+
+`AuthorizationPlugin`'s check is *written* correctly: it looks the caller's
+permissions up and answers 403 when the check fails. The defect is in how the
+plugin is wired: `pluginConfig.forEach { permission -> onCall { … } }` registers
+**one `onCall` hook per permission**, and Ktor's `onCall` hooks do not
+short-circuit — the route handler runs anyway and its own `respond` is what the
+client receives. The 403 is written and then overwritten.
+
+**Until it is fixed, the client-side permission gates are the only thing
+standing between a user and the whole database.** The port's route guards, nav
+items and per-screen buttons all work, and none of them is a security
+boundary.
+
+#### The browser pass
+
+**Done — against the live backend, signed in as `alice`.** The details screen
+was opened at `/events/523` and checked at 1074px:
+
+- the title, the date, the time and the duration, the location as a link, the
+  description, and the customer callout with its blue left border all render
+  as the original intends;
+- the **RSVP round trip works**: "Not Going" posts, the screen shows
+  *"Successfully updated RSVP to unavailable!"*, the two buttons swap which
+  one is filled, and **the roster repaints** — the badge goes to 0, "Confirmed"
+  empties, and "Declined" gains Alice. The request sequence is
+  `POST /api/events/523/rsvp` then `GET /api/events/523`, which is the
+  refetch the original does;
+- the **delete dialog** appears with the shared wording and a red confirm, and
+  **cancelling issues no request** (checked in the network log);
+- the console is clean.
+
+**How the session was arranged, since it took a while:** the token is stored by
+`flutter_secure_storage`, whose web backend encrypts it with AES-GCM under a
+key in `localStorage` — so a token cannot simply be pasted in. It was
+**encrypted in the page** with the same scheme the plugin uses
+(`base64(iv).base64(ciphertext)` under `FlutterSecureStorage.teven-auth-token`,
+with the raw key at `FlutterSecureStorage`), then the page reloaded. The
+plugin's default `publicKey` option is **`'FlutterSecureStorage'`**, not
+`'publicKey'` — the constant in the web plugin is the *option's name*, not its
+value, and getting that wrong produces a token that is stored correctly and
+never read.
+
+**Verified in a browser, and by the user rather than by the harness.** The
+harness has no viewport-resize tool, so the narrow layout was covered by the
+widget tests only — and the **user resized the window and confirmed the
+layout holds at every width**, which is the check the harness could not make
+and the one that matters for the 860px threshold. The split point is now
+confirmed from both sides: the two-column layout at a wide window, and the
+stacked layout with the sidebar under the card at a narrow one.
+
+**Still not verified:** the Google Maps link actually opening a tab, and the
+delete going through — the seeded event was left alone, and the delete's
+*request* was checked from the network log rather than by letting it happen.
+
+#### The tests
+
+**29 new cases**, all green on the VM and on Chrome:
+
+`test/event_details_screen_test.dart` (24) — the rendering; the load failure
+showing an error rather than spinning; the two permission gates (manage, and
+`ASSIGN_TO_EVENTS_SELF`); the delete (asks first, cancelling changes nothing,
+confirming deletes and navigates to `/events`, a failed delete keeps the
+screen and says why); the RSVP (each of the three availabilities posts the
+right string, the event is refetched, the current answer is the filled
+button); the roster (the three-way split, the declined list being for managers
+only, the empty groups, the badge counting the confirmed); and the layout.
+
+`test/rsvp_widget_test.dart` (5) — nothing renders when nothing is pending;
+the list shows the title, date and time; Accept posts `available` and drops
+the row; Decline posts `unavailable` and drops the row; **a failed answer
+keeps the row**, because the request is still outstanding.
+
+**Verified by mutation,** which is the only way to know a test is not
+vacuous: navigating somewhere else after the delete fails the delete case;
+posting the wrong availability fails the RSVP case; dropping the manage gate
+from the declined list fails the roster case; posting the wrong value from the
+widget fails the widget case; and dropping the row on a *failed* answer fails
+the failure case. Each fails loudly and each fails the right one.
+
+**One finder worth recording, because it fails as "the widget does not exist".**
+`find.byType(OutlinedButton)` matches the **runtime type exactly**, and
+`OutlinedButton.icon` builds an `_OutlinedButtonWithIcon` — a subclass. So
+`find.widgetWithText(OutlinedButton, 'Going')` matches **nothing at all**, and
+the failure reads as "the button is not there" rather than "you named the
+wrong class". The finder is `byWidgetPredicate((w) => w is OutlinedButton)`.
