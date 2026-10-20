@@ -4,6 +4,7 @@ import 'package:dio/dio.dart' show RequestOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:teven_app/core/theme/teven_theme.dart';
 import 'package:teven_app/core/util/local_date.dart';
@@ -150,13 +151,13 @@ void main() {
       );
     });
 
-    testWidgets('keeps the original\'s thousand-event ceiling', (tester) async {
+    testWidgets('keeps the inherited thousand-event ceiling', (tester) async {
       final adapter = calendarAdapter();
       await openCalendar(tester, adapter);
 
-      // `EventCalendar.tsx:88` asks for 1000. Inherited rather than chosen, and
-      // pinned so a "sensible" reduction is a deliberate change rather than a
-      // quiet one that makes a busy month render short.
+      // The calendar this replaced asked for 1000. Inherited rather than
+      // chosen, and pinned so a "sensible" reduction is a deliberate change
+      // rather than a quiet one that makes a busy month render short.
       expect(getRequests(adapter).first.queryParameters['limit'], 1000);
       // Offset paging is the *list* screen's job; a second page here would mean
       // a second request the grid has nowhere to show.
@@ -224,7 +225,7 @@ void main() {
       );
       await openCalendar(tester, adapter);
 
-      // The month label is `EventCalendar.tsx:222` — title, then `h:mm A`.
+      // The month label is the title, then `h:mm A`.
       expect(find.textContaining('Hedge trimming'), findsOneWidget);
       // `startAt` is the naive-local `DateTime`; the label is formatted from it,
       // so a 09:30 event on a 09:30 day reads "9:30 AM" and not "9:30 AM +05:00".
@@ -290,15 +291,15 @@ void main() {
   });
 
   group('styling — task 7.4', () {
-    testWidgets('today\'s cell carries the original\'s background', (
+    testWidgets('today\'s cell carries the `#e7f0f7` background', (
       tester,
     ) async {
       await openCalendar(tester, calendarAdapter());
 
-      // `#e7f0f7`, `EventCalendar.tsx:193`. Asserted on the value rather than
-      // on "there is a highlighted cell", because any colour would satisfy the
-      // latter — including the `todayDecoration` dot table_calendar ships by
-      // default, which is the thing this had to be written to avoid.
+      // Asserted on the value rather than on "there is a highlighted cell",
+      // because any colour would satisfy the latter — including the
+      // `todayDecoration` dot table_calendar ships by default, which is the
+      // thing this had to be written to avoid.
       final containers = tester
           .widgetList<Container>(
             find.descendant(
@@ -360,7 +361,7 @@ void main() {
       );
       await openCalendar(tester, adapter);
 
-      // `EventCalendar.tsx:174` compares `rsvp.userId === userContext.user.userId`
+      // The orange check compares the RSVP's user id with the signed-in user's
       // *and* the availability. Checking the user alone would paint every bar
       // orange on any organization with any outstanding RSVP.
       expect(pillFill(tester, 11), TevenTheme.primary);
@@ -384,9 +385,9 @@ void main() {
         find.textContaining('Site visit'),
       );
 
-      // `EventCalendar.tsx:167-169`. The alternative — falling through to the
-      // cell's own gesture — would open the *create* form, which is the failure
-      // mode `CalendarBuilders.markerBuilder` makes possible and `_EventPill`
+      // The alternative — falling through to the cell's own gesture — would
+      // open the *create* form, which is the failure mode
+      // `CalendarBuilders.markerBuilder` makes possible and `_EventPill`
       // exists to prevent.
       expect(currentPath(container), '/events/42');
     });
@@ -407,8 +408,8 @@ void main() {
 
       final path = await tapAndReadLocation(tester, container, dayCell(target));
 
-      // `EventCalendar.tsx:136` — the date is the whole payload; there is no
-      // time, because a month cell has no time to give.
+      // The date is the whole payload; there is no time, because a month cell
+      // has no time to give.
       expect(path, '/events/create?date=${formatLocalDate(target)}');
     });
   });
@@ -455,7 +456,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Not the create form's "Organization Required" card — the picker, which
-      // is where the requirement is answered. `EventCalendar.tsx:257-262`.
+      // is where the requirement is answered.
       expect(find.text('Select Organization'), findsWidgets);
       expect(currentPath(container), AppRoutes.events);
     });
@@ -471,7 +472,162 @@ void main() {
       expect(find.widgetWithText(TextButton, 'Month'), findsNothing);
     });
   });
+
+  group('how much room a day gets', () {
+    testWidgets('a day with four events shows all four bars', (tester) async {
+      final today = DateTime.now();
+      final date = formatLocalDate(today);
+      final adapter = calendarAdapter(
+        events: [
+          for (var i = 1; i <= 4; i++)
+            eventJson(id: i, title: 'Event $i', date: date),
+        ],
+      );
+      await openCalendar(tester, adapter);
+
+      for (var i = 1; i <= 4; i++) {
+        expect(pillFor(i), findsOneWidget);
+      }
+
+      // **And the fourth one is not cut off.** The cap and the row height have
+      // to agree: a bar that is drawn and then clipped is worse than a bar
+      // that was never drawn, because the day reads as one event with a torn
+      // bottom. This is the assertion the old height failed — at 64 the row
+      // held the date and two bars, so the third was clipped mid-height.
+      final cellBottom = tester.getBottomLeft(dayCell(today)).dy;
+      final lastBarBottom = tester.getBottomLeft(pillFor(4)).dy;
+      expect(lastBarBottom, lessThanOrEqualTo(cellBottom));
+    });
+
+    testWidgets('the count of the events that did not fit is visible', (
+      tester,
+    ) async {
+      final today = DateTime.now();
+      final date = formatLocalDate(today);
+      final adapter = calendarAdapter(
+        events: [
+          for (var i = 1; i <= 6; i++)
+            eventJson(id: i, title: 'Event $i', date: date),
+        ],
+      );
+      await openCalendar(tester, adapter);
+
+      // Six events, four bars, and the count of the two that did not fit.
+      expect(find.text('+2 more'), findsOneWidget);
+
+      // **Visible**, which is the half that was broken. The count is drawn
+      // below the bars, so a row too short for the bars clips the count too —
+      // and a busy day then says nothing at all about the events it is
+      // hiding. The count is the only thing standing between a truncated cell
+      // and a lie.
+      final cellBottom = tester.getBottomLeft(dayCell(today)).dy;
+      final countBottom = tester.getBottomLeft(find.text('+2 more')).dy;
+      expect(countBottom, lessThanOrEqualTo(cellBottom));
+    });
+  });
+
+  group('the grid does not take over the page', () {
+    testWidgets('a horizontal drag does not move the month', (tester) async {
+      await openCalendar(tester, calendarAdapter());
+
+      final title = DateFormat.yMMMM().format(DateTime.now());
+      expect(find.text(title), findsOneWidget);
+
+      // A drag right across the grid, far enough to change the month if the
+      // grid were a swipeable one.
+      await tester.drag(
+        find.byType(TableCalendar<EventResponse>),
+        const Offset(900, 0),
+      );
+      await tester.pumpAndSettle();
+
+      // **Still the same month.** The grid is a `PageView`, and a `PageView`
+      // answers scroll *signals* as well as drags — so with the package's
+      // default gestures a trackpad's horizontal component slid the month
+      // sideways mid-scroll, and a sliver of the neighbouring month appeared
+      // at the right edge of a grid whose days were all already on screen.
+      expect(find.text(title), findsOneWidget);
+    });
+  });
+
+  group('the grid\'s rules', () {
+    testWidgets('a day cell is ruled on its right and its bottom', (
+      tester,
+    ) async {
+      await openCalendar(tester, calendarAdapter());
+
+      // The rules between the day columns and between the week rows, in the
+      // colour the grid has always been drawn in.
+      final cell = tester.widget<Container>(dayCell(DateTime.now()));
+      final border = (cell.foregroundDecoration! as BoxDecoration).border!;
+      expect((border as Border).right.color, TevenTheme.gridline);
+      expect(border.bottom.color, TevenTheme.gridline);
+    });
+
+    testWidgets('only the first column is ruled on its left', (tester) async {
+      await openCalendar(tester, calendarAdapter());
+
+      // Every cell's left edge is its neighbour's right edge, so the rule
+      // would be drawn twice — and twice is twice as dark. The grid's own
+      // left edge belongs to the first column alone.
+      final sunday = nextWeekday(DateTime.now(), DateTime.sunday);
+      final monday = sunday.add(const Duration(days: 1));
+
+      final sundayBorder = borderOf(tester, dayCell(sunday));
+      final mondayBorder = borderOf(tester, dayCell(monday));
+      expect(sundayBorder.left.color, TevenTheme.gridline);
+      expect(mondayBorder.left.style, BorderStyle.none);
+    });
+
+    testWidgets('the weekday header is ruled between its labels', (
+      tester,
+    ) async {
+      await openCalendar(tester, calendarAdapter());
+
+      // The header row is written by hand, because the one border
+      // table_calendar offers rules the whole table and would draw a line
+      // through the middle of every label. The rules belong *between* the
+      // labels, so 'Mon' carries the rule and 'Sun' does not — the grid's
+      // left edge is the header frame's.
+      final monday = weekdayCell(tester, 'Mon');
+      final sunday = weekdayCell(tester, 'Sun');
+      expect((monday.foregroundDecoration! as BoxDecoration).border, isNotNull);
+      expect(
+        ((monday.foregroundDecoration! as BoxDecoration).border! as Border)
+            .left
+            .color,
+        TevenTheme.gridline,
+      );
+      expect(
+        ((sunday.foregroundDecoration! as BoxDecoration).border! as Border)
+            .left
+            .style,
+        BorderStyle.none,
+      );
+    });
+  });
 }
+
+/// The border on a cell's rules.
+Border borderOf(WidgetTester tester, Finder cell) =>
+    (tester.widget<Container>(cell).foregroundDecoration! as BoxDecoration)
+            .border!
+        as Border;
+
+/// The weekday header's cell carrying [label].
+Container weekdayCell(WidgetTester tester, String label) =>
+    tester.widget<Container>(
+      // The nearest Container above the label is the header cell that draws it.
+      find
+          .ancestor(of: find.text(label), matching: find.byType(Container))
+          .first,
+    );
+
+/// The next [weekday] on or after [from].
+///
+/// `DateTime.weekday` runs Monday (1) to Sunday (7).
+DateTime nextWeekday(DateTime from, int weekday) =>
+    from.add(Duration(days: (weekday - from.weekday) % 7));
 
 /// The bar area for one calendar day.
 Finder barsOn(DateTime day) => find.byKey(ValueKey(eventMarkerKey(day)));

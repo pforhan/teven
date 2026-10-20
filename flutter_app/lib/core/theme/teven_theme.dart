@@ -55,6 +55,14 @@ abstract final class TevenTheme {
   /// The React value is the CSS keyword `orange` — `#FFA500`.
   static const Color requestedRsvp = Color(0xFFFFA500);
 
+  /// The month grid's rules.
+  ///
+  /// A 1px light grey — subtle enough to read as a grid rather than as
+  /// borders, and the value the calendar's grid has always been drawn in. The
+  /// nearest colour in the app's own palette is Bootstrap's `$gray-200` —
+  /// [ColorScheme.outlineVariant] — which is lighter.
+  static const Color gridline = Color(0xFFDDDDDD);
+
   /// The full scheme.
   ///
   /// Explicit rather than derived, so the role each colour plays is visible at

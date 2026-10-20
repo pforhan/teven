@@ -351,6 +351,7 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [ ] **9.9** Fix the known 500 stack-trace leak server-side, or suppress `details` in the UI.
 - [ ] **9.10** Full pass at all three breakpoints, plus mobile browser widths and touch input.
 - [ ] **9.11** Tests for the error boundary from 9.8: an `ApiRequestException` surfaces its message, and `details` is hidden unless the debug flag is on. Also assert cancellation (9.6) does not surface an error to the user.
+- [ ] **9.12** Consider allowing horizontal swipe on event calendar on mobile; AvailableGestures.horizontalSwipe in event_calendar_screen.  Will take some testing in landscape and portrait.
 
 ---
 
@@ -2897,3 +2898,153 @@ something no assertion in this file can speak to. A browser pass should confirm
 the grid is legible at three widths, that `rowHeight: 64` is enough for a
 number plus two bars, and that the hover reveal on bars does not fight the day's
 tap.
+
+
+---
+
+### 2026-10-20 — The calendar grid gets more room, gets ruled, and stops stealing the scroll
+
+**Done.** The month grid's rows are half again as tall, the per-day cap is four
+rather than three, the grid is ruled the way the calendar it replaced always
+drew it, and the grid no longer takes the page's scrolling for itself.
+`./teven verify` clean: 345 tests. **Verified in a browser**, against the live
+backend, by the user and by me.
+
+#### The row height was too short, and it was shortening the day in a way nobody had looked at
+
+`rowHeight: 64` held the date number and **two** bars — not three, which is
+what `kMaxEventsPerDay` claimed. `table_calendar` clips marker overflow
+(`canMarkersOverflow: false`), so the third bar was cut off mid-height and the
+"+N more" line was cut off with it. **A day with four events rendered two bars
+and half of a third, and said nothing at all about the fourth.**
+
+Measured rather than estimated: a bar was 18px in the test font and the marker
+area was 42px. **The cap and the row height have to agree, and they did not** —
+the cap was a number the row could not honour.
+
+**This closes the open question the Phase 7 entry left.** It said "whether three
+reads as the right number is the open question; widget tests cannot judge that".
+Three was not the right number — it was the number that fit in a row that was
+too short. The cap goes to four.
+
+**The height is 100, and it is derived rather than guessed.** The row holds the
+date number (20px), then four bars, then the "+N more" line a busier day draws
+in their place — and the constants that add up to it are in the code, so
+raising the cap again moves the row with it.
+
+#### The bar's height had to stop depending on the font, and that is the interesting part
+
+The first attempt at 100 was a **test-only pass**: 100 fits four bars and the
+count in a browser, and does not fit them in a widget test, because the test
+font is not the browser's font and measures 3px taller per bar. A budget
+derived from the browser overflows in the tests; a budget derived from the
+tests leaves the browser half empty. **Neither number is the row's height —
+the row's height is a function of the font, and that is the defect.**
+
+The fix is a fixed line height on the bar's text (`height: 1.2`), which is
+exact: the glyphs are scaled to fit it, so the bar is the same height in every
+environment. The Phase 4 log records the same lesson from the other direction
+("any pixel threshold in a widget test is measuring the font, not the layout"),
+and this is the calendar-side version of it.
+
+Measured afterwards: the bar is 15px, the count line 16px, the row 100px, and
+the count ends 3px above the row's bottom edge — in the widget test *and* in
+the browser, which is the point.
+
+#### The grid was taking the page's scrolling, and the symptom was a phantom column
+
+**The taller rows made this visible**, which is worth recording: the defect
+was there before and the extra height gave it room to be noticed.
+
+The report was that the calendar "seems like it's trying to take over
+scrolling" and "does some left and right motion, seemingly trying to show
+more dates on each side even though they're all visible currently" — and then,
+on a second look, "the extra column on the right is another thursday".
+
+**There was no eighth column.** The grid is seven columns wide, measured: the
+`Table` is one widget, its seven cells tile the width exactly, and the
+weekday header has seven labels. What was happening is that **the grid is a
+`PageView`, and a `PageView` answers scroll *signals* as well as drags.**
+
+| | |
+|---|---|
+| `table_calendar`'s default | `AvailableGestures.all` → the `PageView` gets `PageScrollPhysics` |
+| What that means | the month can be dragged sideways, **and** the `PageView` handles scroll signals |
+| A horizontal `Scrollable` scrolls on | the **x** component of the delta (`Scrollable._pointerSignalEventDelta`) |
+| So a trackpad's horizontal component | slid the month sideways mid-scroll, and a sliver of the neighbouring month appeared at the right edge of a grid whose days were all on screen |
+| And worse | `Scrollable` only registers interest in a scroll event if it would actually scroll — so the calendar **claimed** a diagonal scroll that the page should have had, and the page stopped scrolling under the cursor |
+
+`AvailableGestures.none` gives the `PageView` `NeverScrollableScrollPhysics`,
+which opts out of both (`shouldAcceptUserOffset` is false, so the `PageView`
+never even registers interest in the signal). The month is still reachable
+from the header's chevrons — which is how it was reached before, since a month
+grid has no time axis to swipe along.
+
+**A test that bites:** a horizontal drag right across the grid does not change
+the month. Verified by mutation — with the package's default gestures the
+month moves and the test fails.
+
+#### The grid is ruled, which the calendar it replaced always was
+
+react-big-calendar drew a frame around the month grid, a rule under the weekday
+names, a rule between the week rows and a rule between the day columns — all
+`1px solid #ddd`, from its own stylesheet (`:352`, `:98`, `:399`, `:439`),
+none of it overridden by the app. The port now draws all four in
+`TevenTheme.gridline`.
+
+**Three details make it work, and each was a trap.**
+
+1. **`CalendarStyle.tableBorder` — the one place table_calendar offers for
+   rules — cannot be used.** It rules the *whole* table, so its verticals run
+   through the middle of every weekday label. The rules have to be drawn by the
+   cells instead: the right edge on every day cell (which is both the rule
+   between two columns and the grid's own right edge), the left edge on the
+   first column only (every other cell's left edge is its neighbour's right
+   edge, and drawing it twice would draw the line twice as dark), and the
+   bottom edge on every cell (which is both the rule between two week rows and
+   the grid's bottom edge). The weekday header row is written by hand for the
+   same reason, and the frame's top edge and the rule under the weekday names
+   come from the row's own decoration.
+2. **`foregroundDecoration`, not `decoration`.** Today's fill is opaque, so a
+   rule painted *under* the cell would disappear under it and the grid would
+   have a gap in it exactly where the highlight is. A `decoration` would also
+   inset the cell's child by the rule's width, which is a hair's breadth of
+   layout for nothing.
+3. **The rules are 1px and `#ddd`, which is subtle by construction.** The
+   nearest colour in the app's own palette is Bootstrap's `$gray-200`
+   (`#e9ecef`, `ColorScheme.outlineVariant`), which is lighter. The calendar's
+   own grey is what a user of the app has always seen.
+
+#### Two tests, and both fail on the old code
+
+A day with four events shows four bars and the fourth is *not clipped* — a
+geometric assertion against the cell's bottom edge, because "the widget exists"
+is what a clipped bar also satisfies. And the "+N more" count is visible inside
+the cell, which is the half that was broken: the count is drawn below the
+bars, so a row too short for the bars clipped the count too, and a busy day
+said nothing about the events it was hiding. **The count is the only thing
+standing between a truncated cell and a lie.**
+
+Verified by mutation: with `_rowHeight` back at 64 and the cap back at three,
+both fail.
+
+#### The Dart comments no longer cite the React code
+
+`frontend/` is going away, and a comment pointing at a file that will not
+exist is a citation a reader cannot follow — which task 10.8 exists to fix,
+one file at a time. This change does it for the calendar screen and its test
+file: the reasoning stays, the `EventCalendar.tsx:123` citations go, and the
+history is here instead. The occurrences in the other files are unchanged and
+remain 10.8's, with its list of them still accurate.
+
+#### What the browser pass found that the tests could not
+
+Two of the three things this entry describes were found by a person looking at
+the app, not by a test: that 128 was too tall a row (the user, who then asked
+for 100), and that the calendar was taking the scroll and showing a phantom
+column. The tests could have pinned the *settings* — `rowHeight`, `availableGestures`
+— but the complaint was about behaviour, and only the behaviour test ("a
+horizontal drag does not move the month") would have failed on the old code.
+
+**Still open for a browser pass:** the rules at 500 / 900 / 1400 px, and
+whether 100 is right on a phone.

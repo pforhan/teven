@@ -23,29 +23,27 @@ import '../../widgets/list_screen_header.dart';
 
 /// The month grid — task 7.1.
 ///
-/// `EventCalendar.tsx` (329 lines), rebuilt on `table_calendar`.
+/// Rebuilt on `table_calendar`. **Four things are dropped, and they are the four
+/// the task names.** The week, work-week, day and agenda views, which the
+/// calendar package this replaced had and this one does not; drag-to-select slot
+/// creation, which goes with them, because a month grid has no time axis to
+/// drag along; and the hover-to-reveal "Create Event" placeholder, which needed
+/// a 100ms leave timer purely to avoid flickering, and whose affordance now has
+/// a permanent home in the header button.
 ///
-/// **Four things are dropped, and they are the four the task names.** The week,
-/// work-week, day and agenda views go with react-big-calendar itself, which has
-/// no `table_calendar` equivalent; drag-to-select slot creation goes with them,
-/// because a month grid has no time axis to drag along; and the hover-to-reveal
-/// "Create Event" placeholder goes because it needed a 100ms `mouseleave` timer
-/// purely to avoid flickering, and the affordance it stood in for has a
-/// permanent home in the header button.
-///
-/// **Tapping a day still creates an event, and that is not drag-select.**
-/// `EventCalendar.tsx:134-143` branches on `action`: `'select'` is the drag,
-/// `'click'` is a plain tap on a day cell, and only the latter carries a date
+/// **Tapping a day still creates an event, and that is not drag-select.** The
+/// calendar this replaced branched on the gesture: `'select'` was the drag and
+/// `'click'` a plain tap on a day cell, and only the latter carried a date
 /// with no time attached. That branch is the whole of what survives, and
-/// `onDaySelected` is exactly it. Task 7.2 asks for a *long press* instead; a tap
-/// is what the original had and `table_calendar` routes both gestures through
-/// one callback, so the difference would be a gesture rather than a second
-/// affordance. Noted on 7.2 rather than silently re-decided.
+/// `onDaySelected` is exactly it. Task 7.2 asks for a *long press* instead; a
+/// tap is what the previous calendar had and `table_calendar` routes both
+/// gestures through one callback, so the difference would be a gesture rather
+/// than a second affordance. Noted on 7.2 rather than silently re-decided.
 ///
-/// **This screen does not page.** See [kCalendarEventLimit] — react-big-calendar
-/// was handed the whole visible range and had no paging model to violate, so
-/// there is nothing to accumulate here. The list at `/events/list` is the one
-/// that pages.
+/// **This screen does not page.** See [kCalendarEventLimit] — the calendar this
+/// replaced was handed the whole visible range and had no paging model to
+/// violate, so there is nothing to accumulate here. The list at `/events/list`
+/// is the one that pages.
 class EventCalendarScreen extends ConsumerStatefulWidget {
   const EventCalendarScreen({super.key});
 
@@ -58,10 +56,10 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
   /// The month on screen, and the month the query is built around.
   ///
   /// One field, not two. `table_calendar` reports the month it moved to through
-  /// `onPageChanged`, and `EventCalendar.tsx:102-126` refetched from `date` on
-  /// every navigation — keeping a separate "focused" and "fetched" month would
-  /// only allow them to disagree, which is the shape of a stale-data bug rather
-  /// than a feature.
+  /// `onPageChanged`, and the calendar this replaced refetched from the
+  /// displayed date on every navigation — keeping a separate "focused" and
+  /// "fetched" month would only allow them to disagree, which is the shape of
+  /// a stale-data bug rather than a feature.
   DateTime _focusedMonth = _monthOf(DateTime.now());
 
   String _searchTerm = '';
@@ -69,12 +67,11 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
   /// The query for the month on screen.
   ///
   /// The window is the **first and last day of the month, not the visible
-  /// six-week grid.** `EventCalendar.tsx:119-123` takes
-  /// `startOf('month')`/`endOf('month')`, which excludes the leading and
-  /// trailing days from the neighbouring months that react-big-calendar draws.
-  /// Those cells were always drawn greyed and always empty; widening the query
-  /// to the grid would be a fix rather than a port, and would change which
-  /// events appear where.
+  /// six-week grid.** The calendar this replaced took the start and the end of
+  /// the month, which excludes the leading and trailing days from the
+  /// neighbouring months that the grid draws. Those cells are drawn greyed and
+  /// are always empty; widening the query to the grid would be a fix rather
+  /// than a port, and would change which events appear where.
   ///
   /// `limit` is [kCalendarEventLimit] and `offset` is absent.
   ListQuery _buildQuery(OrganizationResponse? organization) => ListQuery(
@@ -91,7 +88,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
     search: _searchTerm.isEmpty ? null : _searchTerm,
   );
 
-  /// `EventCalendar.tsx:128-154`, month-view `click` branch.
+  /// A tapped day: open the create form for that date.
   ///
   /// The `VIEW_USERS_GLOBAL` / no-organization check is deliberately *not*
   /// repeated here: it belongs to [CreateEventButton], and having it in two
@@ -153,15 +150,14 @@ DateTime _monthOf(DateTime date) => DateTime(date.year, date.month);
 
 /// The search box and the "View All Events" link.
 ///
-/// **Two controls where the React original had three**, and the arrangement is
-/// `EventCalendar.tsx:244-269`: a search input, a `btn-primary` link to
-/// `/events/list`, and the create button — which now sits in [ListScreenHeader]
-/// as the screen's primary action, because that is the slot it occupies in the
-/// original and the header is what that slot is for.
+/// **Two controls where the calendar this replaced had three**: a search
+/// input, a link to `/events/list`, and the create button — which now sits in
+/// [ListScreenHeader] as the screen's primary action, because that is the slot
+/// it occupies and the header is what that slot is for.
 ///
-/// The `250px` is gone. Task 9.2 flags it among the fixed pixel sizes tuned for
-/// a wide viewport, and a `Wrap` does the same job at every width: full-width
-/// search above the link on a phone, beside it on a desktop.
+/// The 250px search input is gone. Task 9.2 flags it among the fixed pixel
+/// sizes tuned for a wide viewport, and a `Wrap` does the same job at every
+/// width: full-width search above the link on a phone, beside it on a desktop.
 class _Toolbar extends StatelessWidget {
   const _Toolbar({required this.onSearch});
 
@@ -215,11 +211,11 @@ class _CalendarCard extends StatelessWidget {
     }
 
     // The grid is kept mounted and dimmed while the next month loads, rather
-    // than replaced by a spinner. `EventCalendar.tsx` did the same thing: it held
-    // the previous `events` in state across the `useEffect` at `:102` and never
-    // cleared them, so a month change showed the old month until the new one
-    // arrived. Replacing the grid outright would be a flash task 4.14 was filed
-    // to remove, in a new place.
+    // than replaced by a spinner. The calendar this replaced did the same
+    // thing: it held the previous events across the fetch and never cleared
+    // them, so a month change showed the old month until the new one arrived.
+    // Replacing the grid outright would be a flash task 4.14 was filed to
+    // remove, in a new place.
     return Card(
       elevation: 0,
       child: Padding(
@@ -262,9 +258,8 @@ class _CalendarGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // `EventCalendar.tsx:174` colours a pill orange when the server is waiting on
-    // *this* user's answer, so the id has to be read from the context here
-    // rather than passed down.
+    // A pill is orange when the server is waiting on *this* user's answer, so
+    // the id has to be read from the context here rather than passed down.
     final currentUserId = ref.watch(userContextProvider)?.user.userId;
 
     // Days are keyed on `yyyy-MM-dd` because `eventLoader` is handed a
@@ -282,36 +277,60 @@ class _CalendarGrid extends ConsumerWidget {
       focusedDay: focusedMonth,
       firstDay: DateTime.utc(2000, 1, 1),
       lastDay: DateTime.utc(2100, 12, 31),
-      // react-big-calendar's `startOfWeek` default is Sunday, and this is the
-      // one setting the port can carry over without deciding anything.
+      // Sunday, which is the first day of the week the calendar this replaced
+      // used — and the one setting carried over without deciding anything.
       startingDayOfWeek: StartingDayOfWeek.sunday,
       // Without this the header renders a format button offering the week and
       // two-week views — exactly what task 7.1 drops.
       availableCalendarFormats: const {CalendarFormat.month: 'Month'},
       calendarFormat: CalendarFormat.month,
+      // **No gestures, and the reason is that the calendar was taking over
+      // the page's scrolling.**
+      //
+      // The default is `AvailableGestures.all`, which gives the month grid a
+      // horizontal swipe. The grid is a `PageView`, and a `PageView` answers
+      // *scroll signals* as well as drags — so a trackpad's horizontal
+      // component slid the month sideways mid-scroll, and a sliver of the
+      // neighbouring month appeared at the right edge of a grid whose days
+      // were all already on screen.
+      //
+      // Worse, the grid claimed the signal: `Scrollable` only registers
+      // interest in a scroll event if it would actually scroll, and a
+      // horizontal `Scrollable` scrolls on the *x* component of the delta.
+      // So a diagonal scroll was taken by the calendar and not by the page.
+      //
+      // `AvailableGestures.none` gives the `PageView`
+      // `NeverScrollableScrollPhysics`, which opts out of both. The month is
+      // still reachable from the header's chevrons — which is how it was
+      // reached before, since a month grid has no time axis to swipe along.
+      availableGestures: AvailableGestures.none,
       headerStyle: const HeaderStyle(
         formatButtonVisible: false,
         titleCentered: false,
       ),
-      // Tall enough for the day number plus `kMaxEventsPerDay` bars, and not
-      // much more. `table_calendar`'s default is 52, which fits a number and one
-      // marker; `EventCalendar.tsx:297` let the whole grid grow to 800px instead,
-      // which a fixed-height screen cannot reproduce — so this trades the
-      // original's vertical room for a cap, and the cap is client-side for the
-      // reason on `kMaxEventsPerDay`. **Whether two bars is legible at this
-      // height is a browser question**, which is why the phase entry flags it.
-      rowHeight: 64,
+      // Tall enough for the day number plus [kMaxEventsPerDay] bars. The
+      // height is a budget rather than a preference — `table_calendar` gives
+      // every cell a fixed row and clips whatever does not fit — and the
+      // budget used to be short: at 64 it held the number and two bars, and a
+      // third bar was cut off mid-height along with the "+N more" line a
+      // busy day draws.
+      rowHeight: _rowHeight,
+      // The weekday header's own rules, and the labels that go with them.
+      daysOfWeekStyle: _daysOfWeekStyle,
       // `DayBuilder` cells rather than the package's own, and the reason is
       // task 7.4: `#e7f0f7` is a *background* behind the whole cell, and
       // `CalendarStyle` in table_calendar 3.3.0 offers only `todayDecoration` —
       // a small dot — with no full-cell highlight option. Writing the cell is
-      // the only way to get the colour the original painted.
+      // the only way to get a full-cell highlight at all.
       calendarBuilders: CalendarBuilders<EventResponse>(
         defaultBuilder: (context, day, focusedDay) => _DayCell(day: day),
         outsideBuilder: (context, day, focusedDay) =>
             _DayCell(day: day, outside: true),
         todayBuilder: (context, day, focusedDay) =>
             _DayCell(day: day, isToday: true),
+        // The weekday row is written by hand, and the reason is the rules:
+        // see [_DayOfWeekCell].
+        dowBuilder: (context, day) => _DayOfWeekCell(day: day),
         markerBuilder: (context, day, dayEvents) {
           if (dayEvents.isEmpty) return null;
           // `left`/`right`/`bottom` rather than `Positioned.fill`, which leaves
@@ -328,7 +347,10 @@ class _CalendarGrid extends ConsumerWidget {
             key: ValueKey(eventMarkerKey(day)),
             left: 0,
             right: 0,
-            top: _dayNumberHeight + 2,
+            // The bars start where the number's own line box ends, which is
+            // what [_dayNumberHeight] is sized for. There is no gap on top of
+            // this: the number's box already provides one.
+            top: _dayNumberHeight,
             bottom: 0,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,26 +399,118 @@ String eventPillKey(int eventId) => 'pill-$eventId';
 
 /// How many event bars one day cell draws before it counts the rest.
 ///
-/// **A cap the original did not have, and the reason is the package.**
-/// `EventCalendar.tsx` rendered every event in a cell and let the grid grow;
-/// `table_calendar` gives every cell a fixed [rowHeight] and clips marker
-/// overflow by default (`canMarkersOverflow: false`), so a day with a dozen
-/// events would render a truncated first bar and lose the rest silently.
+/// **A cap, and the reason is the package.** The calendar this replaced
+/// rendered every event in a cell and let the grid grow; `table_calendar` gives
+/// every cell a fixed [rowHeight] and clips marker overflow by default
+/// (`canMarkersOverflow: false`), so a day with a dozen events would render a
+/// truncated first bar and lose the rest silently.
 ///
-/// Three-plus-a-count is the same shape `InventoryListScreen` already uses for
+/// Four-plus-a-count is the same shape `InventoryListScreen` already uses for
 /// its unbounded per-row event list, chosen for the same reason — and it is a
-/// client-side invention for the same reason, since there is no server-side way
-/// to ask for fewer events on a day.
-const int kMaxEventsPerDay = 3;
+/// client-side invention, since there is no server-side way to ask for fewer
+/// events on a day.
+///
+/// **Three was too few, and the row height was the reason.** The cap and the
+/// height have to agree: a cap the row cannot fit is a bar that is drawn and
+/// then cut off. At 64 the row held the number and two bars, so the third was
+/// clipped and the "+N more" line with it — a day with four events showed two
+/// bars and a half of a third, and said nothing about the fourth. Four bars
+/// and a count is what [_rowHeight] now pays for.
+const int kMaxEventsPerDay = 4;
 
 /// Height reserved for the date number.
 ///
 /// `table_calendar` stacks the marker builder *over* the cell content rather
 /// than below it, so the number and the bars have to agree on where one ends
-/// and the other starts. Sized to one 12px line plus its top padding.
+/// and the other starts. Sized to one 12px line (16px) plus its top padding.
 const double _dayNumberHeight = 20;
 
-/// One day cell: the number, and today's background.
+/// The bar's font size.
+const double _eventPillFontSize = 11;
+
+/// The bar's line height, as a multiple of its font size.
+///
+/// **Fixed rather than left to the font.** The row is a fixed height and
+/// `table_calendar` clips whatever does not fit, so a bar whose height
+/// depends on the font's own metrics is a bar that fits in one browser and
+/// not in another — the widget test's font is not the browser's font, and it
+/// measures taller. A line height is exact: the glyphs are scaled to fit it.
+const double _eventPillLineHeight = 1.2;
+
+/// Height of one event bar.
+///
+/// The text's line height plus the pixel of padding above and below it.
+const double _eventPillHeight = _eventPillFontSize * _eventPillLineHeight + 2;
+
+/// Height of the "+N more" line.
+///
+/// The theme's `labelSmall` — 11px at a line height of 1.45 — plus the pixel
+/// of padding above it.
+const double _moreLineHeight = 11 * 1.45 + 1;
+
+/// Slack in a week row, so the content does not end flush against the rule
+/// under it.
+const double _rowSlack = 2.25;
+
+/// Height of one week row.
+///
+/// **100, and the budget it pays for is written out rather than asserted.** The
+/// row holds the date number ([_dayNumberHeight]) and then the bars:
+/// [kMaxEventsPerDay] of them at [_eventPillHeight] each, plus the
+/// "+N more" line ([_moreLineHeight]) a busier day draws in their place, with
+/// [_rowSlack] to spare.
+///
+/// **Twice the 64 it was, and the arithmetic is the reason.** The row is a
+/// budget — the date number, then the bars, then the "+N more" line — and
+/// `table_calendar` clips whatever does not fit. 64 held the number and two
+/// bars; 100 holds the number, [kMaxEventsPerDay] bars and the count.
+///
+/// The calendar this replaced had no row height to disagree with: it let the
+/// grid grow to fit its events. This is still a cap rather than unbounded
+/// growth, and the cap is client-side for the reason on [kMaxEventsPerDay].
+///
+/// **A whole number, deliberately.** The rules between the week rows are one
+/// pixel, and a fractional row height puts them on a half pixel, where they
+/// are antialiased into two paler ones.
+const double _rowHeight =
+    _dayNumberHeight +
+    kMaxEventsPerDay * _eventPillHeight +
+    _moreLineHeight +
+    _rowSlack;
+
+/// The weekday header's rules.
+///
+/// **The grid is ruled, and always was.** A frame around the month grid, a rule
+/// under the weekday names, a rule between the week rows and a rule between the
+/// day columns — the calendar this replaced drew all four, and they are what
+/// makes a month grid read as a grid rather than as a list of numbers.
+///
+/// This decoration carries the frame's top edge and the rule under the
+/// weekday names; the rule between the columns has to come from the cells
+/// themselves, because `CalendarStyle.tableBorder` — the one place
+/// table_calendar offers for rules — draws its verticals across the *whole*
+/// table, which would put a line through the middle of every label.
+const DaysOfWeekStyle _daysOfWeekStyle = DaysOfWeekStyle(
+  decoration: BoxDecoration(
+    border: Border(
+      top: BorderSide(color: TevenTheme.gridline),
+      bottom: BorderSide(color: TevenTheme.gridline),
+      left: BorderSide(color: TevenTheme.gridline),
+      right: BorderSide(color: TevenTheme.gridline),
+    ),
+  ),
+);
+
+/// The column a day sits in, counting from the grid's first column.
+///
+/// `DateTime.weekday` runs Monday (1) to Sunday (7), and the grid starts on
+/// Sunday (`startingDayOfWeek`), so `weekday % 7` puts Sunday at 0 and
+/// Saturday at 6. The weekday header and the day cells both ask this
+/// question, and they have to agree on the answer or the rules will not line
+/// up with the columns they are ruling.
+int _columnOf(DateTime day) => day.weekday % 7;
+
+/// One day cell: the number, today's background, and the grid's rules.
 class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
@@ -422,11 +536,31 @@ class _DayCell extends StatelessWidget {
       color: isToday ? TevenTheme.todayHighlight : Colors.transparent,
       alignment: Alignment.topLeft,
       padding: const EdgeInsets.only(top: 2, left: 6),
+      // **The rules, drawn over the cell rather than under it.**
+      //
+      // `foregroundDecoration` rather than `decoration`, for two reasons.
+      // Today's fill is opaque, so a rule painted *under* the cell would
+      // disappear under it and the grid would have a gap in it exactly where
+      // the highlight is. And a `decoration` would inset the cell's child by
+      // the rule's width, which is a hair's breadth of layout for no reason.
+      //
+      // The right edge is ruled on every cell — it is the rule between this
+      // column and the next, and the grid's own right edge on the last one —
+      // and the left edge only on the first column, where it is the grid's
+      // left edge and every other cell's left edge is its neighbour's right.
+      foregroundDecoration: BoxDecoration(
+        border: Border(
+          left: _columnOf(day) == 0
+              ? const BorderSide(color: TevenTheme.gridline)
+              : BorderSide.none,
+          right: const BorderSide(color: TevenTheme.gridline),
+          bottom: const BorderSide(color: TevenTheme.gridline),
+        ),
+      ),
       child: Text(
         '${day.day}',
         style: theme.textTheme.bodySmall?.copyWith(
-          // `EventCalendar.tsx:315-322` bolds today's number in the month header
-          // and nothing else.
+          // Today's number is bold in the month header and nothing else.
           fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
           color: outside ? theme.colorScheme.outline : null,
         ),
@@ -435,7 +569,56 @@ class _DayCell extends StatelessWidget {
   }
 }
 
-/// The coloured bar under a date — `eventPropGetter` plus the month-view label.
+/// One weekday name, and the rule that separates it from the next column.
+///
+/// **Written by hand because the rules have to reach the header row.**
+/// `table_calendar`'s own weekday row is a bare `Center(Text(...))` — and the
+/// one border the package offers, `CalendarStyle.tableBorder`, rules the
+/// whole table at once, which would draw a line through the middle of every
+/// label. The rules belong *between* the labels, so the row is rebuilt here.
+///
+/// The labels themselves are the package's own — `DateFormat.E()` for the
+/// text — in the app's theme colour rather than the package's hard-coded
+/// grey, because a row written by hand should not hard-code a colour the rest
+/// of the app has already chosen.
+class _DayOfWeekCell extends StatelessWidget {
+  const _DayOfWeekCell({required this.day});
+
+  final DateTime day;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // The package's own weekend rule (`_isWeekend`), which is what makes its
+    // weekend labels a lighter grey than the rest.
+    final isWeekend =
+        day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+    return Container(
+      alignment: Alignment.center,
+      // The rule *between* this column and the one before it. The first
+      // column's left edge is the grid's, and the header's frame draws it.
+      foregroundDecoration: BoxDecoration(
+        border: Border(
+          left: _columnOf(day) == 0
+              ? BorderSide.none
+              : const BorderSide(color: TevenTheme.gridline),
+        ),
+      ),
+      child: Text(
+        DateFormat.E().format(day),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: isWeekend
+              ? theme.colorScheme.outline
+              : theme.colorScheme.onSurface,
+          // The weekday names are bold.
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// The coloured bar under a date.
 class _EventPill extends StatelessWidget {
   const _EventPill({
     super.key,
@@ -448,11 +631,10 @@ class _EventPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // `EventCalendar.tsx:174` — orange means the server is waiting on *this*
-    // user's answer, which is the one case where the colour carries information
-    // rather than decoration. An event with no RSVP from this user at all stays
-    // blue, so the check is for the `requested` value specifically and not for
-    // "has any RSVP".
+    // Orange means the server is waiting on *this* user's answer, which is the
+    // one case where the colour carries information rather than decoration. An
+    // event with no RSVP from this user at all stays blue, so the check is for
+    // the `requested` value specifically and not for "has any RSVP".
     final requested =
         currentUserId != null &&
         event.rsvps.any(
@@ -461,7 +643,7 @@ class _EventPill extends StatelessWidget {
               rsvp.availability == RsvpAvailability.requested,
         );
 
-    // `EventCalendar.tsx:222`: the title followed by a `h:mm A` time.
+    // The title, followed by a `h:mm A` time.
     final label = '${event.title} ${DateFormat.jm().format(event.startAt)}';
 
     return Padding(
@@ -469,13 +651,13 @@ class _EventPill extends StatelessWidget {
       child: Tooltip(
         message: label,
         // **The pill is its own tap target, and it has to be.**
-        // `EventCalendar.tsx:156-170` routes a click on a real event to
-        // `/events/{id}`, which is the difference between opening an event and
-        // opening the create form for that day. `table_calendar`'s own
-        // `onEventTap` only fires for the marker widget it builds itself, and
-        // supplying [CalendarBuilders.markerBuilder] replaces that widget
-        // outright — so a pill with no handler here would fall through to the
-        // cell's own gesture and create an event instead of opening one.
+        // A click on a real event opens `/events/{id}`, which is the difference
+        // between opening an event and opening the create form for that day.
+        // `table_calendar`'s own `onEventTap` only fires for the marker widget
+        // it builds itself, and supplying [CalendarBuilders.markerBuilder]
+        // replaces that widget outright — so a pill with no handler here would
+        // fall through to the cell's own gesture and create an event instead
+        // of opening one.
         child: InkWell(
           onTap: () => context.go(AppRoutes.eventDetailsPath(event.eventId)),
           borderRadius: BorderRadius.circular(5),
@@ -484,21 +666,25 @@ class _EventPill extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
               color: requested ? TevenTheme.requestedRsvp : TevenTheme.primary,
-              // `borderRadius: '5px'`, `EventCalendar.tsx:180`.
+              // A 5px radius on the bar.
               borderRadius: BorderRadius.circular(5),
             ),
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              // `opacity: 0.8` on the whole pill, `EventCalendar.tsx:181`.
-              // Applied to the text rather than to the container, because a
-              // container opacity would also dim the whole bar and make it read
-              // as disabled. The one deliberate difference from the original's
-              // rendering.
+              // 0.8 opacity on the whole pill, applied to the text rather than
+              // to the container — a container opacity would also dim the whole
+              // bar and make it read as disabled.
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 11,
+                fontSize: _eventPillFontSize,
+                // **A fixed line height, so the bar is the height the row's
+                // budget says it is.** The row is a fixed height and anything
+                // that does not fit is clipped, so a bar whose height depends
+                // on the font is a bar that fits in one browser and not in
+                // another — see [_eventPillLineHeight].
+                height: _eventPillLineHeight,
                 fontWeight: FontWeight.w600,
               ),
             ),
