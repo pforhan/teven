@@ -30,8 +30,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// nor localhost, and **login breaks outright** — not quietly degrades. The fix
 /// is TLS termination in front of the container, or a `shared_preferences`
 /// fallback keyed off `isSecureContext`. Both are deployment concerns,
-/// deliberately out of scope for the port; see FLUTTER-CONVERT.md under "The
-/// one deployment consideration".
+/// deliberately out of scope for the port; see FLUTTER-CONVERT-DESIGN.md under
+/// "The one deployment consideration".
 ///
 /// Note the current React behaviour is weaker: a token in `localStorage` is
 /// readable by any script on the origin.

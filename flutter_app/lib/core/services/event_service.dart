@@ -35,8 +35,8 @@ class EventService {
   /// **`sortBy` does nothing.** `EventRoutes.kt` accepts a `sortBy` parameter
   /// but `EventDao` never reads it — it always orders by date. Passing it is
   /// accepted and ignored, so do not rely on it; the UI must sort client-side
-  /// if it needs to. This is flagged in task 1.16 and in FLUTTER-CONVERT.md's
-  /// discrepancy table.
+  /// if it needs to. This is flagged in task 1.16 and in
+  /// FLUTTER-CONVERT-DESIGN.md's discrepancy table.
   ///
   /// `sortOrder` **does** work, and defaults to `asc` server-side when
   /// omitted (`EventRoutes.kt:80`) — so the first event returned is the

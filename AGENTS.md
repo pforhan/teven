@@ -73,8 +73,17 @@ Add `-n`/`--dry-run` to any of them to print the commands without running them.
 ## Frontend (Flutter/Dart)
 
 The Flutter app in `flutter_app/` is the conversion target and is being built in
-parallel with the live React app. `FLUTTER-CONVERT.md` is the source of truth for
-what is ported and why.
+parallel with the live React app. The conversion plan is three files:
+
+| File | Holds |
+|---|---|
+| `FLUTTER-CONVERT.md` | The checklist — the ground rules and every task, with its checkbox |
+| `FLUTTER-CONVERT-DESIGN.md` | Planning and design — resolved decisions, parity matrix, backend-discrepancy survey |
+| `FLUTTER-CONVERT-NOTES.md` | Implementation notes — the dated progress log, one entry per completed phase |
+
+Task numbers are the same across all three. `FLUTTER-CONVERT.md` is the source of
+truth for what is ported and what is still to do; `FLUTTER-CONVERT-NOTES.md` is
+the source of truth for what actually happened and how it was verified.
 
 - **Verifying changes:** `./teven verify` from the repo root. Run it before
   claiming any change works.
@@ -84,9 +93,10 @@ what is ported and why.
 - **After a fresh clone:** `dart run build_runner build` in `flutter_app/` is
   **required** before anything compiles. See "Commits" below.
 - **Doc comments citing the React original are load-bearing.** The port is
-  deliberate about where it diverges, and `FLUTTER-CONVERT.md` is where that
-  reasoning lives. When you change behaviour, update the task and its progress
-  entry — a closed task nobody re-reads is how a regression survives review.
+  deliberate about where it diverges, and `FLUTTER-CONVERT-NOTES.md` is where
+  that reasoning lives. When you change behaviour, update the task in
+  `FLUTTER-CONVERT.md` and add a progress entry — a closed task nobody re-reads
+  is how a regression survives review.
 - **Commit and format:** Dart uses `dart format` (2-space, trailing commas);
   `.freezed.dart` and `.g.dart` are generated and gitignored.
 
@@ -122,7 +132,7 @@ history does.
     `(Phase 0, tasks 0.9-0.11)`. `FLUTTER-CONVERT.md` is the source of truth
     for what was done and why.
   - **Do not restate rationale that is already written down.** If the reasoning,
-    trade-offs, or measurements live in `FLUTTER-CONVERT.md`, a summary
+    trade-offs, or measurements live in `FLUTTER-CONVERT-NOTES.md`, a summary
     pointing at them beats a duplicate that will drift.
 - **Footer:** end agent-authored commits with `opencode/bunny` on its own line.
 - **Never `git add -A`** — this repo has a history of stray files being picked up. Stage deliberately with `git add <path>`.

@@ -3,8 +3,9 @@
 Flutter client for the Teven API. Web-first; native packaging is deferred.
 
 Conversion of the React SPA in `../frontend` is tracked in
-[`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md). The React app remains the
-live application until task 10.3 of that plan.
+[`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md) — the task checklist — with
+progress in [`../FLUTTER-CONVERT-NOTES.md`](../FLUTTER-CONVERT-NOTES.md). The
+React app remains the live application until task 10.3 of that plan.
 
 ## Status
 
@@ -12,7 +13,8 @@ live application until task 10.3 of that plan.
 organization lists are ported and working against the backend; most routes still
 render a placeholder naming the path. The React frontend in `../frontend`
 remains the live application. See [`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md)
-for progress and the parity matrix.
+for the task list and [`../FLUTTER-CONVERT-DESIGN.md`](../FLUTTER-CONVERT-DESIGN.md)
+for the parity matrix.
 
 ## Running locally
 

@@ -13,8 +13,8 @@ part 'customer.g.dart';
 /// The geo fields (`latitude`, `longitude`, `formattedAddress`) are absent
 /// from the React types in `frontend/src/types/customers.ts` but **are** on
 /// the wire. They are included here so the data is not silently dropped; the
-/// backend's geo service is currently dead code (see FLUTTER-CONVERT.md's
-/// discrepancy table), so these are normally null.
+/// backend's geo service is currently dead code (see
+/// FLUTTER-CONVERT-DESIGN.md's discrepancy table), so these are normally null.
 @freezed
 abstract class CustomerResponse with _$CustomerResponse {
   const factory CustomerResponse({

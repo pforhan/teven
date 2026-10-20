@@ -129,7 +129,7 @@ abstract final class RsvpAvailability {
 /// How an event asks for staff.
 ///
 /// This is the **only** staffing mechanism. The staff endpoints documented in
-/// `API.md:343-351` do not exist server-side — see FLUTTER-CONVERT.md's
+/// `API.md:343-351` do not exist server-side — see FLUTTER-CONVERT-DESIGN.md's
 /// discrepancy table.
 ///
 /// [specificStaffIds] and [openInvitation] are the two mutually-exclusive

@@ -18,7 +18,7 @@ This repository contains the core documentation for the Teven project. As the pr
   See [the backend Eng Design](BACKEND-DESIGN.md) and [API specification](API.md) for more.
 * Flutter Conversion Plan:  
   The React frontend in `frontend/` is being rewritten in Flutter, web-first. The plan tracks every task, the parity matrix against the React source, and decisions made along the way.  
-  See [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for progress and [the Flutter app README](flutter_app/README.md) for development setup.
+  See [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for the task checklist, [FLUTTER-CONVERT-NOTES.md](FLUTTER-CONVERT-NOTES.md) for progress, and [the Flutter app README](flutter_app/README.md) for development setup.
 * **Future Documents:**  
   * Frontend Design Specifications  
   * Database Schema  
@@ -148,7 +148,7 @@ against the Flutter dev server, `/api` returns a 404. It also needs a fixed
 backend's CORS allow-list cannot name. `./teven dev` sets both. See
 `flutter_app/README.md` for the full flag list.
 
-See [flutter_app/README.md](flutter_app/README.md) for analysis, tests, and code generation commands, and [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for the full task list and current progress.
+See [flutter_app/README.md](flutter_app/README.md) for analysis, tests, and code generation commands, [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for the full task list, and [FLUTTER-CONVERT-NOTES.md](FLUTTER-CONVERT-NOTES.md) for the progress log.
 
 ## **Contributing**
 
