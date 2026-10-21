@@ -113,7 +113,12 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       _time.text = timeParam;
     }
     if (_date.text.isEmpty) {
-      _date.text = DateTime.now().toIso8601String().split('T').first;
+      // **Local calendar day, not the UTC one.** `toIso8601String()` converts
+      // to UTC before formatting, so at local midnight east of UTC it reports
+      // *yesterday* — and the event would be created on the wrong day. The
+      // helper that avoids this is [formatLocalDate]; see `local_date.dart`
+      // for the full account of why the raw form is wrong here.
+      _date.text = formatLocalDate(DateTime.now());
     }
     if (_time.text.isEmpty) {
       _time.text = '10:00:00';

@@ -163,7 +163,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               controller: _phoneController,
               decoration: const InputDecoration(labelText: 'Phone Number'),
             ),
-            DateField(controller: _dobController, label: 'Date of Birth'),
+            DateField(
+              controller: _dobController,
+              label: 'Date of Birth',
+              // **Past only, and stated here rather than left to the field's
+              // default.** A date of birth is a date that has already
+              // happened; picking a future one is not a birth date. The
+              // shared `DateField` no longer caps at today — the event
+              // forms need to schedule forward — so the constraint that
+              // belongs to this field alone is expressed at this call site.
+              lastDate: DateTime.now(),
+            ),
             TextFormField(
               controller: _skillsController,
               decoration: const InputDecoration(

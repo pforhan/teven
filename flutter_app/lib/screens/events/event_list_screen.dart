@@ -320,10 +320,11 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
 ///
 /// `DateField` from task 5.9 rather than a raw text field, so the date is picked
 /// rather than typed and the value is always a valid `yyyy-MM-dd` — which
-/// matters here because it goes straight into the query. `lastDate` is pushed
-/// out because this screen's whole point is upcoming events, and `DateField`
-/// defaults it to *now*, which would make every event past this afternoon
-/// unpickable.
+/// matters here because it goes straight into the query. **No `lastDate`
+/// override**: the field's own default already reaches into the future,
+/// which is what this screen's start-date filter needs — it floors the query
+/// at a day, and a user picking a start date beyond today is looking for
+/// events further out, not being blocked from looking.
 class _Filters extends StatelessWidget {
   const _Filters({
     required this.onSearch,
@@ -393,7 +394,6 @@ class _Filters extends StatelessWidget {
               child: DateField(
                 controller: dateController,
                 label: 'Start Date',
-                lastDate: DateTime(DateTime.now().year + 5),
                 onChanged: (picked) {
                   if (picked != null) {
                     onStartDateChanged(formatLocalDate(picked));

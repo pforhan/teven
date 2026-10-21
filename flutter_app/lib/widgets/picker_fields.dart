@@ -5,13 +5,21 @@ import 'package:intl/intl.dart';
 /// A read-only text field that opens `showDatePicker` on tap.
 ///
 /// Task 5.9. Replaces `<input type="date">` — the React forms use it for
-/// date fields like `dateOfBirth` (`EditProfileForm.tsx:71`). The browser's
-/// native date picker is replaced by Flutter's own, and the field is read-only
-/// so the keyboard never opens for a value that must be a valid date.
+/// date fields like a date of birth. The browser's native date picker is
+/// replaced by Flutter's own, and the field is read-only so the keyboard
+/// never opens for a value that must be a valid date.
 ///
 /// The controller text is the `yyyy-MM-dd` string the server expects, which
 /// is also what the field displays — the format the React `<input type="date">`
 /// submitted, so the wire format does not change.
+///
+/// **The default range runs from 1900 to the end of 2100, and it includes the
+/// future on purpose.** The HTML input this replaces carries no `max`
+/// attribute, so the browser never forbade a future date. This widget used
+/// to cap the picker at *today* instead, which is wrong for a scheduling
+/// app — an event is normally booked for a day that has not arrived yet — and
+/// wrong for the original, which never had that cap. A caller with a genuine
+/// past-only bound (a date of birth) passes [lastDate] itself.
 class DateField extends StatelessWidget {
   const DateField({
     super.key,
@@ -36,10 +44,36 @@ class DateField extends StatelessWidget {
   final ValueChanged<DateTime?>? onChanged;
 
   final String? Function(String?)? validator;
+
+  /// The earliest date the picker will offer, and the floor the field's own
+  /// value is held to.
+  ///
+  /// Defaults to 1900, which is where the picker used to start.
   final DateTime? firstDate;
+
+  /// The latest date the picker will offer, and the ceiling the field's own
+  /// value is held to.
+  ///
+  /// **Defaults to the end of 2100, not today.** See the class doc.
   final DateTime? lastDate;
 
   static final _format = DateFormat('yyyy-MM-dd');
+
+  /// The earliest date the picker offers when the caller names no bound.
+  static final DateTime _defaultFirstDate = DateTime(1900);
+
+  /// The latest date the picker offers when the caller names no bound.
+  ///
+  /// **The end of 2100, so that a date in the future is selectable.** The
+  /// event forms are for scheduling work that has not happened yet; a
+  /// picker that stopped at today made the event date — the one field the
+  /// whole app exists to fill in — impossible to set forward. The HTML input
+  /// this replaces had no `max` attribute either, so this restores the
+  /// original's range rather than inventing a restriction.
+  ///
+  /// The calendar screen already draws months out to the end of 2100, so
+  /// this bound matches what the app can otherwise show.
+  static final DateTime _defaultLastDate = DateTime(2100, 12, 31);
 
   /// Parses the controller text, returning null if it is not a valid date.
   ///
@@ -56,6 +90,19 @@ class DateField extends StatelessWidget {
 
   static String _formatDate(DateTime date) => _format.format(date);
 
+  /// Brings [date] inside `[first, last]`.
+  ///
+  /// `showDatePicker` asserts that its initial date lies within the range it
+  /// is given, so a field holding a date outside the range — an event
+  /// scheduled for 2200, say — would trip the assertion rather than open.
+  /// Clamping keeps the picker openable, and the value the user sees in the
+  /// field is untouched either way; only what the picker starts on moves.
+  static DateTime _clampToRange(DateTime date, DateTime first, DateTime last) {
+    if (date.isBefore(first)) return first;
+    if (date.isAfter(last)) return last;
+    return date;
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
@@ -71,13 +118,18 @@ class DateField extends StatelessWidget {
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    final initial = _parse(controller.text) ?? DateTime.now();
-    final now = DateTime.now();
+    final first = firstDate ?? _defaultFirstDate;
+    final last = lastDate ?? _defaultLastDate;
+    final initial = _clampToRange(
+      _parse(controller.text) ?? DateTime.now(),
+      first,
+      last,
+    );
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: firstDate ?? DateTime(1900),
-      lastDate: lastDate ?? now,
+      firstDate: first,
+      lastDate: last,
     );
     if (picked != null) {
       controller.text = _formatDate(picked);

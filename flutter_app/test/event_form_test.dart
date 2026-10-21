@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:teven_app/routing/app_router.dart';
+import 'package:teven_app/widgets/picker_fields.dart';
 
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
@@ -113,6 +114,7 @@ StubAdapter eventFormAdapter({
   StubResponse? loadFailure,
   StubResponse? customersResponse,
   StubResponse? usersResponse,
+  String eventDate = '2026-03-04',
 }) => contextAdapter(
   permissions: const [_manageEvents, _viewCustomers, _manageCustomers],
   forOtherRoutes: (options) {
@@ -124,7 +126,7 @@ StubAdapter eventFormAdapter({
           const StubResponse.json('"Event with ID 7 updated"');
     }
     if (options.method == 'GET' && options.path.startsWith('/api/events/')) {
-      return loadFailure ?? eventBody();
+      return loadFailure ?? eventBody(date: eventDate);
     }
     if (options.method == 'GET' && options.path == '/api/customers') {
       return customersResponse ?? emptyCustomerPage();
@@ -209,6 +211,27 @@ void main() {
       // The location controller should now hold the customer address.
       expect(find.text('99 Customer Ave'), findsOneWidget);
     });
+
+    // The bug this form is here for: the date picker stopped at *today*, so
+    // an event could not be scheduled for a day that has not arrived yet.
+    // A scheduling app that cannot schedule forward is not a scheduling app.
+    testWidgets('the date picker reaches into the future', (tester) async {
+      final adapter = eventFormAdapter();
+      await openCreate(tester, adapter);
+
+      await tester.tap(find.byType(DateField));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+
+      // Read the dialog's own bound rather than the rendered grid: the
+      // claim under test is the *range*, and which day cells happen to be
+      // built depends on the viewport.
+      final dialog = tester.widget<DatePickerDialog>(
+        find.byType(DatePickerDialog),
+      );
+      expect(dialog.lastDate.isAfter(DateTime.now()), isTrue);
+    });
   });
 
   group('edit event form', () {
@@ -236,6 +259,44 @@ void main() {
           .map((r) => r.path)
           .toList();
       expect(path, contains('/api/events/7'));
+    });
+
+    // Editing an event that is **already scheduled in the future**. The
+    // event's own date is loaded into the date field, and the picker used
+    // to assert that its initial date fell inside its range — which, with
+    // the range capped at today, a future event was outside. The picker
+    // threw instead of opening, so the date could not be changed at all
+    // on exactly the events that most need it changed.
+    testWidgets('the date picker opens for an event scheduled in the future', (
+      tester,
+    ) async {
+      final future = DateTime.now().add(const Duration(days: 45));
+      final futureText =
+          '${future.year}-'
+          '${future.month.toString().padLeft(2, '0')}-'
+          '${future.day.toString().padLeft(2, '0')}';
+
+      final adapterWithFutureDate = eventFormAdapter(
+        customersResponse: customerPageWith(
+          name: 'Acme Customer',
+          address: '1 Customer St',
+        ),
+        eventDate: futureText,
+      );
+
+      await openEdit(tester, adapterWithFutureDate, '/events/edit/7');
+      await settleRequests(tester);
+
+      // The field holds the future date.
+      final dateField = tester.widget<TextFormField>(
+        find.byType(TextFormField).at(1),
+      );
+      expect(dateField.controller?.text, futureText);
+
+      // And the picker opens on it rather than throwing.
+      await tester.tap(find.byType(DateField));
+      await tester.pumpAndSettle();
+      expect(find.byType(DatePickerDialog), findsOneWidget);
     });
 
     // The one test here that asserts on the **request body** rather than the

@@ -3110,3 +3110,91 @@ rather than in a widget test. The seeded clusters are what made that check
 possible: with one event per day, every day looked the same and a panel
 showing the wrong one would have been indistinguishable from a panel showing
 the right one.
+
+---
+
+### 2026-10-20 — The date picker could not reach into the future
+
+**Done.** The event date — the one field the whole app exists to fill in — now
+accepts a day that has not arrived yet. `./teven verify` clean: 403 tests (398
+before, 5 new).
+
+**The bug was one line, and it was in the shared widget rather than in either
+event form.** `DateField` — the field both event forms use for the event date —
+opened `showDatePicker` with `lastDate: lastDate ?? now`. With no `lastDate`
+passed, the picker's last selectable day was **today**. The create and edit
+forms are the only two callers that pass none, so both were capped at today
+and neither could schedule forward. The event list screen, the third caller,
+*does* pass one (`DateTime(DateTime.now().year + 5)`), and its comment already
+said why: *"this screen's whole point is upcoming events"* — so the problem was
+known, worked around at one call site, and left in place at the two that
+mattered.
+
+**Nothing in the original forbade it.** The React forms use
+`<input type="date">`, which has no `max` attribute, so the browser never
+prevented a future date. The cap was introduced by the port, not inherited
+from it. Fixing it restores the original's range rather than inventing a
+restriction, and the bound is now the end of 2100 — the same horizon the
+calendar screen already draws to.
+
+#### The second defect, which the first was hiding
+
+`showDatePicker` asserts that its initial date falls inside the range it was
+given, and the field seeds that initial date from the controller — which, on
+the edit form, holds **the event's own date**. With the range capped at today,
+editing an event scheduled for next month asserted and the picker never
+opened. So the bug was not only that future dates could not be *chosen*; an
+event already in the future could not have its date *changed* at all — the
+picker threw instead of opening.
+
+The fix clamps the initial date into the range before opening the picker, so
+the field's value can never take the screen down. The value the user sees is
+untouched either way; only what the picker starts on moves.
+
+#### The one place that genuinely wants a past-only bound
+
+The date of birth. A date of birth is a date that has already happened, and
+the shared field's old default happened to give it one for free. The new
+default is permissive — the event forms need to schedule forward — so that
+constraint is now stated at the profile screen's call site, where it belongs
+and where it is visible. The event list screen's `lastDate` override went the
+other way: it existed only to work around the old default, and is now
+redundant.
+
+#### The create form's default date was a day off east of UTC
+
+Found on the way through, and fixed here because it is the same field and the
+same failure. The create form defaulted its date with
+`DateTime.now().toIso8601String().split('T')[0]`, which converts to **UTC**
+before formatting — so at local midnight east of UTC it reported *yesterday*,
+and the event was created on the wrong day. `local_date.dart` documents this
+exact call as the thing never to write, and the event list screen already uses
+`formatLocalDate`; the create form was the one that had not been converted.
+It now does.
+
+#### The tests, and why they are written the way they are
+
+Four new cases across two files, and **every one of them was checked against
+the unfixed code first** — a test that passes on the bug it is meant to catch
+is worse than no test, because it reports a fix that is not there.
+
+- `picker_fields_test.dart`: the picker's bound is in the future; a future
+  date already in the field opens a picker rather than asserting; a
+  caller-supplied `lastDate` is honoured (the date-of-birth case).
+- `event_form_test.dart`: the create form's picker reaches into the future;
+  the edit form's picker opens for an event scheduled in the future.
+
+The two screen-level cases assert on the **dialog's own `lastDate`** rather
+than on which day cells happen to be rendered. The claim under test is the
+*range*, and which cells are built depends on the viewport — asserting on the
+grid would have made the test a statement about the window size.
+
+Against the original code, both screen-level cases fail with the real symptom:
+`initialDate 2026-12-04 00:00:00.000 must be on or before lastDate
+2026-10-20 00:00:00.000.` — the assert, caught by the test framework, which
+is exactly what a user would have hit.
+
+### The two event forms, unified (9.13–9.18)
+
+The create and edit event screens are the app's densest and the only pair written out twice. They are 805 and 700 lines, and the three nested modals alone are ~300 duplicated lines — which is why the two drifted apart in the first place: the duration default, the location latch, the organization field and the organization-on-the-wire each ended up with a different answer in each file. These six tasks are one unit of work: 9.13 is the pure refactor that makes the other four land in one place instead of two, and 9.18 replaces the tests for the screens they replace.
+

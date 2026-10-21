@@ -104,6 +104,89 @@ void main() {
       // assertion is that the field did not become 'garbage'.
       expect(controller.text, isNot('garbage'));
     });
+
+    // The bug this file's date tests exist for: the picker used to stop at
+    // *today*, which made the event date — the one field the whole app
+    // exists to fill in — impossible to set forward. A scheduling app whose
+    // only date input is "today or yesterday" is not a scheduling app.
+    testWidgets('a date in the future can be picked', (tester) async {
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        wrap(DateField(controller: controller, label: 'Date')),
+      );
+
+      await tester.tap(find.byType(TextFormField));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+
+      // The dialog's own bounds are the contract: the picker's last
+      // selectable day must be in the future. Read off the dialog rather
+      // than inferred from the rendered grid, so the assertion is about the
+      // range and not about which cells happen to be on screen.
+      final dialog = tester.widget<DatePickerDialog>(
+        find.byType(DatePickerDialog),
+      );
+      expect(dialog.lastDate.isAfter(DateTime.now()), isTrue);
+    });
+
+    testWidgets('the picker opens on a future date already in the field', (
+      tester,
+    ) async {
+      // A future date already in the controller — an event scheduled for
+      // next month, loaded by the edit form. `showDatePicker` asserts that
+      // the initial date is within its range, so a value past the bound
+      // would take the screen down rather than open a picker.
+      final future = DateTime.now().add(const Duration(days: 45));
+      final controller = TextEditingController(
+        text:
+            '${future.year}-${future.month.toString().padLeft(2, '0')}-'
+            '${future.day.toString().padLeft(2, '0')}',
+      );
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        wrap(DateField(controller: controller, label: 'Date')),
+      );
+
+      await tester.tap(find.byType(TextFormField));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+
+      // Confirming without changing the date leaves it alone.
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(controller.text, isNotEmpty);
+    });
+
+    testWidgets('a caller-supplied lastDate is honoured', (tester) async {
+      // The date of birth is the case that genuinely wants a past-only
+      // bound. The field's default no longer provides one, so the bound
+      // has to come from the call site — and it has to actually apply.
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        wrap(
+          DateField(
+            controller: controller,
+            label: 'Date of Birth',
+            lastDate: DateTime.now(),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byType(TextFormField));
+      await tester.pumpAndSettle();
+
+      final dialog = tester.widget<DatePickerDialog>(
+        find.byType(DatePickerDialog),
+      );
+      expect(dialog.lastDate.isAfter(DateTime.now()), isFalse);
+    });
   });
 
   group('NumberField', () {
