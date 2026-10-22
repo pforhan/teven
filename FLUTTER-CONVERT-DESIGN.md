@@ -17,8 +17,90 @@ The decisions behind the Flutter port: what was chosen and what it cost, which R
 | Web serving | Same-origin via Ktor `staticResources` | Invite links and no-CORS setup are preserved |
 | Environment | **Local only** — `flutter run -d chrome` + `docker compose` | All verification happens on a developer machine |
 | Tests | Written alongside each task | Layers with non-obvious logic are tested as they are built; Phase 12 covers integration and UI suites |
+| Time zones | **An instant plus a zone on the wire; the reader's zone on screen** | Phase 7A. Breaks the React app's event screens at 7.21, restored by 7.22 |
 
 **Deployment is out of scope.** How and where this app is hosted is handled independently of building the app, and nothing in this plan should wait on it or plan for it. The single place hosting touches a code decision is task 1.13.
+
+### Time zones
+
+The app had **no time zone concept anywhere** — not in the database, not in the API, not in the Flutter app. Every date and time was a string, read in whatever zone the reader happened to be in. Phase 7A fixes that, and it settles five decisions that the rest of the phase depends on.
+
+The tasks are in [`FLUTTER-CONVERT.md`](FLUTTER-CONVERT.md) under *Phase 7A*. The survey that produced them is in [`FLUTTER-CONVERT-NOTES.md`](FLUTTER-CONVERT-NOTES.md) under 2026-10-21, and the per-defect inventory is in the *Time zone discrepancies* table below.
+
+#### Three zones, kept apart
+
+Confusing them is the whole bug.
+
+| Zone | Whose it is | Where it lives | What it does |
+|---|---|---|---|
+| **The organization's zone** | An organization | `organizations.timezone` | Its **home** clock. The reference the picker highlights. Never coerces an event. |
+| **The event's zone** | An event | `events.timezone` | The zone the event's wall clock was picked in. It is the event's identity: a 9 AM event stays a 9 AM event. |
+| **The reader's zone** | A person, right now | **Local only** — never on the server | The zone every time is *rendered* in. |
+
+#### The reader's zone resolves in four steps
+
+1. A **local override** the reader set — stored in `shared_preferences`, never sent to the server.
+2. Otherwise the **device's zone**, detected via `flutter_timezone`.
+3. Otherwise the **current organization's zone** — the fallback when detection is unavailable.
+4. Otherwise **UTC**.
+
+The organization's zone is **not** the default. The instruction was explicit — *"translate all into the current user timezone and display accordingly"* — so the organization's zone is a **fallback** and a **highlighted reference**, and nothing more. It never coerces an event.
+
+#### Why the override is local-only, and not on the server
+
+**Settled: local only.** The reasoning, because this is the kind of decision that gets re-litigated.
+
+- **A detected zone is a property of the device, not of the account.** One person, one account, a laptop in Auckland and a phone in Berlin. A server-stored "user timezone" would be wrong half the time, and wrong *silently* — it would look authoritative while describing a machine that is not in front of the reader.
+- **The server never needs it.** Every request that depends on a zone sends the zone with it. There is no server-side computation that would want a stored per-user zone.
+- **It avoids three things that are all cost**: a `users.timezone` column, a field on `UserContextResponse`, and a round-trip on every cold boot — for a value that changes as often as someone travels.
+- **It matches how the app already treats `selectedOrganization`.** That is also stored in `shared_preferences` and is explicitly *not* per-account, for the same reason — and with the same caveat task 9.16 records: a browser's preference belongs to the browser, so whoever uses it next inherits it. The timezone override inherits that caveat too.
+
+**What would change the answer:** a product decision that the reader's zone is an *account* property — "my home zone travels with me" — as opposed to a *device* property. That is a different feature, it deserves its own task, and it is not this one.
+
+#### On the wire
+
+**An instant carries an offset and a wall clock carries its zone.** `2026-03-04T08:00:00Z` and `2026-03-04T10:00:00+02:00` are the same moment said two ways, and neither is re-interpreted. A date and a time on their own (`2026-03-04`, `09:00`) are meaningless without the zone they were picked in, so the zone travels with them. **A day is a day** — a date of birth and a staff-hours row's day are calendar days and never gain a zone. And **the server never guesses**: a naive timestamp is a **400**, not a silent assumption.
+
+**The date and time fields are replaced by one pair, not one value.** `startsAt` (the instant) and `timezone` (the zone the wall clock was picked in) travel together, because they are one fact: `startsAt` without `timezone` says when, and `timezone` without `startsAt` says which clock but not when. An update sends both or neither — a lone `startsAt` would mean "keep the old zone, move the wall clock", which is not a thing an event can be.
+
+#### The zone is the interpretation context for the date and time beside it
+
+Changing an event's zone does not move its wall clock: `(2026-03-04, 09:00, Europe/Berlin)` means *9 AM Berlin time*. The alternative — keeping the instant and re-rendering the wall clock — would silently rewrite the form's own fields under the reader's fingers, sometimes onto a different day, and the form would stop looking like the thing it is editing.
+
+The consequence is that changing the zone can move an event by up to 26 hours, which is exactly the difference between 9 AM in Auckland and 9 AM in Los Angeles. That is not a bug — it is what "in this zone" means — and it is why the field is only *de-emphasized* when it matches the organization default and is at full weight otherwise.
+
+**The edit form therefore loads the event's *own* zone, not the reader's.** An event created in `Europe/Berlin` opens in `Europe/Berlin` with its Berlin wall clock, so saving it does not move the event. If the edit form loaded the reader's zone and the reader's wall clock, saving would silently re-zone the event — the event's 9 AM Berlin would become 9 AM Auckland, and the instant with it. **This is the single most damaging thing the form could get wrong**, and an invisible one, because the form looks right and the save succeeds.
+
+#### The order the work lands in, and why
+
+The backend and the client cannot move independently, so the sequence is arranged so that **every commit leaves the Flutter app working against the running server**:
+
+| # | Task | Leaves the app working because |
+|---|---|---|
+| 7.13 | Server clock and zone pinned | No wire change at all |
+| 7.14 | Non-event date columns typed | Additive; the React client still parses the old strings |
+| 7.15 | `organizations.timezone` | Additive; an absent zone defaults to UTC |
+| 7.16 | `MANAGE_ORGANIZATION` permission | Additive; a new enum member |
+| 7.17 | Flutter timezone foundation | New capability; nothing depends on it yet |
+| 7.18 | The event becomes an instant + a zone | The server **keeps** sending `date` and `time` alongside the new fields |
+| 7.19 | The event forms send the new shape | The server accepts both shapes for one commit |
+| 7.20 | Every surface renders in the reader's zone | Pure client-side rendering change |
+| 7.21 | The legacy event fields retired | **The React app breaks here** |
+| 7.22 | React client patched | Restores the live app |
+| 7.23 | The organization's zone in the UI | Additive |
+| 7.24 | Zone-aware report windows | The Flutter report screens do not exist yet (Phase 8) |
+| 7.25–7.26 | Tests | — |
+| 7.27–7.28 | `API.md`, design doc, progress log | — |
+
+**The shape of it: the server speaks the new language first, but keeps speaking the old one until the client is ready.** 7.18 adds the new fields *alongside* the old ones; 7.19 moves the client onto the new ones; 7.21 retires the old ones. Each end of that handshake is one commit, and nothing in between is a broken state.
+
+#### What breaks, and what it costs
+
+**The React app's event screens break at 7.21** and are restored by 7.22. That is an accepted cost: the event wire format changes from a naive date and time to an instant and a zone, and the React client reads the old shape. The plan's "do not modify the backend" rule is amended for it.
+
+**Nothing else breaks.** The invitation expiry (7.14) changes shape but stays readable by the React client, with one rendering shift: a naive string was parsed as the browser's local time and a `Z` string is parsed as UTC, so a reader far from UTC may see a different calendar day for an invitation expiring late in the day. The value is now unambiguous, which is the point.
+
+**One piece of this is a net improvement regardless of the phase.** Two of the defects the phase removes — the same-day sort with no time component, and the invitation expiry compared against a clock in a different container — are not timezone *features*. They are bugs that happen to live in the timezone-shaped part of the code, and they are fixed because the rework passes through them.
 
 ### The one deployment consideration
 
@@ -93,3 +175,20 @@ Documented here so task 10.6 can address them. **Do not fix these during the por
 | **The inventory, organization and user name links are dead, as the customer one is** | `InventoryList.tsx:78` → `/inventory/{id}`, `OrganizationList.tsx:80` → `/organizations/{id}`, `UserList.tsx:123` → `/users/{id}`; `App.tsx` declares none of them. Same defect as the row above, in three more screens | **10.20** (all four screens, or none) |
 | **Seeded users cannot log in — `TestDataProvider` writes a plaintext password** | `TestDataProvider.kt` set `it[passwordHash] = "password"` and the column is `users.password`. `BCrypt.checkpw("password", "password")` throws `IllegalArgumentException: Invalid salt version`, which `AuthServiceImpl.loginUser` did not catch — so **every seeded login answered HTTP 500 with a stack trace**, not 401. Found during task 3.12's verification attempt; the seeded `alice`/`bob`/`charlie`/`diana` accounts were unreachable until the seed stored a real hash | **10.18** ✅ |
 | **The server's permission check is never enforced** | `withPermission` installs `AuthorizationPlugin`, whose `onCall` hook answers 403 — but `onCall` hooks do not short-circuit, so the route handler answers over the top of it. Measured against the running dev backend: an `Organizer` (no `*_GLOBAL` permission of any kind) got **200 and the whole organization list** from `GET /api/organizations`, and 200 from `/api/users`, `/api/customers`, `/api/inventory` and `/api/events`. Authentication is enforced; **authorization is not**. Found by hand during task 7.6 | **10.22** |
+
+### Time zone discrepancies
+
+Found while surveying the codebase for Phase 7A. These are not "the port did not reproduce a behaviour" rows — they are defects in the server and in the wire format that the zone rework removes.
+
+| Discrepancy | Evidence | Fix |
+|---|---|---|
+| **The app has no time zone concept anywhere** | `events.date` and `events.time` are `varchar(255)`; `staffhours.date` and `inventoryusage.usage_date` are `varchar`; `invitations.expires_at` is `TIMESTAMP` (no zone). No `ZoneId`, `ZoneOffset`, `Clock`, `TZ` or `PGTZ` anywhere in the repo — verified by grep across `backend/`, `docker-compose.yml`, `Dockerfile` and `.env` | **7.13–7.24** |
+| **Every date comparison is a string comparison** | `EventDao.kt:159-160` and `ReportDao.kt:33-34` compare `varchar` columns against `varchar` query parameters. Correct today **only because the writers emit ISO `YYYY-MM-DD`** — a different format would silently misbehave | **7.14**, **7.18** |
+| **Two independent zone defaults that agree by accident** | The JVM's zone comes from `/etc/localtime` in the image (`Etc/UTC`); the Postgres session zone comes from the server default (`UTC`). Set `TZ` on one container and `invitations.created_at` (written by Postgres) and `invitations.expires_at` (compared against the JVM's clock) diverge by the offset | **7.13** |
+| **`timestamp()` is not a `timestamptz`** | `DataTypeProvider.timestampType()` delegates to `dateTimeType()`, which the Postgres provider returns as `"TIMESTAMP"` — **without** a zone. `timestampWithTimeZone()` is the one that returns `"TIMESTAMP WITH TIME ZONE"`. Getting this backwards is the easy mistake, and it fails silently | **7.14**, **7.18** |
+| **A malformed invitation expiry is a 500, not a 400** | `InvitationRoutes.kt:75` calls `LocalDateTime.parse(it)`; a bad value throws `DateTimeParseException`, which the generic `StatusPages` handler turns into a 500 with a stack trace (`Application.kt:77-83`) | **7.14** |
+| **Events on the same day sort in an unspecified order** | `EventDao.kt:173` orders by `Events.date` alone. `Events.date` and `Events.time` are **never combined** anywhere — there is no "event start instant" in the system — so same-day ties come back in whatever order Postgres feels like | **7.18** (`ORDER BY startsAt`) |
+| **`usage_date` is stamped from the server's wall clock** | `InventoryDao.kt:166` writes `LocalDate.now().toString()` — the **server's** calendar day, in the server's zone, unrelated to when the inventory was used. The column is also **never read** and never surfaced in any DTO | **7.24** (correct source; still write-only) |
+| **No `Clock` seam, so no temporal logic is testable** | Five static `now()` calls: `InvitationService.kt:57,67,82`, `InvitationDao.kt:83`, `InventoryDao.kt:166`. All implicitly coupled to the JVM's default zone | **7.13** |
+| **The Flutter app has no device-zone detection and no zone database** | `pubspec.yaml` has neither `timezone` nor `flutter_timezone`; `DateTime` can only convert between local and UTC. `DateTime.now().timeZoneName` returns an abbreviation (`"EDT"`), which is ambiguous and unusable as an identifier | **7.17** |
+| **The client would render an offset-bearing timestamp in UTC** | `user_list_screen.dart:646`'s `formatDate(String)` parses the timestamp and reads `.year/.month/.day` — with an offset-bearing string that reads the **UTC** date, not the reader's. It is also a **second** wire-date formatter, alongside `lib/core/util/local_date.dart` | **7.20** (folded into the shared helper) |

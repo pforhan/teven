@@ -3198,3 +3198,77 @@ is exactly what a user would have hit.
 
 The create and edit event screens are the app's densest and the only pair written out twice. They are 805 and 700 lines, and the three nested modals alone are ~300 duplicated lines — which is why the two drifted apart in the first place: the duration default, the location latch, the organization field and the organization-on-the-wire each ended up with a different answer in each file. These six tasks are one unit of work: 9.13 is the pure refactor that makes the other four land in one place instead of two, and 9.18 replaces the tests for the screens they replace.
 
+
+---
+
+### 2026-10-21 — Phase 7A planned: the time zone survey
+
+**Nothing has been built yet.** This entry records the survey that produced Phase 7A (tasks 7.13–7.28 in the checklist) and the decisions it settled. The model and its reasoning live in *Time zones* in `FLUTTER-CONVERT-DESIGN.md`; the per-defect inventory is in that file's *Time zone discrepancies* table. This entry is the working notes — what was found, how it was found, and what was verified rather than assumed.
+
+**The headline: the app has no time zone concept anywhere.** Not in the database, not in the API, not in the Flutter client. Every date and time is a string, and every string is read in whatever zone the reader happens to be in. The scope that follows from that is much wider than tasks 7.8 and 7.9 were written to cover.
+
+#### The backend inventory
+
+Every date-like column, read from the table definitions and then **confirmed against the running dev database** rather than inferred from the Kotlin:
+
+| Column | Declared | Actual Postgres type |
+|---|---|---|
+| `events.date` | `varchar("date", 255)` | `character varying(255)` |
+| `events.time` | `varchar("time", 255)` | `character varying(255)` |
+| `staffhours.date` | `varchar("date", 255)` | `character varying(255)` |
+| `inventoryusage.usage_date` | `varchar("usage_date", 255)` | `character varying(255)` |
+| `staff_details.date_of_birth` | `varchar("date_of_birth", 20)` | **table never created** (10.13) |
+| `invitations.expires_at` | `datetime("expires_at")` | `timestamp without time zone` |
+| `invitations.created_at` | `datetime(...)` + `CURRENT_TIMESTAMP` | `timestamp without time zone` |
+
+**No `timestamptz` anywhere in the schema.** Every date comparison in the codebase is a **string** comparison — `EventDao.kt:159-160` and `ReportDao.kt:33-34` both compare `varchar` columns against `varchar` query parameters. They are correct today *only because* the writers happen to emit ISO `YYYY-MM-DD`; a different format would silently misbehave rather than fail.
+
+**There is no "event start instant" in the system.** `Events.date` and `Events.time` are never combined — not in a query, not in a comparison, not in a sort. `EventDao.kt:173` orders by the date alone, so two events on the same day come back in whatever order Postgres feels like. This is invisible in the UI, because the client sorts by the time string separately.
+
+**Two independent zone defaults that agree by accident.** The JVM's zone comes from `/etc/localtime` in the container image (`eclipse-temurin:21-jdk-jammy` → `Etc/UTC`); the Postgres session zone comes from the server default (`SHOW timezone` → `UTC`). Neither is stated in the repo — no `TZ`, no `PGTZ`, no `-Duser.timezone`. Set `TZ` on one container and `invitations.created_at` (written by Postgres) and `invitations.expires_at` (compared against the JVM's clock) diverge by the offset, and the expiry check is wrong by exactly that offset.
+
+**No `Clock` seam.** Five static `now()` calls — `InvitationService.kt:57,67,82`, `InvitationDao.kt:83`, `InventoryDao.kt:166` — so no temporal logic in the codebase is testable and all of it is implicitly coupled to the JVM's default zone. The expiry in particular is judged **twice**, once in SQL and once in Kotlin, against two different clocks.
+
+**Two more findings, both adjacent to the timezone work but not caused by it.** A malformed invitation expiry is a **500 with a stack trace** rather than a 400: `InvitationRoutes.kt:75` calls `LocalDateTime.parse`, and the generic `StatusPages` handler turns the `DateTimeParseException` into a 500. And `usage_date` is stamped from `LocalDate.now()` — the **server's** calendar day, in the server's zone, unrelated to when the inventory was used. That column is also never read and never surfaced in any DTO.
+
+#### The Exposed detail, verified rather than assumed
+
+`exposed-java-time:1.0.0-rc-1` is already on the `data` module's classpath, so no dependency changes are needed. The question was which column function gives a `timestamptz`, and the answer is **not** the obvious one. Decompiled from the jars:
+
+- `DataTypeProvider.timestampType()` delegates to `dateTimeType()`, which the Postgres provider returns as `"TIMESTAMP"` — **without** a zone.
+- `DataTypeProvider.timestampWithTimeZoneType()` returns `"TIMESTAMP WITH TIME ZONE"`.
+
+So **`timestamp()` is not a `timestamptz`**; `timestampWithTimeZone()` is, and it yields a `Column<OffsetDateTime>`. Getting this backwards fails silently — the column accepts an instant and stores it without a zone marker, and the damage only shows at a DST boundary.
+
+#### The Flutter inventory
+
+**There is no device-zone detection and no zone database.** `pubspec.yaml` has neither `timezone` nor `flutter_timezone`. Dart's `DateTime` converts between local and UTC and nothing else, so it cannot answer "what is the wall clock in `America/New_York` at this instant". `DateTime.now().timeZoneName` returns an abbreviation (`"EDT"`), which is ambiguous — `CST` is three different zones — and useless as an identifier to send to a server.
+
+**Every `DateTime.now()` in the app is local**, and there is no `.toUtc()` or `.toLocal()` anywhere in `lib/` or `test/`. Every date and time in every model is a `String` — there is not one `DateTime` field in any model file.
+
+**Two competing wire-date formatters**, which is a latent bug rather than a style issue: `lib/core/util/local_date.dart` formats from a `DateTime`'s own calendar fields, while `user_list_screen.dart:646`'s `formatDate(String)` parses a timestamp and reads `.year/.month/.day` — with an offset-bearing string that reads the **UTC** date, not the reader's. There should be one place that turns a `DateTime` into a wire date.
+
+**The existing tests encode the old model.** `models_test.dart`'s `naive-local event times` group asserts `startAt == DateTime(2026, 3, 4, 9, 30)` against a *local* `DateTime` constructor, and `event_calendar_screen_test.dart` / `event_list_screen_test.dart` compare against `DateTime.now()` in the machine's zone. Those assertions will pass or fail depending on the machine, which is precisely the defect the phase removes. They are to be **replaced**, not edited.
+
+**One finding about `table_calendar` worth keeping:** it normalises every `DateTime` it receives to `DateTime.utc(y, m, d)`, so the `day` the app gets back in `onDaySelected` / `eventLoader` / `dowBuilder` is UTC midnight, while `event.startAt` and `focusedMonth` are local. `formatLocalDate` happens to be correct for both because it reads the DateTime's own Y/M/D and never calls `.toLocal()`. **Any change to that helper that normalises to local would shift every calendar day west of UTC** — which is a trap waiting for whoever picks up the phase.
+
+#### The React app, and what breaks
+
+The React client reads `event.date` and `event.time` from the response and sends `date` + `time` on create and update. Changing the wire format therefore breaks its event calendar, event list, create form, edit form, details screen and RSVP panel. That cost was accepted in advance, and the checklist's ground rule is amended for it.
+
+`moment` is already a dependency of the React app and `moment-timezone` is **not** — `moment` alone has no zone database. The cheapest correct React-side fix is one line: `moment.tz.setDefault(<the reader's zone>)` makes `momentLocalizer(moment)`, which `react-big-calendar` already uses, render the whole calendar in that zone.
+
+#### Decisions taken
+
+1. **Three zones, kept apart** — the organization's (its home clock), the event's (its identity), and the reader's (what things render in). The reasoning is in the design doc.
+2. **The reader's zone resolves: local override → device zone → the organization's zone → UTC.** The organization's zone is a fallback and a highlighted reference, *not* the default.
+3. **The override is local-only.** A detected zone is a property of the device, not the account. The full reasoning, and what would change the answer, are in the design doc.
+4. **An instant carries an offset; a wall clock carries its zone; a day is a day; the server never guesses.** A naive timestamp is a 400.
+5. **The zone is the interpretation context for the date and time beside it** — changing it does not move the wall clock, and the edit form loads the event's own zone so that saving does not move the event.
+6. **The server speaks the new language first but keeps speaking the old one until the client is ready**, which is what lets every commit leave the Flutter app working. The order is in the design doc.
+
+#### What is verified and what is still assumed
+
+**Verified:** the schema and its column types, against the running database; the JVM and Postgres zone defaults, by `docker exec` and `SHOW timezone`; the Exposed `timestamp()` / `timestampWithTimeZone()` mapping, by decompiling the jars; the absence of any `Clock`, `ZoneId`, `TZ` or `PGTZ` in the repo, by grep; and the Flutter client's date handling, by reading every call site.
+
+**Assumed, and to be checked when the phase lands:** that `flutter_timezone`'s *web* implementation returns an IANA id rather than an abbreviation or an offset — the plugin's web path is a different code path from its native one, and "it works on Android" is not evidence about the browser, which is the platform this app actually ships on. That the Dart `timezone` package's zone list is a subset of Java's `ZoneId.getAvailableZoneIds()`, which is what makes the client's picker and the server's validation safe to pair. And the bundle-size cost of the embedded IANA database against task 0.11's baseline.
