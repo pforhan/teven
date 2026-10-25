@@ -3272,3 +3272,15 @@ The React client reads `event.date` and `event.time` from the response and sends
 **Verified:** the schema and its column types, against the running database; the JVM and Postgres zone defaults, by `docker exec` and `SHOW timezone`; the Exposed `timestamp()` / `timestampWithTimeZone()` mapping, by decompiling the jars; the absence of any `Clock`, `ZoneId`, `TZ` or `PGTZ` in the repo, by grep; and the Flutter client's date handling, by reading every call site.
 
 **Assumed, and to be checked when the phase lands:** that `flutter_timezone`'s *web* implementation returns an IANA id rather than an abbreviation or an offset — the plugin's web path is a different code path from its native one, and "it works on Android" is not evidence about the browser, which is the platform this app actually ships on. That the Dart `timezone` package's zone list is a subset of Java's `ZoneId.getAvailableZoneIds()`, which is what makes the client's picker and the server's validation safe to pair. And the bundle-size cost of the embedded IANA database against task 0.11's baseline.
+
+---
+
+### 2026-10-25 — Task 7.11: the day view lands, and the tap is no longer inert
+
+**Resolution of the gap 7.2 filed.** The touch-tap is no longer inert: a finger tapping a day now opens `/events/day?date=YYYY-MM-DD`, and the long-press remains the create gesture. The split by device from 7.2 did not change.
+
+**What 7.11 actually had to settle** — the task asked for an hourly schedule with overlapping events. There is no such widget in the dependency set (no schedule package; `table_calendar` is month-only, and task 11.7 already records that a week view would have to be hand-built), and building one would have been work beside the point of what the phase actually needed: a day someone can *select*. So the view reuses `OtherEventsPanel` — its fetch, the stale-response guard, the sort, the loading/empty/error states and the row rendering — and adds a create `FloatingActionButton` that reuses `CreateEventButton.createForDay`, which turns the day into the same `?date=` URL the calendar gestures already build. The view is a selection step, not an hourly grid; that is what was needed and the reason 7.11 is in scope at all.
+
+**subtleties caught while landing it.** `context.go` returns `void` in this go_router version (the original `unawaited` tried to use its result). The hour-without-zone question was moot — the day is a wire date, no zone. And `selectedOrganization` had to be seeded in the new day-view tests the same way its JSON shape is (a stored `OrganizationResponse`, not an id), which is the kind of shape nobody reuses by accident.
+
+**Closed** by: updated `_onDaySelected` (touch → day view, unchanged for mouse create), the `_GestureHint` wording, the AppRouter route/builder, and `test/event_day_screen_test.dart`; `test/event_calendar_screen_test.dart`'s finger-tap case now expects the day view.

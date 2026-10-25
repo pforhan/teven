@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/util/local_date.dart';
 import '../models/permissions.dart';
 import '../providers/auth_controller.dart';
 import '../screens/accept_invitation_screen.dart';
@@ -11,6 +12,7 @@ import '../screens/customers/create_customer_screen.dart';
 import '../screens/events/create_event_screen.dart';
 import '../screens/events/edit_event_screen.dart';
 import '../screens/events/event_calendar_screen.dart';
+import '../screens/events/event_day_screen.dart';
 import '../screens/events/event_details_screen.dart';
 import '../screens/events/event_list_screen.dart';
 import '../screens/customers/customer_list_screen.dart';
@@ -41,8 +43,19 @@ abstract final class AppRoutes {
   static const String events = '/events';
   static const String eventList = '/events/list';
   static const String eventCreate = '/events/create';
+  static const String eventDay = '/events/day';
   static const String eventEdit = '/events/edit/:eventId';
   static const String eventDetails = '/events/:eventId';
+
+  /// A concrete link to one day's view.
+  ///
+  /// Task 7.11: the month grid had no day view, which is what kept a touch's
+  /// tap from doing anything — task 7.2 filed that gap and this is the route
+  /// that closes it. Like the create route's `?date=`, the day is a query
+  /// parameter rather than a path segment, because a day is a plain calendar
+  /// day with no zone attached and no identity to speak of.
+  static String eventDayUrlForDay(DateTime day) =>
+      '${AppRoutes.eventDay}?date=${formatLocalDate(day)}';
 
   /// A concrete link to one event's details page.
   ///
@@ -320,6 +333,15 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   _guarded(ref, AppRoutes.eventCreate, [
     Permission.manageEventsOrganization,
   ], (_) => const CreateEventScreen()),
+  _guarded(
+    ref,
+    AppRoutes.eventDay,
+    [Permission.viewEventsOrganization],
+    (state) => EventDayScreen(
+      date:
+          state.uri.queryParameters['date'] ?? formatLocalDate(DateTime.now()),
+    ),
+  ),
   _guarded(
     ref,
     AppRoutes.eventEdit,

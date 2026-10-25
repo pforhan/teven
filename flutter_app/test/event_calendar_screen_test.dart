@@ -526,23 +526,22 @@ void main() {
       expect(path, '/events/create?date=${formatLocalDate(target)}');
     });
 
-    testWidgets("a finger's tap on a day does not open the create form", (
-      tester,
-    ) async {
+    testWidgets("a finger's tap on a day opens the day view", (tester) async {
       final container = await openCalendar(tester, calendarAdapter());
       final target = targetDay();
 
-      await tester.tap(dayCell(target));
-      await tester.pump();
+      final path = await tapAndReadLocation(
+        tester,
+        container,
+        dayCell(target),
+        kind: PointerDeviceKind.touch,
+      );
 
-      // **Still on the calendar.** A tap on a day means "show me this day" in
-      // the mobile calendar idiom, and this app has no day view — so the tap
-      // is left doing nothing rather than opening a form under a finger that
-      // was on its way to scrolling.
-      expect(currentPath(container), '/events');
-
-      await settleRequests(tester);
-      expect(currentPath(container), '/events');
+      // **Task 7.11.** A finger's tap now opens the day view, which is what the
+      // mobile calendar idiom meant by "a tap means show me this day" — and the
+      // long press, which means "I want to do something *with* this day", is
+      // still the create gesture.
+      expect(path, AppRoutes.eventDayUrlForDay(target));
     });
 
     testWidgets('the hint names the gesture the last pointer used', (
@@ -553,22 +552,30 @@ void main() {
       // **Before anything has been touched**, the hint offers the click —
       // the common case, and the one a keyboard activation would use.
       expect(find.text('Click a day to create an event.'), findsOneWidget);
-      expect(find.text('Long-press a day to create an event.'), findsNothing);
+      expect(
+        find.text('Tap a day to open the day view; long-press to create.'),
+        findsNothing,
+      );
 
-      // A finger turns it around. **The hint is the only thing that makes the
-      // long press discoverable**, because the tap it replaces does nothing at
-      // all — a gesture that is silently inert is indistinguishable from a
-      // broken cell.
-      await tester.tap(dayCell(targetDay()));
+      // **A finger turns it around.** The pointer is *cancelled rather than
+      // released*, because releasing it on a day is a tap — which, task 7.11
+      // gave something to open, would navigate off the screen the hint is on.
+      final touch = await tester.startGesture(
+        tester.getCenter(dayCell(targetDay())),
+        kind: PointerDeviceKind.touch,
+      );
       await tester.pump();
-      expect(find.text('Long-press a day to create an event.'), findsOneWidget);
+      expect(
+        find.text('Tap a day to open the day view; long-press to create.'),
+        findsOneWidget,
+      );
       expect(find.text('Click a day to create an event.'), findsNothing);
+      await touch.cancel();
+      await tester.pump();
 
-      // **And a mouse turns it back**, which is the hybrid case: the same
-      // device has both a finger and a mouse, and the gesture each of them
-      // gets is the one that works for it. The pointer is cancelled rather
-      // than released, because releasing it on a day is a click — and a click
-      // creates, which would navigate off the screen the hint is on.
+      // **And a mouse turns it back**, the hybrid case: the same device has
+      // both a finger and a mouse, and the gesture each of them gets is the
+      // one that works for it.
       final gesture = await tester.startGesture(
         tester.getCenter(dayCell(targetDay())),
         kind: PointerDeviceKind.mouse,

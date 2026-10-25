@@ -44,10 +44,13 @@ import '../../widgets/rsvp_widget.dart';
 /// mouse click creates the event; a finger has to long-press. The reason is
 /// the mobile calendar idiom — a tap on a day means "show me this day", and a
 /// long press means "I want to do something *with* this day" — and the app has
-/// no day view for a tap to open, so on a phone the tap is left doing nothing
-/// rather than opening a form under a finger that was only scrolling. **A
-/// hybrid device gets both**: the mouse still clicks, the finger still holds.
-/// See [_pointerKind] for how the two are told apart.
+/// no day view for a tap to open, so on a phone the tap was left doing nothing
+/// rather than opening a form under a finger that was only scrolling. **Task
+/// 7.11 built that day view**, and the split by device did not change: a mouse
+/// click still creates, a finger's long press still creates, and a finger's tap
+/// now opens the day. **A hybrid device gets both**: the mouse still clicks, the
+/// finger still holds. See [_pointerKind] for how the two are
+/// told apart.
 ///
 /// **This screen does not page.** See [kCalendarEventLimit] — the calendar this
 /// replaced was handed the whole visible range and had no paging model to
@@ -136,15 +139,14 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
 
   /// A day was tapped.
   ///
-  /// **A tap creates an event only when a mouse made it.**
+  /// **A tap creates an event only when a mouse made it — task 7.2 — and a
+  /// finger's tap opens the day view — task 7.11.**
   ///
   /// The finger's half of the rule is [_onDayLongPressed], and the reason for
-  /// the split is the mobile calendar idiom: a tap on a day means "show me
-  /// this day", and the app has no day view for it to open — so on a touch
-  /// screen a tap is left doing nothing rather than throwing a create form
-  /// under a finger that was on its way to scrolling.
-  ///
-  /// A mouse, a trackpad and a keyboard all land here, and all three create.
+  /// the split is the mobile calendar idiom: a tap means "show me this day",
+  /// and task 7.11 built the day view for exactly that reading. A mouse, a
+  /// trackpad and a keyboard all land here, and all three create, because for
+  /// them the tap is the create gesture.
   ///
   /// The `VIEW_USERS_GLOBAL` / no-organization check is deliberately *not*
   /// repeated here: it belongs to [CreateEventButton], and having it in two
@@ -155,9 +157,11 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
     _syncFocusedMonth(focusedDay);
 
     if (_pointerKind.value == PointerDeviceKind.touch) {
-      // A finger's tap. The month still follows the focused day — that is
-      // table_calendar's own doing and it is not ours to undo — but no form
-      // opens.
+      // A finger's tap. Task 7.11 gave it somewhere to go: the day view, which
+      // is what the mobile calendar idiom meant by "a tap means show me this
+      // day". A mouse, a trackpad and a keyboard all land here too and create,
+      // because for them the tap is the create gesture.
+      context.go(AppRoutes.eventDayUrlForDay(day));
       return;
     }
 
@@ -255,16 +259,18 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
   }
 }
 
-/// The line under the grid that says which gesture creates an event.
+/// The line under the grid that says which gesture does what.
 ///
 /// **It follows the last pointer that went down, because the rule does.**
-/// A mouse gets a click; a finger gets a long press. Before anything has been
-/// touched the hint says "click", which is the common case; the first pointer
-/// event replaces that with what actually happened.
+/// A mouse gets a click; a finger gets a tap or a long press. Before anything
+/// has been touched the hint says "click", which is the common case; the first
+/// pointer event replaces that with what actually happened.
 ///
-/// **The hint exists because the finger's tap does nothing.** A gesture that
-/// is silently inert is indistinguishable from a broken cell, and the long
-/// press is not a gesture anyone discovers on their own.
+/// **The hint exists because a gesture that is silently inert is
+/// indistinguishable from a broken cell, and a gesture nobody discovers on
+/// their own is inert.** Task 7.11 gave a finger's tap something to open — the
+/// day view — so the tap's hint is now a *view* hint rather than a missing-gesture
+/// one, and only the long press keeps the create wording.
 class _GestureHint extends StatelessWidget {
   const _GestureHint({required this.kind});
 
@@ -278,7 +284,7 @@ class _GestureHint extends StatelessWidget {
       valueListenable: kind,
       builder: (context, value, _) => Text(
         value == PointerDeviceKind.touch
-            ? 'Long-press a day to create an event.'
+            ? 'Tap a day to open the day view; long-press to create.'
             : 'Click a day to create an event.',
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.outline,
