@@ -245,7 +245,7 @@ Three things to carry into every task below:
 
   Verify: `./teven verify-backend`; `docker exec teven_backend date` and `psql -c "SHOW timezone"` both UTC; a fixed-`Clock` test drives an invitation past its expiry.
 
-- [ ] **7.14** **Type the date columns that are not events, and make an invitation's expiry a real instant.**
+- [x] **7.14** **Type the date columns that are not events, and make an invitation's expiry a real instant.**
 
   | Column | Today | Becomes |
   |---|---|---|

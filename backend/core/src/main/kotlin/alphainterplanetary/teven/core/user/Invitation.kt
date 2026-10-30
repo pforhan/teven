@@ -1,6 +1,6 @@
 package alphainterplanetary.teven.core.user
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 data class Invitation(
   val id: Int,
@@ -9,9 +9,9 @@ data class Invitation(
   val roleId: Int,
   var roleName: String,
   val token: String,
-  val expiresAt: LocalDateTime,
+  val expiresAt: Instant,
   val usedByUserId: Int?,
-  val createdAt: LocalDateTime,
+  val createdAt: Instant,
   val note: String?,
 )
 

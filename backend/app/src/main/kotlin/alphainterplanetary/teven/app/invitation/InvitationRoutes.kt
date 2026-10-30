@@ -20,7 +20,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
-import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
 
 fun Route.publicInvitationRoutes() {
   val invitationService by inject<InvitationService>()
@@ -72,7 +73,17 @@ fun Route.invitationRoutes() {
     post {
       val request = call.receive<CreateInvitationRequest>()
       val authContext = call.authentication.principal<AuthContext>()!!
-      val expiresAt = request.expiresAt?.let { LocalDateTime.parse(it) }
+      val expiresAt = request.expiresAt?.let { raw ->
+        try {
+          OffsetDateTime.parse(raw).toInstant()
+        } catch (e: DateTimeParseException) {
+          null
+        }
+      }
+      if (request.expiresAt != null && expiresAt == null) {
+        call.respond(HttpStatusCode.BadRequest, failure("Invalid invitation expiry"))
+        return@post
+      }
 
       val organizationId = request.organizationId
       if (organizationId != null && !authContext.hasPermission(Permission.MANAGE_INVITATIONS_GLOBAL)) {

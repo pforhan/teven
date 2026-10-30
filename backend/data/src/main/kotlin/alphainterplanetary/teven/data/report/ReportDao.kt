@@ -7,6 +7,7 @@ import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.inventory.InventoryItems
 import alphainterplanetary.teven.data.inventory.InventoryUsage
 import alphainterplanetary.teven.data.user.Users
+import java.time.LocalDate
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.greaterEq
@@ -30,8 +31,8 @@ class ReportDao {
       (StaffHours innerJoin Users)
         .selectAll()
         .where {
-          (StaffHours.date greaterEq staffHoursReportRequest.startDate) and
-            (StaffHours.date lessEq staffHoursReportRequest.endDate)
+          (StaffHours.date greaterEq LocalDate.parse(staffHoursReportRequest.startDate)) and
+            (StaffHours.date lessEq LocalDate.parse(staffHoursReportRequest.endDate))
         }.map { row: ResultRow -> toStaffHoursReportResponse(row) }
     }
 

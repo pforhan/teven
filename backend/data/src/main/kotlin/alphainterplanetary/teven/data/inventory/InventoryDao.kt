@@ -164,7 +164,7 @@ class InventoryDao(private val clock: Clock) {
       it[InventoryUsage.inventoryId] = inventoryId
       it[InventoryUsage.eventId] = trackInventoryUsageRequest.eventId
       it[InventoryUsage.quantityUsed] = trackInventoryUsageRequest.quantity
-      it[InventoryUsage.usageDate] = java.time.LocalDate.now(clock.zone).toString() // Use current date
+      it[InventoryUsage.usageDate] = java.time.LocalDate.now(clock.zone) // Use current date
     }
     true
   }

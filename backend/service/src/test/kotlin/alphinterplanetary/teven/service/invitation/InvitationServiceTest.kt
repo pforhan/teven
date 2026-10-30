@@ -1,6 +1,8 @@
 package alphainterplanetary.teven.service.invitation
 
 import alphainterplanetary.teven.api.model.invitation.AcceptInvitationRequest
+import alphainterplanetary.teven.api.model.organization.OrganizationResponse
+import alphainterplanetary.teven.api.model.role.RoleResponse
 import alphainterplanetary.teven.service.organization.OrganizationService
 import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.core.service.UserService
@@ -16,7 +18,6 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
-import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 class InvitationServiceTest {
@@ -29,7 +30,7 @@ class InvitationServiceTest {
   private val invitationService =
     InvitationService(invitationDao, roleService, userService, organizationService, clock)
 
-  private fun invitation(expiringAt: LocalDateTime): Invitation =
+  private fun invitation(expiringAt: Instant): Invitation =
     Invitation(
       id = 1,
       organizationId = 1,
@@ -39,14 +40,14 @@ class InvitationServiceTest {
       token = "token",
       expiresAt = expiringAt,
       usedByUserId = null,
-      createdAt = LocalDateTime.ofInstant(Instant.parse("2026-10-23T12:00:00Z"), ZoneOffset.UTC),
+      createdAt = Instant.parse("2026-10-23T12:00:00Z"),
       note = null,
     )
 
   @Test
   fun `validate invitation should accept a token that is not expired`() = runBlocking {
     coEvery { invitationDao.getInvitationByToken("token") } returns invitation(
-      expiringAt = LocalDateTime.ofInstant(Instant.parse("2026-11-06T12:00:00Z"), ZoneOffset.UTC),
+      expiringAt = Instant.parse("2026-11-06T12:00:00Z"),
     )
 
     val result = invitationService.validateInvitation("token")
@@ -57,7 +58,7 @@ class InvitationServiceTest {
   @Test
   fun `validate invitation should reject a token that has expired`() = runBlocking {
     coEvery { invitationDao.getInvitationByToken("token") } returns invitation(
-      expiringAt = LocalDateTime.ofInstant(Instant.parse("2026-10-23T12:00:00Z"), ZoneOffset.UTC),
+      expiringAt = Instant.parse("2026-10-23T12:00:00Z"),
     )
 
     val result = invitationService.validateInvitation("token")
@@ -68,7 +69,7 @@ class InvitationServiceTest {
   @Test
   fun `accept invitation should reject an expired invitation`() = runBlocking {
     coEvery { invitationDao.getInvitationByToken("token") } returns invitation(
-      expiringAt = LocalDateTime.ofInstant(Instant.parse("2026-10-23T12:00:00Z"), ZoneOffset.UTC),
+      expiringAt = Instant.parse("2026-10-23T12:00:00Z"),
     )
 
     val response = invitationService.acceptInvitation(
@@ -83,5 +84,22 @@ class InvitationServiceTest {
 
     assertFalse(response.success)
     assertEquals("Invitation has expired.", response.message)
+  }
+
+  @Test
+  fun `generate invitation should round trip an offset bearing expiry as an instant`() = runBlocking {
+    coEvery { invitationDao.createInvitation(1, 1, any(), Instant.parse("2026-11-06T10:30:00Z"), null) } returns invitation(
+      expiringAt = Instant.parse("2026-11-06T10:30:00Z"),
+    )
+    coEvery { roleService.getRoleById(1) } returns RoleResponse(roleId = 1, roleName = "Organizer", permissions = emptyList())
+    coEvery { organizationService.getOrganizationById(1) } returns OrganizationResponse(organizationId = 1, name = "Test Org", contactInformation = "Test Contact")
+
+    val response = invitationService.generateInvitation(
+      organizationId = 1,
+      roleId = 1,
+      expiresAt = Instant.parse("2026-11-06T10:30:00Z"),
+    )
+
+    assertEquals(Instant.parse("2026-11-06T10:30:00Z"), Instant.parse(response.expiresAt))
   }
 }

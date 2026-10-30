@@ -16,8 +16,8 @@ import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.data.invitation.InvitationDao
 import alphainterplanetary.teven.service.organization.OrganizationService
 import java.time.Clock
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 class InvitationService(
@@ -28,7 +28,7 @@ class InvitationService(
   private val clock: Clock,
 ) {
 
-  private fun now(): LocalDateTime = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)
+  private fun now(): Instant = clock.instant()
 
   private fun Invitation.toInvitationResponse(): InvitationResponse {
     return InvitationResponse(
@@ -47,7 +47,7 @@ class InvitationService(
   suspend fun generateInvitation(
     organizationId: Int,
     roleId: Int,
-    expiresAt: LocalDateTime? = null,
+    expiresAt: Instant? = null,
     note: String? = null,
   ): InvitationResponse {
     val role = roleService.getRoleById(roleId) ?: throw IllegalArgumentException("Role not found")
@@ -59,7 +59,7 @@ class InvitationService(
       ?: throw IllegalArgumentException("Organization not found")
 
     val token = UUID.randomUUID().toString()
-    val expiration = expiresAt ?: now().plusDays(7) // Default to 7 days
+    val expiration = expiresAt ?: now().plus(Duration.ofDays(7)) // Default to 7 days
     val invitation = invitationDao.createInvitation(organizationId, roleId, token, expiration, note)
     return invitation.copy(
       roleName = role.roleName,

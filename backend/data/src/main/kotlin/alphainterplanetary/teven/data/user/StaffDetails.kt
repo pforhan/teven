@@ -2,6 +2,7 @@ package alphainterplanetary.teven.data.user
 
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
+import org.jetbrains.exposed.v1.javatime.date
 
 object StaffDetails : IntIdTable() {
   val userId = reference("user_id", Users.id, onDelete = ReferenceOption.CASCADE).uniqueIndex()
@@ -9,5 +10,5 @@ object StaffDetails : IntIdTable() {
   val skills = text("skills") // Storing as comma-separated string for simplicity
   val hoursWorked = integer("hours_worked")
   val phoneNumber = varchar("phone_number", 20)
-  val dateOfBirth = varchar("date_of_birth", 20)
+  val dateOfBirth = date("date_of_birth")
 }

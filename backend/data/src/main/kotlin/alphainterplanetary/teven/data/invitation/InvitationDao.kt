@@ -13,7 +13,8 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Clock
-import java.time.LocalDateTime
+import java.time.Instant
+import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
 class InvitationDao(private val clock: Clock) {
@@ -22,14 +23,14 @@ class InvitationDao(private val clock: Clock) {
     organizationId: Int,
     roleId: Int,
     token: String,
-    expiresAt: LocalDateTime,
+    expiresAt: Instant,
     note: String?,
   ): Invitation = dbQuery {
     val result = Invitations.insert {
       it[Invitations.organizationId] = organizationId
       it[Invitations.roleId] = roleId
       it[Invitations.token] = token
-      it[Invitations.expiresAt] = expiresAt
+      it[Invitations.expiresAt] = OffsetDateTime.ofInstant(expiresAt, ZoneOffset.UTC)
       it[usedByUserId] = null
       it[Invitations.note] = note
     }
@@ -40,9 +41,9 @@ class InvitationDao(private val clock: Clock) {
       roleId = result[Invitations.roleId].value,
       roleName = "", // Placeholder, will be set in service
       token = result[Invitations.token],
-      expiresAt = result[Invitations.expiresAt],
+      expiresAt = result[Invitations.expiresAt].toInstant(),
       usedByUserId = null,
-      createdAt = result[Invitations.createdAt],
+      createdAt = result[Invitations.createdAt].toInstant(),
       note = result[Invitations.note],
     )
   }
@@ -64,9 +65,9 @@ class InvitationDao(private val clock: Clock) {
           roleId = it[Invitations.roleId].value,
           roleName = it[Roles.roleName],
           token = it[Invitations.token],
-          expiresAt = it[Invitations.expiresAt],
+          expiresAt = it[Invitations.expiresAt].toInstant(),
           usedByUserId = it[Invitations.usedByUserId]?.value,
-          createdAt = it[Invitations.createdAt],
+          createdAt = it[Invitations.createdAt].toInstant(),
           note = it[Invitations.note],
         )
       }
@@ -82,7 +83,7 @@ class InvitationDao(private val clock: Clock) {
   suspend fun getUnusedInvitations(organizationId: Int?): List<Invitation> = dbQuery {
     val query = Invitations.selectAll()
       .where {
-        val baseCondition = Invitations.usedByUserId.isNull() and (Invitations.expiresAt greaterEq LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
+        val baseCondition = Invitations.usedByUserId.isNull() and (Invitations.expiresAt greaterEq OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
         organizationId?.let { baseCondition and (Invitations.organizationId eq it) } ?: baseCondition
       }
     query.map { Invitation(
@@ -92,9 +93,9 @@ class InvitationDao(private val clock: Clock) {
       roleId = it[Invitations.roleId].value,
       roleName = "", // Placeholder, will be set in service
       token = it[Invitations.token],
-      expiresAt = it[Invitations.expiresAt],
+      expiresAt = it[Invitations.expiresAt].toInstant(),
       usedByUserId = it[Invitations.usedByUserId]?.value,
-      createdAt = it[Invitations.createdAt],
+      createdAt = it[Invitations.createdAt].toInstant(),
       note = it[Invitations.note],
     ) }
   }

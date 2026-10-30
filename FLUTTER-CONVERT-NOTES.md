@@ -3284,3 +3284,15 @@ The React client reads `event.date` and `event.time` from the response and sends
 **subtleties caught while landing it.** `context.go` returns `void` in this go_router version (the original `unawaited` tried to use its result). The hour-without-zone question was moot — the day is a wire date, no zone. And `selectedOrganization` had to be seeded in the new day-view tests the same way its JSON shape is (a stored `OrganizationResponse`, not an id), which is the kind of shape nobody reuses by accident.
 
 **Closed** by: updated `_onDaySelected` (touch → day view, unchanged for mouse create), the `_GestureHint` wording, the AppRouter route/builder, and `test/event_day_screen_test.dart`; `test/event_calendar_screen_test.dart`'s finger-tap case now expects the day view.
+
+### 2026-10-30 — Task 7.14: the non-event date columns get types, and the invitation expiry becomes an instant
+
+**Closed.** The columns that are not events now have real types, and the invitation's expiry is no longer a naive wall clock.
+
+**What changed.** `invitations.expires_at` and `invitations.created_at` moved from `datetime` to `timestampWithTimeZone` (`Column<OffsetDateTime>`, via the `exposed-java-time` extension that was verified in the survey entry above); `staffhours.date`, `inventoryusage.usage_date` and `staff_details.date_of_birth` moved off `varchar` onto the `date` column, which is what "a day is a day" was always pointing at. The domain `Invitation` now carries `Instant` for `expiresAt` and `createdAt`; the DAO's SQL pre-filter feeds the injected `Clock` in as an `OffsetDateTime` (`greaterEq OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)`), and the Kotlin checks are `isAfter` / `isBefore` against `clock.instant()`.
+
+**The expiry's round trip.** An offset-bearing expiry string now parses with `OffsetDateTime.parse` and lands on an `Instant`; the response serializes it back through `Instant.toString()`, which is offset-bearing ISO 8601 (`2026-11-06T10:30:00Z`). A malformed value answers **400** with `failure(...)` — the `DateTimeParseException` is caught at the route, not left to the generic status handler.
+
+**Verified:** `./teven verify-backend` (4 `InvitationServiceTest` cases, 0 failures), including the new round-trip case that generates an invitation with an offset-bearing expiry and reads it back as the same instant.
+
+**Still open from the task:** the dev database is dropped and recreated so Postgres actually applies the type changes — `createMissingTablesAndColumns` will not change a column's type, and there is no migration path. Docker was unavailable in the sandbox this session, so that step is owed to a run with the daemon up.
