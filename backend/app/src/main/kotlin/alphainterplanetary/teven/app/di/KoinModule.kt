@@ -26,17 +26,19 @@ import alphainterplanetary.teven.service.permission.PermissionServiceImpl
 import alphainterplanetary.teven.service.report.ReportService
 import alphainterplanetary.teven.service.role.RoleServiceImpl
 import alphainterplanetary.teven.service.user.UserServiceImpl
+import java.time.Clock
 import org.koin.dsl.module
 
 val appModule = module {
   single { GeoService() }
+  single<Clock> { Clock.systemUTC() }
   single { UserDao() }
   single<UserService> { UserServiceImpl(get(), get()) }
   single<AuthService> { AuthServiceImpl(get(), get(), get()) }
   single<RoleService> { RoleServiceImpl(get()) }
   single<PermissionService> { PermissionServiceImpl(get()) }
   single { EventDao() }
-  single { InventoryDao() }
+  single { InventoryDao(get()) }
   single { EventService(get()) }
   single { InventoryService(get()) }
   single { ReportDao() }
@@ -46,8 +48,8 @@ val appModule = module {
   single { OrganizationService(get(), get()) }
   single { CustomerDao() }
   single { CustomerService(get()) }
-  single { InvitationDao() }
-  single { InvitationService(get(), get(), get(), get()) }
+  single { InvitationDao(get()) }
+  single { InvitationService(get(), get(), get(), get(), get()) }
   single {
     JwtConfig(
       secret = System.getenv("JWT_SECRET")

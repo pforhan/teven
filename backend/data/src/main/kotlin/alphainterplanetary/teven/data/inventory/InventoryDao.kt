@@ -10,6 +10,7 @@ import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.event.EventInventory
 import alphainterplanetary.teven.data.organization.Organizations
+import java.time.Clock
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -23,7 +24,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 
-class InventoryDao {
+class InventoryDao(private val clock: Clock) {
   private suspend fun toInventoryItemResponse(row: ResultRow): InventoryItemResponse {
     val inventoryId = row[InventoryItems.id].value
     val events = EventInventory.selectAll().where { EventInventory.inventoryItemId eq inventoryId }
@@ -163,7 +164,7 @@ class InventoryDao {
       it[InventoryUsage.inventoryId] = inventoryId
       it[InventoryUsage.eventId] = trackInventoryUsageRequest.eventId
       it[InventoryUsage.quantityUsed] = trackInventoryUsageRequest.quantity
-      it[InventoryUsage.usageDate] = java.time.LocalDate.now().toString() // Use current date
+      it[InventoryUsage.usageDate] = java.time.LocalDate.now(clock.zone).toString() // Use current date
     }
     true
   }

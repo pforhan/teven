@@ -12,9 +12,11 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import java.time.Clock
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
-class InvitationDao {
+class InvitationDao(private val clock: Clock) {
 
   suspend fun createInvitation(
     organizationId: Int,
@@ -80,7 +82,7 @@ class InvitationDao {
   suspend fun getUnusedInvitations(organizationId: Int?): List<Invitation> = dbQuery {
     val query = Invitations.selectAll()
       .where {
-        val baseCondition = Invitations.usedByUserId.isNull() and (Invitations.expiresAt greaterEq LocalDateTime.now())
+        val baseCondition = Invitations.usedByUserId.isNull() and (Invitations.expiresAt greaterEq LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
         organizationId?.let { baseCondition and (Invitations.organizationId eq it) } ?: baseCondition
       }
     query.map { Invitation(

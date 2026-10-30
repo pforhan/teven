@@ -5,9 +5,11 @@ services:
     ports:
       - "5432:5432"
     environment:
+      TZ: UTC
       POSTGRES_DB: ${TEVEN_POSTGRES_DB:-teven_db}
       POSTGRES_USER: ${TEVEN_POSTGRES_USER:-teven_user}
       POSTGRES_PASSWORD: ${TEVEN_POSTGRES_PASSWORD:-teven_password}
+      PGTZ: UTC
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -33,6 +35,7 @@ services:
     ports:
       - "${TEVEN_BACKEND_PORT:-2022}:8080"
     environment:
+      TZ: UTC
       DB_URL: jdbc:postgresql://db:5432/${TEVEN_POSTGRES_DB:-teven_db}
       DB_USER: ${TEVEN_POSTGRES_USER:-teven_user}
       DB_PASSWORD: ${TEVEN_POSTGRES_PASSWORD:-teven_password}

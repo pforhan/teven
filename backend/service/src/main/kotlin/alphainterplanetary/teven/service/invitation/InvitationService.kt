@@ -15,7 +15,9 @@ import alphainterplanetary.teven.core.user.DeleteInvitationStatus.SUCCESS
 import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.data.invitation.InvitationDao
 import alphainterplanetary.teven.service.organization.OrganizationService
+import java.time.Clock
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 
 class InvitationService(
@@ -23,7 +25,10 @@ class InvitationService(
   private val roleService: RoleService,
   private val userService: UserService,
   private val organizationService: OrganizationService,
+  private val clock: Clock,
 ) {
+
+  private fun now(): LocalDateTime = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)
 
   private fun Invitation.toInvitationResponse(): InvitationResponse {
     return InvitationResponse(
@@ -54,7 +59,7 @@ class InvitationService(
       ?: throw IllegalArgumentException("Organization not found")
 
     val token = UUID.randomUUID().toString()
-    val expiration = expiresAt ?: LocalDateTime.now().plusDays(7) // Default to 7 days
+    val expiration = expiresAt ?: now().plusDays(7) // Default to 7 days
     val invitation = invitationDao.createInvitation(organizationId, roleId, token, expiration, note)
     return invitation.copy(
       roleName = role.roleName,
@@ -64,7 +69,7 @@ class InvitationService(
 
   suspend fun validateInvitation(token: String): ValidateInvitationResponse? {
     val invitation = invitationDao.getInvitationByToken(token)
-    return if (invitation != null && invitation.expiresAt.isAfter(LocalDateTime.now()) && invitation.usedByUserId == null) {
+    return if (invitation != null && invitation.expiresAt.isAfter(now()) && invitation.usedByUserId == null) {
       ValidateInvitationResponse(
         organizationId = invitation.organizationId,
         organizationName = invitation.organizationName,
@@ -79,7 +84,7 @@ class InvitationService(
     val invitation = invitationDao.getInvitationByToken(request.token)
       ?: return AcceptInvitationResponse(success = false, message = "Invalid or expired invitation token.")
 
-    if (invitation.expiresAt.isBefore(LocalDateTime.now())) {
+    if (invitation.expiresAt.isBefore(now())) {
       return AcceptInvitationResponse(success = false, message = "Invitation has expired.")
     }
 

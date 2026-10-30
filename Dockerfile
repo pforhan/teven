@@ -259,5 +259,10 @@ RUN --mount=type=bind,from=gradle-setup,source=/home/circleci/.gradle/wrapper,ta
 # Expose the port the application runs on
 EXPOSE 8080
 
+# Pin the JVM's time zone. The invitation and inventory logic reads the clock
+# through the injected `Clock`, and the container-level zone defaults must agree
+# with it rather than drift from the Postgres session zone.
+ENV JAVA_TOOL_OPTIONS="-Duser.timezone=UTC"
+
 # Run the application
 CMD ["java", "-jar", "backend/app/build/libs/app-all.jar"]

@@ -234,7 +234,7 @@ Three things to carry into every task below:
 
 ### The tasks
 
-- [ ] **7.13** **Pin the server's clock and its time zone.**
+- [x] **7.13** **Pin the server's clock and its time zone.**
 
   The JVM's zone and the Postgres session zone are two independent defaults that agree by accident, and there is no `Clock` seam, so no temporal logic is testable.
 
