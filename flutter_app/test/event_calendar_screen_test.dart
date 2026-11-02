@@ -275,10 +275,17 @@ void main() {
       tester,
     ) async {
       final today = DateTime.now();
-      // A date in the same month but three days out, so the server is asked for
-      // it and it is *not* on today. If placement were wrong — if every event
+      // A date in the same month but not today, so the server is asked for it
+      // and it is *not* on today. If placement were wrong — if every event
       // went to the first day, say — this would still find the title.
-      final day = today.add(const Duration(days: 3));
+      //
+      // **Not "today plus three"**: that is only three days out while the month
+      // has three days left in it, and on the 29th, 30th or 31st it has already
+      // run out — the event would then be dated in the *next* month, outside the
+      // window the grid asks for, and no pill would ever be drawn for it.
+      final day = today.day == 15
+          ? DateTime(today.year, today.month, 16)
+          : DateTime(today.year, today.month, 15);
       final adapter = calendarAdapter(
         events: [
           eventJson(
@@ -292,7 +299,7 @@ void main() {
 
       // The bar exists…
       expect(pillFor(8), findsOneWidget);
-      // …and it is on the 21st, not on today. **Asserted through the day's own
+      // …and it is not on today. **Asserted through the day's own
       // marker area** rather than by searching for a common ancestor, because
       // `table_calendar` offers none precise enough: it lays a *week* out as one
       // `Table`, so the 18th and the 21st share an ancestor and "the bar is not
@@ -767,8 +774,15 @@ void main() {
       // Every cell's left edge is its neighbour's right edge, so the rule
       // would be drawn twice — and twice is twice as dark. The grid's own
       // left edge belongs to the first column alone.
-      final sunday = nextWeekday(DateTime.now(), DateTime.sunday);
-      final monday = sunday.add(const Duration(days: 1));
+      // The first column is the first Sunday of the grid, which is the Sunday on
+      // or before the first day of the visible month — the grid's own left edge,
+      // and an outside day when the month starts mid-week. "Next Sunday" would
+      // reach into the following month's padding, which this grid does not draw.
+      final firstOfMonth = _firstOfMonth(DateTime.now());
+      final sunday = firstOfMonth.subtract(
+        Duration(days: firstOfMonth.weekday % 7),
+      );
+      final monday = DateTime(sunday.year, sunday.month, sunday.day + 1);
 
       final sundayBorder = borderOf(tester, dayCell(sunday));
       final mondayBorder = borderOf(tester, dayCell(monday));
@@ -820,11 +834,8 @@ Container weekdayCell(WidgetTester tester, String label) =>
           .first,
     );
 
-/// The next [weekday] on or after [from].
-///
-/// `DateTime.weekday` runs Monday (1) to Sunday (7).
-DateTime nextWeekday(DateTime from, int weekday) =>
-    from.add(Duration(days: (weekday - from.weekday) % 7));
+/// The first day of the month containing [date].
+DateTime _firstOfMonth(DateTime date) => DateTime(date.year, date.month, 1);
 
 /// The bar area for one calendar day.
 Finder barsOn(DateTime day) => find.byKey(ValueKey(eventMarkerKey(day)));

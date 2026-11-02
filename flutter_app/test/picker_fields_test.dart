@@ -139,7 +139,8 @@ void main() {
       // next month, loaded by the edit form. `showDatePicker` asserts that
       // the initial date is within its range, so a value past the bound
       // would take the screen down rather than open a picker.
-      final future = DateTime.now().add(const Duration(days: 45));
+      final now = DateTime.now();
+      final future = DateTime(now.year, now.month, now.day + 45);
       final controller = TextEditingController(
         text:
             '${future.year}-${future.month.toString().padLeft(2, '0')}-'

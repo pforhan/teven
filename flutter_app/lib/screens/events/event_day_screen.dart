@@ -48,8 +48,8 @@ class _EventDayScreenState extends ConsumerState<EventDayScreen> {
     // move a single calendar day in the reader's local date, which is the only
     // date the day view claims to show.
     final day = DateTime.tryParse(widget.date) ?? DateTime.now();
-    final previous = day.subtract(const Duration(days: 1));
-    final next = day.add(const Duration(days: 1));
+    final previous = DateTime(day.year, day.month, day.day - 1);
+    final next = DateTime(day.year, day.month, day.day + 1);
 
     return Scaffold(
       body: Column(

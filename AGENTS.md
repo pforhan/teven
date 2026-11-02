@@ -88,6 +88,13 @@ the source of truth for what actually happened and how it was verified.
 
 - **Verifying changes:** `./teven verify` from the repo root. Run it before
   claiming any change works.
+- **Calendar-date tests stay field-derived.** When a test derives a day from
+  "now" — placement, month edges, day views, pickers — build it from the year,
+  month and day fields rather than adding `Duration`s to a `DateTime`. Duration
+  arithmetic is absolute time, so a day added across a daylight-saving transition
+  lands at 23:00 of the *same* day, and days added near a month end can leave the
+  month altogether. Both are bugs in the test, and both looked like the behaviour
+  under test.
 - **Running the app:** `./teven dev` (hot reload against a local backend), or
   `./teven up` to see it served from the real backend the way a user does. See
   the command reference above for why not to call `flutter run` directly.

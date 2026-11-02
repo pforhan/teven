@@ -139,5 +139,38 @@ void main() {
       );
       await settleRequests(tester);
     });
+
+    testWidgets('the next-day chevron crosses a month edge', (tester) async {
+      final adapter = calendarAdapter();
+      final container = await openDay(tester, adapter, date: '2026-10-31');
+
+      // The last day of October, and the first of November — both real month
+      // edges, and the two a one-calendar-day move has to cross. The day is
+      // built from the fields rather than added to: an added day across a
+      // daylight-saving transition lands at 23:00 of the *same* day, which is a
+      // different day rather than the next one.
+      await tester.tap(find.byTooltip('Next day'));
+      await tester.pump();
+      expect(
+        currentLocation(container),
+        '${AppRoutes.eventDay}?date=2026-11-01',
+      );
+      await settleRequests(tester);
+    });
+
+    testWidgets('the previous-day chevron crosses a month edge', (
+      tester,
+    ) async {
+      final adapter = calendarAdapter();
+      final container = await openDay(tester, adapter, date: '2026-11-01');
+
+      await tester.tap(find.byTooltip('Previous day'));
+      await tester.pump();
+      expect(
+        currentLocation(container),
+        '${AppRoutes.eventDay}?date=2026-10-31',
+      );
+      await settleRequests(tester);
+    });
   });
 }

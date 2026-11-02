@@ -197,6 +197,17 @@ void main() {
       )
       .first;
 
+  /// The calendar day after today, for the start-date tests.
+  ///
+  /// Built from the year/month/day fields rather than by adding a `Duration` to
+  /// a `DateTime`: duration arithmetic is absolute time, so adding a day across
+  /// a daylight-saving transition lands at 23:00 of the *same* day, which would
+  /// make the start-date filter pick today under the name of tomorrow.
+  DateTime dayAfterToday() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day + 1);
+  }
+
   /// Opens the start-date [DateField]'s picker and chooses [target].
   ///
   /// Driven through the real Material picker rather than by writing the
@@ -344,7 +355,8 @@ void main() {
       // types into is a `TextFormField` they tap into a picker. Going through the
       // picker is also the only way to reach the integration at all, since the
       // value goes straight into the query and has to be a valid `yyyy-MM-dd`.
-      await pickStartDate(tester, DateTime.now().add(const Duration(days: 1)));
+      final tomorrow = dayAfterToday();
+      await pickStartDate(tester, tomorrow);
 
       final requests = getRequests(adapter);
       expect(requests.length, before + 1);
@@ -355,7 +367,7 @@ void main() {
       expect(requests.last.queryParameters['offset'], 0);
       expect(
         requests.last.queryParameters['startDate'],
-        formatLocalDate(DateTime.now().add(const Duration(days: 1))),
+        formatLocalDate(tomorrow),
       );
     });
 
@@ -368,7 +380,7 @@ void main() {
       // provider is unchanged and **nothing refetches**. That is also what React
       // does: `useCallback`'s dependency list holds the same string. Worth
       // knowing before writing a test that asserts a request happened.
-      await pickStartDate(tester, DateTime.now().add(const Duration(days: 1)));
+      await pickStartDate(tester, dayAfterToday());
       final before = getRequests(adapter).length;
 
       await tester.tap(find.widgetWithText(OutlinedButton, 'Today'));
