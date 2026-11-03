@@ -71,10 +71,12 @@ suspend fun populateTestData() {
     val org1Id = (Organizations.insert {
       it[name] = "${testOrgPrefix}Green Vistas Landscaping"
       it[contactInformation] = "contact@greenvistas.com"
+      it[Organizations.timezone] = "America/New_York"
     } get Organizations.id).value
     val org2Id = (Organizations.insert {
       it[name] = "${testOrgPrefix}Urban Bloom Gardens"
       it[contactInformation] = "info@urbanbloom.com"
+      it[Organizations.timezone] = "Pacific/Auckland"
     } get Organizations.id).value
 
     // Create Users

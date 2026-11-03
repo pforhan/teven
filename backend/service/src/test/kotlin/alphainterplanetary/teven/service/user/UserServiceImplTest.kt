@@ -49,7 +49,7 @@ class UserServiceImplTest {
       passwordHash = "hashed_password"
     )
     val staffRole = RoleResponse(roleId = 1, roleName = ROLE_STAFF, permissions = emptyList())
-    val organization = OrganizationResponse(1, "Test Org", "contact")
+    val organization = OrganizationResponse(organizationId = 1, name = "Test Org", contactInformation = "contact", timezone = "UTC")
 
     coEvery { userDao.createUser(any()) } returns user
     coEvery { roleService.getRolesForUser(user.userId) } returns listOf(staffRole)
@@ -139,7 +139,7 @@ class UserServiceImplTest {
 
     coEvery { userDao.getAllUsers() } returns users
     coEvery { roleService.getRolesForUser(any()) } returns emptyList()
-    coEvery { userDao.getOrganizationForUser(any()) } returns OrganizationResponse(1, "Test Org", "contact")
+    coEvery { userDao.getOrganizationForUser(any()) } returns OrganizationResponse(organizationId = 1, name = "Test Org", contactInformation = "contact", timezone = "UTC")
 
     // Act
     val result = userService.getAllUsers(authContext, null)
@@ -161,7 +161,7 @@ class UserServiceImplTest {
 
     coEvery { userDao.getUsersByOrganization(1) } returns users
     coEvery { roleService.getRolesForUser(any()) } returns emptyList()
-    coEvery { userDao.getOrganizationForUser(any()) } returns OrganizationResponse(1, "Test Org", "contact")
+    coEvery { userDao.getOrganizationForUser(any()) } returns OrganizationResponse(organizationId = 1, name = "Test Org", contactInformation = "contact", timezone = "UTC")
 
     // Act
     val result = userService.getAllUsers(authContext, 2) // Passing a different orgId

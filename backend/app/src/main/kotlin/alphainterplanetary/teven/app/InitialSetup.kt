@@ -36,7 +36,9 @@ class InitialSetup(
           CreateOrganizationRequest(
             name = "Teven",
             contactInformation = "admin@teven.com",
+            timezone = "UTC",
           ),
+          timezone = "UTC",
         )
         val superAdminUser = userDao.createUser(
           CreateUserRequest(

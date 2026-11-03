@@ -20,11 +20,15 @@ import org.jetbrains.exposed.v1.jdbc.update
 
 class OrganizationDao {
 
-  suspend fun createOrganization(request: CreateOrganizationRequest): OrganizationResponse =
+  suspend fun createOrganization(
+    request: CreateOrganizationRequest,
+    timezone: String,
+  ): OrganizationResponse =
     dbQuery {
       val insertStatement = Organizations.insert {
         it[name] = request.name
         it[contactInformation] = request.contactInformation
+        it[Organizations.timezone] = timezone
       }
       insertStatement.resultedValues?.firstOrNull()?.let { toOrganizationResponse(it) }
         ?: throw Exception("Failed to create organization")
@@ -86,6 +90,7 @@ class OrganizationDao {
         request.contactInformation?.let { contactInformation ->
           it[Organizations.contactInformation] = contactInformation
         }
+        request.timezone?.let { timezone -> it[Organizations.timezone] = timezone }
       } > 0
     }
 
@@ -104,7 +109,8 @@ class OrganizationDao {
     return OrganizationResponse(
       organizationId = row[Organizations.id].value,
       name = row[Organizations.name],
-      contactInformation = row[Organizations.contactInformation]
+      contactInformation = row[Organizations.contactInformation],
+      timezone = row[Organizations.timezone],
     )
   }
 }

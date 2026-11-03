@@ -6,4 +6,5 @@ import kotlinx.serialization.Serializable
 data class CreateOrganizationRequest(
   val name: String,
   val contactInformation: String,
+  val timezone: String,
 )

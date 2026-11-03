@@ -27,7 +27,8 @@ class CustomerDao {
           OrganizationResponse(
             organizationId = it[Organizations.id].value,
             name = it[Organizations.name],
-            contactInformation = it[Organizations.contactInformation]
+            contactInformation = it[Organizations.contactInformation],
+            timezone = it[Organizations.timezone],
           )
         }
     return CustomerResponse(
@@ -127,7 +128,8 @@ class CustomerDao {
             OrganizationResponse(
               organizationId = it[Organizations.id].value,
               name = it[Organizations.name],
-              contactInformation = it[Organizations.contactInformation]
+              contactInformation = it[Organizations.contactInformation],
+              timezone = it[Organizations.timezone],
             )
           },
       )

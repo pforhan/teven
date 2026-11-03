@@ -64,7 +64,8 @@ class EventDao {
         OrganizationResponse(
           organizationId = it[Organizations.id].value,
           name = it[Organizations.name],
-          contactInformation = it[Organizations.contactInformation]
+          contactInformation = it[Organizations.contactInformation],
+          timezone = it[Organizations.timezone],
         )
       }
 
@@ -85,7 +86,8 @@ class EventDao {
         organization = OrganizationResponse(
           organizationId = customerOrgRow[Organizations.id].value,
           name = customerOrgRow[Organizations.name],
-          contactInformation = customerOrgRow[Organizations.contactInformation]
+          contactInformation = customerOrgRow[Organizations.contactInformation],
+          timezone = customerOrgRow[Organizations.timezone],
         )
       )
     }

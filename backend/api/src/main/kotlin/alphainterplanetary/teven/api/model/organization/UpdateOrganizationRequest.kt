@@ -6,4 +6,5 @@ import kotlinx.serialization.Serializable
 data class UpdateOrganizationRequest(
   val name: String? = null,
   val contactInformation: String? = null,
+  val timezone: String,
 )

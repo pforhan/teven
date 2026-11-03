@@ -92,7 +92,7 @@ class InvitationServiceTest {
       expiringAt = Instant.parse("2026-11-06T10:30:00Z"),
     )
     coEvery { roleService.getRoleById(1) } returns RoleResponse(roleId = 1, roleName = "Organizer", permissions = emptyList())
-    coEvery { organizationService.getOrganizationById(1) } returns OrganizationResponse(organizationId = 1, name = "Test Org", contactInformation = "Test Contact")
+    coEvery { organizationService.getOrganizationById(1) } returns OrganizationResponse(organizationId = 1, name = "Test Org", contactInformation = "Test Contact", timezone = "UTC")
 
     val response = invitationService.generateInvitation(
       organizationId = 1,

@@ -3296,3 +3296,38 @@ The React client reads `event.date` and `event.time` from the response and sends
 **Verified:** `./teven verify-backend` (4 `InvitationServiceTest` cases, 0 failures), including the new round-trip case that generates an invitation with an offset-bearing expiry and reads it back as the same instant.
 
 **Still open from the task:** the dev database is dropped and recreated so Postgres actually applies the type changes — `createMissingTablesAndColumns` will not change a column's type, and there is no migration path. Docker was unavailable in the sandbox this session, so that step is owed to a run with the daemon up.
+
+### 2026-11-02 — Task 7.15: organizations get a home time zone
+
+**Closed.** An organization now has a home time zone, and the wire carries it from the database to every response that nests one.
+
+**What changed.** `Organizations.timezone` is a `varchar(64)`, and `OrganizationResponse` gains a **required** `timezone: String`, so the zone rides along on the caller's own organization in the auth context, on the event's organization in an event response, and on the customer's organization in a customer response — no extra fetch anywhere, which is the point of putting it on the org in the first place. `CreateOrganizationRequest.timezone` is optional (`String? = null`) and defaults to UTC when absent, which is what keeps the React app's create form working; `UpdateOrganizationRequest.timezone` is optional with null meaning unchanged.
+
+**The invalid-zone path.** The task's "400, not a 500" was the part that needed new machinery, not just a new column. An unknown zone used to surface as the generic `Throwable` handler's 500 with a stack trace — the same class of failure the survey recorded for a malformed invitation expiry, which is why task 7.14 caught that one at the route instead. The zone is now validated in `OrganizationService.resolveTimezone` against `ZoneId.getAvailableZoneIds()`, and an unknown zone throws a new `BadRequestException` (`core/BadRequestException.kt`) that `Application.module` installs a handler for in the `StatusPages` block: **400 with the envelope's `failure(...)`**, message `"Unknown time zone: …"`.
+
+**The seed.** The bootstrap "Teven" organization gets `UTC`; the two seeded test organizations get `America/New_York` and `Pacific/Auckland` — Auckland because it is UTC+13 in summer and UTC+12 in winter, and because it is on the other side of the date line, so the DST cases are visible in the seeded data rather than only in the code.
+
+**What did not change here.** The Flutter app is untouched by this task — the response-model field lands with task 7.23, where the picker that reads it is built. The server-side validation is the whole of the task's backend ask; the client-side picker list is task 7.17's and task 7.23's, and the server owning validation is what makes the pairing safe when it does land.
+
+**Verified:** `./teven verify-backend` green across all modules — the new `OrganizationServiceTest` (create keeps the submitted zone and rejects an unknown one; update applies the submitted zone and rejects an unknown one) plus the existing user and invitation suites, which had to grow the now-required `timezone` field.
+
+**Schema regeneration.** As with 7.14, the dev database had to be dropped and recreated for Postgres to apply the new column — `createMissingTablesAndColumns` will not alter an existing table, and this project has no migration path. The volume was dropped, the stack brought back up, and the freshly created schema came up clean under the new insert.
+
+**Verified live** (backend container rebuilt from source, dev database recreated): `GET /api/organizations` returned the zone on every item — `UTC` for the bootstrap "Teven" organization and the two seeded test organizations on `America/New_York` / `Pacific/Auckland`; a create without a zone defaulted to `UTC`; a create and a update carrying an unknown zone both answered **400** with the envelope's `error.message`; and an event's nested `organization` carried the zone through `EventDao`.
+
+**Still open from the task:** none on the backend — the remaining work is client-side, which is task 7.23's.
+
+### 2026-11-03 — Task 7.15, tightened: the time zone is always required
+
+**The follow-up the phase asked for while it was landing.** The create/update shape settled during task 7.15 kept the zone optional on create (`String? = null`, defaulting to UTC) so the React app's create form kept working — but the phase's direction had already moved to "an instant plus a zone" and "the server owns the validation", and a create that can silently land on UTC was a seam the rest of the phase was about to paper over anyway.
+
+So the decision was revised, in the same task, before the phase moved on: **the time zone is required on create and update, not defaulted.**
+
+- `CreateOrganizationRequest.timezone` is now a required `String`; `UpdateOrganizationRequest.timezone` is now a required `String`. There is no "null means unchanged" on update — an update always carries the new zone.
+- The default-to-UTC logic is gone from the service; the bootstrap organization still seeds `UTC` explicitly, and the seeded test organizations still get `America/New_York` / `Pacific/Auckland`.
+
+**The missing-field path** is handled too: a create that omits the zone now fails body conversion, and the `io.ktor.server.plugins.BadRequestException` handler installed alongside the service's own answers that with a **400** carrying the envelope, rather than letting the generic `Throwable` handler turn it into a 500.
+
+**Consequence:** the React app's organization create/edit forms now have to send a zone, which is the shape task 7.23's picker work puts in place on the Flutter side. The React forms were not touched here — that is outside task 7.22's remit, and the org-screen work belongs to the Flutter conversion.
+
+**Verified:** `./teven verify-backend` green (backend now compiles and tests clean with required-zone DTOs and the no-default service).

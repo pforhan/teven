@@ -4,11 +4,13 @@ import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.api.model.organization.UpdateOrganizationRequest
+import alphainterplanetary.teven.core.BadRequestException
 import alphainterplanetary.teven.core.security.AuthorizationException
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.core.service.UserService
 import alphainterplanetary.teven.data.organization.OrganizationDao
 import io.ktor.http.HttpStatusCode
+import java.time.ZoneId
 
 class OrganizationService(
   private val organizationDao: OrganizationDao,
@@ -31,7 +33,8 @@ class OrganizationService(
   }
 
   suspend fun createOrganization(request: CreateOrganizationRequest): OrganizationResponse {
-    return organizationDao.createOrganization(request)
+    val timezone = resolveTimezone(request.timezone)
+    return organizationDao.createOrganization(request, timezone)
   }
 
   suspend fun getAllOrganizations(): List<OrganizationResponse> {
@@ -43,6 +46,7 @@ class OrganizationService(
   }
 
   suspend fun updateOrganization(organizationId: Int, request: UpdateOrganizationRequest): Boolean {
+    resolveTimezone(request.timezone)
     return organizationDao.updateOrganization(organizationId, request)
   }
 
@@ -69,5 +73,17 @@ class OrganizationService(
       code = HttpStatusCode.Forbidden,
       message = "User does not have permission to assign users to this organization."
     )
+  }
+
+  /**
+   * An organization has a home time zone, and an event is read in the zone it
+   * was scheduled in. The zone travels with the organization now (task 7.15);
+   * it is required on create and update, and the server owns the validation.
+   */
+  private fun resolveTimezone(timezone: String): String {
+    if (!ZoneId.getAvailableZoneIds().contains(timezone)) {
+      throw BadRequestException("Unknown time zone: $timezone")
+    }
+    return timezone
   }
 }

@@ -264,11 +264,11 @@ Three things to carry into every task below:
 
   Verify: `./teven verify-backend`; an invitation's expiry round-trips with an offset.
 
-- [ ] **7.15** **Give an organization a home time zone.**
+- [x] **7.15** **Give an organization a home time zone.**
 
   - `data/organization/Organizations.kt` — `val timezone = varchar("timezone", 64)`.
   - `OrganizationResponse.timezone: String` — **required**, so every consumer sees it. `UserResponse.organization` and `EventResponse.organization` are `OrganizationResponse`s, so the zone rides along everywhere, and the reader's own organization's zone comes from the auth context with **no extra fetch**.
-  - `CreateOrganizationRequest.timezone: String? = null` — **optional**, defaulting to `UTC` when absent, so the React app's create form keeps working. `UpdateOrganizationRequest.timezone: String? = null` — null means unchanged.
+  - `CreateOrganizationRequest.timezone: String` — **required**, so an organization is never created or edited without a zone. `UpdateOrganizationRequest.timezone: String` — **required**; there is no "unchanged" value any more, an update always carries the new zone.
   - **Validate server-side:** an unknown id is a **400**, not a 500 (`ZoneId.of` throws `ZoneIdRulesException`). The check is `ZoneId.getAvailableZoneIds().contains(id)`.
   - **The client owns the picker list, the server owns the validation.** The Dart list is a subset of Java's, which is what makes the pairing safe — the client can only ever send a zone the server accepts. Verify that rather than assuming it.
   - **Seed distinct zones** so the interesting cases are visible: the two seeded test organizations get `America/New_York` and `Pacific/Auckland` (Auckland because it is UTC+13 in summer and UTC+12 in winter, and because it is on the other side of the date line). The bootstrap "Teven" organization gets `UTC`.
@@ -363,7 +363,7 @@ Three things to carry into every task below:
   - **One screen for create and edit**, following 9.13's pattern: *"edit loads an item first, create starts empty → the initial values."* The port currently has two near-identical files (`create_organization_screen.dart`, `edit_organization_screen.dart`). Merge them into one `OrganizationScreen` with a nullable `organizationId`.
   - **The time zone field** is the shared `TimeZoneField`, with **the organization being edited as its own "organization default"**. On the create screen there is no organization yet, so the field is at full weight and defaults to the reader's effective zone.
   - **The list shows the zone** — a "Time Zone" column, so a super-admin can see which organizations are on which clock.
-  - **The Flutter model gains the field**: `OrganizationResponse.timezone` (required), `CreateOrganizationRequest.timezone` (optional, defaulting to UTC), `UpdateOrganizationRequest.timezone` (optional, null meaning unchanged) — mirroring the server's DTOs.
+  - **The Flutter model gains the field**: `OrganizationResponse.timezone` (required), `CreateOrganizationRequest.timezone` (required), `UpdateOrganizationRequest.timezone` (required) — mirroring the server's DTOs.
 
 - [ ] **7.24** **Zone-aware report windows, and the inventory usage date.**
 

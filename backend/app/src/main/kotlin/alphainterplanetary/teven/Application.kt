@@ -5,6 +5,7 @@ import alphainterplanetary.teven.app.InitialSetup
 import alphainterplanetary.teven.app.configureRouting
 import alphainterplanetary.teven.app.di.appModule
 import alphainterplanetary.teven.auth.ApplicationAuth
+import alphainterplanetary.teven.core.BadRequestException
 import alphainterplanetary.teven.core.security.AuthorizationException
 import alphainterplanetary.teven.core.service.PermissionService
 import alphainterplanetary.teven.data.DatabaseFactory
@@ -71,6 +72,22 @@ fun Application.module() {
       call.respond(
         cause.code,
         failure(cause.message ?: "Authorization error")
+      )
+    }
+
+    exception<BadRequestException> { call, cause ->
+      cause.printStackTrace()
+      call.respond(
+        HttpStatusCode.BadRequest,
+        failure(cause.message ?: "Bad request")
+      )
+    }
+
+    exception<io.ktor.server.plugins.BadRequestException> { call, cause ->
+      cause.printStackTrace()
+      call.respond(
+        HttpStatusCode.BadRequest,
+        failure(cause.message ?: "Bad request")
       )
     }
 
