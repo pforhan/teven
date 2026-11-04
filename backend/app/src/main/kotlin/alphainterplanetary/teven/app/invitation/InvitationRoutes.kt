@@ -99,6 +99,7 @@ fun Route.invitationRoutes() {
         roleId = request.roleId,
         expiresAt = expiresAt,
         note = request.note,
+        callerId = authContext.userId,
       )
       call.respond(success(invitation))
     }

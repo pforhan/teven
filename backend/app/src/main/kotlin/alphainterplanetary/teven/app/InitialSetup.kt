@@ -73,6 +73,7 @@ class InitialSetup(
             Permission.MANAGE_INVENTORY_ORGANIZATION.name,
             Permission.VIEW_REPORTS_ORGANIZATION.name,
             Permission.MANAGE_INVITATIONS_ORGANIZATION.name,
+            Permission.MANAGE_ORGANIZATION.name,
             Permission.CAN_ASSIGN_STAFF.name,
             Permission.CAN_ASSIGN_ORGANIZER.name,
           ),

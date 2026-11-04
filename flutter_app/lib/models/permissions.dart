@@ -5,8 +5,7 @@
 /// Use [Permissions.parse] to convert an untrusted server string, and
 /// [Permissions.has] to test membership — see the caveat on that method.
 ///
-/// Mirrors `frontend/src/types/permissions.ts` and
-/// `backend/core/security/Permission.kt`.
+/// Mirrors the React app's permission list and the server's enum.
 enum Permission {
   manageUsersOrganization('MANAGE_USERS_ORGANIZATION'),
   manageInvitationsOrganization('MANAGE_INVITATIONS_ORGANIZATION'),
@@ -20,58 +19,39 @@ enum Permission {
   viewCustomersOrganization('VIEW_CUSTOMERS_ORGANIZATION'),
   manageCustomersOrganization('MANAGE_CUSTOMERS_ORGANIZATION'),
 
-  /// **One of the 18 that task 10.16 covers, added early because a Phase 5
-  /// form cannot be ported without it.**
+  /// The global permission for managing customers across organizations. Today it
+  /// is the gate that decides whether the customer create/edit forms can be used
+  /// at all: the server requires an organization id from a caller holding it, and
+  /// refuses an organization change from anyone who lacks it.
   ///
-  /// Both customer forms gate their organization `<select>` on
-  /// `hasPermission('MANAGE_CUSTOMERS_GLOBAL')`
-  /// (`CreateCustomerForm.tsx:29`, `EditCustomerForm.tsx:24`), and the React
-  /// `Permission` type does not name it — so under the mirror-the-15 rule the
-  /// control would never render for anyone. That is not a cosmetic loss: the
-  /// **server requires** it of a global manager.
-  /// `CustomerService.kt:62` throws `"organizationId is required for
-  /// MANAGE_CUSTOMERS_GLOBAL users"` when the request omits one, and
-  /// `:93` refuses an `organizationId` change from anyone who lacks it. So the
-  /// gate decides whether the form can create a customer at all.
-  ///
-  /// The `SuperAdmin` role is seeded with every permission
-  /// (`InitialSetup.kt:24` — `Permission.entries.map { it.name }`), so the
-  /// permission is genuinely held in practice and the dropdown is live.
-  /// `Organizer` and `Staff` are not granted it.
-  ///
-  /// Added as option (a) of 10.16 — "grant it a client constant and gate the
-  /// corresponding UI" — for the one permission this phase could not proceed
-  /// without. The other 17 still wait on that task's review.
+  /// The `SuperAdmin` role is seeded with every permission, so the permission is
+  /// genuinely held in practice; the `Organizer` and `Staff` roles are not granted
+  /// it.
   manageCustomersGlobal('MANAGE_CUSTOMERS_GLOBAL'),
 
-  /// **One of the 18 that task 10.16 covers, added early because the event
-  /// details screen cannot be ported without it.**
+  /// The permission for assigning oneself to an event — the gate behind the
+  /// RSVP buttons on the event details screen.
   ///
-  /// `EventDetails.tsx:20` gates the RSVP buttons on
-  /// `hasPermission('ASSIGN_TO_EVENTS_SELF')` — a **raw string**, not the
-  /// `Permission` const object. That is why the React app never needed it in
-  /// `permissions.ts` to work: `usePermissions().hasPermission` takes a
-  /// `string` and compares it against the server's list
-  /// (`AuthContext.tsx:84`), so a permission the client cannot *name* is still
-  /// a permission it can *ask about*.
-  ///
-  /// The permission is real and widely held. The server's enum has it
-  /// (`Permission.kt:89`), and the seeded `Organizer` and `Staff` roles are
-  /// both granted it (`InitialSetup.kt:69,91`), so it is the difference
-  /// between a user seeing the "Going" / "Not Going" buttons and seeing
-  /// "You don't have permission to RSVP to this event."
-  ///
-  /// **The server does not check it.** `POST /api/events/{id}/rsvp` carries no
-  /// `withPermission` wrapper at all (`EventRoutes.kt:128`), so this
-  /// client-side gate is the only one there is. Task 10.14 calls the
-  /// permission vestigial, because the route it was written for
-  /// (`POST /api/events/{id}/join`) was deleted on the same afternoon it was
-  /// added — this is the one place it is still load-bearing.
+  /// The server does not check it: the RSVP route carries no permission
+  /// wrapper, so this client-side gate is the only one there is.
   assignToEventsSelf('ASSIGN_TO_EVENTS_SELF'),
 
   viewInventoryOrganization('VIEW_INVENTORY_ORGANIZATION'),
   manageInventoryOrganization('MANAGE_INVENTORY_ORGANIZATION'),
   viewReportsOrganization('VIEW_REPORTS_ORGANIZATION'),
+
+  /// The organization-scoped counterpart to `MANAGE_ORGANIZATIONS_GLOBAL` — the
+  /// permission an Organizer holds to manage their own organization, today
+  /// setting its home time zone. The server scopes it to the caller's own
+  /// organization, so an Organizer holding it can read and update their own
+  /// organization but not another's; the global permission remains the
+  /// super-admin's door to any organization.
+  ///
+  /// The `SuperAdmin` role is seeded with every permission, so the global
+  /// variant is held in practice by the super admin; the seeded `Organizer` is
+  /// granted this one.
+  manageOrganization('MANAGE_ORGANIZATION'),
+
   viewOrganizationsGlobal('VIEW_ORGANIZATIONS_GLOBAL'),
   manageOrganizationsGlobal('MANAGE_ORGANIZATIONS_GLOBAL');
 
@@ -102,14 +82,12 @@ abstract final class Permissions {
 
   /// Whether [granted] contains any of [required].
   ///
-  /// **OR-semantics**, matching `ProtectedRoute.tsx:22-25`, which treats an
-  /// array of permissions as `.some()`. `App.tsx:62` relies on this: it gates
-  /// user creation on `[MANAGE_USERS_GLOBAL, MANAGE_USERS_ORGANIZATION]`, and
-  /// either one alone is sufficient.
+  /// **OR-semantics**: an array of permissions counts as any-of. The route
+  /// guard relies on this — user creation is gated on either the global or the
+  /// organization-scoped permission, and either one alone is sufficient.
   ///
-  /// An empty [required] grants access. That reproduces
-  /// `ProtectedRoute.tsx:20`, where a route with no `requiredPermission`
-  /// prop renders its children unconditionally.
+  /// An empty [required] grants access. That reproduces the route with no
+  /// permission requirement, which renders its children unconditionally.
   static bool has(Iterable<String> granted, Permission permission) =>
       granted.contains(permission.wireName);
 

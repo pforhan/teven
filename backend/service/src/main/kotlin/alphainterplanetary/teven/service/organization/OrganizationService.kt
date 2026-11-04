@@ -41,11 +41,23 @@ class OrganizationService(
     return organizationDao.getAllOrganizations()
   }
 
-  suspend fun getOrganizationById(organizationId: Int): OrganizationResponse? {
+  suspend fun getOrganizationById(organizationId: Int, callerId: Int): OrganizationResponse? {
+    if (!canAccess(callerId, organizationId, Permission.VIEW_ORGANIZATIONS_GLOBAL, Permission.MANAGE_ORGANIZATION)) {
+      throw AuthorizationException(
+        code = HttpStatusCode.Forbidden,
+        message = "User does not have permission to view this organization."
+      )
+    }
     return organizationDao.getOrganizationById(organizationId)
   }
 
-  suspend fun updateOrganization(organizationId: Int, request: UpdateOrganizationRequest): Boolean {
+  suspend fun updateOrganization(organizationId: Int, request: UpdateOrganizationRequest, callerId: Int): Boolean {
+    if (!canAccess(callerId, organizationId, Permission.MANAGE_ORGANIZATIONS_GLOBAL, Permission.MANAGE_ORGANIZATION)) {
+      throw AuthorizationException(
+        code = HttpStatusCode.Forbidden,
+        message = "User does not have permission to update this organization."
+      )
+    }
     resolveTimezone(request.timezone)
     return organizationDao.updateOrganization(organizationId, request)
   }
@@ -73,6 +85,29 @@ class OrganizationService(
       code = HttpStatusCode.Forbidden,
       message = "User does not have permission to assign users to this organization."
     )
+  }
+
+  /**
+   * Whether the caller may act on [organizationId]: they hold the global
+   * permission, or they hold the organization-scoped one and the organization is
+   * theirs. Task 7.16 gave the organization-scoped permission to the Organizer
+   * as its own door — today, setting their organization's home time zone — so the
+   * scoping lives here rather than in a route-level permission alone.
+   */
+  private suspend fun canAccess(
+    callerId: Int,
+    organizationId: Int,
+    globalPermission: Permission,
+    organizationScopedPermission: Permission,
+  ): Boolean {
+    val context = userService.getUserContext(callerId)
+    if (context.permissions.contains(globalPermission.name)) {
+      return true
+    }
+    if (!context.permissions.contains(organizationScopedPermission.name)) {
+      return false
+    }
+    return context.user.organization.organizationId == organizationId
   }
 
   /**

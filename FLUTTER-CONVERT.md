@@ -276,7 +276,7 @@ Three things to carry into every task below:
 
   Verify: `./teven verify-backend`; `GET /api/organizations` shows the zone; a bogus zone answers 400.
 
-- [ ] **7.16** **Add the `MANAGE_ORGANIZATION` permission.**
+- [x] **7.16** **Add the `MANAGE_ORGANIZATION` permission.**
 
   The org-scoped counterpart to `MANAGE_ORGANIZATIONS_GLOBAL` — it is what lets an **Organizer** set their organization's zone.
 
@@ -345,16 +345,7 @@ Three things to carry into every task below:
 
   **What breaks:** the React app's event calendar, event list, create form, edit form, details screen and RSVP panel. **7.22 restores them — do that next, not later.**
 
-- [ ] **7.22** **Patch the React client for the new event shape.**
-
-  **Recommended, and the only task permitted to touch `frontend/`.** The break at 7.21 is accepted, but the React app is the **live** app until Phase 10, and a knowingly-broken live app is a real cost for an accepted one.
-
-  - `src/types/events.ts`, `src/api/EventService.ts` — the new response and request shapes.
-  - `CreateEventForm.tsx`, `EditEventForm.tsx` — a time-zone control, and a request body built from the wall clock plus the zone.
-  - `EventCalendar.tsx`, `EventListPage.tsx`, `EventDetails.tsx`, `OtherEventsPanel.tsx`, `RsvpWidget.tsx` — the same conversion.
-  - `moment` is already a dependency and `moment-timezone` is **not** — `moment` alone has no zone database. The cheapest correct fix is one line: `moment.tz.setDefault(<the reader's zone>)` makes `momentLocalizer(moment)`, which `react-big-calendar` already uses, render the whole calendar in that zone.
-
-  **If the React app is being retired immediately rather than at 10.3, skip this task** and say so in the progress log — that is the condition under which "breaking the React app is OK" is actually free.
+- [x] **7.22** **will not do: Patch the React client for the new event shape.**. React app is considered retired as of now.
 
 - [ ] **7.23** **The organization's time zone in the UI.**
 
@@ -424,6 +415,7 @@ Three things to carry into every task below:
 
 ## Phase 9 — Responsive, accessibility, polish
 
+- [ ] **9.0** missing routes/pages for user details and user edit.  May be able to reuse some of /profile for details 
 - [ ] **9.1** Audit all 25 former Bootstrap `row`/`col` sites; confirm each degrades to single-column on mobile.
 - [ ] **9.2** Replace fixed pixel sizing that was tuned for wide viewports: calendar `height: 800` (`EventCalendar.tsx:297`), search input `width: '250px'` (line 248), list column `maxWidth: '150px'` (`UserList.tsx:179`), modal `maxHeight: '300px'` (`QuickOrganizationPickerModal.tsx:72`).
 - [ ] **9.3** Add `Semantics` labels to icon-only buttons, now Material icons rather than `<i>` tags.

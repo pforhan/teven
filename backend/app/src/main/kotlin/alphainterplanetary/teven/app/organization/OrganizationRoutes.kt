@@ -4,8 +4,10 @@ import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
 import alphainterplanetary.teven.api.model.organization.UpdateOrganizationRequest
+import alphainterplanetary.teven.app.requireAuthContext
 import alphainterplanetary.teven.auth.withPermission
 import alphainterplanetary.teven.core.security.Permission.MANAGE_ORGANIZATIONS_GLOBAL
+import alphainterplanetary.teven.core.security.Permission.MANAGE_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.VIEW_ORGANIZATIONS_GLOBAL
 import alphainterplanetary.teven.service.organization.OrganizationService
 import io.ktor.http.HttpStatusCode
@@ -23,7 +25,7 @@ fun Route.organizationRoutes() {
   val organizationService by inject<OrganizationService>()
 
   route("/api/organizations") {
-    withPermission(MANAGE_ORGANIZATIONS_GLOBAL) {
+    withPermission(MANAGE_ORGANIZATIONS_GLOBAL, MANAGE_ORGANIZATION) {
       post {
         val createOrganizationRequest = call.receive<CreateOrganizationRequest>()
         val newOrganization = organizationService.createOrganization(createOrganizationRequest)
@@ -37,7 +39,8 @@ fun Route.organizationRoutes() {
           return@put
         }
         val updateOrganizationRequest = call.receive<UpdateOrganizationRequest>()
-        if (organizationService.updateOrganization(organizationId, updateOrganizationRequest)) {
+        val authContext = requireAuthContext()
+        if (organizationService.updateOrganization(organizationId, updateOrganizationRequest, authContext.userId)) {
           call.respond(
             HttpStatusCode.OK,
             success("Organization with ID $organizationId updated")
@@ -64,7 +67,7 @@ fun Route.organizationRoutes() {
       }
     }
 
-    withPermission(VIEW_ORGANIZATIONS_GLOBAL) {
+    withPermission(VIEW_ORGANIZATIONS_GLOBAL, MANAGE_ORGANIZATION) {
       get {
         val search = call.request.queryParameters["search"]
         val limit = call.request.queryParameters["limit"]?.toIntOrNull()
@@ -88,7 +91,8 @@ fun Route.organizationRoutes() {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid organization ID"))
           return@get
         }
-        val organization = organizationService.getOrganizationById(organizationId)
+        val authContext = requireAuthContext()
+        val organization = organizationService.getOrganizationById(organizationId, authContext.userId)
         if (organization != null) {
           call.respond(HttpStatusCode.OK, success(organization))
         } else {

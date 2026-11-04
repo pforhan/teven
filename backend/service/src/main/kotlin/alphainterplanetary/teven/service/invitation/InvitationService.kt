@@ -49,13 +49,14 @@ class InvitationService(
     roleId: Int,
     expiresAt: Instant? = null,
     note: String? = null,
+    callerId: Int,
   ): InvitationResponse {
     val role = roleService.getRoleById(roleId) ?: throw IllegalArgumentException("Role not found")
     if (role.roleName !in listOf("Organizer", "Staff")) {
       throw IllegalArgumentException("Invitations can only be created for Organizer or Staff roles")
     }
 
-    val organization = organizationService.getOrganizationById(organizationId)
+    val organization = organizationService.getOrganizationById(organizationId, callerId)
       ?: throw IllegalArgumentException("Organization not found")
 
     val token = UUID.randomUUID().toString()

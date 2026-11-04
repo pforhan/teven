@@ -67,6 +67,18 @@ Add `-n`/`--dry-run` to any of them to print the commands without running them.
 - **Ktor and Exposed:** The backend uses Ktor for the web framework and Exposed for database access. All generated code should be compatible with these technologies.
 - **Coroutines for Asynchronicity:** Use Kotlin Coroutines for all asynchronous operations to maintain a non-blocking architecture.
 - **Dependency Injection:** Use Koin for dependency injection to manage component lifecycles and dependencies.
+- **Adding a Permission:**
+  - Add the enum value in `backend/core/security/Permission.kt`.
+  - Seed it into the roles that should hold it in `app/InitialSetup.kt` — the
+    SuperAdmin is seeded from `Permission.entries`, so it picks up new values
+    automatically, but the Organizer and Staff permission lists are explicit.
+  - Enforce in the service layer, not only on the route; a route-level
+    `withPermission` is not a guard until the authorization plugin short-circuits
+    (task 10.22).
+  - Widen the route's permission OR-gate (`withPermission(A_ORGANIZATION,
+    A_GLOBAL)`) where the new permission is an alternative scope.
+  - Mirror the constant in `flutter_app/lib/models/permissions.dart` with a doc
+    comment, so the client can name and gate it.
 - **Testing:**
   - **Unit Tests:** All new business logic in the `service` module should be accompanied by unit tests. Use JUnit 5 and MockK for mocking dependencies.
   - **Integration Tests:** For new API endpoints, add integration tests to verify the entire request/response flow, including database interactions.

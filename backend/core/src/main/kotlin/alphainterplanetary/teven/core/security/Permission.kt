@@ -56,6 +56,9 @@ enum class Permission {
   /** Allows a user to create, edit, and deactivate organizations. */
   MANAGE_ORGANIZATIONS_GLOBAL,
 
+  /** Allows a user to manage their own organization. */
+  MANAGE_ORGANIZATION,
+
   // Customer Management
   /** Allows a user to view customers within their own organization. */
   VIEW_CUSTOMERS_ORGANIZATION,

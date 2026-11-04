@@ -80,6 +80,19 @@ teven-backend/
 
 * **Testing:** [JUnit 5](https://junit.org/junit5/) for unit and integration testing, along with Ktor's built-in test utilities.
 
+**6. Database Migrations**
+
+The backend currently bootstraps its schema with Exposed's `SchemaUtils.create` and `createMissingTablesAndColumns` (in the data module) — create-if-missing, never alter. There is no migration tool in the project.
+
+Until one is adopted, the development workflow for any schema change is to drop the database volume and let bootstrap recreate it: `docker compose down -v`, then `./teven up`. This is what tasks 7.14, 7.15 and 10.19 each ended up needing, and it is the right workflow for a dev database whose volume can be discarded freely.
+
+**Planned:** adopt versioned migrations — Flyway is the low-friction choice for a JVM/Ktor/Exposed stack — with migration scripts applied at boot before the schema bootstrap. Once adopted, dev and any future non-dev environment run migrations in order rather than dropping and recreating.
+
+Two kinds of backend change land differently under that plan:
+
+- **Permission additions** (such as task 7.16's `MANAGE_ORGANIZATION`) change no schema; they change the permission set a seeded role carries.
+- **Schema changes** (column type changes, new tables, soft deletes) do. Those tasks have, so far, all defaulted to the drop-and-recreate path.
+
 **Conclusion**
 
 This proposed backend architecture, built on Ktor, Exposed, and Kotlin Coroutines, provides a robust, scalable, and maintainable foundation for Teven. The modular structure ensures clear separation of concerns, facilitating parallel development and easier understanding of the codebase.

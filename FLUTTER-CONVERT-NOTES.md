@@ -3331,3 +3331,23 @@ So the decision was revised, in the same task, before the phase moved on: **the 
 **Consequence:** the React app's organization create/edit forms now have to send a zone, which is the shape task 7.23's picker work puts in place on the Flutter side. The React forms were not touched here — that is outside task 7.22's remit, and the org-screen work belongs to the Flutter conversion.
 
 **Verified:** `./teven verify-backend` green (backend now compiles and tests clean with required-zone DTOs and the no-default service).
+
+### 2026-11-03 — Task 7.16: the `MANAGE_ORGANIZATION` permission lands
+
+**Closed.** An organization now has a permission an Organizer can hold for their *own* organization — `MANAGE_ORGANIZATION` — the org-scoped counterpart to `MANAGE_ORGANIZATIONS_GLOBAL`, and the permission an Organizer holds to set that organization's zone (task 7.16).
+
+**What changed.** `Permission` (`core/security/Permission.kt`) gained `MANAGE_ORGANIZATION`, the organization-scoped counterpart to `MANAGE_ORGANIZATIONS_GLOBAL`. The seeded `Organizer` role was granted it (`InitialSetup.kt`), so the seeded Organizer — who holds no `*_GLOBAL` permission — can now manage their own organization rather than only read it.
+
+**The scoping lives in the service, not the route.** Task 7.16's central decision: `OrganizationService.updateOrganization` takes the caller's id and allows the update when the caller holds `MANAGE_ORGANIZATIONS_GLOBAL`, **or** holds `MANAGE_ORGANIZATION` and the target is their own organization; otherwise it throws `AuthorizationException` (403). A new private `canAccess` helper encodes that ladder for both the read and the write paths, parameterized by the global permission and its organization-scoped twin (`VIEW_ORGANIZATIONS_GLOBAL` / `MANAGE_ORGANIZATION` for reads; `MANAGE_ORGANIZATIONS_GLOBAL` / `MANAGE_ORGANIZATION` for writes).
+
+**The read path was widened the same way**, because the edit screen cannot load without it: `GET /api/organizations/{id}` moved from `withPermission(VIEW_ORGANIZATIONS_GLOBAL)` to `withPermission(VIEW_ORGANIZATIONS_GLOBAL, MANAGE_ORGANIZATION)`, and `OrganizationService.getOrganizationById` now takes the caller's id and applies the same `canAccess` ladder. The list route stays global-only.
+
+**The route passes the caller's id down.** `PUT /api/organizations/{id}` and `GET /api/organizations/{id}` now resolve the caller via `requireAuthContext()` and hand the id to the service; the invitation flow's org lookup picked up the same parameter (`generateInvitation(callerId = …)`), since it reads an organization too.
+
+**The Flutter constant landed early**, as task 7.16 prescribed: `Permission.manageOrganization('MANAGE_ORGANIZATION')` in `flutter_app/lib/models/permissions.dart`, documented in the same shape as the early-added `MANAGE_CUSTOMERS_GLOBAL`. Task 10.16's remaining seventeen await its review; the client-side UI wiring itself belongs to task 7.23.
+
+**Verified:** `./teven verify-backend` green — the updated `OrganizationServiceTest` now covers the global-manager write, the Organizer's own-organization write, the cross-organization rejection, and the no-permission rejection, plus the read-side twin.
+
+**Verified live** (backend container rebuilt from source, dev database freshly seeded — the Organizer grant only lands on a fresh volume, since the seed skips an existing role): signing in as the seeded `Organizer` (`alice`, Green Vistas) and asking for their own organization answered **200** on read and on update, while the *other* seeded organization answered **403** on both. The own-organization write changed the zone and was then reverted to the seeded `America/New_York`.
+
+**Still open from the task:** the enforcement half — task 10.22, which makes the permission plugin short-circuit rather than letting the route handler answer over the 403. Until that lands, the service-level checks added here are the real boundary, and the widened route gates are the named permission surface they sit behind.
