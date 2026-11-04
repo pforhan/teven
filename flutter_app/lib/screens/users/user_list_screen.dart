@@ -247,7 +247,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
       flex: 2,
       render: (context, user) => RecordLinkButton(
         label: user.username,
-        onPressed: () => context.go(AppRoutes.userDetails(user.userId)),
+        onPressed: () => context.go(AppRoutes.userDetailsPath(user.userId)),
       ),
     ),
     ListColumn<UserResponse>(

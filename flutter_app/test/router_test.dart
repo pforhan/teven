@@ -5,6 +5,7 @@ import 'package:teven_app/core/api/api_exception.dart';
 import 'package:teven_app/main.dart';
 import 'package:teven_app/providers/service_providers.dart';
 import 'package:teven_app/routing/app_router.dart';
+import 'package:teven_app/screens/users/user_details_screen.dart';
 
 import 'support/auth_harness.dart';
 
@@ -17,6 +18,7 @@ import 'support/auth_harness.dart';
 /// wrong screen is not mistaken for a routing failure.
 void main() {
   const viewEvents = 'VIEW_EVENTS_ORGANIZATION';
+  const viewUsers = 'VIEW_USERS_ORGANIZATION';
 
   group('signed out', () {
     // `App.tsx:40-41`: only `/login` exists under this branch.
@@ -106,6 +108,23 @@ void main() {
 
       expect(await goTo(tester, container, '/'), AppRoutes.events);
     });
+
+    testWidgets('a user details path resolves to the user details screen', (
+      tester,
+    ) async {
+      // Task 9.0: the user list's name links build `/users/{id}`, and the
+      // route behind that shape did not exist until now — the path fell through
+      // the catch-all to `/events`. The route now exists, gated on the same
+      // permission the user list itself is gated on.
+      final container = await pumpApp(
+        tester,
+        token: 'token',
+        adapter: contextAdapter(permissions: [viewUsers]),
+      );
+
+      expect(await goTo(tester, container, '/users/42'), '/users/42');
+      expect(find.byType(UserDetailsScreen), findsOneWidget);
+    });
   });
 
   group('permission guard', () {
@@ -159,6 +178,21 @@ void main() {
       );
 
       expect(await goTo(tester, container, '/users/edit/7'), AppRoutes.profile);
+    });
+
+    testWidgets('a user details path needs VIEW_USERS_ORGANIZATION', (
+      tester,
+    ) async {
+      // Task 9.0 gates the detail page with the same permission the user list
+      // is gated on — the backend's `GET /api/users/{userId}` uses the same
+      // scope, unlike the create route's manage gate.
+      final container = await pumpApp(
+        tester,
+        token: 'token',
+        adapter: contextAdapter(permissions: [viewEvents]),
+      );
+
+      expect(await goTo(tester, container, '/users/42'), AppRoutes.events);
     });
 
     testWidgets('/profile needs no permission at all', (tester) async {

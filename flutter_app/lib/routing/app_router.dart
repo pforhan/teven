@@ -28,6 +28,7 @@ import '../screens/placeholder_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/users/create_user_screen.dart';
 import '../screens/users/edit_user_screen.dart';
+import '../screens/users/user_details_screen.dart';
 import '../screens/users/user_list_screen.dart';
 import '../widgets/app_shell.dart';
 
@@ -110,12 +111,11 @@ abstract final class AppRoutes {
 
   /// A concrete link to a user's detail page.
   ///
-  /// **There is no such route**, the same defect as [customerDetails],
-  /// [inventoryDetails] and [organizationDetails] — `App.tsx:61-63` declares
-  /// only `users`, `users/create` and `users/edit/:userId`, and
-  /// `UserList.tsx:123` links to a path that matches nothing. Reproduced, and
-  /// task 10.20 owns all four.
-  static String userDetails(int userId) => '/users/$userId';
+  /// The read-only screen at the other end of it is [UserDetailsScreen].
+  static const String userDetails = '/users/:userId';
+
+  static String userDetailsPath(int userId) =>
+      userDetails.replaceFirst(':userId', '$userId');
 
   static String userEditPath(int userId) =>
       userEdit.replaceFirst(':userId', '$userId');
@@ -433,6 +433,14 @@ List<RouteBase> _shellRoutes(Ref ref) => [
     AppRoutes.userEdit,
     [Permission.manageUsersGlobal],
     (state) => EditUserScreen(
+      userId: int.tryParse(state.pathParameters['userId'] ?? '') ?? -1,
+    ),
+  ),
+  _guarded(
+    ref,
+    AppRoutes.userDetails,
+    [Permission.viewUsersOrganization],
+    (state) => UserDetailsScreen(
       userId: int.tryParse(state.pathParameters['userId'] ?? '') ?? -1,
     ),
   ),

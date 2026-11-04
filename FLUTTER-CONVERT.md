@@ -415,7 +415,7 @@ Three things to carry into every task below:
 
 ## Phase 9 — Responsive, accessibility, polish
 
-- [ ] **9.0** missing routes/pages for user details and user edit.  May be able to reuse some of /profile for details 
+- [x] **9.0** missing routes/pages for user details and user edit.  May be able to reuse some of /profile for details 
 - [ ] **9.1** Audit all 25 former Bootstrap `row`/`col` sites; confirm each degrades to single-column on mobile.
 - [ ] **9.2** Replace fixed pixel sizing that was tuned for wide viewports: calendar `height: 800` (`EventCalendar.tsx:297`), search input `width: '250px'` (line 248), list column `maxWidth: '150px'` (`UserList.tsx:179`), modal `maxHeight: '300px'` (`QuickOrganizationPickerModal.tsx:72`).
 - [ ] **9.3** Add `Semantics` labels to icon-only buttons, now Material icons rather than `<i>` tags.
