@@ -14,7 +14,7 @@ import 'support/stub_adapter.dart';
 /// `router_test.dart`; what lives here is the screen's own behaviour.
 void main() {
   const viewUsers = 'VIEW_USERS_ORGANIZATION';
-  const manageUsersGlobal = 'MANAGE_USERS_GLOBAL';
+  const manageUsersOrganization = 'MANAGE_USERS_ORGANIZATION';
 
   /// Opens `/users/42` — the id the stubbed backend answers every user lookup
   /// with.
@@ -91,20 +91,25 @@ void main() {
   });
 
   group('the edit affordance', () {
-    testWidgets('a manager gets an edit button that opens the edit screen', (
-      tester,
-    ) async {
-      final adapter = contextAdapter(
-        permissions: [viewUsers, manageUsersGlobal],
-      );
-      final container = await openUserDetails(tester, adapter);
+    testWidgets(
+      'an organization-scoped manager gets an edit button that opens the edit screen',
+      (tester) async {
+        // The same OR the route now accepts: an organizer who manages their own
+        // organization sees the button and the route lets them through, which
+        // is the pair the user report of "edit bounces Organizers to /events"
+        // was really about.
+        final adapter = contextAdapter(
+          permissions: [viewUsers, manageUsersOrganization],
+        );
+        final container = await openUserDetails(tester, adapter);
 
-      expect(find.text('Edit'), findsOneWidget);
-      await tester.tap(find.text('Edit'));
-      await settleRequests(tester);
+        expect(find.text('Edit'), findsOneWidget);
+        await tester.tap(find.text('Edit'));
+        await settleRequests(tester);
 
-      expect(currentPath(container), AppRoutes.userEditPath(42));
-    });
+        expect(currentPath(container), AppRoutes.userEditPath(42));
+      },
+    );
 
     testWidgets('a viewer without manage rights gets no edit button', (
       tester,

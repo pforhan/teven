@@ -431,7 +431,7 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   _guarded(
     ref,
     AppRoutes.userEdit,
-    [Permission.manageUsersGlobal],
+    [Permission.manageUsersGlobal, Permission.manageUsersOrganization],
     (state) => EditUserScreen(
       userId: int.tryParse(state.pathParameters['userId'] ?? '') ?? -1,
     ),

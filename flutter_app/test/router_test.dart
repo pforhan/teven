@@ -167,17 +167,31 @@ void main() {
       }
     });
 
-    testWidgets('/users/edit needs the global scope alone', (tester) async {
-      // `App.tsx:63` gates edit on `MANAGE_USERS_GLOBAL` only, unlike the
-      // create route. Task 5.12 re-opens whether that asymmetry is intended;
-      // for now the port reproduces it rather than quietly "fixing" it.
-      final container = await pumpApp(
-        tester,
-        token: 'token',
-        adapter: contextAdapter(permissions: ['MANAGE_USERS_ORGANIZATION']),
-      );
+    testWidgets('either scope suffices for /users/edit', (tester) async {
+      // Task 5.12 recorded the asymmetry — the create route ORs the two manage
+      // scopes, the edit route gated on the global alone — and the port
+      // reproduced it rather than fixing it. The report that an organization-
+      // scoped Organizer's edit led back to `/events` was the drift made
+      // visible: the list's action column shows Edit under the same OR the
+      // create button does, so an org manager saw the button and the route
+      // then denied them. The edit route now ORs the two scopes with create,
+      // matching the server, which gates both on `MANAGE_USERS_ORGANIZATION`.
+      for (final permission in const [
+        'MANAGE_USERS_ORGANIZATION',
+        'MANAGE_USERS_GLOBAL',
+      ]) {
+        final container = await pumpApp(
+          tester,
+          token: 'token',
+          adapter: contextAdapter(permissions: [permission]),
+        );
 
-      expect(await goTo(tester, container, '/users/edit/7'), AppRoutes.profile);
+        expect(
+          await goTo(tester, container, '/users/edit/7'),
+          AppRoutes.userEditPath(7),
+          reason: permission,
+        );
+      }
     });
 
     testWidgets('a user details path needs VIEW_USERS_ORGANIZATION', (

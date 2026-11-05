@@ -3364,4 +3364,17 @@ The edit affordance the task also implied is wired: the details screen carries a
 
 **Verified:** `./teven verify` green — `flutter analyze` clean, `dart format` clean, full widget suite passing (the new tests: the details route resolves, the guard denies without `VIEW_USERS_ORGANIZATION`, the screen renders the fetched user, the failure path shows the server message rather than spinning, and the edit button navigates to the edit path).
 
-**Still open from the task:** task 5.12's edit-gate asymmetry remains — the list shows edit actions for either manage scope while the edit route itself demands the global one; the details screen now documents its choice at the call site. And task 10.20's remaining dead link (the organization-name column) is the same defect class, owned by that task.
+**Follow-up, same day: the edit gate the report proved.** The live report that
+an Organizer's edit led back to `/events` closed task 5.12's open asymmetry on
+the client side. The cause was now visible in the code the task 9.0 work had just
+added: the list's action column shows Edit under the OR of the two manage scopes
+(`manageUsersGlobal || manageUsersOrganization`), while the edit *route* — and the
+details screen's Edit button, which I had just written to mirror it — gated on the
+global permission alone. An organization-scoped Organizer saw the button and the
+route then denied them, sending them to the unauthorized fallback. The route now
+ORs the two manage scopes like the create route already did, and the backend gates
+both create and update on `MANAGE_USERS_ORGANIZATION` (which the SuperAdmin also
+holds), so the client now agrees with the server.
+
+**Still open from the task:** task 10.20's remaining dead link (the organization-name
+column) is the same defect class, owned by that task.

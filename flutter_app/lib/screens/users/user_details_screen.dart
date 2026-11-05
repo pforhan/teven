@@ -67,11 +67,18 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
-    // The edit route is gated on `MANAGE_USERS_GLOBAL` alone — task 5.12 left
-    // that asymmetry open — so the affordance here carries the same single
-    // permission, and an organization-scoped manager is never offered a button
-    // that would bounce them to `/profile` on tap.
-    final canEdit = gate.has(Permission.manageUsersGlobal);
+    // The edit route accepts either manage scope — task 5.12 recorded the
+    // create/edit asymmetry (create ORs the two, edit gated on global alone)
+    // and the port reproduced it rather than fixing it; the live report that an
+    // organization-scoped Organizer's edit led back to `/events` confirmed the
+    // drift had reached the route, and the button could no longer be trusted to
+    // ask for the right thing. The server gates both create and update on
+    // `MANAGE_USERS_ORGANIZATION` (which the SuperAdmin also holds), so the
+    // affordance here matches the route.
+    final canEdit = gate.hasAny([
+      Permission.manageUsersGlobal,
+      Permission.manageUsersOrganization,
+    ]);
 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
