@@ -5,9 +5,12 @@ import 'package:teven_app/core/api/api_exception.dart';
 import 'package:teven_app/main.dart';
 import 'package:teven_app/providers/service_providers.dart';
 import 'package:teven_app/routing/app_router.dart';
+import 'package:teven_app/screens/customers/customer_details_screen.dart';
+import 'package:teven_app/screens/inventory/inventory_details_screen.dart';
 import 'package:teven_app/screens/users/user_details_screen.dart';
 
 import 'support/auth_harness.dart';
+import 'support/stub_adapter.dart';
 
 /// Route branching, the permission guard, and the 401 redirect —
 /// tasks 2.5, 2.7, 2.8, 2.12.
@@ -19,6 +22,8 @@ import 'support/auth_harness.dart';
 void main() {
   const viewEvents = 'VIEW_EVENTS_ORGANIZATION';
   const viewUsers = 'VIEW_USERS_ORGANIZATION';
+  const viewCustomers = 'VIEW_CUSTOMERS_ORGANIZATION';
+  const viewInventory = 'VIEW_INVENTORY_ORGANIZATION';
 
   group('signed out', () {
     // `App.tsx:40-41`: only `/login` exists under this branch.
@@ -124,6 +129,80 @@ void main() {
 
       expect(await goTo(tester, container, '/users/42'), '/users/42');
       expect(find.byType(UserDetailsScreen), findsOneWidget);
+    });
+
+    testWidgets(
+      'a customer details path resolves to the customer details screen',
+      (tester) async {
+        // Task 9.0's sweep: the customer list's name links had no route behind
+        // them, so they fell through the catch-all to `/events`.
+        final container = await pumpApp(
+          tester,
+          token: 'token',
+          adapter: contextAdapter(
+            permissions: [viewCustomers],
+            forOtherRoutes: (options) => options.path == '/api/customers/42'
+                ? const StubResponse.json(
+                    '{"success":true,"data":{"customerId":42,"name":"Acme",'
+                    '"phone":"555-0100","address":"1 Main St","notes":"",'
+                    '"organization":{"organizationId":1,"name":"Acme",'
+                    '"contactInformation":""}}}',
+                  )
+                : null,
+          ),
+        );
+
+        expect(await goTo(tester, container, '/customers/42'), '/customers/42');
+        expect(find.byType(CustomerDetailsScreen), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'an inventory details path resolves to the inventory details screen',
+      (tester) async {
+        final container = await pumpApp(
+          tester,
+          token: 'token',
+          adapter: contextAdapter(
+            permissions: [viewInventory],
+            forOtherRoutes: (options) => options.path == '/api/inventory/42'
+                ? const StubResponse.json(
+                    '{"success":true,"data":{"inventoryId":42,"name":"Nails",'
+                    '"description":"Box of nails","quantity":3,"events":[],'
+                    '"organization":{"organizationId":1,"name":"Acme",'
+                    '"contactInformation":""}}}',
+                  )
+                : null,
+          ),
+        );
+
+        expect(await goTo(tester, container, '/inventory/42'), '/inventory/42');
+        expect(find.byType(InventoryDetailsScreen), findsOneWidget);
+      },
+    );
+
+    testWidgets('a customer details path needs VIEW_CUSTOMERS_ORGANIZATION', (
+      tester,
+    ) async {
+      final container = await pumpApp(
+        tester,
+        token: 'token',
+        adapter: contextAdapter(permissions: [viewEvents]),
+      );
+
+      expect(await goTo(tester, container, '/customers/42'), AppRoutes.events);
+    });
+
+    testWidgets('an inventory details path needs VIEW_INVENTORY_ORGANIZATION', (
+      tester,
+    ) async {
+      final container = await pumpApp(
+        tester,
+        token: 'token',
+        adapter: contextAdapter(permissions: [viewEvents]),
+      );
+
+      expect(await goTo(tester, container, '/inventory/42'), AppRoutes.events);
     });
   });
 

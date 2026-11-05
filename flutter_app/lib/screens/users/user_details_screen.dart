@@ -13,13 +13,14 @@ import '../../widgets/error_display.dart';
 /// One user, in full.
 ///
 /// The read-only counterpart to [EditUserScreen], reached from the user list's
-/// The fields are the
-/// **read-only rendering** of the same record the edit form edits — email, display
-/// name, roles, organization — plus the staff block the profile screen renders,
-/// so a reader and an editor are looking at the same data. It is deliberately not
-/// "the edit form in read-only mode": a read path should not inherit a write
-/// path's validators, and the staff block is precisely the part that will
-/// eventually diverge from the edit form's fields.
+/// name links.
+///
+/// The fields are the **read-only rendering** of the same record the edit form
+/// edits — email, display name, roles, organization — plus the staff block the
+/// profile screen renders, so a reader and an editor are looking at the same
+/// data. It is deliberately not "the edit form in read-only mode": a read path
+/// should not inherit a write path's validators, and the staff block is precisely
+/// the part that will eventually diverge from the edit form's fields.
 class UserDetailsScreen extends ConsumerStatefulWidget {
   const UserDetailsScreen({super.key, required this.userId});
 

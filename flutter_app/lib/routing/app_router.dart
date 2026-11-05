@@ -9,16 +9,18 @@ import '../models/permissions.dart';
 import '../providers/auth_controller.dart';
 import '../screens/accept_invitation_screen.dart';
 import '../screens/customers/create_customer_screen.dart';
+import '../screens/customers/customer_details_screen.dart';
+import '../screens/customers/customer_list_screen.dart';
+import '../screens/customers/edit_customer_screen.dart';
 import '../screens/events/create_event_screen.dart';
 import '../screens/events/edit_event_screen.dart';
 import '../screens/events/event_calendar_screen.dart';
 import '../screens/events/event_day_screen.dart';
 import '../screens/events/event_details_screen.dart';
 import '../screens/events/event_list_screen.dart';
-import '../screens/customers/customer_list_screen.dart';
-import '../screens/customers/edit_customer_screen.dart';
 import '../screens/inventory/create_inventory_screen.dart';
 import '../screens/inventory/edit_inventory_screen.dart';
+import '../screens/inventory/inventory_details_screen.dart';
 import '../screens/inventory/inventory_list_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/organizations/create_organization_screen.dart';
@@ -74,25 +76,40 @@ abstract final class AppRoutes {
   static const String customerCreate = '/customers/create';
   static const String customerEdit = '/customers/edit/:customerId';
 
+  /// A concrete link to a customer's detail page.
+  ///
+  /// **Task 9.0's sweep:** the route behind this shape did not exist, so the
+  /// customer list's name links fell through the catch-all to `/events` — an
+  /// organizer who could add or edit a customer could not view one. The screen
+  /// at the other end of it is [CustomerDetailsScreen]; task 10.20 had deferred
+  /// the build pending the backend's missing customer-events filter, and this
+  /// is the field-rendering half it sanctioned.
+  static const String customerDetails = '/customers/:customerId';
+
+  static String customerDetailsPath(int customerId) =>
+      customerDetails.replaceFirst(':customerId', '$customerId');
+
   static const String inventory = '/inventory';
   static const String inventoryCreate = '/inventory/create';
   static const String inventoryEdit = '/inventory/edit/:inventoryId';
 
-  static const String organizations = '/organizations';
-  static const String organizationCreate = '/organizations/create';
-  static const String organizationEdit = '/organizations/edit/:organizationId';
-
   /// A concrete link to an inventory item's detail page.
   ///
-  /// **There is no such route**, for the same reason there is no
-  /// [customerDetails] screen: `App.tsx:53-55` declares only `inventory`,
-  /// `inventory/create` and `inventory/edit/:inventoryId`, and
-  /// `InventoryList.tsx:78` links to a path that matches nothing. Reproduced
-  /// rather than fixed, on the same terms — see the discrepancy table.
-  static String inventoryDetails(int inventoryId) => '/inventory/$inventoryId';
+  /// **Task 9.0's sweep:** the route behind this shape did not exist, so the
+  /// inventory list's name links fell through the catch-all to `/events` — an
+  /// organizer who could add or edit an item could not view one. The screen at
+  /// the other end of it is [InventoryDetailsScreen].
+  static const String inventoryDetails = '/inventory/:inventoryId';
+
+  static String inventoryDetailsPath(int inventoryId) =>
+      inventoryDetails.replaceFirst(':inventoryId', '$inventoryId');
 
   static String inventoryEditPath(int inventoryId) =>
       inventoryEdit.replaceFirst(':inventoryId', '$inventoryId');
+
+  static const String organizations = '/organizations';
+  static const String organizationCreate = '/organizations/create';
+  static const String organizationEdit = '/organizations/edit/:organizationId';
 
   /// A concrete link to an organization's detail page.
   ///
@@ -125,22 +142,6 @@ abstract final class AppRoutes {
 
   static const String login = '/login';
   static const String register = '/register';
-
-  /// A concrete link to a customer's detail page.
-  ///
-  /// **There is no such route — in this app or in the React original.**
-  /// `App.tsx` declares only `customers`, `customers/create` and
-  /// `customers/edit/:customerId`; `frontend/src/components/customers/` has no
-  /// `CustomerDetails` component at all, and `CustomerList.tsx:78` links to a
-  /// path that matches nothing. The `*` catch-all (`App.tsx:67`) redirects to
-  /// `/`, whose index route redirects to `/events`. That is why clicking a
-  /// customer's name lands on the calendar.
-  ///
-  /// Reproduced rather than fixed, because parity is the rule through Phase 8
-  /// and this is a dead link that predates the port rather than a regression
-  /// introduced by it. Recorded in the discrepancy table with an owning task,
-  /// since the screen it implies is missing from the plan entirely.
-  static String customerDetails(int customerId) => '/customers/$customerId';
 
   /// A concrete link to the edit form for one customer.
   static String customerEditPath(int customerId) =>
@@ -385,6 +386,14 @@ List<RouteBase> _shellRoutes(Ref ref) => [
       customerId: int.tryParse(state.pathParameters['customerId'] ?? '') ?? -1,
     ),
   ),
+  _guarded(
+    ref,
+    AppRoutes.customerDetails,
+    [Permission.viewCustomersOrganization],
+    (state) => CustomerDetailsScreen(
+      customerId: int.tryParse(state.pathParameters['customerId'] ?? '') ?? -1,
+    ),
+  ),
 
   _guarded(ref, AppRoutes.inventory, [
     Permission.viewInventoryOrganization,
@@ -397,6 +406,15 @@ List<RouteBase> _shellRoutes(Ref ref) => [
     AppRoutes.inventoryEdit,
     [Permission.manageInventoryOrganization],
     (state) => EditInventoryScreen(
+      inventoryId:
+          int.tryParse(state.pathParameters['inventoryId'] ?? '') ?? -1,
+    ),
+  ),
+  _guarded(
+    ref,
+    AppRoutes.inventoryDetails,
+    [Permission.viewInventoryOrganization],
+    (state) => InventoryDetailsScreen(
       inventoryId:
           int.tryParse(state.pathParameters['inventoryId'] ?? '') ?? -1,
     ),

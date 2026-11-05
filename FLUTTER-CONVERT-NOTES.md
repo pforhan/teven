@@ -3378,3 +3378,64 @@ holds), so the client now agrees with the server.
 
 **Still open from the task:** task 10.20's remaining dead link (the organization-name
 column) is the same defect class, owned by that task.
+
+### 2026-11-05 — Task 9.0's sweep: the customer and inventory details screens
+
+**Closed.** The sweep the task 9.0 follow-up opened has closed the remaining CRUD
+screens in the same defect class: add or edit existed, view did not, and the list's
+name link — the only path to the record — fell through the catch-all to `/events`.
+
+**What the report was about, restated.** An organizer could add a customer or an
+inventory item and edit one, but could not view any of them. The add and edit
+screens had routes; the details did not, and the list's name links pointed at
+helpers with nothing behind them. The user side of the sweep (task 9.0) had already
+fixed the same shape for users; this session repeated it for customers and
+inventory, and also fixed the user-edit gate the first report proved out.
+
+**What landed.**
+
+- **Customers.** `CustomerDetailsScreen` at `/customers/:customerId`, registered in
+  the shell behind `VIEW_CUSTOMERS_ORGANIZATION` — the same gate as the list and as
+  the backend's `GET /api/customers/{customerId}`. Back to the list, and for a
+  `MANAGE_CUSTOMERS_ORGANIZATION` caller an Edit button to the existing edit screen.
+  The list's name links moved off the dead helper onto `AppRoutes.customerDetailsPath`.
+- **Inventory.** `InventoryDetailsScreen` at `/inventory/:inventoryId`, registered
+  behind `VIEW_INVENTORY_ORGANIZATION`, with the same shape: back to the list, Edit
+  behind `MANAGE_INVENTORY_ORGANIZATION` to the existing edit screen, name links onto
+  `AppRoutes.inventoryDetailsPath`.
+
+Both screens fetch on arrival through the existing services and render the record
+read-only — the customer's Name/Phone/Address/Notes, the item's Name/Description/
+Quantity — with the loading, error and permission branches the user details screen
+already had. The edit affordance carries the same organization-scoped manage
+permission the edit route gates on, so a button can no longer be offered that the
+route would refuse.
+
+**The user-edit gate, settled once and for all.** The live report that an Organizer's
+edit led back to `/events` is task 9.0's follow-up, and it is fixed in the route:
+the user edit route ORs `MANAGE_USERS_GLOBAL` and `MANAGE_USERS_ORGANIZATION` like
+its create route, and the details screen's Edit button carries the same OR.
+
+**Decisions.**
+
+- Details routes gate on the *view* permission; edit buttons on the *manage*
+  permission. The read path is not write-gated, but a viewer who can see the record
+  is offered the edit affordance exactly when the edit route will accept them.
+- The manage choice for customers and inventory is the organization-scoped
+  permission, matching the edit routes those screens already had. Only the user edit
+  route had the asymmetry task 5.12 recorded, and task 9.0's report confirmed it had
+  reached the route.
+
+**The events section is not here yet.** Task 10.20 deferred the customer details
+screen pending the backend's missing `customerId` filter on `GET /api/events`; the
+field rendering was the half that was always wanted and has now shipped, and the
+events ride along with the backend work.
+
+**Still open from the sweep:** task 10.20's organization-details screen — the
+organization-name dead link the user list carries is the same defect class and is
+deliberately left with that task.
+
+**Verified:** `./teven verify` green — `flutter analyze` clean, `dart format` clean,
+full widget suite passing (426 tests, up from 414, with the new customer and
+inventory details coverage: route resolution, route guards, screen rendering, error
+path, edit affordance).

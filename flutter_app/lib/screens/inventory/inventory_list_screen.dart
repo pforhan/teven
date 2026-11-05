@@ -124,7 +124,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       render: (context, item) => RecordLinkButton(
         label: item.name,
         onPressed: () =>
-            context.go(AppRoutes.inventoryDetails(item.inventoryId)),
+            context.go(AppRoutes.inventoryDetailsPath(item.inventoryId)),
       ),
     ),
     ListColumn<InventoryItemResponse>(

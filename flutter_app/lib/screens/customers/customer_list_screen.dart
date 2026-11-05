@@ -123,7 +123,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       render: (context, customer) => RecordLinkButton(
         label: customer.name,
         onPressed: () =>
-            context.go(AppRoutes.customerDetails(customer.customerId)),
+            context.go(AppRoutes.customerDetailsPath(customer.customerId)),
       ),
     ),
     ListColumn<CustomerResponse>(

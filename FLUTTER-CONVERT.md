@@ -416,6 +416,7 @@ Three things to carry into every task below:
 ## Phase 9 — Responsive, accessibility, polish
 
 - [x] **9.0** missing routes/pages for user details and user edit.  May be able to reuse some of /profile for details 
+- [ ] **9.01** inventory should not always show the organization field.  Apply the same logic we use in Add/edit customer (for that matter see if it's duplicated elsewhere too)
 - [ ] **9.1** Audit all 25 former Bootstrap `row`/`col` sites; confirm each degrades to single-column on mobile.
 - [ ] **9.2** Replace fixed pixel sizing that was tuned for wide viewports: calendar `height: 800` (`EventCalendar.tsx:297`), search input `width: '250px'` (line 248), list column `maxWidth: '150px'` (`UserList.tsx:179`), modal `maxHeight: '300px'` (`QuickOrganizationPickerModal.tsx:72`).
 - [ ] **9.3** Add `Semantics` labels to icon-only buttons, now Material icons rather than `<i>` tags.
@@ -723,6 +724,12 @@ Once the Flutter web app is verified working locally against the real backend. T
   2. Register the route in the port's table in Phase 5, alongside the forms, behind `VIEW_CUSTOMERS_ORGANIZATION` — the same gate as the list. **Not** `MANAGE_CUSTOMERS_ORGANIZATION`: the rendering is read-only and viewers can see the list, so the `App.tsx:62` create/edit split does not apply to a screen that cannot write.
   3. Render the fields `EditCustomerForm` shows, as disabled rather than absent, so the two stay comparable. Do not build it as "the edit form in read-only mode" — that couples a read path to a write path, and the part that will differ (the events section) is most of the page.
   4. The geo fields (`latitude`, `longitude`, `formattedAddress`) are on the DTO and null in practice, because the backend's geo service is dead code (**10.7**). Render them when the geocoding work lands (**`GEO_FEATURES_PLAN.md`**), not before — otherwise it is a page of empty coordinates.
+
+  **Update 2026-11-05 (task 9.0's sweep):** the field-rendering half has landed. `CustomerDetailsScreen` is registered at `/customers/:customerId` behind `VIEW_CUSTOMERS_ORGANIZATION`, and the inventory twin at `/inventory/:inventoryId` behind `VIEW_INVENTORY_ORGANIZATION`; both carry the edit affordance, behind the manage gate. The screens render the fields the edit forms show — the customer's Name/Phone/Address/Notes, the item's Name/Description/Quantity — as read-only text rather than disabled form fields, which keeps the reader and editor on the same data without coupling a read path to a write path's validators.
+
+  The events section remains deferred, and item 1 above is unchanged: the backend's missing `customerId` filter on `GET /api/events` is the blocker, and the field rendering was the half that could ship before it.
+
+  The organization-details screen the user list's organization column still links to is likewise still open under this task.
 
   **The same shape of problem exists for staff details, and the reason neither is noticed is identical.** `StaffDetails` is a planned surface with a DTO field and no storage (**10.13**), and `GEO_FEATURES_PLAN.md` assumes it too. Two documents promising screens the app does not have is a pattern rather than a coincidence, and it survives review because nothing links to either — so nothing fails, and the only way to notice is to click.
 
