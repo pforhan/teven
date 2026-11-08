@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
+import '../../core/services/time_zone_service.dart';
 import '../../core/util/local_date.dart';
 import '../../models/customer.dart';
 import '../../models/event.dart';
@@ -14,13 +15,15 @@ import '../../models/user.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
+import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/inventory_association_editor.dart';
 import '../../widgets/organization_picker.dart';
 import '../../widgets/other_events_panel.dart';
-import '../../widgets/validators.dart';
 import '../../widgets/picker_fields.dart';
+import '../../widgets/time_zone_field.dart';
+import '../../widgets/validators.dart';
 
 /// The create-event form.
 ///
@@ -55,6 +58,12 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   int _numberOfStaffNeeded = 0;
   List<int> _selectedUserIds = [];
   String _selectedOrganizationId = '';
+
+  /// The zone the date and time are a wall clock in — the interpretation
+  /// context, not a display preference. Defaults to the reader's effective zone;
+  /// changing it does not move the wall clock.
+  String _eventZone = 'UTC';
+  bool _didSetDefaultZone = false;
 
   /// The day the "other events" panel is showing, mirrored out of [_date].
   ///
@@ -95,31 +104,12 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     super.didChangeDependencies();
     if (_didInitParams) return;
     _didInitParams = true;
-    // Query params from the calendar's long-press.
+    // Only `?date=` survives: the drag-select `startTime` / `endTime` / `time`
+    // params and the fragile `DateTime.tryParse(...)` duration calc were dead
+    // (nothing emitted them) and are gone.
     final params = GoRouterState.of(context).uri.queryParameters;
     final dateParam = params['date'];
-    final startTimeParam = params['startTime'];
-    final endTimeParam = params['endTime'];
-    final timeParam = params['time'];
     if (dateParam != null) _date.text = dateParam;
-    if (startTimeParam != null) _time.text = startTimeParam;
-    if (dateParam != null && startTimeParam != null && endTimeParam != null) {
-      final start = DateTime.tryParse('$dateParam $startTimeParam');
-      final end = DateTime.tryParse('$dateParam $endTimeParam');
-      if (start != null && end != null) {
-        _duration.text = end.difference(start).inMinutes.toString();
-      }
-    } else if (timeParam != null) {
-      _time.text = timeParam;
-    }
-    if (_date.text.isEmpty) {
-      // **Local calendar day, not the UTC one.** `toIso8601String()` converts
-      // to UTC before formatting, so at local midnight east of UTC it reports
-      // *yesterday* — and the event would be created on the wrong day. The
-      // helper that avoids this is [formatLocalDate]; see `local_date.dart`
-      // for the full account of why the raw form is wrong here.
-      _date.text = formatLocalDate(DateTime.now());
-    }
     if (_time.text.isEmpty) {
       _time.text = '10:00:00';
     }
@@ -145,6 +135,34 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
 
   bool get _canManageGlobalEvents =>
       ref.read(permissionGateProvider).has(Permission.manageEventsGlobal);
+
+  DateTime _parseTimeText(String text) {
+    final parts = text.split(':');
+    return DateTime(
+      0,
+      1,
+      1,
+      parts.isNotEmpty ? int.tryParse(parts[0]) ?? 0 : 0,
+      parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0,
+      parts.length > 2 ? int.tryParse(parts[2]) ?? 0 : 0,
+    );
+  }
+
+  String _formatStartsAt(String zone) {
+    final service = ref.read(timeZoneServiceProvider);
+    final date = DateTime.parse(_date.text);
+    final time = _parseTimeText(_time.text);
+    final instant = service.instantAt(
+      zoneId: zone,
+      localDate: date,
+      localTime: time,
+    );
+    final offset = formatZoneOffset(service.offsetAt(zone, instant));
+    final hh = time.hour.toString().padLeft(2, '0');
+    final mm = time.minute.toString().padLeft(2, '0');
+    final ss = time.second.toString().padLeft(2, '0');
+    return '${_date.text}T$hh:$mm:$ss$offset';
+  }
 
   void _handleOrgChange(OrganizationResponse? org) {
     final canManageGlobal = _canManageGlobalEvents;
@@ -268,6 +286,16 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       );
       return;
     }
+    String startsAt;
+    try {
+      startsAt = _formatStartsAt(_eventZone);
+    } on TimeZoneException catch (e) {
+      setState(() => _error = ApiRequestException(e.message));
+      return;
+    } on FormatException catch (e) {
+      setState(() => _error = ApiRequestException(e.message));
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;
@@ -275,8 +303,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     try {
       final request = CreateEventRequest(
         title: _title.text,
-        date: _date.text,
-        time: _time.text,
+        startsAt: startsAt,
+        timezone: _eventZone,
         durationMinutes: int.tryParse(_duration.text) ?? 0,
         location: _location.text.isEmpty ? null : _location.text,
         description: _description.text.isEmpty ? null : _description.text,
@@ -456,6 +484,26 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final zoneState = ref.watch(timeZoneControllerProvider);
+    final resolvedZone = zoneState.asData?.value.effectiveZone;
+    if (!_didSetDefaultZone && resolvedZone != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _didSetDefaultZone) return;
+        final service = ref.read(timeZoneServiceProvider);
+        final todayInZone = service.wallClockAt(
+          DateTime.now().toUtc(),
+          resolvedZone,
+        );
+        setState(() {
+          _eventZone = resolvedZone;
+          _didSetDefaultZone = true;
+          if (_date.text.isEmpty) {
+            _date.text = formatLocalDate(todayInZone);
+            _dateValue = _date.text;
+          }
+        });
+      });
+    }
 
     // Organization-required gate.
     if (_canManageGlobalEvents && _selectedOrganizationId.isEmpty) {
@@ -537,33 +585,28 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                     validator: Validators.requiredText,
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DateField(
-                          controller: _date,
-                          label: 'Date',
-                          validator: Validators.requiredText,
-                          // **The panel follows the picker.** Without this the
-                          // "other events" sidebar would keep listing the day
-                          // the form was opened on.
-                          onChanged: (picked) {
-                            if (picked == null) return;
-                            setState(
-                              () => _dateValue = formatLocalDate(picked),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TimeField(
-                          controller: _time,
-                          label: 'Start Time',
-                          validator: Validators.requiredText,
-                        ),
-                      ),
-                    ],
+                  DateField(
+                    controller: _date,
+                    label: 'Date',
+                    validator: Validators.requiredText,
+                    // **The panel follows the picker.** Without this the
+                    // "other events" sidebar would keep listing the day
+                    // the form was opened on.
+                    onChanged: (picked) {
+                      if (picked == null) return;
+                      setState(() => _dateValue = formatLocalDate(picked));
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TimeZoneField(
+                    zone: _eventZone,
+                    onChanged: (zone) => setState(() => _eventZone = zone),
+                  ),
+                  const SizedBox(height: 16),
+                  TimeField(
+                    controller: _time,
+                    label: 'Start Time',
+                    validator: Validators.requiredText,
                   ),
                   if (!_showMoreDetails) ...[
                     const SizedBox(height: 16),

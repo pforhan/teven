@@ -190,6 +190,8 @@ StubAdapter contextAdapter({
           'title': 'Event $id',
           'date': '2026-01-01',
           'time': '09:00:00',
+          'startsAt': '2026-01-01T09:00:00Z',
+          'timezone': 'UTC',
           'durationMinutes': 60,
           'location': null,
           'latitude': null,

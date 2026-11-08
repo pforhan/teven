@@ -3600,3 +3600,55 @@ contract task 7.20's renderers will rely on.
 
 **Still open from the task:** the dev database drop-and-recreate for the new
 column layout; the client-side half is task 7.19.
+
+### 2026-11-08 — Task 7.19: the event forms pick a zone and send an instant
+
+**Closed.** The Flutter create and edit event forms now speak the 7.18 wire
+shape: a wall clock interpreted by an IANA zone, sent as an offset-bearing
+`startsAt` plus `timezone`. This also closes **7.8** by removing the last
+fragile `DateTime.tryParse` site.
+
+**What changed.**
+
+- `TimeZoneField` lands on both forms, between the date and the time. The zone
+  is the interpretation context for the date and time beside it, not a display
+  preference: changing it does **not** move the wall clock (choosing
+  `America/New_York` while the form shows `09:00` means 9 AM New York time).
+
+- **Create** defaults the zone to the reader's effective zone (the 7.17
+  resolution ladder) and defaults the wall clock to **today at 10:00 in that
+  effective zone** — the date is computed from the effective zone's wall clock,
+  not the device's local date.
+
+- **Edit** loads the event's **own** zone and its wall clock (the server returns
+  `date`/`time` computed in the event's zone, and `timezone` on the response), so
+  saving without touching the zone does not silently re-zone the event.
+
+- The Flutter request models dropped `date`/`time` and gained
+  `startsAt: String` and `timezone: String`. `startsAt` carries the zone's
+  offset **at the event's date** (e.g. `+01:00` CET / `+02:00` CEST for
+  Berlin), formatted as `YYYY-MM-DDTHH:mm:ss±HH:MM`. The instant is resolved via
+  `TimeZoneService.instantAt` (so a nonexistent/ambiguous wall clock is refused,
+  per 7.17) and the update always sends `startsAt` and `timezone` together.
+
+- The dead query-parameter path in `create_event_screen.dart` is gone:
+  `?startTime` / `?endTime` / `?time` and the
+  `DateTime.tryParse('$dateParam $startTimeParam')` duration calculation. Only
+  `?date=` remains.
+
+- `EventResponse` on the client now carries `startsAt` and `timezone` (added,
+  required) while keeping `date`/`time` and the existing `startAt` helper, so
+  the calendar/list/details/RSVP/panel surfaces keep working until task 7.20
+  rewrites them to render in the reader's zone.
+
+**Verified.** `./teven verify` green — analyze clean, format clean, 442 tests
+passed. The primitives confirm the task's example: `09:00` in `Europe/Berlin` on
+`2026-03-04` resolves to `2026-03-04T08:00:00Z` with `+01:00` (the 7.17 service
+and the backend 7.18 tests cover the same fact). Existing widget tests that
+built event JSON fixtures were updated to include `startsAt`/`timezone` and to
+match the now-real `HH:mm:ss` wire time format where they asserted on rendered
+text.
+
+**Still open:** task 7.20 renders every event surface in the reader's zone and
+makes `ListQuery`/date-windowed queries zone-aware; task 7.21 retires the
+legacy event `date`/`time` fields (and closes 7.9).

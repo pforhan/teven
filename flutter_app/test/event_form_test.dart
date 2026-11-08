@@ -28,43 +28,48 @@ StubResponse eventBody({
   String organizationName = 'Acme',
   bool openInvitation = false,
   int numberOfStaffNeeded = 2,
-}) => StubResponse.json(
-  jsonEncode({
-    'success': true,
-    'data': {
-      'eventId': eventId,
-      'title': title,
-      'date': date,
-      'time': time,
-      'durationMinutes': durationMinutes,
-      'location': location,
-      'description': description,
-      'inventoryItems': <Object>[],
-      'customer': customerId == null
-          ? null
-          : {
-              'customerId': customerId,
-              'name': customerName,
-              'phone': '',
-              'address': customerAddress,
-              'notes': '',
-              'organization': {
-                'organizationId': organizationId,
-                'name': organizationName,
-                'contactInformation': '',
+}) {
+  final t = time.length == 5 ? '$time:00' : time;
+  return StubResponse.json(
+    jsonEncode({
+      'success': true,
+      'data': {
+        'eventId': eventId,
+        'title': title,
+        'date': date,
+        'time': t,
+        'startsAt': '${date}T${t}Z',
+        'timezone': 'UTC',
+        'durationMinutes': durationMinutes,
+        'location': location,
+        'description': description,
+        'inventoryItems': <Object>[],
+        'customer': customerId == null
+            ? null
+            : {
+                'customerId': customerId,
+                'name': customerName,
+                'phone': '',
+                'address': customerAddress,
+                'notes': '',
+                'organization': {
+                  'organizationId': organizationId,
+                  'name': organizationName,
+                  'contactInformation': '',
+                },
               },
-            },
-      'rsvps': <Object>[],
-      'organization': {
-        'organizationId': organizationId,
-        'name': organizationName,
-        'contactInformation': '',
+        'rsvps': <Object>[],
+        'organization': {
+          'organizationId': organizationId,
+          'name': organizationName,
+          'contactInformation': '',
+        },
+        'openInvitation': openInvitation,
+        'numberOfStaffNeeded': numberOfStaffNeeded,
       },
-      'openInvitation': openInvitation,
-      'numberOfStaffNeeded': numberOfStaffNeeded,
-    },
-  }),
-);
+    }),
+  );
+}
 
 StubResponse emptyCustomerPage() => StubResponse.json(
   jsonEncode({
@@ -251,6 +256,8 @@ void main() {
       );
       expect(field.controller?.text, 'Standup');
 
+      await tester.ensureVisible(find.text('Save Changes'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Save Changes'));
       await settleRequests(tester);
 
@@ -317,6 +324,8 @@ void main() {
       await openEdit(tester, adapter, '/events/edit/7');
       await settleRequests(tester);
 
+      await tester.ensureVisible(find.text('Save Changes'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Save Changes'));
       await settleRequests(tester);
 

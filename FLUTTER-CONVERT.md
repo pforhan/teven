@@ -200,11 +200,7 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [x] **7.5** Port `EventListPage` (240 lines): title, date, time, description, customer, RSVP columns → responsive rows. **One deliberate divergence: a "Calendar view" button.** The React original links *out* to this list (`EventCalendar.tsx:253`) but has no way back — the only route to the calendar is the nav rail's "Events" item, which is a drawer on a phone. The port adds the missing half, beside the search box, so the two screens are mirror images; see the progress log in `FLUTTER-CONVERT-NOTES.md`.
 - [x] **7.6** Port `EventDetails` (277 lines), including the two `window.confirm` flows — via `confirmDestructiveAction` (4.8), and note the delete navigates away rather than refetching — and the `RsvpWidget` (72 lines) — drop-in RSVP posting `availability: "available" | "unavailable"` as a **free-form string**, not an enum.
 - [x] **7.7** Port `OtherEventsPanel` (97 lines). **The widget already existed** — it was written in Phase 6 as a supporting piece for the create and edit forms — so what was missing was everything around it, and one thing inside it that a seeded database could not have revealed. **Done**, with three deliberate divergences and one backend file touched (dev-only seed data). See the 2026-10-20 entry in `FLUTTER-CONVERT-NOTES.md`.
-- [ ] **7.8** **Replace `moment` with `intl` + `DateTime`. Largely done for the port; the last fragile site is removed by 7.19.** The React original uses `moment` throughout the calendar; the port never did — `lib/core/util/local_date.dart` formats the wire date from a `DateTime`'s own calendar fields, and `EventResponse.startAt` builds its `DateTime` from components rather than parsing a concatenated string.
-
-  **One fragile site is left, and it is the exact expression this task names.** `create_event_screen.dart:107` does `DateTime.tryParse('$dateParam $startTimeParam')` — the `'T'`-concatenation pattern with a space instead of a `T`. It is **dead**: nothing in the Flutter app emits the `startTime` / `endTime` parameters it reads; they were the React original's drag-select remnants, and task 7.1 already dropped that gesture. **7.19 removes it and the parameters with it.**
-
-  The React app's `moment` usage disappears with 10.3, which deletes `frontend/`. No React change is needed for this task.
+- [x] **7.8** **Replace `moment` with `intl` + `DateTime`.** **Closed by 7.19:** the last fragile site — `create_event_screen.dart`'s dead `DateTime.tryParse('$dateParam $startTimeParam')` and the `startTime` / `endTime` / `time` query parameters it read — is gone; `?date=` stays. The port never used `moment` (`local_date.dart` formats from `DateTime` fields; `EventResponse.startAt` builds from components). The React app's `moment` usage disappears with 10.3.
 
 - [ ] **7.9** **Every timestamp on the wire is unambiguous. Superseded by Phase 7A; closes with 7.21.**
 
@@ -310,17 +306,7 @@ Three things to carry into every task below:
 
   The Flutter client is unaffected by this commit — it keeps reading `date` and `time`, which now mean "the event's own local date and time".
 
-- [ ] **7.19** **The event forms pick a zone, and send an instant.**
-
-  - **The `TimeZoneField` lands on both forms**, between the date and the time. Its **default is the reader's effective zone**, not the organization's.
-  - **The date and the time are a wall clock, and the zone says which one.** They are a set: `(2026-03-04, 09:00, Europe/Berlin)` is a moment; `(2026-03-04, 09:00)` alone is not.
-  - **Changing the zone does not move the wall clock.** The zone is the *interpretation context* for the date and time beside it — choosing `America/New_York` while the form says `09:00` means "9 AM New York time". The alternative would rewrite the form's own fields under the reader's fingers. The consequence, stated plainly: changing the zone can move an event by up to 26 hours.
-  - **The edit form loads the event's own zone**, so saving does not move the event. Loading the reader's zone and wall clock would silently re-zone it — invisible, because the form looks right and the save succeeds.
-  - The create form defaults the wall clock to today at 10:00 in the effective zone.
-  - **The Flutter request models drop `date` and `time`**, and gain `startsAt: String` and `timezone: String`. `startsAt` carries the zone's offset **at the event's date** — `+02:00` for a Berlin summer event, `+01:00` for its winter twin. The update sends **both or neither**: they are one fact, and a lone `startsAt` would mean "keep the old zone, move the wall clock".
-  - **The dead query-parameter path goes** — `create_event_screen.dart:107`'s `DateTime.tryParse('$dateParam $startTimeParam')`, and the `startTime` / `endTime` parameters it read. **This closes 7.8.** The `?date=` parameter stays: it is a plain calendar date with no zone.
-
-  Verify: 09:00 in `Europe/Berlin` stores `2026-03-04T08:00:00Z` with `timezone: "Europe/Berlin"`; editing without touching the zone leaves the instant unchanged.
+- [x] **7.19** **The event forms pick a zone, and send an instant.** **Done.** `TimeZoneField` lands between the date and the time on both forms. The create form defaults to the reader's effective zone and to today 10:00 in that zone (wall clock unchanged when the zone changes); the edit form loads the event's own zone and its wall clock. Request models drop `date`/`time` and send `startsAt` (offset-bearing, at the event's date in the chosen zone) + `timezone` — the update always sends both. The dead `?startTime`/`?endTime`/`?time` path and its fragile parse are gone; `?date=` stays (**closes 7.8**). `EventResponse` now carries `startsAt`/`timezone` on the client (keeping `date`/`time` for 7.20's readers). Verified: 09:00 `Europe/Berlin` on 2026-03-04 resolves via `TimeZoneService` to `2026-03-04T08:00:00Z` with `+01:00` (CET); recomputing the same wall clock in the same zone yields the same instant (`./teven verify` green, 442 tests).
 
 - [ ] **7.20** **Every event surface renders in the reader's zone.**
 

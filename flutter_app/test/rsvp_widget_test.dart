@@ -22,28 +22,35 @@ void main() {
     String title = 'Rooftop Garden Maintenance',
     String date = '2026-10-24',
     String time = '11:00',
-  }) => {
-    'eventId': id,
-    'title': title,
-    'date': date,
-    'time': time,
-    'durationMinutes': 45,
-    'location': null,
-    'latitude': null,
-    'longitude': null,
-    'formattedAddress': null,
-    'description': null,
-    'inventoryItems': <Map<String, dynamic>>[],
-    'customer': null,
-    'rsvps': <Map<String, dynamic>>[],
-    'organization': {
-      'organizationId': 1,
-      'name': 'Acme',
-      'contactInformation': '',
-    },
-    'openInvitation': false,
-    'numberOfStaffNeeded': 0,
-  };
+    String timezone = 'UTC',
+    String? startsAt,
+  }) {
+    final t = time.length == 5 ? '$time:00' : time;
+    return {
+      'eventId': id,
+      'title': title,
+      'date': date,
+      'time': t,
+      'startsAt': startsAt ?? '${date}T${t}Z',
+      'timezone': timezone,
+      'durationMinutes': 45,
+      'location': null,
+      'latitude': null,
+      'longitude': null,
+      'formattedAddress': null,
+      'description': null,
+      'inventoryItems': <Map<String, dynamic>>[],
+      'customer': null,
+      'rsvps': <Map<String, dynamic>>[],
+      'organization': {
+        'organizationId': 1,
+        'name': 'Acme',
+        'contactInformation': '',
+      },
+      'openInvitation': false,
+      'numberOfStaffNeeded': 0,
+    };
+  }
 
   StubAdapter rsvpAdapter({
     List<Map<String, dynamic>> requested = const [],
@@ -92,7 +99,7 @@ void main() {
       expect(find.text('You have pending RSVP requests'), findsOneWidget);
       expect(find.text('Rooftop Garden Maintenance'), findsOneWidget);
       expect(find.text('Soil delivery'), findsOneWidget);
-      expect(find.text('2026-10-24 at 11:00'), findsOneWidget);
+      expect(find.text('2026-10-24 at 11:00:00'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Accept'), findsNWidgets(2));
       expect(find.widgetWithText(FilledButton, 'Decline'), findsNWidgets(2));
     });

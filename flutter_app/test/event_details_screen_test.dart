@@ -38,34 +38,41 @@ void main() {
     String title = 'Fall Cleanup',
     String date = '2026-10-19',
     String time = '08:00',
+    String timezone = 'UTC',
+    String? startsAt,
     int durationMinutes = 90,
     String? location = '123 Main St',
     String? description = 'Rake leaves and clean up debris',
     Map<String, dynamic>? customer,
     List<Map<String, dynamic>> inventoryItems = const [],
     List<Map<String, dynamic>> rsvps = const [],
-  }) => {
-    'eventId': id,
-    'title': title,
-    'date': date,
-    'time': time,
-    'durationMinutes': durationMinutes,
-    'location': location,
-    'latitude': null,
-    'longitude': null,
-    'formattedAddress': null,
-    'description': description,
-    'inventoryItems': inventoryItems,
-    'customer': customer,
-    'rsvps': rsvps,
-    'organization': {
-      'organizationId': 1,
-      'name': 'Acme',
-      'contactInformation': '',
-    },
-    'openInvitation': false,
-    'numberOfStaffNeeded': 0,
-  };
+  }) {
+    final t = time.length == 5 ? '$time:00' : time;
+    return {
+      'eventId': id,
+      'title': title,
+      'date': date,
+      'time': t,
+      'startsAt': startsAt ?? '${date}T${t}Z',
+      'timezone': timezone,
+      'durationMinutes': durationMinutes,
+      'location': location,
+      'latitude': null,
+      'longitude': null,
+      'formattedAddress': null,
+      'description': description,
+      'inventoryItems': inventoryItems,
+      'customer': customer,
+      'rsvps': rsvps,
+      'organization': {
+        'organizationId': 1,
+        'name': 'Acme',
+        'contactInformation': '',
+      },
+      'openInvitation': false,
+      'numberOfStaffNeeded': 0,
+    };
+  }
 
   Map<String, dynamic> customerJson({
     String name = 'Smith Residence',
@@ -214,7 +221,7 @@ void main() {
       expect(find.text('2026-10-19'), findsOneWidget);
       // The raw wire time and the duration, as `EventDetails.tsx:116` renders
       // them.
-      expect(find.text('08:00 (90 min)'), findsOneWidget);
+      expect(find.text('08:00:00 (90 min)'), findsOneWidget);
       expect(find.text('123 Main St'), findsOneWidget);
       expect(find.text('Rake leaves and clean up debris'), findsOneWidget);
       expect(find.byType(EventDetailsScreen), findsOneWidget);

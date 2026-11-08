@@ -34,29 +34,36 @@ void main() {
     required String title,
     required String date,
     String time = '09:30:00',
+    String timezone = 'UTC',
+    String? startsAt,
     List<Map<String, dynamic>> rsvps = const [],
-  }) => {
-    'eventId': id,
-    'title': title,
-    'date': date,
-    'time': time,
-    'durationMinutes': 60,
-    'location': null,
-    'latitude': null,
-    'longitude': null,
-    'formattedAddress': null,
-    'description': null,
-    'inventoryItems': <Map<String, dynamic>>[],
-    'customer': null,
-    'rsvps': rsvps,
-    'organization': {
-      'organizationId': 1,
-      'name': 'Acme',
-      'contactInformation': '',
-    },
-    'openInvitation': false,
-    'numberOfStaffNeeded': 0,
-  };
+  }) {
+    final t = time.length == 5 ? '$time:00' : time;
+    return {
+      'eventId': id,
+      'title': title,
+      'date': date,
+      'time': t,
+      'startsAt': startsAt ?? '${date}T${t}Z',
+      'timezone': timezone,
+      'durationMinutes': 60,
+      'location': null,
+      'latitude': null,
+      'longitude': null,
+      'formattedAddress': null,
+      'description': null,
+      'inventoryItems': <Map<String, dynamic>>[],
+      'customer': null,
+      'rsvps': rsvps,
+      'organization': {
+        'organizationId': 1,
+        'name': 'Acme',
+        'contactInformation': '',
+      },
+      'openInvitation': false,
+      'numberOfStaffNeeded': 0,
+    };
+  }
 
   StubResponse eventsPage(List<Map<String, dynamic>> events) =>
       StubResponse.json(

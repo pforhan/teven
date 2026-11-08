@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
+import '../../core/services/time_zone_service.dart';
 import '../../core/util/local_date.dart';
 import '../../models/common.dart';
 import '../../models/customer.dart';
@@ -17,8 +18,9 @@ import '../../providers/service_providers.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/inventory_association_editor.dart';
 import '../../widgets/other_events_panel.dart';
-import '../../widgets/validators.dart';
 import '../../widgets/picker_fields.dart';
+import '../../widgets/time_zone_field.dart';
+import '../../widgets/validators.dart';
 
 class EditEventScreen extends ConsumerStatefulWidget {
   const EditEventScreen({super.key, required this.eventId});
@@ -51,6 +53,10 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
   List<OrganizationResponse> _availableOrganizations = [];
   List<CustomerResponse> _availableCustomers = [];
   List<UserResponse> _availableUsers = [];
+
+  /// The zone the date and time are a wall clock in. The edit form loads the
+  /// event's *own* zone so saving does not silently re-zone the event.
+  String _eventZone = 'UTC';
 
   /// The day the "other events" panel is showing, mirrored out of [_date].
   ///
@@ -92,6 +98,34 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
   bool get _canManageGlobalEvents =>
       ref.read(permissionGateProvider).has(Permission.manageEventsGlobal);
 
+  DateTime _parseTimeText(String text) {
+    final parts = text.split(':');
+    return DateTime(
+      0,
+      1,
+      1,
+      parts.isNotEmpty ? int.tryParse(parts[0]) ?? 0 : 0,
+      parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0,
+      parts.length > 2 ? int.tryParse(parts[2]) ?? 0 : 0,
+    );
+  }
+
+  String _formatStartsAt(String zone) {
+    final service = ref.read(timeZoneServiceProvider);
+    final date = DateTime.parse(_date.text);
+    final time = _parseTimeText(_time.text);
+    final instant = service.instantAt(
+      zoneId: zone,
+      localDate: date,
+      localTime: time,
+    );
+    final offset = formatZoneOffset(service.offsetAt(zone, instant));
+    final hh = time.hour.toString().padLeft(2, '0');
+    final mm = time.minute.toString().padLeft(2, '0');
+    final ss = time.second.toString().padLeft(2, '0');
+    return '${_date.text}T$hh:$mm:$ss$offset';
+  }
+
   Future<void> _load() async {
     try {
       final event = await ref
@@ -112,6 +146,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
         _numberOfStaffNeeded = event.numberOfStaffNeeded;
         _selectedUserIds = event.rsvps.map((r) => r.userId).toList();
         _selectedOrganizationId = event.organization.organizationId.toString();
+        _eventZone = event.timezone;
         _dateValue = _date.text;
       });
       // Fetch orgs for global managers.
@@ -214,6 +249,16 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final orgId = int.tryParse(_selectedOrganizationId);
+    String startsAt;
+    try {
+      startsAt = _formatStartsAt(_eventZone);
+    } on TimeZoneException catch (e) {
+      setState(() => _error = ApiRequestException(e.message));
+      return;
+    } on FormatException catch (e) {
+      setState(() => _error = ApiRequestException(e.message));
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;
@@ -221,8 +266,8 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
     try {
       final request = UpdateEventRequest(
         title: _title.text,
-        date: _date.text,
-        time: _time.text,
+        startsAt: startsAt,
+        timezone: _eventZone,
         durationMinutes: int.tryParse(_duration.text),
         location: _location.text.isEmpty ? null : _location.text,
         description: _description.text.isEmpty ? null : _description.text,
@@ -443,33 +488,28 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
                     validator: Validators.requiredText,
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DateField(
-                          controller: _date,
-                          label: 'Date',
-                          validator: Validators.requiredText,
-                          // **The panel follows the picker.** Without this the
-                          // "other events" sidebar would keep listing the day
-                          // the event was loaded with.
-                          onChanged: (picked) {
-                            if (picked == null) return;
-                            setState(
-                              () => _dateValue = formatLocalDate(picked),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TimeField(
-                          controller: _time,
-                          label: 'Start Time',
-                          validator: Validators.requiredText,
-                        ),
-                      ),
-                    ],
+                  DateField(
+                    controller: _date,
+                    label: 'Date',
+                    validator: Validators.requiredText,
+                    // **The panel follows the picker.** Without this the
+                    // "other events" sidebar would keep listing the day
+                    // the event was loaded with.
+                    onChanged: (picked) {
+                      if (picked == null) return;
+                      setState(() => _dateValue = formatLocalDate(picked));
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TimeZoneField(
+                    zone: _eventZone,
+                    onChanged: (zone) => setState(() => _eventZone = zone),
+                  ),
+                  const SizedBox(height: 16),
+                  TimeField(
+                    controller: _time,
+                    label: 'Start Time',
+                    validator: Validators.requiredText,
                   ),
                   const SizedBox(height: 16),
                   NumberField(

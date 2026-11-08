@@ -17,11 +17,11 @@ part 'event.g.dart';
 /// for a summary variant. One event with a large RSVP list is a large JSON
 /// object. Task 1.18 sets a default `limit` of 10 for that reason.
 ///
-/// **Timezones.** [date] is `"YYYY-MM-DD"` and [time] is `"HH:MM:SS"`, both
-/// **timezone-naive** strings from the server. They are deliberately left as
-/// `String` rather than eagerly converted to `DateTime`: an implicit
-/// conversion would have to pick a zone, and picking UTC would silently shift
-/// events. See the `DateTime` helpers below and task 7.9.
+/// **Time.** [startsAt] is the instant (offset-bearing ISO 8601) and [timezone]
+/// is the IANA zone the wall clock was picked in — one fact, travelling
+/// together. [date] and [time] are the wall clock computed by the server in the
+/// event's own zone; they remain on the wire until the legacy fields are retired
+/// and existing readers are ported to zone-aware rendering.
 @freezed
 abstract class EventResponse with _$EventResponse {
   const factory EventResponse({
@@ -29,6 +29,8 @@ abstract class EventResponse with _$EventResponse {
     required String title,
     required String date,
     required String time,
+    required String startsAt,
+    required String timezone,
     @Default(0) int durationMinutes,
     String? location,
     double? latitude,
@@ -57,6 +59,9 @@ abstract class EventResponse with _$EventResponse {
   /// but unstated. Building from components makes the naive-local assumption
   /// explicit and fails loudly on a malformed value rather than silently
   /// producing midnight.
+  ///
+  /// Zone-aware conversions that take the reader's zone as an argument replace
+  /// these readers; this stays for surfaces not yet ported to that shape.
   DateTime get startAt {
     final parsedDate = DateTime.parse(date);
     final timeParts = time.split(':');
@@ -152,8 +157,8 @@ abstract class StaffInviteDetails with _$StaffInviteDetails {
 abstract class CreateEventRequest with _$CreateEventRequest {
   const factory CreateEventRequest({
     required String title,
-    required String date,
-    required String time,
+    required String startsAt,
+    required String timezone,
     @Default(0) int durationMinutes,
     String? location,
     double? latitude,
@@ -180,17 +185,18 @@ const StaffInviteDetails _noStaffInvites = StaffInviteDetails();
 /// [organizationId] is nullable here but **required** on
 /// [CreateEventRequest], and that asymmetry is the server's rather than an
 /// accident. `EventService.kt:20-22` throws `"organizationId is required for
-/// MANAGE_EVENTS_GLOBAL users"` on create; on update `:83-89` treats a missing
-/// id as "leave it alone" and throws only when a **non-null, differing** id
-/// arrives from someone without `MANAGE_EVENTS_GLOBAL`. `EditEventForm.tsx:162`
-/// sends nothing for an org-scoped manager, and so does this — as an explicit
-/// null, which is the same thing to `organizationId != null`.
+/// MANAGE_EVENTS_GLOBAL users"` on create; on update it treats a missing id as
+/// "leave it alone" and throws only when a **non-null, differing** id arrives
+/// from someone without `MANAGE_EVENTS_GLOBAL`.
 ///
 /// **Modelling it as required would be a latent 500.** Sending the event's own
 /// organization back is harmless only because that is the value the screen seeds
 /// from; any change to how the form resolves the organization would turn it
 /// into `Non-MANAGE_EVENTS_GLOBAL users cannot change event organizationId`,
 /// with nothing on the client saying the field was the problem.
+///
+/// [startsAt] and [timezone] are one fact and travel together — send **both or
+/// neither**. [startsAt] carries the zone's offset at the event's date.
 ///
 /// Note `PUT /api/events/{id}` answers with `data: "Event with ID N updated"`
 /// — a **bare string, not an [EventResponse]** (`EventRoutes.kt:71`). Task
@@ -199,8 +205,8 @@ const StaffInviteDetails _noStaffInvites = StaffInviteDetails();
 abstract class UpdateEventRequest with _$UpdateEventRequest {
   const factory UpdateEventRequest({
     String? title,
-    String? date,
-    String? time,
+    String? startsAt,
+    String? timezone,
     int? durationMinutes,
     String? location,
     double? latitude,

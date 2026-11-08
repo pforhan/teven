@@ -41,44 +41,51 @@ void main() {
     required String title,
     required String date,
     String time = '09:30:00',
+    String timezone = 'UTC',
+    String? startsAt,
     String? customerName,
     String? description,
     List<Map<String, dynamic>> rsvps = const [],
-  }) => {
-    'eventId': id,
-    'title': title,
-    'date': date,
-    'time': time,
-    'durationMinutes': 60,
-    'location': null,
-    'latitude': null,
-    'longitude': null,
-    'formattedAddress': null,
-    'description': description,
-    'inventoryItems': <Map<String, dynamic>>[],
-    'customer': customerName == null
-        ? null
-        : {
-            'customerId': 5,
-            'name': customerName,
-            'phone': '',
-            'address': '',
-            'notes': '',
-            'organization': {
-              'organizationId': 1,
-              'name': 'Acme',
-              'contactInformation': '',
+  }) {
+    final t = time.length == 5 ? '$time:00' : time;
+    return {
+      'eventId': id,
+      'title': title,
+      'date': date,
+      'time': t,
+      'startsAt': startsAt ?? '${date}T${t}Z',
+      'timezone': timezone,
+      'durationMinutes': 60,
+      'location': null,
+      'latitude': null,
+      'longitude': null,
+      'formattedAddress': null,
+      'description': description,
+      'inventoryItems': <Map<String, dynamic>>[],
+      'customer': customerName == null
+          ? null
+          : {
+              'customerId': 5,
+              'name': customerName,
+              'phone': '',
+              'address': '',
+              'notes': '',
+              'organization': {
+                'organizationId': 1,
+                'name': 'Acme',
+                'contactInformation': '',
+              },
             },
-          },
-    'rsvps': rsvps,
-    'organization': {
-      'organizationId': 1,
-      'name': 'Acme',
-      'contactInformation': '',
-    },
-    'openInvitation': false,
-    'numberOfStaffNeeded': 0,
-  };
+      'rsvps': rsvps,
+      'organization': {
+        'organizationId': 1,
+        'name': 'Acme',
+        'contactInformation': '',
+      },
+      'openInvitation': false,
+      'numberOfStaffNeeded': 0,
+    };
+  }
 
   StubResponse page(
     List<Map<String, dynamic>> events, {

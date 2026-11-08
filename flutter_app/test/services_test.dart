@@ -265,7 +265,8 @@ StubResponse _responseFor(RequestOptions options) {
       // ignore: prefer_const_constructors
       return StubResponse.json(
         '{"success":true,"data":{"eventId":1,"title":"Gala",'
-        '"date":"2026-03-04","time":"09:30:00",$org}}',
+        '"date":"2026-03-04","time":"09:30:00",'
+        '"startsAt":"2026-03-04T09:30:00Z","timezone":"UTC",$org}}',
       );
     }
     if (path.startsWith('/api/inventory')) {

@@ -12,12 +12,16 @@ void main() {
   EventResponse event({
     String date = '2026-03-04',
     String time = '09:30:00',
+    String startsAt = '2026-03-04T09:30:00Z',
+    String timezone = 'UTC',
     int durationMinutes = 90,
   }) => EventResponse(
     eventId: 1,
     title: 'Gala',
     date: date,
     time: time,
+    startsAt: startsAt,
+    timezone: timezone,
     durationMinutes: durationMinutes,
     organization: org,
   );
@@ -171,6 +175,8 @@ void main() {
             'title': 'A',
             'date': '2026-03-04',
             'time': '09:00:00',
+            'startsAt': '2026-03-04T09:00:00Z',
+            'timezone': 'UTC',
             'organization': orgJson,
           },
           {
@@ -178,6 +184,8 @@ void main() {
             'title': 'B',
             'date': '2026-03-05',
             'time': '10:00:00',
+            'startsAt': '2026-03-05T10:00:00Z',
+            'timezone': 'UTC',
             'organization': orgJson,
           },
         ],

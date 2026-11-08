@@ -95,30 +95,37 @@ void main() {
     String title = 'Fence Repair',
     String date = '2026-10-24',
     String time = '10:00',
+    String timezone = 'UTC',
+    String? startsAt,
     int durationMinutes = 60,
     String? location = '123 Main St',
-  }) => {
-    'eventId': id,
-    'title': title,
-    'date': date,
-    'time': time,
-    'durationMinutes': durationMinutes,
-    'location': location,
-    'latitude': null,
-    'longitude': null,
-    'formattedAddress': null,
-    'description': null,
-    'inventoryItems': <Map<String, dynamic>>[],
-    'customer': null,
-    'rsvps': <Map<String, dynamic>>[],
-    'organization': {
-      'organizationId': 7,
-      'name': 'Acme',
-      'contactInformation': '',
-    },
-    'openInvitation': false,
-    'numberOfStaffNeeded': 0,
-  };
+  }) {
+    final t = time.length == 5 ? '$time:00' : time;
+    return {
+      'eventId': id,
+      'title': title,
+      'date': date,
+      'time': t,
+      'startsAt': startsAt ?? '${date}T${t}Z',
+      'timezone': timezone,
+      'durationMinutes': durationMinutes,
+      'location': location,
+      'latitude': null,
+      'longitude': null,
+      'formattedAddress': null,
+      'description': null,
+      'inventoryItems': <Map<String, dynamic>>[],
+      'customer': null,
+      'rsvps': <Map<String, dynamic>>[],
+      'organization': {
+        'organizationId': 7,
+        'name': 'Acme',
+        'contactInformation': '',
+      },
+      'openInvitation': false,
+      'numberOfStaffNeeded': 0,
+    };
+  }
 
   /// The panel's endpoint, and nothing else.
   StubAdapter eventsAdapter({
