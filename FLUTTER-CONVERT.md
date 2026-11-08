@@ -202,7 +202,7 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 - [x] **7.7** Port `OtherEventsPanel` (97 lines). **The widget already existed** — it was written in Phase 6 as a supporting piece for the create and edit forms — so what was missing was everything around it, and one thing inside it that a seeded database could not have revealed. **Done**, with three deliberate divergences and one backend file touched (dev-only seed data). See the 2026-10-20 entry in `FLUTTER-CONVERT-NOTES.md`.
 - [x] **7.8** **Replace `moment` with `intl` + `DateTime`.** **Closed by 7.19:** the last fragile site — `create_event_screen.dart`'s dead `DateTime.tryParse('$dateParam $startTimeParam')` and the `startTime` / `endTime` / `time` query parameters it read — is gone; `?date=` stays. The port never used `moment` (`local_date.dart` formats from `DateTime` fields; `EventResponse.startAt` builds from components). The React app's `moment` usage disappears with 10.3.
 
-- [ ] **7.9** **Every timestamp on the wire is unambiguous. Superseded by Phase 7A; closes with 7.21.**
+- [x] **7.9** **Every timestamp on the wire is unambiguous.** Superseded by Phase 7A; **closed by 7.21** (legacy event `date`/`time` retired; event instants are offset-bearing `startsAt` + `timezone`).
 
   **The old wording of this task is withdrawn.** It asked for the opposite of what the app should do: *"Do not silently re-interpret as UTC; keep naive local semantics to match current behavior."* Naive-local was right **only** while the app had no way to know a better one. The rules it is replaced with are in the design doc under *Time zones → On the wire*.
 
@@ -321,15 +321,7 @@ Three things to carry into every task below:
   - **A date of birth is not a time.** `StaffDetails.dateOfBirth` is a day; it is never converted and never picks up a zone.
   - **The tests that assert the old semantics are rewritten, not adjusted** — `models_test.dart`'s `naive-local event times` group is deleted, and the `DateTime.now()`-relative assertions in the calendar and list tests become explicit-zone assertions. 7.25 writes the replacements.
 
-- [ ] **7.21** **Retire the legacy event date and time.**
-
-  The commit that breaks the React app, deliberately and at a known point in the sequence.
-
-  - **Backend:** `CreateEventRequest` and `UpdateEventRequest` drop `date` and `time`, and the legacy resolution goes with them. `EventResponse` drops `date` and `time`.
-  - **A naive `startsAt` is a 400**, and **an unknown `timezone` is a 400** — catch the parse exceptions and answer with `failure(...)` rather than letting them escape as 500s. The two checks belong together: a request naming a zone and an instant is one fact.
-  - The Flutter client already stopped using them (7.19, 7.20), so nothing changes on that side.
-
-  **What breaks:** the React app's event calendar, event list, create form, edit form, details screen and RSVP panel. **7.22 restores them — do that next, not later.**
+- [x] **7.21** **Retire the legacy event date and time.** **Done (closes 7.9).** Backend drops `date`/`time` from `CreateEventRequest`/`UpdateEventRequest`/`EventResponse` and removes legacy wall-clock resolution (`EventService`); `startsAt`+`timezone` are the only event time input (required together on create, both-or-neither on update). A naive `startsAt` (no offset, `OffsetDateTime.parse` fails) and an unknown `timezone` return **400** (`BadRequestException` → `failure(...)` via `StatusPages`). Flutter `EventResponse` drops `date`/`time`; `edit_event_screen.dart` loads the event’s wall clock via `event.wallClockIn(event.timezone)`. React event screens would break, but **7.22 is will-not-do** (React retired). Verified: `./teven verify-backend` green; `./teven verify` green (436 tests).
 
 - [x] **7.22** **will not do: Patch the React client for the new event shape.**. React app is considered retired as of now.
 

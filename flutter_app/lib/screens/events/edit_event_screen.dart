@@ -132,10 +132,14 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
           .read(eventServiceProvider)
           .getEvent(widget.eventId);
       if (!mounted) return;
+      final wallClock = event.wallClockIn(event.timezone);
+      final hh = wallClock.hour.toString().padLeft(2, '0');
+      final mm = wallClock.minute.toString().padLeft(2, '0');
+      final ss = wallClock.second.toString().padLeft(2, '0');
       setState(() {
         _title.text = event.title;
-        _date.text = event.date;
-        _time.text = event.time;
+        _date.text = formatLocalDate(wallClock);
+        _time.text = '$hh:$mm:$ss';
         _duration.text =
             '${event.durationMinutes == 0 ? 60 : event.durationMinutes}';
         _location.text = event.location ?? '';

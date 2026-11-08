@@ -19,17 +19,14 @@ part 'event.g.dart';
 /// object. Task 1.18 sets a default `limit` of 10 for that reason.
 ///
 /// **Time.** [startsAt] is the instant (offset-bearing ISO 8601) and [timezone]
-/// is the IANA zone the wall clock was picked in — one fact, travelling
-/// together. [date] and [time] are the wall clock computed by the server in the
-/// event's own zone; they remain on the wire until the legacy fields are retired
-/// and existing readers are ported to zone-aware rendering.
+/// is the IANA zone the event was scheduled in; the event's wall clock is the
+/// two of them together. Surfaces that render in the reader's zone derive the
+/// wall clock from [instant] via [dateIn]/[timeIn].
 @freezed
 abstract class EventResponse with _$EventResponse {
   const factory EventResponse({
     required int eventId,
     required String title,
-    required String date,
-    required String time,
     required String startsAt,
     required String timezone,
     @Default(0) int durationMinutes,

@@ -5,8 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class UpdateEventRequest(
   val title: String? = null,
-  val date: String? = null,
-  val time: String? = null,
   val durationMinutes: Int? = null,
   val location: String? = null,
   val latitude: Double? = null,

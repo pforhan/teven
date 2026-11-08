@@ -8,8 +8,6 @@ import kotlinx.serialization.Serializable
 data class EventResponse(
   val eventId: Int,
   val title: String,
-  val date: String,
-  val time: String,
   val startsAt: String,
   val timezone: String,
   val durationMinutes: Int,

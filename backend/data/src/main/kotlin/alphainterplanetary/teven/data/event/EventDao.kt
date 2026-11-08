@@ -31,7 +31,6 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 
 class EventDao {
   private suspend fun toEventResponse(row: ResultRow): EventResponse {
@@ -99,13 +98,10 @@ class EventDao {
 
     val instant = row[Events.startsAt].toInstant()
     val zone = row[Events.timezone]
-    val zoned = instant.atZone(ZoneId.of(zone))
 
     return EventResponse(
       eventId = eventId,
       title = row[Events.title],
-      date = zoned.toLocalDate().toString(),
-      time = zoned.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")),
       startsAt = instant.toString(),
       timezone = zone,
       durationMinutes = row[Events.durationMinutes],

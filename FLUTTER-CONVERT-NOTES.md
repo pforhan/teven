@@ -3692,5 +3692,29 @@ text.
 **Verified.** `./teven verify` green — analyze clean, format clean, 436 tests
 passed.
 
-**Still open:** task 7.21 retires the legacy event `date`/`time` fields (and
-closes 7.9); task 7.25 adds the zone-conversion tests.
+**7.21 — Retire the legacy event date and time (closes 7.9).**
+
+- **Backend:** `CreateEventRequest` requires `startsAt` (offset-bearing ISO 8601)
+  + `timezone` and drops `date`/`time`; `UpdateEventRequest` drops `date`/`time`
+  and keeps `startsAt`/`timezone` optional but **both-or-neither**.
+  `EventResponse` drops `date`/`time` (keeps `startsAt`, `timezone`). `EventDao`
+  no longer computes event-zone `date`/`time` strings. `EventService` removes
+  legacy wall-clock resolution and `wallClockToInstant`; create validates zone +
+  parses the instant, update preserves the existing instant/zone when neither is
+  sent.
+- **400s:** unknown `timezone` and invalid/naive `startsAt` (not offset-bearing;
+  `OffsetDateTime.parse` fails) throw `BadRequestException` (“Invalid event
+  startsAt” / unknown zone), mapped to `failure(...)` by `StatusPages`. A mixed
+  `startsAt`/`timezone` update is rejected as “must be sent together”.
+- **Flutter:** `EventResponse` drops `date`/`time`; `edit_event_screen.dart`
+  loads the form from `event.wallClockIn(event.timezone)` + `formatLocalDate`.
+  Freezed/json regenerated (generated files remain gitignored).
+- **Tests:** removed legacy-resolution backend `EventServiceTest` cases; updated
+  `eventResponse()` helper. Full Flutter/verification unchanged in count.
+
+**Verified.** `./teven verify-backend` green; `./teven verify` green — analyze
+clean, format clean, 436 tests passed.
+
+**Still open:** task 7.23 (org time zone UI), 7.24 (zone-aware report windows /
+inventory usage date), 7.25 (zone-conversion tests). 7.22 remains will-not-do
+(React retired).

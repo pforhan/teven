@@ -11,8 +11,6 @@ import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.service.organization.OrganizationService
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeParseException
@@ -31,29 +29,15 @@ class EventService(
 
     val organizationIdToUse = if (authContext.hasPermission(Permission.MANAGE_EVENTS_GLOBAL)) {
       createEventRequest.organizationId
-        ?: throw IllegalArgumentException("organizationId is required for MANAGE_EVENTS_GLOBAL users")
     } else {
       authContext.organizationId
     }
 
     val requestWithOrgId = createEventRequest.copy(organizationId = organizationIdToUse)
 
-    val newStartsAt = requestWithOrgId.startsAt
-    val newTimezone = requestWithOrgId.timezone
-    val (startsAt, timezone) =
-        if (newStartsAt != null && newTimezone != null) {
-          val resolvedZone = resolveZone(newTimezone)
-          val instant = parseInstant(newStartsAt) ?: throw BadRequestException("Invalid event startsAt")
-          instant to resolvedZone
-        } else if (newStartsAt == null) {
-          val resolvedZone =
-              resolveZone(requestWithOrgId.timezone ?: defaultZone(requestWithOrgId.organizationId, authContext))
-          val date = requestWithOrgId.date ?: throw IllegalArgumentException("Event date is required")
-          val time = requestWithOrgId.time ?: throw IllegalArgumentException("Event time is required")
-          wallClockToInstant(date, time, resolvedZone) to resolvedZone
-        } else {
-          throw BadRequestException("Event startsAt and timezone must be sent together")
-        }
+    val timezone = resolveZone(requestWithOrgId.timezone)
+    val startsAt =
+        parseInstant(requestWithOrgId.startsAt) ?: throw BadRequestException("Invalid event startsAt")
 
     return eventDao.createEvent(requestWithOrgId, startsAt, timezone)
   }
@@ -129,18 +113,12 @@ class EventService(
         when {
           updateStartsAt != null && updateTimezone != null -> {
             val resolvedZone = resolveZone(updateTimezone)
-            val instant = parseInstant(updateStartsAt) ?: throw BadRequestException("Invalid event startsAt")
+            val instant =
+                parseInstant(updateStartsAt) ?: throw BadRequestException("Invalid event startsAt")
             instant to resolvedZone
           }
-          updateStartsAt == null -> {
-            if (updateEventRequest.date != null || updateEventRequest.time != null) {
-              val resolvedZone = updateEventRequest.timezone ?: event.timezone
-              val date = updateEventRequest.date ?: event.date
-              val time = updateEventRequest.time ?: event.time
-              wallClockToInstant(date, time, resolvedZone) to resolvedZone
-            } else {
-              Instant.parse(event.startsAt) to event.timezone
-            }
+          updateStartsAt == null && updateTimezone == null -> {
+            Instant.parse(event.startsAt) to event.timezone
           }
           else -> throw BadRequestException("Event startsAt and timezone must be sent together")
         }
@@ -198,9 +176,6 @@ class EventService(
     }
   }
 
-  private fun wallClockToInstant(date: String, time: String, zone: String): Instant {
-    return LocalDateTime.of(LocalDate.parse(date), LocalTime.parse(time)).atZone(ZoneId.of(zone)).toInstant()
-  }
 }
 
 private const val DEFAULT_TIME_ZONE = "UTC"

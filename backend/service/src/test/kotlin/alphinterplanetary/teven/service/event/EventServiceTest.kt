@@ -33,8 +33,6 @@ class EventServiceTest {
       EventResponse(
         eventId = 1,
         title = "Launch",
-        date = "2026-03-04",
-        time = "09:00:00",
         startsAt = "2026-03-04T08:00:00Z",
         timezone = "Europe/Berlin",
         durationMinutes = 60,
@@ -77,28 +75,6 @@ class EventServiceTest {
         )
 
     assertEquals("Europe/Berlin", response.timezone)
-    coVerify { eventDao.createEvent(any(), Instant.parse("2026-03-04T08:00:00Z"), "Europe/Berlin") }
-  }
-
-  @Test
-  fun `create event with a legacy wall clock resolves it in the organization zone`() = runBlocking {
-    coEvery { eventDao.createEvent(any(), any(), any()) } returns eventResponse()
-    coEvery { organizationService.getOrganizationZone(1) } returns "Europe/Berlin"
-
-    eventService.createEvent(
-      authContext = authContext,
-      createEventRequest =
-          CreateEventRequest(
-            title = "Launch",
-            durationMinutes = 60,
-            inventoryItems = emptyList(),
-            staffInvites = StaffInviteDetails(numberOfStaffNeeded = 2),
-            organizationId = 1,
-            date = "2026-03-04",
-            time = "09:00",
-          ),
-    )
-
     coVerify { eventDao.createEvent(any(), Instant.parse("2026-03-04T08:00:00Z"), "Europe/Berlin") }
   }
 
@@ -217,19 +193,4 @@ class EventServiceTest {
     assertEquals(BadRequestException::class.java, exception!!.javaClass)
   }
 
-  @Test
-  fun `update event with a legacy wall clock keeps the event zone when no zone is sent`() = runBlocking {
-    coEvery { eventDao.getEventById(1) } returns eventResponse()
-    coEvery { eventDao.updateEvent(any(), any(), any(), any()) } returns true
-
-    val updated =
-        eventService.updateEvent(
-          authContext = authContext,
-          eventId = 1,
-          updateEventRequest = UpdateEventRequest(date = "2026-03-05", time = "18:00"),
-        )
-
-    assertEquals(true, updated)
-    coVerify { eventDao.updateEvent(1, any(), Instant.parse("2026-03-05T17:00:00Z"), "Europe/Berlin") }
-  }
 }
