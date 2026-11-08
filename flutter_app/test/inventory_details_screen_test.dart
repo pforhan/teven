@@ -40,7 +40,7 @@ void main() {
                 '{"success":true,"data":{"inventoryId":42,"name":"Nails",'
                 '"description":"Box of nails","quantity":3,"events":[],'
                 '"organization":{"organizationId":1,"name":"Acme",'
-                '"contactInformation":""}}}',
+                '"contactInformation":"","timezone":"UTC"}}}',
               )
             : null,
       );
@@ -109,7 +109,7 @@ void main() {
                   '{"success":true,"data":{"inventoryId":42,"name":"Nails",'
                   '"description":"Box of nails","quantity":3,"events":[],'
                   '"organization":{"organizationId":1,"name":"Acme",'
-                  '"contactInformation":""}}}',
+                  '"contactInformation":"","timezone":"UTC"}}}',
                 )
               : null,
         );
@@ -133,7 +133,7 @@ void main() {
                 '{"success":true,"data":{"inventoryId":42,"name":"Nails",'
                 '"description":"Box of nails","quantity":3,"events":[],'
                 '"organization":{"organizationId":1,"name":"Acme",'
-                '"contactInformation":""}}}',
+                '"contactInformation":"","timezone":"UTC"}}}',
               )
             : null,
       );

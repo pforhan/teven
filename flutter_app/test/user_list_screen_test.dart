@@ -66,6 +66,7 @@ void main() {
                 'organizationId': i + 2,
                 'name': 'Org ${i + 1}',
                 'contactInformation': '',
+                'timezone': 'UTC',
               },
             },
         ],
@@ -300,6 +301,7 @@ void main() {
             'organizationId': 7,
             'name': 'Globex',
             'contactInformation': '',
+            'timezone': 'UTC',
           }),
         },
       );

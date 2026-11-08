@@ -15,6 +15,7 @@ void main() {
     organizationId: 7,
     name: 'Acme',
     contactInformation: 'acme@example.com',
+    timezone: 'UTC',
   );
 
   late ProviderContainer container;
@@ -47,7 +48,7 @@ void main() {
     build(
       stored:
           '{"organizationId":7,"name":"Acme",'
-          '"contactInformation":"acme@example.com"}',
+          '"contactInformation":"acme@example.com","timezone":"UTC"}',
     );
 
     expect(await container.read(organizationControllerProvider.future), org);

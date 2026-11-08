@@ -124,9 +124,14 @@ class _OrganizationListScreenState
       render: (context, organization) => RecordLinkButton(
         label: organization.name,
         onPressed: () => context.go(
-          AppRoutes.organizationDetails(organization.organizationId),
+          AppRoutes.organizationEditPath(organization.organizationId),
         ),
       ),
+    ),
+    ListColumn<OrganizationResponse>(
+      key: 'timezone',
+      label: 'Time Zone',
+      text: (organization) => organization.timezone,
     ),
     ListColumn<OrganizationResponse>(
       key: 'contactInformation',

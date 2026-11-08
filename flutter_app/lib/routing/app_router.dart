@@ -23,9 +23,8 @@ import '../screens/inventory/edit_inventory_screen.dart';
 import '../screens/inventory/inventory_details_screen.dart';
 import '../screens/inventory/inventory_list_screen.dart';
 import '../screens/login_screen.dart';
-import '../screens/organizations/create_organization_screen.dart';
-import '../screens/organizations/edit_organization_screen.dart';
 import '../screens/organizations/organization_list_screen.dart';
+import '../screens/organizations/organization_screen.dart';
 import '../screens/placeholder_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/users/create_user_screen.dart';
@@ -113,11 +112,9 @@ abstract final class AppRoutes {
 
   /// A concrete link to an organization's detail page.
   ///
-  /// Dead in the same way as [customerDetails] and [inventoryDetails]:
-  /// `App.tsx:58-60` declares no `organizations/:organizationId` route, and
-  /// `OrganizationList.tsx:80` links to one anyway.
+  /// Task 7.23: the original detail route was dead; link to the edit screen.
   static String organizationDetails(int organizationId) =>
-      '/organizations/$organizationId';
+      organizationEditPath(organizationId);
 
   static String organizationEditPath(int organizationId) =>
       organizationEdit.replaceFirst(':organizationId', '$organizationId');
@@ -425,12 +422,12 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   ], (_) => const OrganizationListScreen()),
   _guarded(ref, AppRoutes.organizationCreate, [
     Permission.manageOrganizationsGlobal,
-  ], (_) => const CreateOrganizationScreen()),
+  ], (_) => const OrganizationScreen()),
   _guarded(
     ref,
     AppRoutes.organizationEdit,
-    [Permission.manageOrganizationsGlobal],
-    (state) => EditOrganizationScreen(
+    [Permission.manageOrganizationsGlobal, Permission.manageOrganization],
+    (state) => OrganizationScreen(
       organizationId:
           int.tryParse(state.pathParameters['organizationId'] ?? '') ?? -1,
     ),

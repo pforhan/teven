@@ -112,22 +112,15 @@ void main() {
     test(
       'with no override, detection or organization, the zone is UTC',
       () async {
-        final container = build(
-          detected: null,
-          selected: null,
-          userContextOverride: const UserContextResponse(
-            user: UserResponse(
-              userId: 2,
-              username: 'bob',
-              organization: OrganizationResponse(
-                organizationId: 2,
-                name: 'Globex',
-                contactInformation: '',
-              ),
-            ),
-            permissions: <String>[],
-          ),
+        SharedPreferences.setMockInitialValues(const <String, Object>{});
+        container = ProviderContainer(
+          overrides: [
+            timeZoneDetectorProvider.overrideWith((ref) async => null),
+            selectedOrganizationProvider.overrideWithValue(null),
+            userContextProvider.overrideWithValue(null),
+          ],
         );
+        addTearDown(container.dispose);
 
         final resolution = await container.read(
           timeZoneControllerProvider.future,

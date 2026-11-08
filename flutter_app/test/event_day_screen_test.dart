@@ -53,6 +53,7 @@ void main() {
         'organizationId': 1,
         'name': 'Acme',
         'contactInformation': '',
+        'timezone': 'UTC',
       },
       'openInvitation': false,
       'numberOfStaffNeeded': 0,
@@ -92,8 +93,7 @@ void main() {
       token: 'token',
       adapter: adapter,
       prefs: const {
-        'selectedOrganization':
-            '{"organizationId":1,"name":"Acme","contactInformation":""}',
+        'selectedOrganization': '{"organizationId":1,"name":"Acme","contactInformation":"","timezone":"UTC"}',
       },
     );
     await goTo(tester, container, '${AppRoutes.eventDay}?date=$date');

@@ -3715,6 +3715,30 @@ passed.
 **Verified.** `./teven verify-backend` green; `./teven verify` green — analyze
 clean, format clean, 436 tests passed.
 
-**Still open:** task 7.23 (org time zone UI), 7.24 (zone-aware report windows /
-inventory usage date), 7.25 (zone-conversion tests). 7.22 remains will-not-do
-(React retired).
+**7.23 — The organization's time zone in the UI.**
+
+- **Models:** `OrganizationResponse.timezone` required; `CreateOrganizationRequest.timezone`
+  required; `UpdateOrganizationRequest.timezone` required (`name`/`contactInformation`
+  remain optional). Freezed/json regenerated (gitignored).
+- **Merged screen:** `OrganizationScreen` (nullable `organizationId`) replaces
+  `create_organization_screen.dart` / `edit_organization_screen.dart`. Create
+  defaults to the reader's effective zone (`timeZoneControllerProvider`) with no
+  `defaultZone` marker; edit loads the org and passes `defaultZone = org.timezone`
+  to `TimeZoneField`. Update always sends `timezone`.
+- **Routes:** create stays `MANAGE_ORGANIZATIONS_GLOBAL`; edit allows
+  `MANAGE_ORGANIZATIONS_GLOBAL | MANAGE_ORGANIZATION` (service enforces own-org
+  for the scoped permission). Dead `organizationDetails` now resolves to
+  `organizationEditPath`.
+- **Org list:** name links to edit; added "Time Zone" column.
+- **Sidebar:** `_StaticOrganizationLabel` becomes a link to the user's own org
+  edit screen when they hold `MANAGE_ORGANIZATION` (non-super-admin branch);
+  dropdown branch unchanged.
+- **Test ripple:** `OrganizationResponse.timezone` is now required, so org JSON
+  fixtures/prefs across Flutter tests were updated to include `timezone` (and
+  a few malformed duplicate-key artifacts from the bulk edit were removed).
+
+**Verified.** `./teven verify` clean — analyze clean, format clean, 436 tests
+passed.
+
+**Still open:** task 7.24 (zone-aware report windows / inventory usage date),
+7.25 (zone-conversion tests). 7.22 remains will-not-do (React retired).

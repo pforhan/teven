@@ -13,7 +13,7 @@ abstract class OrganizationResponse with _$OrganizationResponse {
     required int organizationId,
     required String name,
     @Default('') String contactInformation,
-    String? timezone,
+    required String timezone,
   }) = _OrganizationResponse;
 
   factory OrganizationResponse.fromJson(Map<String, dynamic> json) =>
@@ -25,20 +25,22 @@ abstract class CreateOrganizationRequest with _$CreateOrganizationRequest {
   const factory CreateOrganizationRequest({
     required String name,
     required String contactInformation,
+    required String timezone,
   }) = _CreateOrganizationRequest;
 
   factory CreateOrganizationRequest.fromJson(Map<String, dynamic> json) =>
       _$CreateOrganizationRequestFromJson(json);
 }
 
-/// Every field optional — a partial update. Null means "leave unchanged",
-/// matching `UpdateOrganizationRequest.kt`, where every property defaults to
-/// null.
+/// [name] and [contactInformation] are optional (null means leave unchanged).
+/// [timezone] is required — an update always carries the new zone, mirroring
+/// `UpdateOrganizationRequest.kt`.
 @freezed
 abstract class UpdateOrganizationRequest with _$UpdateOrganizationRequest {
   const factory UpdateOrganizationRequest({
     String? name,
     String? contactInformation,
+    required String timezone,
   }) = _UpdateOrganizationRequest;
 
   factory UpdateOrganizationRequest.fromJson(Map<String, dynamic> json) =>

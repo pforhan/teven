@@ -218,7 +218,8 @@ String _resourceOf(String path) {
 /// per-callsite suppressions below rather than a file-level exclusion.
 StubResponse _responseFor(RequestOptions options) {
   final path = options.path;
-  const org = '"organization":{"organizationId":1,"name":"O"}';
+  const org =
+      '"organization":{"organizationId":1,"name":"O","contactInformation":"","timezone":"UTC"}';
   const ids = '"customerId":1,"name":"Acme","userId":1,"username":"a"';
 
   if (path.contains('/usage')) {
@@ -277,7 +278,7 @@ StubResponse _responseFor(RequestOptions options) {
     }
     if (path.startsWith('/api/organizations')) {
       return const StubResponse.json(
-        '{"success":true,"data":{"organizationId":1,"name":"O"}}',
+        '{"success":true,"data":{"organizationId":1,"name":"O","contactInformation":"","timezone":"UTC"}}',
       );
     }
     // ignore: prefer_const_constructors

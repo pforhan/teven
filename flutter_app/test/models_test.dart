@@ -114,7 +114,12 @@ void main() {
 
   group('PaginatedResponse', () {
     test('decodes nested items through the supplied decoder', () {
-      const orgJson = {'organizationId': 2, 'name': 'Org'};
+      const orgJson = {
+        'organizationId': 2,
+        'name': 'Org',
+        'contactInformation': '',
+        'timezone': 'UTC',
+      };
       final page = PaginatedResponse.fromJson({
         'items': [
           {

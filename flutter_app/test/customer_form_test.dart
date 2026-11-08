@@ -55,6 +55,7 @@ void main() {
           'organizationId': organizationId,
           'name': organizationName,
           'contactInformation': '',
+          'timezone': 'UTC',
         },
       },
     }),
@@ -755,5 +756,6 @@ Map<String, Object> _selectedOrganization(int organizationId, [String? name]) =>
         'organizationId': organizationId,
         'name': name ?? 'Chosen Inc',
         'contactInformation': '',
+        'timezone': 'UTC',
       }),
     };

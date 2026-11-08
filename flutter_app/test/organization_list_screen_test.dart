@@ -39,6 +39,7 @@ void main() {
               'organizationId': i + 1,
               'name': names[i],
               'contactInformation': 'contact-${i + 1}@example.com',
+              'timezone': i == 0 ? 'America/New_York' : 'Pacific/Auckland',
             },
         ],
         'total': names.length,
@@ -186,6 +187,7 @@ void main() {
             'organizationId': 7,
             'name': 'Globex',
             'contactInformation': '',
+            'timezone': 'UTC',
           }),
         },
       );

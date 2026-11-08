@@ -40,7 +40,7 @@ void main() {
                 '{"success":true,"data":{"customerId":42,"name":"Acme",'
                 '"phone":"555-0100","address":"1 Main St","notes":"",'
                 '"organization":{"organizationId":1,"name":"Acme",'
-                '"contactInformation":""}}}',
+                '"contactInformation":"","timezone":"UTC"}}}',
               )
             : null,
       );
@@ -111,7 +111,7 @@ void main() {
                   '{"success":true,"data":{"customerId":42,"name":"Acme",'
                   '"phone":"555-0100","address":"1 Main St","notes":"",'
                   '"organization":{"organizationId":1,"name":"Acme",'
-                  '"contactInformation":""}}}',
+                  '"contactInformation":"","timezone":"UTC"}}}',
                 )
               : null,
         );
@@ -135,7 +135,7 @@ void main() {
                 '{"success":true,"data":{"customerId":42,"name":"Acme",'
                 '"phone":"555-0100","address":"1 Main St","notes":"",'
                 '"organization":{"organizationId":1,"name":"Acme",'
-                '"contactInformation":""}}}',
+                '"contactInformation":"","timezone":"UTC"}}}',
               )
             : null,
       );

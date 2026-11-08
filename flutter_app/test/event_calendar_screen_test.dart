@@ -59,6 +59,7 @@ void main() {
         'organizationId': 1,
         'name': 'Acme',
         'contactInformation': '',
+        'timezone': 'UTC',
       },
       'openInvitation': false,
       'numberOfStaffNeeded': 0,

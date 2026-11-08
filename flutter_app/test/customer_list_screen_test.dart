@@ -46,6 +46,7 @@ void main() {
                 'organizationId': 1,
                 'name': 'Acme',
                 'contactInformation': '',
+                'timezone': 'UTC',
               },
             },
         ],
@@ -161,6 +162,7 @@ void main() {
             'organizationId': 7,
             'name': 'Globex',
             'contactInformation': '',
+            'timezone': 'UTC',
           }),
         },
       );

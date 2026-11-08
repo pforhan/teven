@@ -417,7 +417,7 @@ void main() {
       // reads it — so without this the restored value would never be
       // observable and the store would look like dead code.
       const stored =
-          '{"organizationId":2,"name":"Globex","contactInformation":""}';
+          '{"organizationId":2,"name":"Globex","contactInformation":"","timezone":"UTC"}';
 
       await pumpAt(
         tester,

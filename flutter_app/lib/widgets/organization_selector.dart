@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/layout/breakpoints.dart';
 import '../core/theme/teven_theme.dart';
 import '../models/organization.dart';
+import '../models/permissions.dart';
 import '../providers/auth_controller.dart';
 import '../providers/organization_controller.dart';
 import '../providers/organization_list.dart';
+import '../routing/app_router.dart';
 import 'nav_destinations.dart';
 import 'organization_picker.dart';
 
@@ -50,11 +53,13 @@ class OrganizationSelector extends ConsumerWidget {
   }
 }
 
-/// The non-super-admin branch: an organization name and nothing else.
+/// The non-super-admin branch: the user's organization name.
 ///
-/// `MainLayout.tsx:36` — `<span class="navbar-text">{userContext?.user?.organization?.name}</span>`.
-/// No picker, because the user cannot change it: the server scopes their
-/// requests to their own organization.
+/// `MainLayout.tsx:36` rendered a static label, because a non-super-admin cannot
+/// change their organization scope. Task 7.23 makes it a link to the
+/// organization's edit screen for anyone holding `MANAGE_ORGANIZATION` (their
+/// own organization only; the backend enforces scope). It stays plain text
+/// otherwise.
 class _StaticOrganizationLabel extends ConsumerWidget {
   const _StaticOrganizationLabel({required this.layoutSize});
 
@@ -62,41 +67,68 @@ class _StaticOrganizationLabel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final organization = ref.watch(userContextProvider)?.user.organization.name;
+    final organization = ref.watch(userContextProvider)?.user.organization;
     final theme = Theme.of(context);
 
     // `MainLayout.tsx` renders an empty span when there is no organization, so
     // nothing is shown rather than a placeholder.
-    if (organization == null || organization.isEmpty) {
+    if (organization == null || organization.name.isEmpty) {
       return const SizedBox.shrink();
     }
 
+    final canManageOwnOrg = ref
+        .watch(permissionGateProvider)
+        .has(Permission.manageOrganization);
+    final onTap = canManageOwnOrg
+        ? () => context.go(
+            AppRoutes.organizationEditPath(organization.organizationId),
+          )
+        : null;
+
+    final color = _onDarkRail(layoutSize)
+        ? theme.colorScheme.onPrimary
+        : theme.colorScheme.onSurface;
+
     final label = Text(
-      organization,
+      organization.name,
       overflow: TextOverflow.ellipsis,
       style: theme.textTheme.bodyMedium?.copyWith(
-        // The same mistake [_OrganizationDropdown] documents, in the branch
-        // that has no dropdown to style: `onSurface` is the light-container
-        // ink, correct in the drawer and near-invisible on the dark rail.
-        color: _onDarkRail(layoutSize)
-            ? theme.colorScheme.onPrimary
-            : theme.colorScheme.onSurface,
+        color: color,
+        decoration: onTap == null ? null : TextDecoration.underline,
+        decorationColor: color,
       ),
     );
 
     // A 72px rail has room for the glyph and the tooltip, not for the name.
     if (layoutSize == LayoutSize.tablet) {
+      final icon = Icon(Icons.domain, color: theme.colorScheme.onPrimary);
       return Tooltip(
-        message: organization,
-        child: Icon(Icons.domain, color: theme.colorScheme.onPrimary),
+        message: organization.name,
+        child: onTap == null
+            ? icon
+            : IconButton(
+                onPressed: onTap,
+                icon: icon,
+                tooltip: organization.name,
+              ),
       );
     }
+
+    final child = onTap == null
+        ? label
+        : InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: label,
+            ),
+          );
 
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: label,
+        child: child,
       ),
     );
   }
