@@ -113,7 +113,16 @@ void main() {
 
       expect(find.text('Other events on 2026-10-24'), findsOneWidget);
       expect(find.text('Fence Repair'), findsOneWidget);
-      expect(find.text('09:30:00'), findsOneWidget);
+      // 7.20: panel rows render in the reader's zone (`DateFormat.jm()`).
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              (w.data ?? '').contains('9:30') &&
+              (w.data ?? '').contains('AM'),
+        ),
+        findsOneWidget,
+      );
 
       // The panel asked for that day, in the selected organization.
       final requests = getRequests(adapter);

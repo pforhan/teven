@@ -6,6 +6,7 @@ import '../core/api/api_exception.dart';
 import '../core/services/list_query.dart';
 import '../models/event.dart';
 import '../providers/service_providers.dart';
+import '../providers/time_zone_controller.dart';
 import '../routing/app_router.dart';
 import 'error_display.dart';
 
@@ -24,6 +25,7 @@ class OtherEventsPanel extends ConsumerStatefulWidget {
     required this.date,
     required this.organizationId,
     this.excludeEventId,
+    this.queryTimezone,
   });
 
   /// The day, as `YYYY-MM-DD`.
@@ -45,6 +47,13 @@ class OtherEventsPanel extends ConsumerStatefulWidget {
   /// both pass the event's own id, so a user does not see the event they are
   /// looking at listed as one of the others.
   final String? excludeEventId;
+
+  /// The zone [date] is interpreted in for the query.
+  ///
+  /// Defaults to the reader's effective zone. Event forms pass the event's own
+  /// timezone so the double-booking check runs against the day being scheduled,
+  /// not the reader's day.
+  final String? queryTimezone;
 
   @override
   ConsumerState<OtherEventsPanel> createState() => _OtherEventsPanelState();
@@ -98,7 +107,8 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.date != widget.date ||
         oldWidget.organizationId != widget.organizationId ||
-        oldWidget.excludeEventId != widget.excludeEventId) {
+        oldWidget.excludeEventId != widget.excludeEventId ||
+        oldWidget.queryTimezone != widget.queryTimezone) {
       _fetch();
     }
   }
@@ -121,6 +131,10 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
       _error = null;
     });
 
+    final readerZone =
+        ref.read(timeZoneControllerProvider).value?.effectiveZone ?? 'UTC';
+    final queryTimezone = widget.queryTimezone ?? readerZone;
+
     try {
       final response = await ref
           .read(eventServiceProvider)
@@ -130,6 +144,7 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
               organizationId: orgId,
               startDate: widget.date,
               endDate: widget.date,
+              timezone: queryTimezone,
             ),
           );
       // A answer for a day the user has already moved on from.
@@ -140,7 +155,7 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
       if (exclude != null) {
         items.removeWhere((event) => event.eventId.toString() == exclude);
       }
-      items.sort((a, b) => a.time.compareTo(b.time));
+      items.sort((a, b) => a.instant.compareTo(b.instant));
 
       _set(() {
         _events = items;
@@ -213,6 +228,12 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
                   ),
                 _EventRow(
                   event: _events[i],
+                  readerZone:
+                      ref
+                          .watch(timeZoneControllerProvider)
+                          .value
+                          ?.effectiveZone ??
+                      'UTC',
                   onTap: () => context.go(
                     AppRoutes.eventDetailsPath(_events[i].eventId),
                   ),
@@ -265,9 +286,14 @@ class _LoadingBody extends StatelessWidget {
 /// px-0 py-3 border-bottom">` — a title on the left, the time on the right,
 /// and a line of detail underneath.
 class _EventRow extends StatelessWidget {
-  const _EventRow({required this.event, required this.onTap});
+  const _EventRow({
+    required this.event,
+    required this.readerZone,
+    required this.onTap,
+  });
 
   final EventResponse event;
+  final String readerZone;
   final VoidCallback onTap;
 
   @override
@@ -299,7 +325,7 @@ class _EventRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  event.time,
+                  event.timeIn(readerZone),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.primary,
                     fontWeight: FontWeight.bold,

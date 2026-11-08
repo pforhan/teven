@@ -716,6 +716,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
               date: _dateValue,
               organizationId: _selectedOrganizationId,
               excludeEventId: '${widget.eventId}',
+              queryTimezone: _eventZone,
             );
 
             if (wide) {

@@ -821,6 +821,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             final sidebar = OtherEventsPanel(
               date: _dateValue,
               organizationId: _selectedOrganizationId,
+              queryTimezone: _eventZone,
             );
 
             if (wide) {

@@ -2,30 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:teven_app/models/api_response.dart';
 import 'package:teven_app/models/common.dart';
 import 'package:teven_app/models/event.dart';
-import 'package:teven_app/models/organization.dart';
+
 import 'package:teven_app/models/permissions.dart';
 
 /// Model behaviour that is not obvious from reading a call site.
 void main() {
-  const org = OrganizationResponse(organizationId: 2, name: 'Org');
-
-  EventResponse event({
-    String date = '2026-03-04',
-    String time = '09:30:00',
-    String startsAt = '2026-03-04T09:30:00Z',
-    String timezone = 'UTC',
-    int durationMinutes = 90,
-  }) => EventResponse(
-    eventId: 1,
-    title: 'Gala',
-    date: date,
-    time: time,
-    startsAt: startsAt,
-    timezone: timezone,
-    durationMinutes: durationMinutes,
-    organization: org,
-  );
-
   group('ApiResponse — the data:{} hazard', () {
     /// Fails the test if the decoder is ever reached on a failure envelope.
     int mustNotDecode(Object? _) => fail('decode must not run on a failure');
@@ -71,40 +52,6 @@ void main() {
       }, mustNotDecode);
       expect(response.success, isTrue);
       expect(response.data, isNull);
-    });
-  });
-
-  group('naive-local event times', () {
-    // The API sends "YYYY-MM-DD" / "HH:MM:SS" with no timezone. These must
-    // stay local, never be re-read as UTC — that would shift every event.
-    test('startAt is local, not UTC-shifted', () {
-      expect(event().startAt, DateTime(2026, 3, 4, 9, 30));
-    });
-
-    test('endAt adds durationMinutes', () {
-      expect(event().endAt, DateTime(2026, 3, 4, 11, 0));
-    });
-
-    test('a bare "HH:MM" time has zero seconds', () {
-      expect(event(time: '14:05').startAt, DateTime(2026, 3, 4, 14, 5, 0));
-    });
-
-    test('seconds are honoured when present', () {
-      expect(event(time: '08:15:45').startAt, DateTime(2026, 3, 4, 8, 15, 45));
-    });
-
-    test('zero duration ends where it starts', () {
-      expect(
-        event(durationMinutes: 0).endAt,
-        event(durationMinutes: 0).startAt,
-      );
-    });
-
-    test('duration crosses midnight', () {
-      expect(
-        event(time: '23:30', durationMinutes: 60).endAt,
-        DateTime(2026, 3, 5, 0, 30),
-      );
     });
   });
 

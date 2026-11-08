@@ -261,16 +261,22 @@ StubAdapter contextAdapter({
 /// construction (`OrganizationController.build`), and without a mock the plugin
 /// throws `MissingPluginException` — which is a fine failure for a plugin test
 /// and a confusing one for anything that happens to render the chrome.
+///
+/// [detectedZone] fixes the reader's device zone so date-windowed screens and
+/// "today" assertions are deterministic rather than tied to the machine running
+/// the test.
 ProviderContainer authTestContainer({
   String? token,
   required StubAdapter adapter,
   Map<String, Object> prefs = const {},
+  String? detectedZone = 'UTC',
 }) {
   SharedPreferences.setMockInitialValues(prefs);
   final container = ProviderContainer(
     overrides: [
       tokenStoreProvider.overrideWithValue(TokenStore.inMemory(token: token)),
       dioProvider.overrideWithValue(stubDio(adapter)),
+      timeZoneDetectorProvider.overrideWith((ref) async => detectedZone),
     ],
   );
   addTearDown(container.dispose);
@@ -301,6 +307,7 @@ Future<ProviderContainer> pumpApp(
   double? width,
   double? height,
   Map<String, Object> prefs = const {},
+  String? detectedZone = 'UTC',
 }) async {
   if (width != null || height != null) {
     tester.view.devicePixelRatio = 1;
@@ -315,6 +322,7 @@ Future<ProviderContainer> pumpApp(
     adapter: adapter,
     token: token,
     prefs: prefs,
+    detectedZone: detectedZone,
   );
 
   await tester.runAsync(() => container.read(authControllerProvider.future));

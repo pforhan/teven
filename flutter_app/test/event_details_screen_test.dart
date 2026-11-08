@@ -219,9 +219,19 @@ void main() {
 
       expect(find.text('Fall Cleanup'), findsOneWidget);
       expect(find.text('2026-10-19'), findsOneWidget);
-      // The raw wire time and the duration, as `EventDetails.tsx:116` renders
-      // them.
-      expect(find.text('08:00:00 (90 min)'), findsOneWidget);
+      // 7.20: time renders in the reader's zone (`DateFormat.jm()`), with the
+      // event's own zone shown only when it differs. Match flexibly: intl may
+      // use a narrow no-break space before AM/PM.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              (w.data ?? '').contains('8:00') &&
+              (w.data ?? '').contains('(90 min)') &&
+              (w.data ?? '').contains('AM'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('123 Main St'), findsOneWidget);
       expect(find.text('Rake leaves and clean up debris'), findsOneWidget);
       expect(find.byType(EventDetailsScreen), findsOneWidget);

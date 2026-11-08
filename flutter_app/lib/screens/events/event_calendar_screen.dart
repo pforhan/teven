@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:table_calendar/table_calendar.dart';
+import 'package:timezone/timezone.dart' show TZDateTime;
 
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
@@ -17,6 +18,7 @@ import '../../models/organization.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/event_list.dart';
 import '../../providers/organization_controller.dart';
+import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/create_event_button.dart';
 import '../../widgets/debounced_search_field.dart';
@@ -72,7 +74,14 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
   /// displayed date on every navigation — keeping a separate "focused" and
   /// "fetched" month would only allow them to disagree, which is the shape of
   /// a stale-data bug rather than a feature.
+  ///
+  /// Initialized to the current month in the device's local zone and re-seeded
+  /// to the reader's zone once that resolves, so the focused month follows the
+  /// reader's zone the same way "today" does.
   DateTime _focusedMonth = _monthOf(DateTime.now());
+
+  /// Whether [_focusedMonth] has been aligned to the reader's resolved zone.
+  bool _focusedMonthSyncedToReaderZone = false;
 
   String _searchTerm = '';
 
@@ -122,8 +131,16 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
   /// are always empty; widening the query to the grid would be a fix rather
   /// than a port, and would change which events appear where.
   ///
+  /// [readerZone] names the zone the month is interpreted in, and the dates are
+  /// local dates in that zone — so "March" means March where the reader is,
+  /// and an event that lands on a different day in a different zone is bucketed
+  /// accordingly.
+  ///
   /// `limit` is [kCalendarEventLimit] and `offset` is absent.
-  ListQuery _buildQuery(OrganizationResponse? organization) => ListQuery(
+  ListQuery _buildQuery(
+    OrganizationResponse? organization,
+    String readerZone,
+  ) => ListQuery(
     limit: kCalendarEventLimit,
     startDate: formatLocalDate(
       DateTime(_focusedMonth.year, _focusedMonth.month),
@@ -135,6 +152,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
     ),
     organizationId: organization?.organizationId,
     search: _searchTerm.isEmpty ? null : _searchTerm,
+    timezone: readerZone,
   );
 
   /// A day was tapped.
@@ -199,7 +217,23 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final organization = ref.watch(selectedOrganizationProvider);
-    final events = ref.watch(calendarEventsProvider(_buildQuery(organization)));
+    final tz = ref.watch(timeZoneControllerProvider);
+    final readerZone = tz.value?.effectiveZone ?? 'UTC';
+
+    if (!_focusedMonthSyncedToReaderZone && tz.hasValue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _focusedMonthSyncedToReaderZone) return;
+        final now = TZDateTime.now(zoneLocation(tz.value!.effectiveZone));
+        setState(() {
+          _focusedMonth = _monthOf(now);
+          _focusedMonthSyncedToReaderZone = true;
+        });
+      });
+    }
+
+    final events = ref.watch(
+      calendarEventsProvider(_buildQuery(organization, readerZone)),
+    );
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -244,6 +278,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
               child: _CalendarCard(
                 state: events,
                 focusedMonth: _focusedMonth,
+                readerZone: readerZone,
                 onPageChanged: (month) =>
                     setState(() => _focusedMonth = _monthOf(month)),
                 onDaySelected: _onDaySelected,
@@ -339,6 +374,7 @@ class _CalendarCard extends StatelessWidget {
   const _CalendarCard({
     required this.state,
     required this.focusedMonth,
+    required this.readerZone,
     required this.onPageChanged,
     required this.onDaySelected,
     required this.onDayLongPressed,
@@ -346,6 +382,7 @@ class _CalendarCard extends StatelessWidget {
 
   final AsyncValue<List<EventResponse>> state;
   final DateTime focusedMonth;
+  final String readerZone;
   final ValueChanged<DateTime> onPageChanged;
   final void Function(DateTime day, DateTime focusedDay) onDaySelected;
   final void Function(DateTime day, DateTime focusedDay) onDayLongPressed;
@@ -383,6 +420,7 @@ class _CalendarCard extends StatelessWidget {
               opacity: state.isLoading && events != null ? 0.4 : 1,
               child: _CalendarGrid(
                 focusedMonth: focusedMonth,
+                readerZone: readerZone,
                 onPageChanged: onPageChanged,
                 onDaySelected: onDaySelected,
                 onDayLongPressed: onDayLongPressed,
@@ -404,6 +442,7 @@ class _CalendarCard extends StatelessWidget {
 class _CalendarGrid extends ConsumerWidget {
   const _CalendarGrid({
     required this.focusedMonth,
+    required this.readerZone,
     required this.onPageChanged,
     required this.onDaySelected,
     required this.onDayLongPressed,
@@ -411,6 +450,7 @@ class _CalendarGrid extends ConsumerWidget {
   });
 
   final DateTime focusedMonth;
+  final String readerZone;
   final ValueChanged<DateTime> onPageChanged;
   final void Function(DateTime day, DateTime focusedDay) onDaySelected;
   final void Function(DateTime day, DateTime focusedDay) onDayLongPressed;
@@ -422,16 +462,20 @@ class _CalendarGrid extends ConsumerWidget {
     // the id has to be read from the context here rather than passed down.
     final currentUserId = ref.watch(userContextProvider)?.user.userId;
 
-    // Days are keyed on `yyyy-MM-dd` because `eventLoader` is handed a
-    // `DateTime` and has to look events up by *date*, and the wire format is the
-    // only string that can compare equal across the two. `event.startAt` is the
-    // naive-local `DateTime` built from the same two fields, so this is a
-    // formatting call rather than a second implementation of the parsing — see
-    // `EventResponse.startAt` and task 7.9.
+    // The day an event lands on is its date in the reader's zone — an event at
+    // 02:00 Berlin is on the previous day in New York, and one at 23:00 Berlin
+    // is on the next day in Auckland. The grid keys on `yyyy-MM-dd` of that
+    // wall clock, so the bucket is the reader's day.
     final byDay = <String, List<EventResponse>>{};
     for (final event in events) {
-      byDay.putIfAbsent(formatLocalDate(event.startAt), () => []).add(event);
+      byDay.putIfAbsent(event.dateIn(readerZone), () => []).add(event);
     }
+    final readerToday = TZDateTime.now(zoneLocation(readerZone));
+    final readerTodayDate = DateTime(
+      readerToday.year,
+      readerToday.month,
+      readerToday.day,
+    );
 
     return TableCalendar<EventResponse>(
       focusedDay: focusedMonth,
@@ -481,13 +525,15 @@ class _CalendarGrid extends ConsumerWidget {
       // task 7.4: `#e7f0f7` is a *background* behind the whole cell, and
       // `CalendarStyle` in table_calendar 3.3.0 offers only `todayDecoration` —
       // a small dot — with no full-cell highlight option. Writing the cell is
-      // the only way to get a full-cell highlight at all.
+      // the only way to get a full-cell highlight at all. "Today" is the reader's
+      // zone, which may differ from the device's.
       calendarBuilders: CalendarBuilders<EventResponse>(
-        defaultBuilder: (context, day, focusedDay) => _DayCell(day: day),
+        defaultBuilder: (context, day, focusedDay) =>
+            _DayCell(day: day, isToday: isSameDay(day, readerTodayDate)),
         outsideBuilder: (context, day, focusedDay) =>
             _DayCell(day: day, outside: true),
         todayBuilder: (context, day, focusedDay) =>
-            _DayCell(day: day, isToday: true),
+            _DayCell(day: day, isToday: isSameDay(day, readerTodayDate)),
         // The weekday row is written by hand, and the reason is the rules:
         // see [_DayOfWeekCell].
         dowBuilder: (context, day) => _DayOfWeekCell(day: day),
@@ -520,6 +566,7 @@ class _CalendarGrid extends ConsumerWidget {
                     key: ValueKey(eventPillKey(event.eventId)),
                     event: event,
                     currentUserId: currentUserId,
+                    readerZone: readerZone,
                   ),
                 if (dayEvents.length > kMaxEventsPerDay)
                   Padding(
@@ -793,10 +840,12 @@ class _EventPill extends StatelessWidget {
     super.key,
     required this.event,
     required this.currentUserId,
+    required this.readerZone,
   });
 
   final EventResponse event;
   final int? currentUserId;
+  final String readerZone;
 
   @override
   Widget build(BuildContext context) {
@@ -812,8 +861,8 @@ class _EventPill extends StatelessWidget {
               rsvp.availability == RsvpAvailability.requested,
         );
 
-    // The title, followed by a `h:mm A` time.
-    final label = '${event.title} ${DateFormat.jm().format(event.startAt)}';
+    // The title, followed by the event's time in the reader's zone.
+    final label = '${event.title} ${event.timeIn(readerZone)}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),

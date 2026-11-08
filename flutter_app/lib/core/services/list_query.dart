@@ -30,6 +30,7 @@ class ListQuery {
     this.organizationId,
     this.startDate,
     this.endDate,
+    this.timezone,
   });
 
   final int? limit;
@@ -40,6 +41,14 @@ class ListQuery {
   final int? organizationId;
   final String? startDate;
   final String? endDate;
+
+  /// The IANA zone the date window is interpreted in.
+  ///
+  /// [startDate] and [endDate] are local dates; the server converts them into an
+  /// instant range in this zone. When absent the server falls back to the
+  /// caller's organization zone, then UTC. Date-windowed event queries send it so
+  /// "the 3rd" means the same day the reader is looking at.
+  final String? timezone;
 
   /// Converts to dio's `queryParameters`, omitting nulls.
   ///
@@ -55,6 +64,7 @@ class ListQuery {
     if (organizationId != null) 'organizationId': organizationId,
     if (startDate != null && startDate!.isNotEmpty) 'startDate': startDate,
     if (endDate != null && endDate!.isNotEmpty) 'endDate': endDate,
+    if (timezone != null && timezone!.isNotEmpty) 'timezone': timezone,
   };
 
   ListQuery copyWith({
@@ -66,6 +76,7 @@ class ListQuery {
     int? organizationId,
     String? startDate,
     String? endDate,
+    String? timezone,
   }) => ListQuery(
     limit: limit ?? this.limit,
     offset: offset ?? this.offset,
@@ -75,6 +86,7 @@ class ListQuery {
     organizationId: organizationId ?? this.organizationId,
     startDate: startDate ?? this.startDate,
     endDate: endDate ?? this.endDate,
+    timezone: timezone ?? this.timezone,
   );
 
   /// Value equality, so a [ListQuery] can key a provider family.
@@ -96,7 +108,8 @@ class ListQuery {
           sortOrder == other.sortOrder &&
           organizationId == other.organizationId &&
           startDate == other.startDate &&
-          endDate == other.endDate;
+          endDate == other.endDate &&
+          timezone == other.timezone;
 
   @override
   int get hashCode => Object.hash(
@@ -108,10 +121,12 @@ class ListQuery {
     organizationId,
     startDate,
     endDate,
+    timezone,
   );
 
   @override
   String toString() =>
       'ListQuery(limit: $limit, offset: $offset, search: $search, '
-      'sortBy: $sortBy, sortOrder: $sortOrder, organizationId: $organizationId)';
+      'sortBy: $sortBy, sortOrder: $sortOrder, organizationId: $organizationId, '
+      'timezone: $timezone)';
 }

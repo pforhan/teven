@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../core/util/local_date.dart';
 import 'customer.dart';
 import 'organization.dart';
 
@@ -50,35 +51,32 @@ abstract class EventResponse with _$EventResponse {
   factory EventResponse.fromJson(Map<String, dynamic> json) =>
       _$EventResponseFromJson(json);
 
-  /// Start of the event as a local [DateTime].
+  /// The event's start as a UTC instant.
   ///
-  /// Constructed from [date] and [time] directly, never via
-  /// `DateTime.parse(date + 'T' + time)`. That expression is what the React
-  /// app does (`EventCalendar.tsx:230`) and it is fragile: it depends on
-  /// `DateTime.parse` treating a zone-less string as *local*, which is true
-  /// but unstated. Building from components makes the naive-local assumption
-  /// explicit and fails loudly on a malformed value rather than silently
-  /// producing midnight.
+  /// Parsed from [startsAt], which is offset-bearing ISO 8601. Conversions that
+  /// render this for a reader take the reader's zone as an argument — the model
+  /// never picks a zone itself.
+  DateTime get instant => DateTime.parse(startsAt).toUtc();
+
+  /// The wall clock of [instant] read in [zoneId].
+  DateTime wallClockIn(String zoneId) => wallClockInZone(instant, zoneId);
+
+  /// The event's local date (`yyyy-MM-dd`) in [zoneId].
+  String dateIn(String zoneId) => formatDateInZone(instant, zoneId);
+
+  /// The event's time of day in [zoneId], formatted for display.
+  String timeIn(String zoneId) => formatTimeInZone(instant, zoneId);
+
+  /// Start of the event as the wall clock in the event's own [timezone].
   ///
-  /// Zone-aware conversions that take the reader's zone as an argument replace
-  /// these readers; this stays for surfaces not yet ported to that shape.
-  DateTime get startAt {
-    final parsedDate = DateTime.parse(date);
-    final timeParts = time.split(':');
-    return DateTime(
-      parsedDate.year,
-      parsedDate.month,
-      parsedDate.day,
-      int.parse(timeParts[0]),
-      timeParts.length > 1 ? int.parse(timeParts[1]) : 0,
-      timeParts.length > 2 ? int.parse(timeParts[2]) : 0,
-    );
-  }
+  /// Kept for callers not yet ported to the reader-zone conversions. Prefer
+  /// [wallClockIn], [dateIn], and [timeIn] with an explicit zone.
+  DateTime get startAt => wallClockIn(timezone);
 
   /// End of the event, computed as [startAt] plus [durationMinutes].
   DateTime get endAt => startAt.add(Duration(minutes: durationMinutes));
 
-  /// The hour `time` names, for calendar layout.
+  /// The hour the event starts in its own [timezone].
   int get startHour => startAt.hour;
 }
 

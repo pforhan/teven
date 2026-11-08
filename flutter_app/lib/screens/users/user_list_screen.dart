@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
+import '../../core/util/local_date.dart';
 import '../../models/invitation.dart';
 import '../../models/organization.dart';
 import '../../models/permissions.dart';
@@ -14,6 +15,7 @@ import '../../models/user.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
+import '../../providers/time_zone_controller.dart';
 import '../../providers/user_list.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/confirm_dialog.dart';
@@ -312,34 +314,36 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   );
 
   /// The invitation columns. `UserList.tsx:166-195`.
-  List<ListColumn<InvitationResponse>> _invitationColumns() => [
-    ListColumn<InvitationResponse>(
-      key: 'roleName',
-      label: 'Role',
-      text: (invitation) => invitation.roleName,
-    ),
-    // `UserList.tsx:168` renders `invitation.note || 'N/A'`, so a null note
-    // is shown as text rather than as an empty cell.
-    ListColumn<InvitationResponse>(
-      key: 'note',
-      label: 'Note',
-      text: (invitation) => invitation.note ?? 'N/A',
-    ),
-    ListColumn<InvitationResponse>(
-      key: 'invitationUrl',
-      label: 'Link',
-      render: (context, invitation) => _InvitationLinkCell(
-        invitation: invitation,
-        copied: _copiedInvitationId == invitation.invitationId,
-        onCopy: () => _copyInvitationLink(invitation),
-      ),
-    ),
-    ListColumn<InvitationResponse>(
-      key: 'expiresAt',
-      label: 'Expires',
-      text: (invitation) => formatDate(invitation.expiresAt),
-    ),
-  ];
+  List<ListColumn<InvitationResponse>> _invitationColumns(String readerZone) =>
+      [
+        ListColumn<InvitationResponse>(
+          key: 'roleName',
+          label: 'Role',
+          text: (invitation) => invitation.roleName,
+        ),
+        // `UserList.tsx:168` renders `invitation.note || 'N/A'`, so a null note
+        // is shown as text rather than as an empty cell.
+        ListColumn<InvitationResponse>(
+          key: 'note',
+          label: 'Note',
+          text: (invitation) => invitation.note ?? 'N/A',
+        ),
+        ListColumn<InvitationResponse>(
+          key: 'invitationUrl',
+          label: 'Link',
+          render: (context, invitation) => _InvitationLinkCell(
+            invitation: invitation,
+            copied: _copiedInvitationId == invitation.invitationId,
+            onCopy: () => _copyInvitationLink(invitation),
+          ),
+        ),
+        ListColumn<InvitationResponse>(
+          key: 'expiresAt',
+          label: 'Expires',
+          text: (invitation) =>
+              formatInstantDate(invitation.expiresAt, readerZone),
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -439,7 +443,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
               const SizedBox(height: 16),
               _InvitationSection(
                 invitations: invitations,
-                columns: _invitationColumns(),
+                columns: _invitationColumns(
+                  ref.watch(timeZoneControllerProvider).value?.effectiveZone ??
+                      'UTC',
+                ),
                 onDelete: _confirmDeleteInvitation,
               ),
               const SizedBox(height: 32),
@@ -634,20 +641,4 @@ String _appOrigin(Uri base) {
   // widget test in this repo was asserting against the worse of the two.
   if (base.authority.isNotEmpty) return '${base.scheme}://${base.authority}';
   return '';
-}
-
-/// Formats a timezone-naive server timestamp as a date.
-///
-/// `UserList.tsx:184` calls `new Date(expiresAt).toLocaleDateString()`, which
-/// is locale-dependent by design; this keeps the ISO `YYYY-MM-DD` prefix that
-/// the server sends (`InvitationRoutes.kt`), which is what a reader of an
-/// expiry date actually wants, and returns the raw string if it is not a date
-/// at all — the same "never silently blank" rule as the rest of the port.
-String formatDate(String timestamp) {
-  final parsed = DateTime.tryParse(timestamp);
-  if (parsed == null) return timestamp;
-
-  final month = parsed.month.toString().padLeft(2, '0');
-  final day = parsed.day.toString().padLeft(2, '0');
-  return '${parsed.year}-$month-$day';
 }

@@ -7,6 +7,7 @@ import '../models/event.dart';
 import '../providers/event_details.dart';
 import '../providers/event_list.dart';
 import '../providers/service_providers.dart';
+import '../providers/time_zone_controller.dart';
 import 'error_display.dart';
 
 /// The list of events waiting for this user's answer.
@@ -62,6 +63,8 @@ class _RsvpWidgetState extends ConsumerState<RsvpWidget> {
   Widget build(BuildContext context) {
     final requested = ref.watch(requestedRsvpsProvider);
     final error = requested.whenOrNull(error: (error, stackTrace) => error);
+    final readerZone =
+        ref.watch(timeZoneControllerProvider).value?.effectiveZone ?? 'UTC';
 
     final events = (requested.value ?? const <EventResponse>[])
         .where((event) => !_answered.contains(event.eventId))
@@ -95,6 +98,7 @@ class _RsvpWidgetState extends ConsumerState<RsvpWidget> {
                 if (i > 0) const Divider(height: 24),
                 _RsvpRow(
                   event: events[i],
+                  readerZone: readerZone,
                   pending: _pending.contains(events[i].eventId),
                   onAnswer: (availability) => _answer(events[i], availability),
                 ),
@@ -170,11 +174,13 @@ class _RsvpWidgetState extends ConsumerState<RsvpWidget> {
 class _RsvpRow extends StatelessWidget {
   const _RsvpRow({
     required this.event,
+    required this.readerZone,
     required this.pending,
     required this.onAnswer,
   });
 
   final EventResponse event;
+  final String readerZone;
   final bool pending;
   final ValueChanged<String> onAnswer;
 
@@ -197,7 +203,7 @@ class _RsvpRow extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '${event.date} at ${event.time}',
+                '${event.dateIn(readerZone)} at ${event.timeIn(readerZone)}',
                 style: theme.textTheme.bodySmall,
               ),
             ],

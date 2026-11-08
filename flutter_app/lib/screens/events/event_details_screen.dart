@@ -13,6 +13,7 @@ import '../../models/event.dart';
 import '../../models/permissions.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/service_providers.dart';
+import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/error_display.dart';
@@ -224,6 +225,8 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
     final gate = ref.watch(permissionGateProvider);
     final canManage = gate.has(Permission.manageEventsOrganization);
     final canJoin = gate.has(Permission.assignToEventsSelf);
+    final readerZone =
+        ref.watch(timeZoneControllerProvider).value?.effectiveZone ?? 'UTC';
 
     final event = _event;
 
@@ -257,11 +260,13 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
                 builder: (context, constraints) {
                   final main = _EventCard(
                     event: event,
+                    readerZone: readerZone,
                     actionError: _actionError,
                     successMessage: _successMessage,
                   );
                   final side = _Sidebar(
                     event: event,
+                    readerZone: readerZone,
                     canJoin: canJoin,
                     canManage: canManage,
                     myRsvpStatus: _myRsvpStatus,
@@ -372,11 +377,13 @@ class _Header extends StatelessWidget {
 class _EventCard extends StatelessWidget {
   const _EventCard({
     required this.event,
+    required this.readerZone,
     required this.actionError,
     required this.successMessage,
   });
 
   final EventResponse event;
+  final String readerZone;
   final ApiException? actionError;
   final String? successMessage;
 
@@ -399,7 +406,7 @@ class _EventCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _MetaRow(event: event),
+            _MetaRow(event: event, readerZone: readerZone),
             // **The banners sit here,** where `EventDetails.tsx:133` puts
             // them: under the title, above the description.
             if (actionError != null) ...[
@@ -452,13 +459,18 @@ class _EventCard extends StatelessWidget {
 /// `EventDetails.tsx:114-129`: a `d-flex gap-3` of three spans, each with an
 /// icon in front of it.
 class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.event});
+  const _MetaRow({required this.event, required this.readerZone});
 
   final EventResponse event;
+  final String readerZone;
 
   @override
   Widget build(BuildContext context) {
     final location = event.location;
+    final time = event.timeIn(readerZone);
+    final zoneSuffix = event.timezone == readerZone
+        ? ''
+        : ' · ${event.timezone}';
 
     return LayoutBuilder(
       builder: (context, constraints) => Wrap(
@@ -466,12 +478,10 @@ class _MetaRow extends StatelessWidget {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          _MetaItem(icon: Icons.event_note, text: event.date),
+          _MetaItem(icon: Icons.event_note, text: event.dateIn(readerZone)),
           _MetaItem(
             icon: Icons.schedule,
-            // **The raw wire time**, and the duration in minutes — as the
-            // original renders it.
-            text: '${event.time} (${event.durationMinutes} min)',
+            text: '$time (${event.durationMinutes} min)$zoneSuffix',
           ),
           if (location != null && location.isNotEmpty)
             _LocationLink(location: location, maxWidth: constraints.maxWidth),
@@ -765,6 +775,7 @@ class _InventoryTile extends StatelessWidget {
 class _Sidebar extends StatelessWidget {
   const _Sidebar({
     required this.event,
+    required this.readerZone,
     required this.canJoin,
     required this.canManage,
     required this.myRsvpStatus,
@@ -773,6 +784,7 @@ class _Sidebar extends StatelessWidget {
   });
 
   final EventResponse event;
+  final String readerZone;
   final bool canJoin;
   final bool canManage;
   final String? myRsvpStatus;
@@ -786,7 +798,7 @@ class _Sidebar extends StatelessWidget {
       // **`EventDetails.tsx:175-181`.** The panel fetches the other events on
       // this event's day, in this event's organization, minus this event.
       OtherEventsPanel(
-        date: event.date,
+        date: event.dateIn(readerZone),
         organizationId: event.organization.organizationId.toString(),
         excludeEventId: event.eventId.toString(),
       ),

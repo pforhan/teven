@@ -99,7 +99,16 @@ void main() {
       expect(find.text('You have pending RSVP requests'), findsOneWidget);
       expect(find.text('Rooftop Garden Maintenance'), findsOneWidget);
       expect(find.text('Soil delivery'), findsOneWidget);
-      expect(find.text('2026-10-24 at 11:00:00'), findsOneWidget);
+      // 7.20: date and time render in the reader's zone (`DateFormat.jm()`).
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              (w.data ?? '').startsWith('2026-10-24 at 11:00') &&
+              (w.data ?? '').contains('AM'),
+        ),
+        findsOneWidget,
+      );
       expect(find.widgetWithText(FilledButton, 'Accept'), findsNWidgets(2));
       expect(find.widgetWithText(FilledButton, 'Decline'), findsNWidgets(2));
     });

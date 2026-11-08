@@ -186,7 +186,7 @@ void main() {
       await openCalendar(tester, adapter);
 
       final request = getRequests(adapter).first;
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       expect(
         request.queryParameters['startDate'],
         formatLocalDate(DateTime(today.year, today.month)),
@@ -254,7 +254,7 @@ void main() {
       }
 
       expect(getRequests(adapter).length, greaterThan(1));
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       expect(
         getRequests(adapter).last.queryParameters['startDate'],
         isNot(formatLocalDate(DateTime(today.year, today.month))),
@@ -264,7 +264,7 @@ void main() {
 
   group('placement', () {
     testWidgets('an event renders as a bar on its own day', (tester) async {
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       final date = formatLocalDate(today);
       final adapter = calendarAdapter(
         events: [eventJson(id: 7, title: 'Hedge trimming', date: date)],
@@ -281,7 +281,7 @@ void main() {
     testWidgets('an event on another day does not land in this one', (
       tester,
     ) async {
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       // A date in the same month but not today, so the server is asked for it
       // and it is *not* on today. If placement were wrong — if every event
       // went to the first day, say — this would still find the title.
@@ -330,7 +330,7 @@ void main() {
       // The server would never return this — the query window excludes it — but
       // if it did, it must not appear: the grid only has cells for the month,
       // and painting it into the first would be a visible misreport.
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       final lastYear = formatLocalDate(
         DateTime(today.year - 1, today.month, today.day),
       );
@@ -367,7 +367,7 @@ void main() {
     testWidgets("an event awaiting this user's answer is orange", (
       tester,
     ) async {
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       // The harness's user is `userId: 1` — see `userContextJson`.
       final adapter = calendarAdapter(
         events: [
@@ -394,7 +394,7 @@ void main() {
     testWidgets("another user's pending RSVP leaves the bar the default blue", (
       tester,
     ) async {
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       final adapter = calendarAdapter(
         events: [
           eventJson(
@@ -424,7 +424,7 @@ void main() {
 
   group('navigation', () {
     testWidgets('tapping a bar opens that event', (tester) async {
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       final adapter = calendarAdapter(
         events: [
           eventJson(id: 42, title: 'Site visit', date: formatLocalDate(today)),
@@ -454,7 +454,7 @@ void main() {
       // days the neighbouring months contribute — a tap on a padding cell would
       // still change the focused month, which is the behaviour asserted above
       // rather than here.
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       final target = today.day == 15
           ? DateTime(today.year, today.month, 16)
           : DateTime(today.year, today.month, 15);
@@ -477,7 +477,7 @@ void main() {
   group('which gesture creates — task 7.2', () {
     /// A day in this month, not today, and not a padding cell.
     DateTime targetDay() {
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       return today.day == 15
           ? DateTime(today.year, today.month, 16)
           : DateTime(today.year, today.month, 15);
@@ -603,7 +603,7 @@ void main() {
     testWidgets('a long press on a bar opens the event, not the create form', (
       tester,
     ) async {
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       final adapter = calendarAdapter(
         events: [
           eventJson(id: 43, title: 'Site visit', date: formatLocalDate(today)),
@@ -686,7 +686,7 @@ void main() {
 
   group('how much room a day gets', () {
     testWidgets('a day with four events shows all four bars', (tester) async {
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       final date = formatLocalDate(today);
       final adapter = calendarAdapter(
         events: [
@@ -713,7 +713,7 @@ void main() {
     testWidgets('the count of the events that did not fit is visible', (
       tester,
     ) async {
-      final today = DateTime.now();
+      final today = DateTime.now().toUtc();
       final date = formatLocalDate(today);
       final adapter = calendarAdapter(
         events: [
@@ -741,7 +741,7 @@ void main() {
     testWidgets('a horizontal drag does not move the month', (tester) async {
       await openCalendar(tester, calendarAdapter());
 
-      final title = DateFormat.yMMMM().format(DateTime.now());
+      final title = DateFormat.yMMMM().format(DateTime.now().toUtc());
       expect(find.text(title), findsOneWidget);
 
       // A drag right across the grid, far enough to change the month if the
@@ -769,7 +769,7 @@ void main() {
 
       // The rules between the day columns and between the week rows, in the
       // colour the grid has always been drawn in.
-      final cell = tester.widget<Container>(dayCell(DateTime.now()));
+      final cell = tester.widget<Container>(dayCell(DateTime.now().toUtc()));
       final border = (cell.foregroundDecoration! as BoxDecoration).border!;
       expect((border as Border).right.color, TevenTheme.gridline);
       expect(border.bottom.color, TevenTheme.gridline);
@@ -785,7 +785,7 @@ void main() {
       // or before the first day of the visible month — the grid's own left edge,
       // and an outside day when the month starts mid-week. "Next Sunday" would
       // reach into the following month's padding, which this grid does not draw.
-      final firstOfMonth = _firstOfMonth(DateTime.now());
+      final firstOfMonth = _firstOfMonth(DateTime.now().toUtc());
       final sunday = firstOfMonth.subtract(
         Duration(days: firstOfMonth.weekday % 7),
       );

@@ -3649,6 +3649,48 @@ built event JSON fixtures were updated to include `startsAt`/`timezone` and to
 match the now-real `HH:mm:ss` wire time format where they asserted on rendered
 text.
 
-**Still open:** task 7.20 renders every event surface in the reader's zone and
-makes `ListQuery`/date-windowed queries zone-aware; task 7.21 retires the
-legacy event `date`/`time` fields (and closes 7.9).
+**7.20 — Every event surface renders in the reader's zone.**
+
+- `EventResponse` exposes `instant` (UTC) and explicit conversions that take the
+  zone as an argument — `wallClockIn(zoneId)`, `dateIn(zoneId)`,
+  `timeIn(zoneId)` — implemented via `zoneLocation`/`wallClockInZone`/
+  `formatDateInZone`/`formatTimeInZone` in `lib/core/util/local_date.dart`
+  (idempotent `initializeTimeZones()`). The model never picks a zone. Legacy
+  `startAt`/`endAt` are now derived from the event's own `timezone` wall clock
+  (not naive `date`+`time` parsing); the `models_test.dart` naive-local group
+  was deleted.
+
+- **Calendar** (`event_calendar_screen.dart`): month window query sends
+  `timezone` (reader zone); events bucket by `event.dateIn(readerZone)` so the
+  grid key is the reader's-zone day (02:00 Berlin → previous day in New York,
+  23:00 Berlin → next day in Auckland). "Today" highlight and focused month
+  follow the reader zone (post-frame sync after zone resolution to avoid build
+  mutation). Pill labels render `event.timeIn(readerZone)`.
+
+- **Event list/details/day/panel/RSVP:** list defaults its start date and sends
+  `timezone`; Date/Time render `dateIn`/`timeIn`. Details meta renders in the
+  reader zone and appends ` · ${event.timezone}` only when the event's zone
+  differs (`$time (${durationMinutes} min)$zoneSuffix`). `OtherEventsPanel`
+  watches the reader zone for rendering/sort (`event.instant`) and accepts
+  optional `queryTimezone` (defaults to reader zone) so it can query the
+  intended day with `timezone`; create/edit forms pass `queryTimezone:
+  _eventZone` for correct double-booking checks while rows still render in the
+  reader zone. RSVP shows `${event.dateIn(readerZone)} at ${event.timeIn(readerZone)}`.
+
+- **Invitation expiry / formatters:** user list expiry renders with
+  `formatInstantDate(..., readerZone)`; `user_list_screen.dart`'s local
+  `formatDate(String)` was removed so `lib/core/util/local_date.dart` remains
+  the canonical date/instant formatting surface. `Date of birth` was not
+  zone-converted.
+
+- **Tests:** `test/support/auth_harness.dart` gained a `detectedZone` override
+  for `timeZoneDetectorProvider` (default `UTC`) so reader-zone behavior is
+  deterministic. 7.20-affected tests were rewritten for reader-zone semantics
+  (`DateFormat.jm()` display, query `timezone` where relevant); time assertions
+  match flexibly across intl AM/PM spacing (regular vs. narrow no-break space).
+
+**Verified.** `./teven verify` green — analyze clean, format clean, 436 tests
+passed.
+
+**Still open:** task 7.21 retires the legacy event `date`/`time` fields (and
+closes 7.9); task 7.25 adds the zone-conversion tests.

@@ -211,7 +211,7 @@ void main() {
   /// a daylight-saving transition lands at 23:00 of the *same* day, which would
   /// make the start-date filter pick today under the name of tomorrow.
   DateTime dayAfterToday() {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     return DateTime(now.year, now.month, now.day + 1);
   }
 
@@ -253,7 +253,7 @@ void main() {
 
   group('rendering', () {
     testWidgets('shows the events the server returned', (tester) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       await openList(
         tester,
         eventAdapter(
@@ -279,11 +279,17 @@ void main() {
         ),
         findsOneWidget,
       );
-      // The raw wire time, as `EventListPage.tsx:127` renders it.
+      // 7.20: renders the time in the reader's zone (`DateFormat.jm()`).
+      // Intl may use a narrow no-break space before AM/PM.
       expect(
         find.descendant(
           of: rowFor('Hedge trimming'),
-          matching: find.text('09:30:00'),
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is Text &&
+                (w.data ?? '').contains('9:30') &&
+                (w.data ?? '').contains('AM'),
+          ),
         ),
         findsOneWidget,
       );
@@ -292,7 +298,7 @@ void main() {
     });
 
     testWidgets('says N/A for an event with no customer', (tester) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       await openList(
         tester,
         eventAdapter(
@@ -348,7 +354,7 @@ void main() {
       // different screen.
       expect(
         request.queryParameters['startDate'],
-        formatLocalDate(DateTime.now()),
+        formatLocalDate(DateTime.now().toUtc()),
       );
       expect(request.queryParameters.containsKey('endDate'), isFalse);
     });
@@ -398,7 +404,7 @@ void main() {
       expect(requests.length, before + 1);
       expect(
         requests.last.queryParameters['startDate'],
-        formatLocalDate(DateTime.now()),
+        formatLocalDate(DateTime.now().toUtc()),
       );
       // The field goes with it, or the control would keep showing a date the
       // list is no longer filtering by — the failure two copies of one value make
@@ -408,7 +414,7 @@ void main() {
             .widget<TextFormField>(find.byType(TextFormField).first)
             .controller
             ?.text,
-        formatLocalDate(DateTime.now()),
+        formatLocalDate(DateTime.now().toUtc()),
       );
     });
 
@@ -422,7 +428,7 @@ void main() {
           eventJson(
             id: 1,
             title: 'Hedge trimming',
-            date: formatLocalDate(DateTime.now()),
+            date: formatLocalDate(DateTime.now().toUtc()),
           ),
         ],
       );
@@ -442,7 +448,7 @@ void main() {
     testWidgets('the yes button posts "available" and refetches', (
       tester,
     ) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       final adapter = eventAdapter(
         events: [eventJson(id: 3, title: 'Site visit', date: today)],
       );
@@ -470,7 +476,7 @@ void main() {
     });
 
     testWidgets('the no button posts "unavailable"', (tester) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       final adapter = eventAdapter(
         events: [eventJson(id: 4, title: 'Site visit', date: today)],
       );
@@ -496,7 +502,7 @@ void main() {
     testWidgets('the clear button posts the original\'s literal string', (
       tester,
     ) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       final adapter = eventAdapter(
         events: [eventJson(id: 5, title: 'Site visit', date: today)],
       );
@@ -528,7 +534,7 @@ void main() {
     testWidgets("the current answer is read from this user's own RSVP", (
       tester,
     ) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       // Two RSVPs, only one of them this user's — `userId: 1` in the harness's
       // context. `EventListPage.tsx:131` finds the current user's among the
       // event's; taking the first would show Bob's answer as yours.
@@ -575,7 +581,7 @@ void main() {
 
   group('row actions', () {
     testWidgets('a manager gets edit and delete', (tester) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       await openList(
         tester,
         eventAdapter(
@@ -589,7 +595,7 @@ void main() {
     });
 
     testWidgets('a viewer gets neither', (tester) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       await openList(
         tester,
         eventAdapter(
@@ -607,7 +613,7 @@ void main() {
     testWidgets('delete asks first, and cancelling changes nothing', (
       tester,
     ) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       final adapter = eventAdapter(
         events: [eventJson(id: 14, title: 'Site visit', date: today)],
       );
@@ -633,7 +639,7 @@ void main() {
     testWidgets('confirming deletes and reloads from the first page', (
       tester,
     ) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       final adapter = eventAdapter(
         events: [eventJson(id: 15, title: 'Site visit', date: today)],
       );
@@ -662,7 +668,7 @@ void main() {
     });
 
     testWidgets('edit goes to the edit form', (tester) async {
-      final today = formatLocalDate(DateTime.now());
+      final today = formatLocalDate(DateTime.now().toUtc());
       final container = await openList(
         tester,
         eventAdapter(

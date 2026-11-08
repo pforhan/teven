@@ -3,6 +3,7 @@ import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:timezone/timezone.dart' show TZDateTime;
 
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
@@ -15,6 +16,7 @@ import '../../providers/auth_controller.dart';
 import '../../providers/event_list.dart';
 import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
+import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/create_event_button.dart';
@@ -53,23 +55,12 @@ class EventListScreen extends ConsumerStatefulWidget {
 }
 
 class _EventListScreenState extends ConsumerState<EventListScreen> {
-  /// `EventListPage.tsx:26-29` defaults the start date to today.
-  ///
-  /// **Computed locally rather than with `DateTime.now().toISOString()`,** which
-  /// is what the original does — see [formatLocalDate]. `toIso8601String()`
-  /// converts to UTC first, so at local midnight east of UTC it reports
-  /// *yesterday*, and the whole screen would be filtered to a day that is not
-  /// today. Nobody testing west of UTC sees it.
+  /// Defaults to today in the reader's zone once that zone resolves.
   late String _startDate = formatLocalDate(DateTime.now());
+  bool _startDateSyncedToReaderZone = false;
 
   /// Holds [_startDate] as text, because `DateField` is a controller-backed
   /// field and the value also has to reach `_buildQuery`.
-  ///
-  /// The two are kept in step by writing both from the same place — the picker
-  /// callback and the "Today" button — rather than by listening, so there is no
-  /// order in which the field and the query can disagree. A `TextField` that is
-  /// rebuilt from state instead would need the reverse: the controller cleared
-  /// and refilled on every change, which fights the caret.
   late final TextEditingController _startDateController = TextEditingController(
     text: _startDate,
   );
@@ -114,7 +105,10 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     });
   }
 
-  ListQuery _buildQuery(OrganizationResponse? organization) => ListQuery(
+  ListQuery _buildQuery(
+    OrganizationResponse? organization,
+    String readerZone,
+  ) => ListQuery(
     search: _searchTerm.isEmpty ? null : _searchTerm,
     sortBy: _sortBy,
     sortOrder: _sortOrder,
@@ -123,7 +117,10 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     organizationId: organization?.organizationId,
     // **A floor, not a range.** `EventListPage.tsx:36-44` passes `startDate` and
     // leaves `endDate` undefined, so the original shows upcoming events only.
+    // The date is interpreted in the reader's zone, so "today" means the same
+    // day the reader is looking at.
     startDate: _startDate,
+    timezone: readerZone,
   );
 
   /// `EventListPage.tsx:62-76`.
@@ -175,7 +172,10 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     }
   }
 
-  List<ListColumn<EventResponse>> _columns(int? currentUserId) => [
+  List<ListColumn<EventResponse>> _columns(
+    int? currentUserId,
+    String readerZone,
+  ) => [
     ListColumn<EventResponse>(
       key: 'title',
       label: 'Title',
@@ -193,15 +193,12 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
       key: 'date',
       label: 'Date',
       sortable: true,
-      text: (event) => event.date,
+      text: (event) => event.dateIn(readerZone),
     ),
-    // `EventListPage.tsx:127` — the raw wire `time`, not a formatted one. It is
-    // `HH:MM:SS` and the original renders it as-is, so a leading zero is
-    // visible. Not worth diverging over.
     ListColumn<EventResponse>(
       key: 'time',
       label: 'Time',
-      text: (event) => event.time,
+      text: (event) => event.timeIn(readerZone),
     ),
     ListColumn<EventResponse>(
       key: 'description',
@@ -238,8 +235,23 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     final canManage = gate.has(Permission.manageEventsOrganization);
     final currentUserId = ref.watch(userContextProvider)?.user.userId;
     final organization = ref.watch(selectedOrganizationProvider);
+    final tz = ref.watch(timeZoneControllerProvider);
+    final readerZone = tz.value?.effectiveZone ?? 'UTC';
 
-    final query = _buildQuery(organization);
+    if (!_startDateSyncedToReaderZone && tz.hasValue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _startDateSyncedToReaderZone) return;
+        final now = TZDateTime.now(zoneLocation(tz.value!.effectiveZone));
+        final today = formatLocalDate(now);
+        setState(() {
+          _startDateController.text = today;
+          _startDate = today;
+          _startDateSyncedToReaderZone = true;
+        });
+      });
+    }
+
+    final query = _buildQuery(organization, readerZone);
     _query = query;
     final actionError = _actionError;
 
@@ -259,13 +271,10 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
               onSearch: (value) => setState(() => _searchTerm = value),
               dateController: _startDateController,
               onStartDateChanged: (value) => setState(() => _startDate = value),
-              // `EventListPage.tsx:212` — "Today" resets the floor, and
-              // `setOffset(0)` beside it is now the offset reset that a new
-              // [ListQuery] performs for free. The controller is written too,
-              // or the field would keep showing the old date while the list had
-              // already moved.
+              // "Today" resets the floor in the reader's zone.
               onToday: () => setState(() {
-                final today = formatLocalDate(DateTime.now());
+                final now = TZDateTime.now(zoneLocation(readerZone));
+                final today = formatLocalDate(now);
                 _startDateController.text = today;
                 _startDate = today;
               }),
@@ -278,7 +287,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
               provider: eventListProvider(query),
               loadMore: () =>
                   ref.read(eventListProvider(query).notifier).loadMore(),
-              columns: _columns(currentUserId),
+              columns: _columns(currentUserId, readerZone),
               idOf: (event) => event.eventId,
               emptyMessage: 'No events found.',
               // Same test `_buildQuery` uses to decide whether to send `search`
