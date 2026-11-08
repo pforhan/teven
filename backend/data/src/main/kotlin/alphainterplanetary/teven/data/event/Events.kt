@@ -3,12 +3,13 @@ package alphainterplanetary.teven.data.event
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.organization.Organizations
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.timestampWithTimeZone
 
 object Events : Table() {
   val id = integer("id").autoIncrement()
   val title = varchar("title", 255)
-  val date = varchar("date", 255)
-  val time = varchar("time", 255)
+  val startsAt = timestampWithTimeZone("starts_at")
+  val timezone = varchar("timezone", 64)
   val location = varchar("location", 255).nullable()
   val latitude = double("latitude").nullable()
   val longitude = double("longitude").nullable()

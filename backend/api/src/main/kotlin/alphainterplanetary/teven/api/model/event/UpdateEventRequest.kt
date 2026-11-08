@@ -17,4 +17,6 @@ data class UpdateEventRequest(
   val customerId: Int? = null,
   val staffInvites: StaffInviteDetails? = null,
   val organizationId: Int? = null,
+  val startsAt: String? = null,
+  val timezone: String? = null,
 )

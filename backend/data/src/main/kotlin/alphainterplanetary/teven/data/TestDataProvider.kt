@@ -19,6 +19,10 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
 
 /**
  * The plaintext password every seeded account is created with.
@@ -27,6 +31,9 @@ import java.time.LocalDate
  * "how do I log in as alice" finds it in one place.
  */
 const val SEEDED_PASSWORD = "password"
+
+private fun eventInstant(date: LocalDate, time: LocalTime, zone: String): OffsetDateTime =
+    OffsetDateTime.ofInstant(date.atTime(time).atZone(ZoneId.of(zone)).toInstant(), ZoneOffset.UTC)
 
 suspend fun populateTestData() {
   dbQuery {
@@ -255,8 +262,8 @@ suspend fun populateTestData() {
     val today = LocalDate.now()
     Events.insert {
       it[title] = "Lawn Maintenance"
-      it[date] = today.plusDays(1).toString()
-      it[time] = "09:00"
+      it[startsAt] = eventInstant(today.plusDays(1), LocalTime.of(9, 0), "America/New_York")
+      it[timezone] = "America/New_York"
       it[durationMinutes] = 120
       it[location] = "123 Main St"
       it[description] = "Mow, edge, and fertilize"
@@ -267,8 +274,8 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Hedge Trimming"
-      it[date] = today.plusDays(2).toString()
-      it[time] = "10:00"
+      it[startsAt] = eventInstant(today.plusDays(2), LocalTime.of(10, 0), "America/New_York")
+      it[timezone] = "America/New_York"
       it[durationMinutes] = 60
       it[location] = "456 Business Ave"
       it[description] = "Trim all hedges"
@@ -279,8 +286,8 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Fall Cleanup"
-      it[date] = today.minusDays(1).toString()
-      it[time] = "08:00"
+      it[startsAt] = eventInstant(today.minusDays(1), LocalTime.of(8, 0), "America/New_York")
+      it[timezone] = "America/New_York"
       it[durationMinutes] = 90
       it[location] = "123 Main St"
       it[description] = "Rake leaves and clean up debris"
@@ -291,8 +298,8 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Planting new flowers"
-      it[date] = today.plusDays(5).toString()
-      it[time] = "09:00"
+      it[startsAt] = eventInstant(today.plusDays(5), LocalTime.of(9, 0), "Europe/Berlin")
+      it[timezone] = "Europe/Berlin"
       it[durationMinutes] = 180
       it[location] = "789 Park Rd"
       it[description] = "Plant seasonal flowers"
@@ -303,8 +310,8 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Rooftop Garden Maintenance"
-      it[date] = today.minusDays(3).toString()
-      it[time] = "11:00"
+      it[startsAt] = eventInstant(today.minusDays(3), LocalTime.of(11, 0), "Europe/Berlin")
+      it[timezone] = "Europe/Berlin"
       it[durationMinutes] = 45
       it[location] = "321 High St"
       it[description] = "Watering and pruning"
@@ -315,8 +322,8 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Soil delivery"
-      it[date] = today.plusDays(7).toString()
-      it[time] = "14:00"
+      it[startsAt] = eventInstant(today.plusDays(7), LocalTime.of(14, 0), "Pacific/Auckland")
+      it[timezone] = "Pacific/Auckland"
       it[durationMinutes] = 30
       it[location] = "789 Park Rd"
       it[description] = "Deliver 20 bags of soil"
@@ -346,8 +353,8 @@ suspend fun populateTestData() {
     // when there is one.
     Events.insert {
       it[title] = "Morning Irrigation Check"
-      it[date] = today.toString()
-      it[time] = "07:30"
+      it[startsAt] = eventInstant(today, LocalTime.of(7, 30), "America/New_York")
+      it[timezone] = "America/New_York"
       it[durationMinutes] = 45
       it[location] = "123 Main St"
       it[description] = "Check every sprinkler head"
@@ -358,8 +365,7 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Fence Repair"
-      it[date] = today.toString()
-      it[time] = "10:00"
+      it[startsAt] = eventInstant(today, LocalTime.of(10, 0), "America/New_York")
       it[durationMinutes] = 120
       it[location] = "456 Business Ave"
       it[description] = "Replace two broken panels"
@@ -370,8 +376,7 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Mulch Delivery"
-      it[date] = today.toString()
-      it[time] = "13:15"
+      it[startsAt] = eventInstant(today, LocalTime.of(13, 15), "America/New_York")
       it[durationMinutes] = 30
       // **No location, on purpose.** The panel renders the location only when
       // the event has one (`OtherEventsPanel.tsx:88`), and without an event
@@ -384,8 +389,7 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Gutter Cleaning"
-      it[date] = today.toString()
-      it[time] = "16:00"
+      it[startsAt] = eventInstant(today, LocalTime.of(16, 0), "America/New_York")
       it[durationMinutes] = 90
       it[location] = "123 Main St"
       it[description] = "Clear the downspouts"
@@ -396,8 +400,8 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Planter Maintenance"
-      it[date] = today.toString()
-      it[time] = "09:00"
+      it[startsAt] = eventInstant(today, LocalTime.of(9, 0), "Europe/Berlin")
+      it[timezone] = "Europe/Berlin"
       it[durationMinutes] = 60
       it[location] = "789 Park Rd"
       it[description] = "Weed and re-stake the planters"
@@ -408,8 +412,8 @@ suspend fun populateTestData() {
     }
     Events.insert {
       it[title] = "Greenhouse Repotting"
-      it[date] = today.toString()
-      it[time] = "14:00"
+      it[startsAt] = eventInstant(today, LocalTime.of(14, 0), "Europe/Berlin")
+      it[timezone] = "Europe/Berlin"
       it[durationMinutes] = 120
       it[location] = "321 High St"
       it[description] = "Move the seedlings into larger pots"
@@ -424,8 +428,8 @@ suspend fun populateTestData() {
       val evtDate = if (i % 2 == 0) today.plusDays(i.toLong()) else today.minusDays(i.toLong())
       Events.insert {
         it[title] = "Event $i"
-        it[date] = evtDate.toString()
-        it[time] = "12:00"
+        it[startsAt] = eventInstant(evtDate, LocalTime.of(12, 0), if (i % 2 == 0) "America/New_York" else "Europe/Berlin")
+        it[timezone] = if (i % 2 == 0) "America/New_York" else "Europe/Berlin"
         it[durationMinutes] = 60
         it[location] = "Location $i"
         it[description] = "Description for event $i"

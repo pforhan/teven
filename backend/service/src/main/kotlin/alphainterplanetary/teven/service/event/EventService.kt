@@ -3,12 +3,24 @@ package alphainterplanetary.teven.service.event
 import alphainterplanetary.teven.api.model.event.CreateEventRequest
 import alphainterplanetary.teven.api.model.event.EventResponse
 import alphainterplanetary.teven.api.model.event.UpdateEventRequest
+import alphainterplanetary.teven.core.BadRequestException
 import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.data.event.EventDao
 import alphainterplanetary.teven.api.model.common.PaginatedResponse
+import alphainterplanetary.teven.service.organization.OrganizationService
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeParseException
 
-class EventService(private val eventDao: EventDao) {
+class EventService(
+  private val eventDao: EventDao,
+  private val organizationService: OrganizationService,
+) {
   suspend fun createEvent(
     authContext: AuthContext,
     createEventRequest: CreateEventRequest,
@@ -24,10 +36,26 @@ class EventService(private val eventDao: EventDao) {
       authContext.organizationId
     }
 
-    // Create a new request with the determined organizationId
     val requestWithOrgId = createEventRequest.copy(organizationId = organizationIdToUse)
 
-    return eventDao.createEvent(requestWithOrgId)
+    val newStartsAt = requestWithOrgId.startsAt
+    val newTimezone = requestWithOrgId.timezone
+    val (startsAt, timezone) =
+        if (newStartsAt != null && newTimezone != null) {
+          val resolvedZone = resolveZone(newTimezone)
+          val instant = parseInstant(newStartsAt) ?: throw BadRequestException("Invalid event startsAt")
+          instant to resolvedZone
+        } else if (newStartsAt == null) {
+          val resolvedZone =
+              resolveZone(requestWithOrgId.timezone ?: defaultZone(requestWithOrgId.organizationId, authContext))
+          val date = requestWithOrgId.date ?: throw IllegalArgumentException("Event date is required")
+          val time = requestWithOrgId.time ?: throw IllegalArgumentException("Event time is required")
+          wallClockToInstant(date, time, resolvedZone) to resolvedZone
+        } else {
+          throw BadRequestException("Event startsAt and timezone must be sent together")
+        }
+
+    return eventDao.createEvent(requestWithOrgId, startsAt, timezone)
   }
 
   suspend fun getEvents(
@@ -39,16 +67,23 @@ class EventService(private val eventDao: EventDao) {
     offset: Long?,
     sortOrder: String?,
     organizationId: Int?,
+    timezone: String?,
   ): PaginatedResponse<EventResponse> {
     val organizationIdToUse = if (authContext.hasPermission(Permission.VIEW_EVENTS_GLOBAL)) {
       organizationId
     } else {
       authContext.organizationId
     }
+    val zone = resolveZone(timezone ?: defaultZone(organizationIdToUse ?: authContext.organizationId, authContext))
+    val startInstant =
+        startDate?.let { LocalDate.parse(it).atStartOfDay(ZoneId.of(zone)).toInstant() }
+    val endExclusiveInstant =
+        endDate?.let { LocalDate.parse(it).plusDays(1).atStartOfDay(ZoneId.of(zone)).toInstant() }
+
     return eventDao.getEvents(
       organizationId = organizationIdToUse,
-      startDate = startDate,
-      endDate = endDate,
+      startInstant = startInstant,
+      endExclusiveInstant = endExclusiveInstant,
       search = search,
       limit = limit,
       offset = offset,
@@ -71,7 +106,6 @@ class EventService(private val eventDao: EventDao) {
     eventId: Int,
     updateEventRequest: UpdateEventRequest,
   ): Boolean {
-    // Check if the event belongs to the user's organization or if the user has MANAGE_EVENTS_GLOBAL
     val event = eventDao.getEventById(eventId)
       ?: return false // Event not found
 
@@ -79,17 +113,39 @@ class EventService(private val eventDao: EventDao) {
       throw IllegalAccessException("User not authorized to update events outside their organization")
     }
 
-    // If MANAGE_EVENTS_GLOBAL, allow organizationId to be updated, otherwise ensure it's not changed
-    val requestWithOrgId = if (authContext.hasPermission(Permission.MANAGE_EVENTS_GLOBAL)) {
-      updateEventRequest
-    } else {
-      if (updateEventRequest.organizationId != null && updateEventRequest.organizationId != event.organization.organizationId) {
-        throw IllegalArgumentException("Non-MANAGE_EVENTS_GLOBAL users cannot change event organizationId")
-      }
-      updateEventRequest.copy(organizationId = event.organization.organizationId)
-    }
+    val requestWithOrgId =
+        if (authContext.hasPermission(Permission.MANAGE_EVENTS_GLOBAL)) {
+          updateEventRequest
+        } else {
+          if (updateEventRequest.organizationId != null && updateEventRequest.organizationId != event.organization.organizationId) {
+            throw IllegalArgumentException("Non-MANAGE_EVENTS_GLOBAL users cannot change event organizationId")
+          }
+          updateEventRequest.copy(organizationId = event.organization.organizationId)
+        }
 
-    return eventDao.updateEvent(eventId, requestWithOrgId)
+    val updateStartsAt = updateEventRequest.startsAt
+    val updateTimezone = updateEventRequest.timezone
+    val (startsAt, timezone) =
+        when {
+          updateStartsAt != null && updateTimezone != null -> {
+            val resolvedZone = resolveZone(updateTimezone)
+            val instant = parseInstant(updateStartsAt) ?: throw BadRequestException("Invalid event startsAt")
+            instant to resolvedZone
+          }
+          updateStartsAt == null -> {
+            if (updateEventRequest.date != null || updateEventRequest.time != null) {
+              val resolvedZone = updateEventRequest.timezone ?: event.timezone
+              val date = updateEventRequest.date ?: event.date
+              val time = updateEventRequest.time ?: event.time
+              wallClockToInstant(date, time, resolvedZone) to resolvedZone
+            } else {
+              Instant.parse(event.startsAt) to event.timezone
+            }
+          }
+          else -> throw BadRequestException("Event startsAt and timezone must be sent together")
+        }
+
+    return eventDao.updateEvent(eventId, requestWithOrgId, startsAt, timezone)
   }
 
   suspend fun deleteEvent(authContext: AuthContext, eventId: Int): Boolean {
@@ -120,4 +176,31 @@ class EventService(private val eventDao: EventDao) {
   suspend fun getRequestedRsvpEventsForUser(userId: Int): List<EventResponse> {
     return eventDao.getRequestedRsvpEventsForUser(userId)
   }
+
+  private fun resolveZone(timezone: String?): String {
+    val zone = timezone ?: DEFAULT_TIME_ZONE
+    if (!ZoneId.getAvailableZoneIds().contains(zone)) {
+      throw BadRequestException("Unknown time zone: $zone")
+    }
+    return zone
+  }
+
+  private suspend fun defaultZone(organizationId: Int, authContext: AuthContext): String {
+    val organization = organizationService.getOrganizationZone(organizationId)
+    return organization ?: DEFAULT_TIME_ZONE
+  }
+
+  private fun parseInstant(raw: String): Instant? {
+    return try {
+      OffsetDateTime.parse(raw).toInstant()
+    } catch (e: DateTimeParseException) {
+      null
+    }
+  }
+
+  private fun wallClockToInstant(date: String, time: String, zone: String): Instant {
+    return LocalDateTime.of(LocalDate.parse(date), LocalTime.parse(time)).atZone(ZoneId.of(zone)).toInstant()
+  }
 }
+
+private const val DEFAULT_TIME_ZONE = "UTC"

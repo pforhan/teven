@@ -3535,3 +3535,68 @@ re-measure cleanly.
 **Still open from the task:** the picker's own surface — the searchable sheet /
 dialog listing with grouping is task 7.25's; task 7.23 builds the picker that
 reads the organization zone this field marks.
+
+### 2026-11-07 — Task 7.18: the backend half of Phase 7A — the event becomes an instant plus a zone
+
+**Closed.** The backend's event story moved from a wall clock stored as two
+strings to an instant plus a zone, keeping the old `date` / `time` response
+fields alive until the client is ready (task 7.21 retires them).
+
+**What changed.**
+
+- `Events` dropped `date` and `time` (both `varchar`) and gained
+  `startsAt = timestampWithTimeZone("starts_at")` — the same column type task
+  7.14 gave the invitation expiry, which is the pattern this phase was waiting
+  on — plus `timezone = varchar("timezone", 64)`.
+
+- `EventResponse` gained `startsAt: String` (an `Instant.toString()`, i.e.
+  offset-bearing ISO 8601) and `timezone: String`, and keeps `date` and `time`.
+  The two are now computed from the instant in the event's own zone, in
+  `EventDao.toEventResponse`: `zoned.toLocalDate().toString()` for the date and
+  a `HH:mm:ss` formatter for the time, where `zoned = instant.atZone(zone)`.
+
+- The create and update requests accept both shapes for one commit. The new
+  shape is `startsAt` + `timezone`; the legacy shape is `date` + `time`, resolved
+  as a wall clock in `timezone` (create defaults that zone to the caller's
+  organization zone; update falls back to the event's own zone when the update
+  does not carry one). A naive `startsAt` — no offset — is a **400** via the new
+  `BadRequestException` rather than a `DateTimeParseException` to the generic
+  handler. An update that sends a lone `startsAt` (or a lone `timezone`) is also a
+  **400**: the pair is one fact, and "keep the old zone, move the wall clock" was
+  never a thing an event can be.
+
+- `GET /api/events` gained a `timezone` query parameter. `startDate` and
+  `endDate` stay local dates; the service converts the pair into an instant
+  range — `startDate.atStartOfDay(zone)` inclusive, `endDate.plusDays(1)
+  .atStartOfDay(zone)` exclusive — before handing the bounds to the DAO, which
+  now compares against the `timestampWithTimeZone` column through
+  `greaterEq` / `less OffsetDateTime.ofInstant(it, ZoneOffset.UTC)`. Absent
+  `timezone` falls back to the caller's organization zone, then UTC.
+
+- Ordering moved from `ORDER BY date` to `ORDER BY startsAt`, so same-day ties
+  sort deterministically by instant.
+
+- The seed data writes `startsAt` + `timezone` through a small
+  `eventInstant(date, time, zone)` wall-clock helper, spread across
+  `America/New_York`, `Europe/Berlin` and `Pacific/Auckland` — the last because
+  Auckland is on the other side of the date line and makes the DST pair visible
+  in the seeded rows.
+
+**Verified:** `./teven verify-backend` green — backend compiles, all modules'
+tests pass, including the new `EventServiceTest` (8 cases: new shape stores the
+instant and the zone; legacy wall clock resolves in the organization zone;
+naive instant → 400; unknown zone → 400; local date range → instant range in the
+requested zone with the Berlin DST offsets applied; update sends the new instant
+and zone together; update rejects a lone `startsAt`; update's legacy path keeps
+the event's zone).
+
+**Schema regeneration.** As with 7.14, owed to a run with the Docker daemon up:
+the volume was dropped and the stack brought back before the fresh schema came
+up under the new column layout.
+
+**The Flutter client is unaffected** by this commit — it keeps reading `date` and
+`time`, which now mean "the event's own local date and time", exactly the
+contract task 7.20's renderers will rely on.
+
+**Still open from the task:** the dev database drop-and-recreate for the new
+column layout; the client-side half is task 7.19.

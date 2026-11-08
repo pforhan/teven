@@ -19,7 +19,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
-import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -27,6 +27,11 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 class EventDao {
   private suspend fun toEventResponse(row: ResultRow): EventResponse {
@@ -92,11 +97,17 @@ class EventDao {
       )
     }
 
+    val instant = row[Events.startsAt].toInstant()
+    val zone = row[Events.timezone]
+    val zoned = instant.atZone(ZoneId.of(zone))
+
     return EventResponse(
       eventId = eventId,
       title = row[Events.title],
-      date = row[Events.date],
-      time = row[Events.time],
+      date = zoned.toLocalDate().toString(),
+      time = zoned.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+      startsAt = instant.toString(),
+      timezone = zone,
       durationMinutes = row[Events.durationMinutes],
       location = row[Events.location],
       latitude = row[Events.latitude],
@@ -112,12 +123,16 @@ class EventDao {
     )
   }
 
-  suspend fun createEvent(createEventRequest: CreateEventRequest): EventResponse = dbQuery {
+  suspend fun createEvent(
+    createEventRequest: CreateEventRequest,
+    startsAt: Instant,
+    timezone: String,
+  ): EventResponse = dbQuery {
     val id = Events.insert {
       it[title] = createEventRequest.title
-      it[date] = createEventRequest.date
-      it[time] = createEventRequest.time
-      it[durationMinutes] = createEventRequest.durationMinutes
+      it[Events.startsAt] = OffsetDateTime.ofInstant(startsAt, ZoneOffset.UTC)
+      it[Events.timezone] = timezone
+      it[Events.durationMinutes] = createEventRequest.durationMinutes
       it[location] = createEventRequest.location
       it[latitude] = createEventRequest.latitude
       it[longitude] = createEventRequest.longitude
@@ -149,8 +164,8 @@ class EventDao {
 
   suspend fun getEvents(
     organizationId: Int?,
-    startDate: String?,
-    endDate: String?,
+    startInstant: Instant?,
+    endExclusiveInstant: Instant?,
     search: String?,
     limit: Int?,
     offset: Long?,
@@ -158,8 +173,8 @@ class EventDao {
   ): PaginatedResponse<EventResponse> = dbQuery {
     val conditions = mutableListOf<Op<Boolean>>()
     organizationId?.let { conditions.add(Events.organizationId eq it) }
-    startDate?.let { conditions.add(Events.date greaterEq it) }
-    endDate?.let { conditions.add(Events.date lessEq it) }
+    startInstant?.let { conditions.add(Events.startsAt greaterEq OffsetDateTime.ofInstant(it, ZoneOffset.UTC)) }
+    endExclusiveInstant?.let { conditions.add(Events.startsAt less OffsetDateTime.ofInstant(it, ZoneOffset.UTC)) }
     search?.let { conditions.add(Events.title.lowerCase() like "%${it.lowercase()}%") }
 
     val query = if (conditions.isEmpty()) {
@@ -172,7 +187,7 @@ class EventDao {
     val total = query.count()
 
     val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
-    query.orderBy(Events.date, sort)
+    query.orderBy(Events.startsAt, sort)
 
     offset?.let { query.offset(it) }
     limit?.let { query.limit(it) }
@@ -198,11 +213,13 @@ class EventDao {
   suspend fun updateEvent(
     eventId: Int,
     updateEventRequest: alphainterplanetary.teven.api.model.event.UpdateEventRequest,
+    startsAt: Instant,
+    timezone: String,
   ): Boolean = dbQuery {
     Events.update({ Events.id eq eventId }) {
+      it[Events.startsAt] = OffsetDateTime.ofInstant(startsAt, ZoneOffset.UTC)
+      it[Events.timezone] = timezone
       updateEventRequest.title?.let { title -> it[Events.title] = title }
-      updateEventRequest.date?.let { date -> it[Events.date] = date }
-      updateEventRequest.time?.let { time -> it[Events.time] = time }
       updateEventRequest.durationMinutes?.let { minutes -> it[Events.durationMinutes] = minutes }
       updateEventRequest.location?.let { location -> it[Events.location] = location }
       updateEventRequest.latitude?.let { latitude -> it[Events.latitude] = latitude }

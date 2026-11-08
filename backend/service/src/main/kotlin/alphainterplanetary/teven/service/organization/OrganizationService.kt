@@ -51,6 +51,9 @@ class OrganizationService(
     return organizationDao.getOrganizationById(organizationId)
   }
 
+  suspend fun getOrganizationZone(organizationId: Int): String? =
+    organizationDao.getOrganizationById(organizationId)?.timezone
+
   suspend fun updateOrganization(organizationId: Int, request: UpdateOrganizationRequest, callerId: Int): Boolean {
     if (!canAccess(callerId, organizationId, Permission.MANAGE_ORGANIZATIONS_GLOBAL, Permission.MANAGE_ORGANIZATION)) {
       throw AuthorizationException(

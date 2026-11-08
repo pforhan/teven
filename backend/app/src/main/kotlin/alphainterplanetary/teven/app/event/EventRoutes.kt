@@ -81,6 +81,7 @@ fun Route.eventRoutes() {
         val authContext = requireAuthContext()
         val startDate = call.request.queryParameters["startDate"]
         val endDate = call.request.queryParameters["endDate"]
+        val timezone = call.request.queryParameters["timezone"]
         val search = call.request.queryParameters["search"]
         val limit = call.request.queryParameters["limit"]?.toIntOrNull()
         val offset = call.request.queryParameters["offset"]?.toLongOrNull()
@@ -96,6 +97,7 @@ fun Route.eventRoutes() {
           offset = offset,
           sortOrder = sortOrder,
           organizationId = organizationId,
+          timezone = timezone,
         )
         call.respond(HttpStatusCode.OK, success(events))
       }

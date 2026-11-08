@@ -39,7 +39,7 @@ val appModule = module {
   single<PermissionService> { PermissionServiceImpl(get()) }
   single { EventDao() }
   single { InventoryDao(get()) }
-  single { EventService(get()) }
+  single { EventService(get(), get()) }
   single { InventoryService(get()) }
   single { ReportDao() }
   single { ReportService(get()) }

@@ -298,7 +298,7 @@ Three things to carry into every task below:
   - **A "Time zone" row on the profile screen** showing the detected zone and any override, with the same picker. This is where "see and override the detected timezone" lives.
   - **Tests override the detector** — `flutter_timezone` is a platform plugin and cannot answer in a headless VM test. Follow the `tokenStoreProvider` pattern (`test/support/fakes.dart`). **Verify the web implementation returns an IANA id**, not an abbreviation or an offset: the plugin's web path differs from its native one, and the browser is the platform this app ships on.
 
-- [ ] **7.18** **An event becomes an instant plus a zone.**
+- [x] **7.18** **An event becomes an instant plus a zone.**
 
   - `data/event/Events.kt` — drop `date` and `time`; add `val startsAt = timestampWithTimeZone("starts_at")` (**not** `timestamp()` — see 7.14) and `val timezone = varchar("timezone", 64)`.
   - `EventResponse` **gains** `startsAt: String` (offset-bearing ISO 8601) and `timezone: String`, and **keeps** `date` and `time` — now computed by the server from `startsAt` in the event's own zone. Keeping them is what keeps the React app alive until 7.21.

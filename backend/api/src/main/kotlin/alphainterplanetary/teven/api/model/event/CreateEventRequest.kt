@@ -5,18 +5,20 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CreateEventRequest(
   val title: String,
-  val date: String, // ISO 8601 date string (e.g., "YYYY-MM-DD")
-  val time: String, // ISO 8601 time string (e.g., "HH:MM:SS")
   val durationMinutes: Int,
+  val inventoryItems: List<EventInventoryItem>,
+  val staffInvites: StaffInviteDetails,
+  val organizationId: Int,
+  val startsAt: String? = null,
+  val timezone: String? = null,
+  val date: String? = null,
+  val time: String? = null,
   val location: String? = null,
   val latitude: Double? = null,
   val longitude: Double? = null,
   val formattedAddress: String? = null,
   val description: String? = null,
-  val inventoryItems: List<EventInventoryItem>,
-  val customerId: Int? = null, // Optional: Single customer ID
-  val staffInvites: StaffInviteDetails, // Details for staff invitation
-  val organizationId: Int,
+  val customerId: Int? = null,
 )
 
 @Serializable
