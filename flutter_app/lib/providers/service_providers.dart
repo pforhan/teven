@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api/api_client.dart';
@@ -8,6 +9,7 @@ import '../core/services/auth_service.dart';
 import '../core/services/crud_services.dart';
 import '../core/services/event_service.dart';
 import '../core/services/misc_services.dart';
+import '../core/services/time_zone_service.dart';
 import 'auth_controller.dart';
 
 /// The encrypted token store.
@@ -78,6 +80,38 @@ final reportServiceProvider = Provider<ReportService>(
 final roleServiceProvider = Provider<RoleService>(
   (ref) => RoleService(ref.watch(apiClientProvider)),
 );
+
+/// The IANA zone database wrapper the UI and the event forms read through.
+///
+/// Task 7.17. The database itself is initialized once at boot from the embedded
+/// data (`timezone/data/latest.dart`); this provider exists so tests can hand
+/// the service a real one rather than standing up a second database.
+final timeZoneServiceProvider = Provider<TimeZoneService>(
+  (ref) => TimeZoneService(),
+);
+
+/// The device's IANA zone, or `null` when detection is unavailable.
+///
+/// Task 7.17. Wrapped behind a provider — as [tokenStoreProvider] wraps the
+/// token — because `flutter_timezone` is a platform plugin and cannot answer in
+/// a headless VM test; tests override this instead of the plugin.
+///
+/// The value is an IANA id (`America/New_York`), not an abbreviation or an
+/// offset: the web implementation reads `Intl.DateTimeFormat().resolvedOptions()
+/// .timeZone`, which is the IANA id the browser resolved, and the native
+/// implementations use the native time zone database. Verified against the
+/// plugin's source rather than assumed — the web path is a different code path
+/// from the native one, and this app ships on the web.
+final timeZoneDetectorProvider = FutureProvider<String?>((ref) async {
+  try {
+    return (await FlutterTimezone.getLocalTimezone()).identifier;
+  } catch (_) {
+    // Detection failed — the reader falls back to the organization zone, then
+    // UTC. A failed detection is a condition to fall through from, not to
+    // propagate: the app can still render every time in some zone.
+    return null;
+  }
+});
 
 /// Shared preferences, for the few values that outlive a session.
 ///

@@ -3439,3 +3439,99 @@ deliberately left with that task.
 full widget suite passing (426 tests, up from 414, with the new customer and
 inventory details coverage: route resolution, route guards, screen rendering, error
 path, edit affordance).
+
+### 2026-11-06 — Task 7.17: the Flutter time zone foundation
+
+**Closed.** The client's zone foundation has landed: the reader can be shown a
+zone, the instant that zone denotes can be computed, and an override can sit in
+front of the detection. Task 7.17 was the first checkbox of backend Phase 7A to
+close on the Flutter side, and it needed no backend change — the resolver reads
+what the phase's earlier tasks (7.15) had already made available on the wire.
+
+**What changed.**
+
+- The two packages landed: `timezone: ^0.11.2` (the IANA database — Dart's
+  `DateTime` converts between local and UTC and nothing else) and
+  `flutter_timezone: ^5.1.1` (the device's IANA id — `timeZoneName` gives an
+  ambiguous abbreviation). The embedded database is initialized through
+  `timezone/data/latest.dart` → `initializeTimeZones`, not the browser variant,
+  which fetches a `.tzf` at runtime.
+
+- `TimeZoneService` (`lib/core/services/time_zone_service.dart`) wraps the
+  package: `locations` for the picker, `offsetAt(zoneId, instant)` (DST-aware),
+  `wallClockAt(instant, zoneId)`, and `instantAt({zoneId, localDate, localTime})`
+  — which resolves a wall clock by fixed point and then checks it against the
+  zone's own transition intervals, so a wall clock that **does not exist**
+  (spring-forward gap) is refused and one that **happens twice** (fall-back overlap)
+  is flagged, with a `TimeZoneException` naming which — instead of the package's
+  silent roll-forward and arbitrary pick.
+
+- The `UTC` spelling resolved to the database's own `Etc/UTC` entry, so a
+  resolution that falls through to UTC reads like every other leg of the ladder.
+
+- `TimeZoneController` (`lib/providers/time_zone_controller.dart`) resolves the
+  reader's zone as override ?? detection ?? organization zone ?? UTC, exposing
+  the effective, detected and override zones. The override is read out of
+  `shared_preferences` directly — not through a `FutureProvider` — because a
+  completed future is cached for the container's life and an override written
+  after the first resolve would never be seen by the next.
+
+- The shared `TimeZoneField` (`lib/widgets/time_zone_field.dart`): shows the zone
+  with its current offset, opens a bottom sheet on mobile / dialog on desktop,
+  lists every zone grouped by the offset in effect at `DateTime.now()`, pre-selects
+  the current value, marks the organization zone as the default when the field
+  agrees with it, and de-emphasizes when it does not.
+
+- The profile row (`lib/screens/profile/profile_screen.dart`) shows the detected
+  zone and any override, with the same picker.
+
+- `OrganizationResponse` gained a nullable `timezone` — the client-side mirror of
+  the backend field task 7.15 added, landed early so the resolution ladder's third
+  leg had a source for the picker (task 7.23) to read.
+
+**What differed from the task text.** The embedded-database load moved from a boot
+hook in `main` into the `TimeZoneService` constructor. The task named the data
+package and the function; the *placement* is the service's call, because the
+service is the only reader and loading there means a zone-aware surface answers
+before any boot hook ran — which is to say, in every test that pumps one without
+going through `main`.
+
+**Verified.** `./teven verify` green — `flutter analyze` clean, `dart format` clean,
+full widget suite passing (442 tests, up from 426 at task 9.0's close; the four new
+zone test files cover the service, the controller and the field's contract).
+
+- `TimeZoneService` tests: the roster carries the zones the server validates
+  against; offsets are DST-aware (Berlin CET/CEST, New York EST/EDT, Auckland
+  NZST/NZDT — the two sides of the date line); wall clocks read back; instants
+  resolve; a gap and an overlap are both refused with `TimeZoneException`; an
+  instant resolves back to its own wall clock.
+
+- `TimeZoneController` tests: override beats detection, clearing the override
+  falls back to the detection, detection beats the organization zone, the
+  organization zone beats UTC, and with no legs at all the zone is UTC; the
+  override persists and clears through mock `SharedPreferences`.
+
+- `TimeZoneField` tests: shows the zone with its current offset, marks the
+  organization default when the field agrees with it, and does not mark it when it
+  differs.
+
+- The detector is overridden (`timeZoneDetectorProvider`, a `FutureProvider<String?>`
+  over the `flutter_timezone` platform plugin) following the `tokenStoreProvider`
+  pattern; `SharedPreferences.setMockInitialValues` backs the override store.
+
+- The web implementation's zone source was checked against the plugin's source
+  rather than in a browser this session: `Intl.DateTimeFormat().resolvedOptions()
+  .timeZone` is the IANA id the browser resolved, not an abbreviation or an offset.
+
+**Bundle-size cost.** Task 0.11's baseline: `main.dart.js` 540 KB gzipped, first
+load 2.6 MB — against React's 593 KB. With the timezone packages landed, the
+release web build now reports `main.dart.js` at **1.09 MB gzipped (4.2 MB raw)**;
+the embedded IANA database is the expected, large share of that, in the direction
+task 0.11 predicted. The before/after delta was not isolated this session (the
+pre-change tree did not rebuild from a stashed state), so task 0.11's recorded
+figure is the comparison point and the phase-close build (task 0.28) should
+re-measure cleanly.
+
+**Still open from the task:** the picker's own surface — the searchable sheet /
+dialog listing with grouping is task 7.25's; task 7.23 builds the picker that
+reads the organization zone this field marks.

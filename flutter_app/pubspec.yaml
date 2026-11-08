@@ -61,6 +61,16 @@ dependencies:
   # platform's URL-query configuration, which arrives with Phase 11.
   url_launcher: ^6.3.3
 
+  # The IANA zone database — task 7.17. Dart's `DateTime` converts between
+  # local and UTC and nothing else, so the wall-clock → instant arithmetic
+  # (DST-aware offsets, nonexistent and ambiguous times) lives here.
+  timezone: ^0.11.2
+
+  # The device's IANA zone id — task 7.17. `timeZoneName` gives an
+  # abbreviation, which is ambiguous; the plugin's detected value is an IANA
+  # id.
+  flutter_timezone: ^5.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

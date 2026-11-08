@@ -13,6 +13,7 @@ abstract class OrganizationResponse with _$OrganizationResponse {
     required int organizationId,
     required String name,
     @Default('') String contactInformation,
+    String? timezone,
   }) = _OrganizationResponse;
 
   factory OrganizationResponse.fromJson(Map<String, dynamic> json) =>

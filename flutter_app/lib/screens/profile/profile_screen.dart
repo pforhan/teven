@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,8 +7,10 @@ import '../../core/api/api_exception.dart';
 import '../../models/user.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/service_providers.dart';
+import '../../providers/time_zone_controller.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/picker_fields.dart';
+import '../../widgets/time_zone_field.dart';
 import '../../widgets/validators.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -116,6 +120,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  /// The reader's time zone, with the detected zone and any override, and the
+  /// picker that sets the override.
+  ///
+  /// Task 7.17. The profile is where "see and override the detected timezone"
+  /// lives; the event forms and the organization screen get the same field
+  /// through the shared [TimeZoneField].
+  Widget _timeZoneRow() {
+    final resolution = ref.watch(timeZoneControllerProvider).value;
+    final zone = resolution?.effectiveZone ?? 'UTC';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Time zone', style: Theme.of(context).textTheme.titleMedium),
+        Text('Reading in: $zone'),
+        if (resolution?.overrideZone != null)
+          Text(
+            'Override: ${resolution!.overrideZone} '
+            '(detected: ${resolution.detectedZone ?? 'unavailable'})',
+          ),
+        const SizedBox(height: 8),
+        TimeZoneField(
+          zone: zone,
+          defaultZone: resolution?.organizationZone,
+          onChanged: (newZone) => unawaited(
+            ref.read(timeZoneControllerProvider.notifier).setOverride(newZone),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userContext = ref.watch(userContextProvider);
@@ -213,6 +250,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text(
                 'Organization: ${userContext?.user.organization.name ?? 'N/A'}',
               ),
+              const SizedBox(height: 16),
+              _timeZoneRow(),
               if (details.staffDetails != null) ...[
                 Text(
                   'Contact Information: ${details.staffDetails!.contactInformation}',

@@ -287,7 +287,7 @@ Three things to carry into every task below:
 
   Verify by signing in as the seeded Organizer: their own organization reads and writes; **another** organization's answers 403.
 
-- [ ] **7.17** **Flutter: the time zone foundation.**
+- [x] **7.17** **Flutter: the time zone foundation.**
 
   Adds `timezone: ^0.11.2` (the IANA database — Dart's `DateTime` converts between local and UTC and nothing else) and `flutter_timezone: ^5.1.1` (the device's IANA id — `timeZoneName` gives an ambiguous abbreviation). Justify both in the commit message.
 
