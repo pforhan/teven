@@ -106,5 +106,7 @@ enum class Permission {
 
   // Reporting
   /** Allows a user to view and generate reports for their own organization. */
-  VIEW_REPORTS_ORGANIZATION
+  VIEW_REPORTS_ORGANIZATION,
+  /** Allows a user to view and generate reports across all organizations. */
+  VIEW_REPORTS_GLOBAL,
 }

@@ -39,6 +39,7 @@ enum Permission {
   viewInventoryOrganization('VIEW_INVENTORY_ORGANIZATION'),
   manageInventoryOrganization('MANAGE_INVENTORY_ORGANIZATION'),
   viewReportsOrganization('VIEW_REPORTS_ORGANIZATION'),
+  viewReportsGlobal('VIEW_REPORTS_GLOBAL'),
 
   /// The organization-scoped counterpart to `MANAGE_ORGANIZATIONS_GLOBAL` — the
   /// permission an Organizer holds to manage their own organization, today
