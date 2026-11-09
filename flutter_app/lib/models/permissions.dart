@@ -38,6 +38,14 @@ enum Permission {
 
   viewInventoryOrganization('VIEW_INVENTORY_ORGANIZATION'),
   manageInventoryOrganization('MANAGE_INVENTORY_ORGANIZATION'),
+
+  /// The global permission for managing inventory across organizations.
+  ///
+  /// Mirrors [manageCustomersGlobal]: the server requires an organization id from
+  /// a caller holding it on create, and refuses an organization change from
+  /// anyone who lacks it on update. The `SuperAdmin` role is seeded with every
+  /// permission, so it is held in practice; `Organizer` and `Staff` are not.
+  manageInventoryGlobal('MANAGE_INVENTORY_GLOBAL'),
   viewReportsOrganization('VIEW_REPORTS_ORGANIZATION'),
   viewReportsGlobal('VIEW_REPORTS_GLOBAL'),
 

@@ -14,7 +14,14 @@ import '../../widgets/organization_select_field.dart';
 import '../../widgets/picker_fields.dart';
 import '../../widgets/validators.dart';
 
-/// Task 5.3. Port of `EditInventoryForm.tsx`.
+/// The edit-inventory form.
+///
+/// The organization dropdown is shown to a global manager only —
+/// [Permission.manageInventoryGlobal] — and the update sends `organizationId`
+/// only for that caller. The server refuses an organization change from anyone
+/// who lacks the global permission (`InventoryService`), so sending it
+/// unconditionally would fail for an org-scoped manager. This is the same
+/// rule as the customer edit form.
 class EditInventoryScreen extends ConsumerStatefulWidget {
   final int inventoryId;
 
@@ -79,26 +86,25 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final canManageGlobal = ref
+        .read(permissionGateProvider)
+        .has(Permission.manageInventoryGlobal);
+
     setState(() {
       _isSubmitting = true;
       _error = null;
     });
 
     try {
-      final canManageGlobal = ref
-          .read(permissionGateProvider)
-          .has(Permission.manageInventoryOrganization);
-
-      int? organizationIdToUse;
-      if (canManageGlobal) {
-        organizationIdToUse = _selectedOrganization?.organizationId;
-      }
-
       final request = UpdateInventoryItemRequest(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         quantity: int.tryParse(_quantityController.text) ?? 0,
-        organizationId: organizationIdToUse,
+        // Omitted for anyone who may not change it — the server's rule, not a
+        // shortcut. Same as the customer edit form.
+        organizationId: canManageGlobal
+            ? _selectedOrganization?.organizationId
+            : null,
       );
 
       await ref
@@ -125,7 +131,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
   Widget build(BuildContext context) {
     final canManageGlobal = ref
         .watch(permissionGateProvider)
-        .has(Permission.manageInventoryOrganization);
+        .has(Permission.manageInventoryGlobal);
 
     if (_item == null) {
       return Scaffold(
