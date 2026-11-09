@@ -102,6 +102,29 @@ class EventServiceTest {
   }
 
   @Test
+  fun `create event rejects a malformed instant`() = runBlocking {
+    val exception =
+        runCatching {
+          eventService.createEvent(
+            authContext = authContext,
+            createEventRequest =
+                CreateEventRequest(
+                  title = "Launch",
+                  durationMinutes = 60,
+                  inventoryItems = emptyList(),
+                  staffInvites = StaffInviteDetails(numberOfStaffNeeded = 2),
+                  organizationId = 1,
+                  startsAt = "not-a-timestamp",
+                  timezone = "Europe/Berlin",
+                ),
+          )
+        }.exceptionOrNull()
+
+    assertNotNull(exception)
+    assertEquals(BadRequestException::class.java, exception!!.javaClass)
+  }
+
+  @Test
   fun `create event rejects an unknown zone`() = runBlocking {
     val exception =
         runCatching {
@@ -157,6 +180,128 @@ class EventServiceTest {
   }
 
   @Test
+  fun `get events converts a Pacific Auckland date range so the month boundaries include the local day`() = runBlocking {
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns
+        PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
+
+    eventService.getEvents(
+      authContext = authContext,
+      startDate = "2026-03-01",
+      endDate = "2026-03-31",
+      search = null,
+      limit = null,
+      offset = null,
+      sortOrder = "asc",
+      organizationId = null,
+      timezone = "Pacific/Auckland",
+    )
+
+    coVerify {
+      eventDao.getEvents(
+        1,
+        Instant.parse("2026-02-28T11:00:00Z"),
+        Instant.parse("2026-03-31T11:00:00Z"),
+        null,
+        null,
+        null,
+        "asc",
+      )
+    }
+  }
+
+  @Test
+  fun `get events covers a 25-hour fall-back day with an exclusive end`() = runBlocking {
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns
+        PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
+
+    eventService.getEvents(
+      authContext = authContext,
+      startDate = "2026-11-01",
+      endDate = "2026-11-01",
+      search = null,
+      limit = null,
+      offset = null,
+      sortOrder = "asc",
+      organizationId = null,
+      timezone = "America/New_York",
+    )
+
+    coVerify {
+      eventDao.getEvents(
+        1,
+        Instant.parse("2026-11-01T04:00:00Z"),
+        Instant.parse("2026-11-02T05:00:00Z"),
+        null,
+        null,
+        null,
+        "asc",
+      )
+    }
+  }
+
+  @Test
+  fun `get events uses the caller organization zone when timezone is absent`() = runBlocking {
+    coEvery { organizationService.getOrganizationZone(1) } returns "Europe/Berlin"
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns
+        PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
+
+    eventService.getEvents(
+      authContext = authContext,
+      startDate = "2026-03-04",
+      endDate = "2026-03-05",
+      search = null,
+      limit = null,
+      offset = null,
+      sortOrder = "asc",
+      organizationId = null,
+      timezone = null,
+    )
+
+    coVerify {
+      eventDao.getEvents(
+        1,
+        Instant.parse("2026-03-03T23:00:00Z"),
+        Instant.parse("2026-03-05T23:00:00Z"),
+        null,
+        null,
+        null,
+        "asc",
+      )
+    }
+  }
+
+  @Test
+  fun `get events falls back to utc when timezone is absent and no organization zone applies`() = runBlocking {
+    coEvery { organizationService.getOrganizationZone(1) } returns null
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns
+        PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
+
+    eventService.getEvents(
+      authContext = authContext,
+      startDate = "2026-03-04",
+      endDate = "2026-03-05",
+      search = null,
+      limit = null,
+      offset = null,
+      sortOrder = "asc",
+      organizationId = null,
+      timezone = null,
+    )
+
+    coVerify {
+      eventDao.getEvents(
+        1,
+        Instant.parse("2026-03-04T00:00:00Z"),
+        Instant.parse("2026-03-06T00:00:00Z"),
+        null,
+        null,
+        null,
+        "asc",
+      )
+    }
+  }
+
+  @Test
   fun `update event sends a new instant and zone together`() = runBlocking {
     coEvery { eventDao.getEventById(1) } returns eventResponse()
     coEvery { eventDao.updateEvent(any(), any(), any(), any()) } returns true
@@ -186,6 +331,27 @@ class EventServiceTest {
             authContext = authContext,
             eventId = 1,
             updateEventRequest = UpdateEventRequest(startsAt = "2026-03-04T10:00:00Z"),
+          )
+        }.exceptionOrNull()
+
+    assertNotNull(exception)
+    assertEquals(BadRequestException::class.java, exception!!.javaClass)
+  }
+
+  @Test
+  fun `update event rejects a malformed instant`() = runBlocking {
+    coEvery { eventDao.getEventById(1) } returns eventResponse()
+
+    val exception =
+        runCatching {
+          eventService.updateEvent(
+            authContext = authContext,
+            eventId = 1,
+            updateEventRequest =
+                UpdateEventRequest(
+                  startsAt = "not-a-timestamp",
+                  timezone = "America/New_York",
+                ),
           )
         }.exceptionOrNull()
 

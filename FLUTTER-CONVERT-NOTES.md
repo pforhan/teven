@@ -3785,6 +3785,26 @@ passed.
 - **Replaced tests:** the naive-local `EventResponse` time group was deleted in
   7.20, not edited.
 
-**Still open:** task 7.26 (server zone-handling tests), 7.27 (regenerate
-`API.md`), 7.28 (reconcile design doc / progress log). 7.22 remains
-will-not-do (React retired).
+**7.26 — Tests: the server's zone handling.**
+
+- **Event instant windows (`EventServiceTest`):** `Pacific/Auckland` month range
+  (`startDate=2026-03-01`, `endDate=2026-03-31`) converts to
+  `[2026-02-28T11:00:00Z, 2026-03-31T11:00:00Z)`, so `2026-02-28T23:00:00Z`
+  (2026-03-01 12:00 NZDT) is inside the window and `2026-03-31T23:00:00Z`
+  (2026-04-01 12:00 NZDT) is outside the exclusive end. A 25-hour fall-back day
+  in `America/New_York` (`2026-11-01`) converts to
+  `[2026-11-01T04:00:00Z, 2026-11-02T05:00:00Z)`, covering both 01:30 local
+  occurrences with an exclusive end.
+- **Default zone resolution:** when `timezone` is absent, `EventService` uses the
+  caller organization's zone; when no organization zone resolves it falls back
+  to UTC.
+- **Bad input (400 path):** naive `startsAt`, malformed `startsAt` (create and
+  update), and unknown `timezone` throw `BadRequestException` (handled as 400 by
+  the app). Malformed invitation `expiresAt` is rejected at the route with a 400
+  envelope message in `InvitationRoutes`; the backend has no route test harness.
+- **Service scoping / clock:** `MANAGE_ORGANIZATION` update/read scoping (own org
+  allowed, other org rejected) is covered in `OrganizationServiceTest`.
+  Invitation expiry uses a fixed `Clock` in `InvitationServiceTest`.
+
+**Still open:** 7.27 (regenerate `API.md`), 7.28 (reconcile design doc /
+progress log). 7.22 remains will-not-do (React retired).

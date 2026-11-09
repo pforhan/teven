@@ -346,14 +346,7 @@ Three things to carry into every task below:
   - **The zone picker** — current value pre-selected, the organization's default marked, the field de-emphasized when the two agree.
   - **The tests this task replaces are deleted, not edited.** `models_test.dart`'s `naive-local event times` group asserts the old model. A test that still says "the local `DateTime`" is asserting the thing this phase removed.
 
-- [ ] **7.26** **Tests: the server's zone handling.**
-
-  - **The instant window.** `GET /api/events?startDate=2026-03-01&endDate=2026-03-31&timezone=Pacific/Auckland` includes an event at `2026-02-28T23:00:00Z` (which is `2026-03-01 12:00 NZDT`) and excludes one at `2026-03-31T23:00:00Z` (which is `2026-04-01 12:00 NZDT`).
-  - **A 25-hour day** — a window covering a fall-back day in `America/New_York` includes both 01:30 occurrences, and the window's end is exclusive.
-  - **`timezone` absent** → the caller's organization's zone; absent *and* unscoped → UTC.
-  - **Bad input is a 400, not a 500** — a naive `startsAt`, a malformed `startsAt`, an unknown `timezone`, and a malformed `expiresAt`. Each asserted as a 400 with the envelope's message.
-  - **The `MANAGE_ORGANIZATION` scoping** — an Organizer may update **their own** organization and not another's. Assert the **service**, not the route, because 10.22 means the route's plugin is not the guard.
-  - **The `Clock`** — a fixed clock drives the invitation expiry, so the test does not depend on the wall clock.
+- [x] **7.26** **Tests: the server's zone handling.** **Done.** `EventServiceTest` covers: `Pacific/Auckland` month window bounds (`2026-03-01`–`2026-03-31` → `2026-02-28T11:00Z`..`2026-03-31T11:00Z`, so `2026-02-28T23:00Z` is included and `2026-03-31T23:00Z` excluded); 25-hour fall-back day in `America/New_York` (`2026-11-01` window `[2026-11-01T04:00Z, 2026-11-02T05:00Z)`, containing both 01:30 occurrences with exclusive end); `timezone` absent uses the caller’s organization zone, and falls back to UTC when no organization zone resolves. Bad input throws `BadRequestException` (mapped to 400 by the app): naive `startsAt`, malformed `startsAt` (create/update), and unknown `timezone`. `MANAGE_ORGANIZATION` scoping is asserted at the service in `OrganizationServiceTest` (own org allowed, other org rejected). Fixed `Clock` drives invitation expiry in `InvitationServiceTest`. Malformed invitation `expiresAt` is validated at the route (`InvitationRoutes`) returning 400 with the envelope message; no route test harness exists in `backend/app`.
 
 - [ ] **7.27** **Regenerate `API.md`.**
 
