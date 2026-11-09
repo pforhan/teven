@@ -3740,5 +3740,24 @@ clean, format clean, 436 tests passed.
 **Verified.** `./teven verify` clean — analyze clean, format clean, 436 tests
 passed.
 
-**Still open:** task 7.24 (zone-aware report windows / inventory usage date),
-7.25 (zone-conversion tests). 7.22 remains will-not-do (React retired).
+**7.24 — Zone-aware report windows, and the inventory usage date.**
+
+- **Staff hours window:** `StaffHoursReportRequest` adds required `timezone`
+  (IANA id naming the reader's window). `startDate`/`endDate` stay local dates
+  and are still compared directly to `staffhours.date` (a `date` column, 7.14) —
+  zone-free on purpose, because the window is a range of days. `ReportService`
+  validates unknown `timezone` and malformed dates as `BadRequestException`
+  (400). `GET /api/reports/inventory_usage` unchanged (no dates).
+- **Inventory usage date:** `InventoryDao.trackInventoryUsage` derives
+  `usage_date` from the event's `startsAt` in the event's own `timezone` (PK
+  lookup of `Events`; no join), replacing `LocalDate.now(clock.zone)`. The
+  column remains **write-only** and the inventory usage report is still an
+  all-time aggregate — the stored value is now correct, but nothing reads it.
+- **Flutter:** `StaffHoursReportRequest`/`ReportService.getStaffHoursReport`
+  carry `timezone`; the service posts the JSON body (matching
+  `POST /api/reports/staff_hours`). `services_test.dart` updated accordingly.
+- **Not fixed here:** the staff-hours aggregate still has no `SUM()`/`GROUP BY`
+  and `staffhours` rows are never written (8.2/10.13).
+
+**Still open:** task 7.25 (zone-conversion tests). 7.22 remains will-not-do
+(React retired).

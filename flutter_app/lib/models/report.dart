@@ -29,6 +29,7 @@ abstract class StaffHoursReportRequest with _$StaffHoursReportRequest {
   const factory StaffHoursReportRequest({
     required String startDate,
     required String endDate,
+    required String timezone,
   }) = _StaffHoursReportRequest;
 
   factory StaffHoursReportRequest.fromJson(Map<String, dynamic> json) =>

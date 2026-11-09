@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:teven_app/core/api/api_client.dart';
@@ -107,12 +109,26 @@ void main() {
       expect(adapter.lastQuery['token'], 'abc123');
     });
 
-    test('reports pass both date bounds', () async {
-      await ReportService(client)
-          .getStaffHoursReport(startDate: '2026-01-01', endDate: '2026-02-01');
+    test('reports pass date bounds and timezone in the body', () async {
+      await ReportService(client).getStaffHoursReport(
+        startDate: '2026-01-01',
+        endDate: '2026-02-01',
+        timezone: 'America/New_York',
+      );
       expect(lastPath(), '/api/reports/staff_hours');
-      expect(adapter.lastQuery['startDate'], '2026-01-01');
-      expect(adapter.lastQuery['endDate'], '2026-02-01');
+      expect(adapter.last.method, 'POST');
+      final body = adapter.last.data;
+      final Map<String, dynamic> map;
+      if (body is String) {
+        map = jsonDecode(body) as Map<String, dynamic>;
+      } else if (body is Map) {
+        map = body.cast<String, dynamic>();
+      } else {
+        map = (body as dynamic).toJson() as Map<String, dynamic>;
+      }
+      expect(map['startDate'], '2026-01-01');
+      expect(map['endDate'], '2026-02-01');
+      expect(map['timezone'], 'America/New_York');
     });
 
     test('roles', () async {

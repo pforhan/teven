@@ -96,13 +96,18 @@ class ReportService {
 
   final ApiClient _client;
 
-  /// Staff hours between [startDate] and [endDate] (`YYYY-MM-DD`).
+  /// Staff hours between [startDate] and [endDate] (`YYYY-MM-DD`) in [timezone].
   Future<List<StaffHoursReportResponse>> getStaffHoursReport({
     required String startDate,
     required String endDate,
-  }) => _client.get<List<StaffHoursReportResponse>>(
+    required String timezone,
+  }) => _client.post<List<StaffHoursReportResponse>>(
     '/api/reports/staff_hours',
-    query: {'startDate': startDate, 'endDate': endDate},
+    request: StaffHoursReportRequest(
+      startDate: startDate,
+      endDate: endDate,
+      timezone: timezone,
+    ),
     decode: (json) => (json! as List)
         .map(
           (e) => StaffHoursReportResponse.fromJson(e as Map<String, dynamic>),

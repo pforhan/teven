@@ -334,13 +334,7 @@ Three things to carry into every task below:
   - **The list shows the zone** — a "Time Zone" column, so a super-admin can see which organizations are on which clock.
   - **The Flutter model gains the field**: `OrganizationResponse.timezone` (required), `CreateOrganizationRequest.timezone` (required), `UpdateOrganizationRequest.timezone` (required) — mirroring the server's DTOs.
 
-- [ ] **7.24** **Zone-aware report windows, and the inventory usage date.**
-
-  - **`POST /api/reports/staff_hours`** — `startDate` and `endDate` stay local dates, and a `timezone` parameter names the zone they are in. The server compares them against `staffhours.date`, which is a `date` column (7.14) and therefore zone-free — **which is correct**, because a day is a day. The window's zone is the **reader's**: the reader is the one asking "what happened on the 3rd".
-  - `GET /api/reports/inventory_usage` takes no dates and needs no zone.
-  - **`usage_date` gets a source that is not the server's wall clock.** It becomes the **event's date in the event's own zone** — the DAO already has the event id, and the event carries its zone, so no join is needed.
-  - **The column is still write-only.** Nothing reads `usage_date`, and the inventory usage report is an all-time aggregate. This makes the stored value *correct*; it does not make the column *used*. Say so in the progress log.
-  - **The staff-hours aggregate is not fixed here.** `ReportDao.getStaffHoursReport` has no `SUM()` and no `GROUP BY`, so it returns one row per `staffhours` row despite the field being named `totalHoursWorked` — and nothing ever writes a `staffhours` row, so it is always empty (10.13 sees the same thing from the storage side). That belongs to **8.2**, where the report is ported.
+- [x] **7.24** **Zone-aware report windows, and the inventory usage date.** **Done.** `StaffHoursReportRequest` gains required `timezone` (IANA zone naming the window; `startDate`/`endDate` remain local dates compared against `staffhours.date`, a zone-free `date` column — correct because a day is a day). `ReportService` validates unknown `timezone` / malformed dates as **400**. `InventoryDao.trackInventoryUsage` now sets `usage_date` to the **event's date in the event's own zone** (PK lookup of the event's `startsAt`/`timezone`; no join) instead of the server wall clock. Flutter `StaffHoursReportRequest`/`ReportService.getStaffHoursReport` updated to send `timezone` in the POST body (matching the backend route). Staff-hours aggregate and `usage_date` read-side behavior intentionally unchanged (aggregate → 8.2; `usage_date` remains write-only/all-time report).
 
 - [ ] **7.25** **Tests: the zone conversions.**
 

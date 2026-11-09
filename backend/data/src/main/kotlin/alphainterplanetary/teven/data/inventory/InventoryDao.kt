@@ -9,8 +9,10 @@ import alphainterplanetary.teven.api.model.inventory.UpdateInventoryItemRequest
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.event.EventInventory
+import alphainterplanetary.teven.data.event.Events
 import alphainterplanetary.teven.data.organization.Organizations
 import java.time.Clock
+import java.time.ZoneId
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -162,11 +164,20 @@ class InventoryDao(private val clock: Clock) {
     inventoryId: Int,
     trackInventoryUsageRequest: TrackInventoryUsageRequest,
   ): Boolean = dbQuery {
+    // 7.24: usage_date is the event's date in the event's own zone (not the
+    // server's wall clock). The event carries its zone; a PK lookup is enough.
+    val event =
+        Events.selectAll()
+            .where { Events.id eq trackInventoryUsageRequest.eventId }
+            .single()
+    val usageDate =
+        event[Events.startsAt].toInstant().atZone(ZoneId.of(event[Events.timezone])).toLocalDate()
+
     InventoryUsage.insert {
       it[InventoryUsage.inventoryId] = inventoryId
       it[InventoryUsage.eventId] = trackInventoryUsageRequest.eventId
       it[InventoryUsage.quantityUsed] = trackInventoryUsageRequest.quantity
-      it[InventoryUsage.usageDate] = java.time.LocalDate.now(clock.zone) // Use current date
+      it[InventoryUsage.usageDate] = usageDate
     }
     true
   }
