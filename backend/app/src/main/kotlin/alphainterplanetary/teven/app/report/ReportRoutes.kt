@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.app.report
 
+import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.report.StaffHoursReportRequest
 import alphainterplanetary.teven.app.requireAuthContext
@@ -30,7 +31,12 @@ fun Route.reportRoutes() {
 
       get("/inventory_usage") {
         val authContext = requireAuthContext()
-        val report = reportService.getInventoryUsageReport(authContext)
+        val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
+        if (organizationId == null) {
+          call.respond(HttpStatusCode.BadRequest, failure("organizationId is required"))
+          return@get
+        }
+        val report = reportService.getInventoryUsageReport(authContext, organizationId)
         call.respond(HttpStatusCode.OK, success(report))
       }
     }

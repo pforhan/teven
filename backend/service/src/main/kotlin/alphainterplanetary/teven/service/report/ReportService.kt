@@ -11,6 +11,14 @@ import java.time.ZoneId
 import java.time.format.DateTimeParseException
 
 class ReportService(private val reportDao: ReportDao) {
+  private fun requireReportOrganizationAccess(authContext: AuthContext, organizationId: Int) {
+    if (organizationId != authContext.organizationId &&
+      !authContext.hasPermission(Permission.VIEW_REPORTS_GLOBAL)
+    ) {
+      throw IllegalAccessException("User not authorized to view reports for other organizations")
+    }
+  }
+
   suspend fun getStaffHoursReport(
     authContext: AuthContext,
     staffHoursReportRequest: StaffHoursReportRequest,
@@ -18,24 +26,19 @@ class ReportService(private val reportDao: ReportDao) {
     if (!ZoneId.getAvailableZoneIds().contains(staffHoursReportRequest.timezone)) {
       throw BadRequestException("Unknown time zone: ${staffHoursReportRequest.timezone}")
     }
-    val organizationId = if (authContext.hasPermission(Permission.VIEW_REPORTS_GLOBAL)) {
-      null
-    } else {
-      authContext.organizationId
-    }
+    requireReportOrganizationAccess(authContext, staffHoursReportRequest.organizationId)
     return try {
-      reportDao.getStaffHoursReport(staffHoursReportRequest, organizationId)
+      reportDao.getStaffHoursReport(staffHoursReportRequest, staffHoursReportRequest.organizationId)
     } catch (e: DateTimeParseException) {
       throw BadRequestException("Invalid report date")
     }
   }
 
-  suspend fun getInventoryUsageReport(authContext: AuthContext): List<InventoryUsageReportResponse> {
-    val organizationId = if (authContext.hasPermission(Permission.VIEW_REPORTS_GLOBAL)) {
-      null
-    } else {
-      authContext.organizationId
-    }
+  suspend fun getInventoryUsageReport(
+    authContext: AuthContext,
+    organizationId: Int,
+  ): List<InventoryUsageReportResponse> {
+    requireReportOrganizationAccess(authContext, organizationId)
     return reportDao.getInventoryUsageReport(organizationId)
   }
 }

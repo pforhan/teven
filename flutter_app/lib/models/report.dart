@@ -27,6 +27,7 @@ abstract class StaffHoursReportResponse with _$StaffHoursReportResponse {
 @freezed
 abstract class StaffHoursReportRequest with _$StaffHoursReportRequest {
   const factory StaffHoursReportRequest({
+    required int organizationId,
     required String startDate,
     required String endDate,
     required String timezone,

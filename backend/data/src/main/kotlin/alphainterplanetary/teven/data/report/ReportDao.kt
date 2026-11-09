@@ -20,54 +20,34 @@ import org.jetbrains.exposed.v1.jdbc.select
 class ReportDao {
   suspend fun getStaffHoursReport(
     staffHoursReportRequest: StaffHoursReportRequest,
-    organizationId: Int?,
+    organizationId: Int,
   ): List<StaffHoursReportResponse> = dbQuery {
     val totalHours = StaffHours.hoursWorked.sum()
     val start = LocalDate.parse(staffHoursReportRequest.startDate)
     val end = LocalDate.parse(staffHoursReportRequest.endDate)
-    if (organizationId == null) {
-      (StaffHours innerJoin Users)
-        .select(StaffHours.userId, Users.username, Users.displayName, totalHours)
-        .where { (StaffHours.date greaterEq start) and (StaffHours.date lessEq end) }
-        .groupBy(StaffHours.userId, Users.username, Users.displayName)
-        .map { row: ResultRow ->
-          StaffHoursReportResponse(
-            userId = row[StaffHours.userId].value,
-            username = row[Users.username],
-            displayName = row[Users.displayName],
-            totalHoursWorked = row[totalHours] ?: 0,
-          )
-        }
-    } else {
-      (StaffHours innerJoin Users innerJoin UserOrganizations)
-        .select(StaffHours.userId, Users.username, Users.displayName, totalHours)
-        .where {
-          (StaffHours.date greaterEq start) and
-            (StaffHours.date lessEq end) and
-            (UserOrganizations.organizationId eq organizationId)
-        }
-        .groupBy(StaffHours.userId, Users.username, Users.displayName)
-        .map { row: ResultRow ->
-          StaffHoursReportResponse(
-            userId = row[StaffHours.userId].value,
-            username = row[Users.username],
-            displayName = row[Users.displayName],
-            totalHoursWorked = row[totalHours] ?: 0,
-          )
-        }
-    }
+    (StaffHours innerJoin Users innerJoin UserOrganizations)
+      .select(StaffHours.userId, Users.username, Users.displayName, totalHours)
+      .where {
+        (StaffHours.date greaterEq start) and
+          (StaffHours.date lessEq end) and
+          (UserOrganizations.organizationId eq organizationId)
+      }
+      .groupBy(StaffHours.userId, Users.username, Users.displayName)
+      .map { row: ResultRow ->
+        StaffHoursReportResponse(
+          userId = row[StaffHours.userId].value,
+          username = row[Users.username],
+          displayName = row[Users.displayName],
+          totalHoursWorked = row[totalHours] ?: 0,
+        )
+      }
   }
 
-  suspend fun getInventoryUsageReport(organizationId: Int?): List<InventoryUsageReportResponse> = dbQuery {
+  suspend fun getInventoryUsageReport(organizationId: Int): List<InventoryUsageReportResponse> = dbQuery {
     val usageSum = InventoryUsage.quantityUsed.sum()
-    val query = (InventoryUsage innerJoin InventoryItems)
+    (InventoryUsage innerJoin InventoryItems)
       .select(InventoryItems.id, InventoryItems.name, usageSum)
-    val filtered = if (organizationId == null) {
-      query
-    } else {
-      query.where { InventoryItems.organizationId eq organizationId }
-    }
-    filtered
+      .where { InventoryItems.organizationId eq organizationId }
       .groupBy(InventoryItems.id, InventoryItems.name)
       .map { row: ResultRow ->
         InventoryUsageReportResponse(

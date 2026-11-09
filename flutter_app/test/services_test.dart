@@ -109,8 +109,9 @@ void main() {
       expect(adapter.lastQuery['token'], 'abc123');
     });
 
-    test('reports pass date bounds and timezone in the body', () async {
+    test('reports pass organization, date bounds and timezone', () async {
       await ReportService(client).getStaffHoursReport(
+        organizationId: 7,
         startDate: '2026-01-01',
         endDate: '2026-02-01',
         timezone: 'America/New_York',
@@ -126,9 +127,15 @@ void main() {
       } else {
         map = (body as dynamic).toJson() as Map<String, dynamic>;
       }
+      expect(map['organizationId'], 7);
       expect(map['startDate'], '2026-01-01');
       expect(map['endDate'], '2026-02-01');
       expect(map['timezone'], 'America/New_York');
+
+      await ReportService(client).getInventoryUsageReport(organizationId: 7);
+      expect(lastPath(), '/api/reports/inventory_usage');
+      expect(adapter.last.method, 'GET');
+      expect(adapter.lastQuery['organizationId'], 7);
     });
 
     test('roles', () async {

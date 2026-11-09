@@ -3,24 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/util/local_date.dart';
+import '../../models/permissions.dart';
 import '../../models/report.dart';
+import '../../providers/auth_controller.dart';
+import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/list_screen_header.dart';
+import '../../widgets/organization_picker.dart';
 
 /// Staff-hours and inventory-usage reports.
 ///
-/// The report landing page: inventory usage loads on open, and a staff-hours
-/// report is generated for an explicit range of days.
+/// The report landing page: inventory usage loads when an organization is
+/// available, and a staff-hours report is generated for an explicit range of
+/// days.
 ///
 /// The staff-hours window is a range of *days*, not a range of instants, so it
-/// is interpreted in the reader's zone (task 8.2). The device zone is sent with
-/// the request; if detection is unavailable the request falls back to UTC.
+/// is interpreted in the reader's zone. The device zone is sent with the
+/// request; if detection is unavailable the request falls back to UTC.
 ///
-/// Org scoping is **not** applied server-side — the report endpoints take no
-/// caller context — and the responses carry no organization identifier, so the
-/// client cannot filter by organization either. This screen does not pretend to
-/// filter; it shows the server's result and states the limitation (task 8.4).
+/// Both report APIs require an [organizationId]. Callers without
+/// `VIEW_REPORTS_GLOBAL` may only request their own organization; global
+/// callers must still name a specific organization. The UI requires an
+/// effective organization before loading reports.
 class ReportListScreen extends ConsumerStatefulWidget {
   const ReportListScreen({super.key});
 
@@ -33,26 +38,22 @@ class _ReportListScreenState extends ConsumerState<ReportListScreen> {
   DateTime? _endDate;
   List<StaffHoursReportResponse>? _staffHoursReport;
   List<InventoryUsageReportResponse>? _inventoryUsageReport;
-  bool _loadingInventory = true;
+  bool _loadingInventory = false;
   bool _loadingStaffHours = false;
   ApiException? _error;
   String? _staffHoursMessage;
+  int? _loadedInventoryOrgId;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchInventoryUsageReport();
-  }
-
-  Future<void> _fetchInventoryUsageReport() async {
+  Future<void> _fetchInventoryUsageReport(int organizationId) async {
     setState(() {
       _loadingInventory = true;
       _error = null;
+      _loadedInventoryOrgId = organizationId;
     });
     try {
       final report = await ref
           .read(reportServiceProvider)
-          .getInventoryUsageReport();
+          .getInventoryUsageReport(organizationId: organizationId);
       if (!mounted) return;
       setState(() {
         _inventoryUsageReport = report;
@@ -87,7 +88,7 @@ class _ReportListScreenState extends ConsumerState<ReportListScreen> {
     });
   }
 
-  Future<void> _fetchStaffHoursReport() async {
+  Future<void> _fetchStaffHoursReport(int organizationId) async {
     final start = _startDate;
     final end = _endDate;
     if (start == null || end == null) {
@@ -109,6 +110,7 @@ class _ReportListScreenState extends ConsumerState<ReportListScreen> {
       final report = await ref
           .read(reportServiceProvider)
           .getStaffHoursReport(
+            organizationId: organizationId,
             startDate: formatLocalDate(start),
             endDate: formatLocalDate(end),
             timezone: timezone,
@@ -127,9 +129,43 @@ class _ReportListScreenState extends ConsumerState<ReportListScreen> {
     }
   }
 
+  String _organizationLabel() {
+    final selected = ref.watch(selectedOrganizationProvider);
+    if (selected != null) return selected.name;
+    return ref.watch(userContextProvider)?.user.organization.name ??
+        'Unknown organization';
+  }
+
   @override
   Widget build(BuildContext context) {
     final error = _error;
+    final gate = ref.watch(permissionGateProvider);
+    final selected = ref.watch(selectedOrganizationProvider);
+    final userOrgId = ref
+        .watch(userContextProvider)
+        ?.user
+        .organization
+        .organizationId;
+    final hasGlobal = gate.has(Permission.viewReportsGlobal);
+    final effectiveOrgId = selected?.organizationId ?? userOrgId;
+    final needsSelection = hasGlobal && selected == null;
+
+    if (effectiveOrgId != null &&
+        !needsSelection &&
+        _loadedInventoryOrgId != effectiveOrgId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_loadedInventoryOrgId != effectiveOrgId) {
+          setState(() {
+            _staffHoursReport = null;
+            _staffHoursMessage = null;
+            _inventoryUsageReport = null;
+          });
+          _fetchInventoryUsageReport(effectiveOrgId);
+        }
+      });
+    }
+
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -139,27 +175,48 @@ class _ReportListScreenState extends ConsumerState<ReportListScreen> {
             const ListScreenHeader(title: 'Reports'),
             const SizedBox(height: 8),
             Text(
-              'Reports are not scoped to the selected organization on the server, '
-              'and the responses do not identify an organization, so this screen '
-              'cannot filter by organization.',
-              style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: Theme.of(context).colorScheme.outline),
+              'Organization: ${needsSelection ? 'Select an organization to view reports.' : _organizationLabel()}',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
+            if (hasGlobal) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => showOrganizationPicker(context),
+                icon: const Icon(Icons.business),
+                label: Text(
+                  selected == null
+                      ? 'Select Organization'
+                      : 'Change Organization',
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             if (error != null) ...[
               ErrorDisplay.fromException(error),
               const SizedBox(height: 16),
             ],
-            _buildStaffHoursCard(context),
-            const SizedBox(height: 16),
-            _buildInventoryUsageCard(context),
+            if (needsSelection)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Select an organization to access reports. Reports are scoped to one organization.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              )
+            else ...[
+              _buildStaffHoursCard(context, effectiveOrgId!),
+              const SizedBox(height: 16),
+              _buildInventoryUsageCard(context),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStaffHoursCard(BuildContext context) {
+  Widget _buildStaffHoursCard(BuildContext context, int organizationId) {
     final message = _staffHoursMessage;
     final report = _staffHoursReport;
     return Card(
@@ -189,7 +246,9 @@ class _ReportListScreenState extends ConsumerState<ReportListScreen> {
                   onPick: () => _pickDate(start: false),
                 ),
                 FilledButton(
-                  onPressed: _loadingStaffHours ? null : _fetchStaffHoursReport,
+                  onPressed: _loadingStaffHours
+                      ? null
+                      : () => _fetchStaffHoursReport(organizationId),
                   child: _loadingStaffHours
                       ? const SizedBox(
                           width: 18,
@@ -313,9 +372,9 @@ class _DateField extends StatelessWidget {
 
 /// A virtualized, read-only report table.
 ///
-/// Uses [ListView.builder] so only visible rows are built (task 8.5). Report
-/// endpoints return unpaginated lists, so a non-virtualized table would build
-/// every row up front.
+/// Uses [ListView.builder] so only visible rows are built. Report endpoints
+/// return unpaginated lists, so a non-virtualized table would build every row
+/// up front.
 class _VirtualReportTable<T> extends StatelessWidget {
   const _VirtualReportTable({
     required this.rows,

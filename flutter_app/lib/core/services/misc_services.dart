@@ -87,23 +87,25 @@ class InvitationService {
 ///
 /// Replaces `ReportService` in `frontend/src/api/ReportService.ts`.
 ///
-/// **Both endpoints are unpaginated** and return a list over the whole
-/// organization — there is no `limit`/`offset`. Task 8.4 flags that org
-/// scoping is *not* applied server-side (no `AuthContext` reaches
-/// `ReportRoutes`), so the UI must filter; task 8.5 virtualizes the tables.
+/// **Both endpoints are unpaginated** and scoped server-side. The API requires
+/// [organizationId]; callers without `VIEW_REPORTS_GLOBAL` may only request
+/// their own organization.
 class ReportService {
   const ReportService(this._client);
 
   final ApiClient _client;
 
-  /// Staff hours between [startDate] and [endDate] (`YYYY-MM-DD`) in [timezone].
+  /// Staff hours between [startDate] and [endDate] (`YYYY-MM-DD`) in [timezone]
+  /// for [organizationId].
   Future<List<StaffHoursReportResponse>> getStaffHoursReport({
+    required int organizationId,
     required String startDate,
     required String endDate,
     required String timezone,
   }) => _client.post<List<StaffHoursReportResponse>>(
     '/api/reports/staff_hours',
     request: StaffHoursReportRequest(
+      organizationId: organizationId,
       startDate: startDate,
       endDate: endDate,
       timezone: timezone,
@@ -115,17 +117,18 @@ class ReportService {
         .toList(),
   );
 
-  Future<List<InventoryUsageReportResponse>> getInventoryUsageReport() =>
-      _client.get<List<InventoryUsageReportResponse>>(
-        '/api/reports/inventory_usage',
-        decode: (json) => (json! as List)
-            .map(
-              (e) => InventoryUsageReportResponse.fromJson(
-                e as Map<String, dynamic>,
-              ),
-            )
-            .toList(),
-      );
+  Future<List<InventoryUsageReportResponse>> getInventoryUsageReport({
+    required int organizationId,
+  }) => _client.get<List<InventoryUsageReportResponse>>(
+    '/api/reports/inventory_usage',
+    query: {'organizationId': organizationId},
+    decode: (json) => (json! as List)
+        .map(
+          (e) =>
+              InventoryUsageReportResponse.fromJson(e as Map<String, dynamic>),
+        )
+        .toList(),
+  );
 }
 
 /// Roles and their permissions.
