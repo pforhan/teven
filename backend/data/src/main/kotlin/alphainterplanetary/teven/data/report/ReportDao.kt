@@ -14,27 +14,28 @@ import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.lessEq
 import org.jetbrains.exposed.v1.core.sum
 import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class ReportDao {
-  private fun toStaffHoursReportResponse(row: ResultRow): StaffHoursReportResponse {
-    return StaffHoursReportResponse(
-      userId = row[StaffHours.userId].value,
-      username = row[Users.username],
-      displayName = row[Users.displayName],
-      totalHoursWorked = row[StaffHours.hoursWorked]
-    )
+  suspend fun getStaffHoursReport(
+    staffHoursReportRequest: StaffHoursReportRequest,
+  ): List<StaffHoursReportResponse> = dbQuery {
+    val totalHours = StaffHours.hoursWorked.sum()
+    (StaffHours innerJoin Users)
+      .select(StaffHours.userId, Users.username, Users.displayName, totalHours)
+      .where {
+        (StaffHours.date greaterEq LocalDate.parse(staffHoursReportRequest.startDate)) and
+          (StaffHours.date lessEq LocalDate.parse(staffHoursReportRequest.endDate))
+      }
+      .groupBy(StaffHours.userId, Users.username, Users.displayName)
+      .map { row: ResultRow ->
+        StaffHoursReportResponse(
+          userId = row[StaffHours.userId].value,
+          username = row[Users.username],
+          displayName = row[Users.displayName],
+          totalHoursWorked = row[totalHours] ?: 0,
+        )
+      }
   }
-
-  suspend fun getStaffHoursReport(staffHoursReportRequest: StaffHoursReportRequest): List<StaffHoursReportResponse> =
-    dbQuery {
-      (StaffHours innerJoin Users)
-        .selectAll()
-        .where {
-          (StaffHours.date greaterEq LocalDate.parse(staffHoursReportRequest.startDate)) and
-            (StaffHours.date lessEq LocalDate.parse(staffHoursReportRequest.endDate))
-        }.map { row: ResultRow -> toStaffHoursReportResponse(row) }
-    }
 
   suspend fun getInventoryUsageReport(): List<InventoryUsageReportResponse> = dbQuery {
     (InventoryUsage innerJoin InventoryItems)

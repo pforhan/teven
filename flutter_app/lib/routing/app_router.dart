@@ -27,6 +27,7 @@ import '../screens/organizations/organization_list_screen.dart';
 import '../screens/organizations/organization_screen.dart';
 import '../screens/placeholder_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/reports/report_list_screen.dart';
 import '../screens/users/create_user_screen.dart';
 import '../screens/users/edit_user_screen.dart';
 import '../screens/users/user_details_screen.dart';
@@ -462,7 +463,7 @@ List<RouteBase> _shellRoutes(Ref ref) => [
 
   _guarded(ref, AppRoutes.reports, [
     Permission.viewReportsOrganization,
-  ], (_) => const PlaceholderScreen.route(AppRoutes.reports)),
+  ], (_) => const ReportListScreen()),
 
   // `App.tsx:59` — the only authenticated route with no permission gate.
   _guarded(ref, AppRoutes.profile, const [], (_) => const ProfileScreen()),
