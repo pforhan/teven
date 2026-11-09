@@ -170,7 +170,7 @@ Three things to carry into every task below:
 
 - [x] **7.26** **Tests: the server's zone handling.** **Done.** `EventServiceTest` covers: `Pacific/Auckland` month window bounds (`2026-03-01`–`2026-03-31` → `2026-02-28T11:00Z`..`2026-03-31T11:00Z`, so `2026-02-28T23:00Z` is included and `2026-03-31T23:00Z` excluded); 25-hour fall-back day in `America/New_York` (`2026-11-01` window `[2026-11-01T04:00Z, 2026-11-02T05:00Z)`, containing both 01:30 occurrences with exclusive end); `timezone` absent uses the caller’s organization zone, and falls back to UTC when no organization zone resolves. Bad input throws `BadRequestException` (mapped to 400 by the app): naive `startsAt`, malformed `startsAt` (create/update), and unknown `timezone`. `MANAGE_ORGANIZATION` scoping is asserted at the service in `OrganizationServiceTest` (own org allowed, other org rejected). Fixed `Clock` drives invitation expiry in `InvitationServiceTest`. Malformed invitation `expiresAt` is validated at the route (`InvitationRoutes`) returning 400 with the envelope message; no route test harness exists in `backend/app`.
 
-- [ ] **7.27** **Regenerate `API.md`.**
+- [x] **7.27** **Regenerate `API.md`.**
 
   Regenerate from `API_TEMPLATE.md` and the Dokka output via `generateApiDocs` (`build.gradle.kts:23-87`) — **do not hand-edit**. The models change substantially: the event response and requests lose `date` / `time` and gain `startsAt` / `timezone`; the organization DTOs gain `timezone`; the invitation timestamps change shape.
 

@@ -31,6 +31,14 @@ Many `GET` list endpoints support the following optional query parameters:
 
 ---
 
+### Date, time, and time zone formats
+
+*   **Instant (`startsAt`)**: An ISO 8601 date-time **with an explicit UTC offset** (for example, `2026-03-04T08:00:00Z` or `2026-03-04T10:00:00+02:00`). A naive timestamp with no offset is rejected with **400**.
+*   **Time zone (`timezone`)**: An IANA time zone identifier (for example, `America/New_York`, `Europe/Berlin`, `UTC`). An unknown zone is rejected with **400**.
+*   **Local date**: A calendar date in `YYYY-MM-DD` form, interpreted in a time zone supplied alongside it (never inferred from the server clock). A calendar day is a day and does not carry a zone of its own.
+
+---
+
 **Authentication:**
 Most API endpoints in Teven will require authentication. We will use JSON Web Tokens (JWT) for authentication. The JWT will be included in the `Authorization` header of the HTTP request in the format: `Bearer <token>`. Endpoints not requiring authentication are explicitly marked.
 
@@ -86,8 +94,10 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
     * Request:
         <!-- DATA_MODEL_CreateInvitationRequest -->
+        * `expiresAt`, when provided, is an ISO 8601 instant with an explicit UTC offset. A malformed value is rejected with **400**.
     * Response:
         <!-- DATA_MODEL_InvitationResponse -->
+        * `expiresAt` and `createdAt` are ISO 8601 instants with an explicit UTC offset.
 
 * `GET /api/invitations`: Retrieve all unused invitations for the user's organization.
     * Authentication: Required.
@@ -120,6 +130,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Permissions: `MANAGE_EVENTS_ORGANIZATION`
     * Request:
         <!-- DATA_MODEL_CreateEventRequest -->
+        * `startsAt` is an ISO 8601 instant with an explicit UTC offset, and `timezone` is the IANA zone of the event's wall clock. A naive `startsAt` (no offset) or an unknown `timezone` is rejected with **400**.
     * Response:
         <!-- DATA_MODEL_EventResponse -->
 
@@ -128,8 +139,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Permissions: `VIEW_EVENTS_ORGANIZATION`
     * Query Parameters:
         * See [Common Search, Sort, and Pagination Parameters](#common-search-sort-and-pagination-parameters)
-        * `startDate` (optional, string, format: YYYY-MM-DD): The start date for the event search.
-        * `endDate` (optional, string, format: YYYY-MM-DD): The end date for the event search.
+        * `startDate` (optional, string, `YYYY-MM-DD`): Start of the date window, as a local calendar date.
+        * `endDate` (optional, string, `YYYY-MM-DD`): End of the date window, as a local calendar date.
+        * `timezone` (optional, string, IANA zone id): The time zone `startDate` and `endDate` are interpreted in. The server converts the window into an instant range (upper bound exclusive). When absent, the caller's organization time zone is used, falling back to UTC when there is no organization scope.
         * `organizationId` (optional, integer): Filter events by organization. Requires `VIEW_EVENTS_GLOBAL` (if not your own org).
     * Response: `PaginatedResponse<EventResponse>`
 
@@ -144,6 +156,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Permissions: `MANAGE_EVENTS_ORGANIZATION`
     * Request:
         <!-- DATA_MODEL_UpdateEventRequest -->
+        * When updating the start time, send `startsAt` and `timezone` together. `startsAt` must carry an explicit UTC offset and `timezone` must be an IANA zone id; a naive `startsAt` or an unknown `timezone` is rejected with **400**.
     * Response:
         <!-- DATA_MODEL_EventResponse -->
 
