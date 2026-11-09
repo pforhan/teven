@@ -184,7 +184,6 @@ class _TimeZonePickerBodyState extends State<_TimeZonePickerBody> {
     final theme = Theme.of(context);
 
     final list = ListView(
-      shrinkWrap: true,
       children: [
         for (final group in groups) ...[
           Padding(
@@ -207,7 +206,6 @@ class _TimeZonePickerBodyState extends State<_TimeZonePickerBody> {
     );
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextField(
@@ -219,7 +217,7 @@ class _TimeZonePickerBodyState extends State<_TimeZonePickerBody> {
           ),
         ),
         const SizedBox(height: 8),
-        list,
+        Expanded(child: list),
       ],
     );
   }

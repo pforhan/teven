@@ -3759,5 +3759,32 @@ passed.
 - **Not fixed here:** the staff-hours aggregate still has no `SUM()`/`GROUP BY`
   and `staffhours` rows are never written (8.2/10.13).
 
-**Still open:** task 7.25 (zone-conversion tests). 7.22 remains will-not-do
-(React retired).
+**7.25 — Tests: the zone conversions.**
+
+- **Resolution ladder:** `time_zone_controller_test.dart` covers override >
+  detection > organization zone > UTC, and clearing the override falls back to
+  detection.
+- **DST / service:** `time_zone_service_test.dart` covers DST-aware offsets
+  (Berlin summer/winter, NY, Auckland), rejection of a nonexistent wall clock,
+  flagging an ambiguous (repeated) wall clock, and 23-hour / 25-hour DST days
+  round-tripping as query windows (start-of-day to start-of-next-day instants).
+- **Calendar day bucketing:** `time_zone_conversion_test.dart` asserts the two
+  opposite cross-day cases via `EventResponse.dateIn` — 02:00 Berlin
+  (`2026-03-04T01:00:00Z`) is the previous day in `America/New_York`
+  (`2026-03-03`) and 23:00 Berlin (`2026-03-04T22:00:00Z`) is the next day in
+  `Pacific/Auckland` (`2026-03-05`).
+- **Event form request body / no re-zone:** `event_form_test.dart` asserts
+  request bodies via the stub adapter. The critical case loads a
+  `Europe/Berlin` event (`09:00+01:00`, instant `2026-03-04T08:00:00Z`) as a
+  reader in `America/New_York`, saves without changes, and verifies the PUT
+  carries `timezone: Europe/Berlin` and the original instant.
+- **Zone picker:** `time_zone_field_test.dart` verifies the current value is
+  pre-selected in the picker and that the field marks/de-emphasizes when it
+  equals the organization default. `TimeZoneField`'s picker body now uses a
+  scrollable `Expanded` list (fixing an overflow with the full zone roster).
+- **Replaced tests:** the naive-local `EventResponse` time group was deleted in
+  7.20, not edited.
+
+**Still open:** task 7.26 (server zone-handling tests), 7.27 (regenerate
+`API.md`), 7.28 (reconcile design doc / progress log). 7.22 remains
+will-not-do (React retired).

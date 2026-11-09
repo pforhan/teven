@@ -18,6 +18,8 @@ StubResponse eventBody({
   String title = 'Standup',
   String date = '2026-03-04',
   String time = '09:30:00',
+  String timezone = 'UTC',
+  String? startsAt,
   int durationMinutes = 30,
   String? location = 'Room A',
   String? description = 'Daily',
@@ -38,8 +40,8 @@ StubResponse eventBody({
         'title': title,
         'date': date,
         'time': t,
-        'startsAt': '${date}T${t}Z',
-        'timezone': 'UTC',
+        'startsAt': startsAt ?? '${date}T${t}Z',
+        'timezone': timezone,
         'durationMinutes': durationMinutes,
         'location': location,
         'description': description,
@@ -123,6 +125,9 @@ StubAdapter eventFormAdapter({
   StubResponse? customersResponse,
   StubResponse? usersResponse,
   String eventDate = '2026-03-04',
+  String eventTime = '09:30:00',
+  String eventTimezone = 'UTC',
+  String? eventStartsAt,
 }) => contextAdapter(
   permissions: const [_manageEvents, _viewCustomers, _manageCustomers],
   forOtherRoutes: (options) {
@@ -134,7 +139,13 @@ StubAdapter eventFormAdapter({
           const StubResponse.json('"Event with ID 7 updated"');
     }
     if (options.method == 'GET' && options.path.startsWith('/api/events/')) {
-      return loadFailure ?? eventBody(date: eventDate);
+      return loadFailure ??
+          eventBody(
+            date: eventDate,
+            time: eventTime,
+            timezone: eventTimezone,
+            startsAt: eventStartsAt,
+          );
     }
     if (options.method == 'GET' && options.path == '/api/customers') {
       return customersResponse ?? emptyCustomerPage();
@@ -171,13 +182,15 @@ Future<ProviderContainer> openCreate(
 Future<ProviderContainer> openEdit(
   WidgetTester tester,
   StubAdapter adapter,
-  String path,
-) async {
+  String path, {
+  String? detectedZone = 'UTC',
+}) async {
   final container = await pumpApp(
     tester,
     width: 1200,
     token: 'token',
     adapter: adapter,
+    detectedZone: detectedZone,
   );
   await goTo(tester, container, path);
   return container;
@@ -345,5 +358,45 @@ void main() {
       // than the thing the server actually branches on.
       expect(body['organizationId'], isNull);
     });
+
+    testWidgets(
+      'loading a Berlin event as a New York reader and saving without changes does not re-zone it',
+      (tester) async {
+        // 09:00 Europe/Berlin (CET, +01:00) on 2026-03-04 = 2026-03-04T08:00:00Z.
+        final adapter = eventFormAdapter(
+          customersResponse: customerPageWith(
+            name: 'Acme Customer',
+            address: '1 Customer St',
+          ),
+          eventDate: '2026-03-04',
+          eventTime: '09:00:00',
+          eventTimezone: 'Europe/Berlin',
+          eventStartsAt: '2026-03-04T08:00:00Z',
+        );
+        await openEdit(
+          tester,
+          adapter,
+          '/events/edit/7',
+          detectedZone: 'America/New_York',
+        );
+        await settleRequests(tester);
+        await settleRequests(tester);
+
+        await tester.ensureVisible(find.text('Save Changes'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Save Changes'));
+        await settleRequests(tester);
+
+        final put = adapter.requests.lastWhere(
+          (r) => r.method == 'PUT' && r.path == '/api/events/7',
+        );
+        final body = jsonDecode(adapter.bodyOf(put)!) as Map<String, dynamic>;
+        expect(body['timezone'], 'Europe/Berlin');
+        expect(
+          DateTime.parse(body['startsAt'] as String).toUtc(),
+          DateTime.utc(2026, 3, 4, 8),
+        );
+      },
+    );
   });
 }

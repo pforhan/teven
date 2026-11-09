@@ -142,5 +142,41 @@ void main() {
       expect(wall.hour, 9);
       expect(wall.day, 4);
     });
+
+    // A 23-hour and a 25-hour day both round-trip through the query window.
+    test('a 23-hour spring-forward day spans 23 hours as a query window', () {
+      // America/New_York springs forward 2026-03-08 02:00 -> 03:00 (23-hour day).
+      final start = service.instantAt(
+        zoneId: 'America/New_York',
+        localDate: DateTime(2026, 3, 8),
+        localTime: DateTime(2026, 3, 8, 0),
+      );
+      final next = service.instantAt(
+        zoneId: 'America/New_York',
+        localDate: DateTime(2026, 3, 9),
+        localTime: DateTime(2026, 3, 9, 0),
+      );
+      expect(next.difference(start), const Duration(hours: 23));
+      expect(service.wallClockAt(start, 'America/New_York').day, 8);
+      expect(service.wallClockAt(next, 'America/New_York').day, 9);
+    });
+
+    test('a 25-hour fall-back day spans 25 hours as a query window', () {
+      // America/New_York falls back 2026-11-01 02:00 -> 01:00 (25-hour day).
+      // Midnight at each end is unambiguous, so the window round-trips cleanly.
+      final start = service.instantAt(
+        zoneId: 'America/New_York',
+        localDate: DateTime(2026, 11, 1),
+        localTime: DateTime(2026, 11, 1, 0),
+      );
+      final next = service.instantAt(
+        zoneId: 'America/New_York',
+        localDate: DateTime(2026, 11, 2),
+        localTime: DateTime(2026, 11, 2, 0),
+      );
+      expect(next.difference(start), const Duration(hours: 25));
+      expect(service.wallClockAt(start, 'America/New_York').day, 1);
+      expect(service.wallClockAt(next, 'America/New_York').day, 2);
+    });
   });
 }

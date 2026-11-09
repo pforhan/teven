@@ -8,9 +8,8 @@ import 'package:teven_app/widgets/time_zone_field.dart';
 /// Task 7.17 — the shared zone field the event forms, the organization screen
 /// and the profile row all read through.
 ///
-/// The picker itself is task 7.25's territory; these cases pin what the field
-/// owns: the zone it shows, with its current offset, and the organization
-/// default's mark.
+/// These cases pin what the field owns: the zone it shows, with its current
+/// offset, the organization default's mark, and the picker pre-selection.
 void main() {
   final service = TimeZoneService();
 
@@ -71,5 +70,40 @@ void main() {
     );
 
     expect(find.text('The organization default'), findsNothing);
+  });
+
+  testWidgets('pre-selects the current zone in the picker', (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      wrap(
+        TimeZoneField(
+          zone: 'Europe/Berlin',
+          defaultZone: 'America/New_York',
+          onChanged: (_) {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(TextFormField));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Europe/Berlin'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    final tile = tester.widget<ListTile>(
+      find.ancestor(
+        of: find.text('Europe/Berlin').last,
+        matching: find.byType(ListTile),
+      ),
+    );
+    expect(tile.selected, isTrue);
   });
 }
