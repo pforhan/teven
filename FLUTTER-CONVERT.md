@@ -783,6 +783,15 @@ Please ensure that class is marked as '@Serializable' and that the serialization
   **What to verify after:** an `Organizer` asking for `GET /api/organizations` gets a 403; the `SuperAdmin` still gets 200; and a user with **one** of two permissions on a two-permission route is still allowed — because the client's route guard is OR-semantics (`ProtectedRoute.tsx:22-25`) and the server has to agree with it, or the app's gates and the server's will disagree in the *other* direction.
 
   **Until this is fixed, the client-side permission gates are the only thing standing between a user and the whole database.** That is worth saying plainly: the port's route guards, the nav items and the per-screen buttons all work, and none of them is a security boundary.
+
+- [ ] **10.23** **Add a `backend:app` route-test harness and cover route-only validation gaps.** `backend:service` has JUnit/MockK tests (`./teven verify-backend`), but `backend/app` has no test sources and no test dependencies (`backend/app/build.gradle.kts`). Some request validation happens at the route layer and returns a 400 + envelope before the service runs, so it is not exercised by service tests.
+
+  **General setup needed:**
+  - Add `testImplementation` dependencies to `backend:app` (at minimum Ktor test host — `ktor-server-tests-jvm` is in `gradle/libs.versions.toml` — plus JUnit/MockK consistent with the repo).
+  - Create `backend/app/src/test/kotlin/...` and a minimal Ktor `testApplication` harness that can install the pieces a route needs (`ContentNegotiation`/JSON, relevant routes from `configureRouting`/routing, and a way to supply an authenticated `AuthContext` principal where required). Routes wired through Koin (`inject<...>()`) will need test-module/Koin setup or an equivalent seam.
+
+  **Specific missing case (7.26 caveat):** authenticated `POST /api/invitations` with a malformed `expiresAt` is rejected in `backend/app/src/main/kotlin/alphainterplanetary/teven/app/invitation/InvitationRoutes.kt` (returns `400` with `failure("Invalid invitation expiry")`) before calling `InvitationService`. Add a route test asserting the 400 status and envelope message for that case. It is a good first route test because the malformed branch does not need a service/DAO happy path.
+
 ---
 
 ## Phase 11 — Native packaging (deferred, not required for cutover)
