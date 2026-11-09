@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/layout/breakpoints.dart';
 import '../../core/services/list_query.dart';
 import '../../core/services/time_zone_service.dart';
 import '../../core/util/local_date.dart';
@@ -687,109 +688,119 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Associations
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Card(
-                            elevation: 0,
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Inventory',
-                                        style: theme.textTheme.titleSmall,
-                                      ),
-                                      OutlinedButton(
-                                        onPressed: _openInventoryModal,
-                                        child: const Text('Manage'),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  if (_inventoryItems.isEmpty)
+                    // Associations — side by side at tablet width and above,
+                    // stacked below, matching the original's two-column pairing.
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final inventoryCard = Card(
+                          elevation: 0,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
                                     Text(
-                                      'No items added',
-                                      style: theme.textTheme.bodySmall,
-                                    )
-                                  else
-                                    for (final item in _inventoryItems)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 4,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Chip(
-                                              label: Text('${item.quantity}'),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(item.itemName),
-                                          ],
-                                        ),
-                                      ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Card(
-                            elevation: 0,
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Staffing',
-                                        style: theme.textTheme.titleSmall,
-                                      ),
-                                      OutlinedButton(
-                                        onPressed: _openStaffModal,
-                                        child: const Text('Manage'),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Wrap(
-                                    spacing: 8,
-                                    children: [
-                                      Chip(
-                                        label: Text(
-                                          '$_numberOfStaffNeeded total needed',
-                                        ),
-                                      ),
-                                      Chip(
-                                        label: Text(
-                                          '${_selectedUserIds.length} invited',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (_openInvitation) ...[
-                                    const SizedBox(height: 4),
-                                    const Chip(label: Text('Open Invitation')),
+                                      'Inventory',
+                                      style: theme.textTheme.titleSmall,
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: _openInventoryModal,
+                                      child: const Text('Manage'),
+                                    ),
                                   ],
-                                ],
-                              ),
+                                ),
+                                const SizedBox(height: 8),
+                                if (_inventoryItems.isEmpty)
+                                  Text(
+                                    'No items added',
+                                    style: theme.textTheme.bodySmall,
+                                  )
+                                else
+                                  for (final item in _inventoryItems)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Row(
+                                        children: [
+                                          Chip(label: Text('${item.quantity}')),
+                                          const SizedBox(width: 8),
+                                          Text(item.itemName),
+                                        ],
+                                      ),
+                                    ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
+                        );
+                        final staffingCard = Card(
+                          elevation: 0,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Staffing',
+                                      style: theme.textTheme.titleSmall,
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: _openStaffModal,
+                                      child: const Text('Manage'),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  children: [
+                                    Chip(
+                                      label: Text(
+                                        '$_numberOfStaffNeeded total needed',
+                                      ),
+                                    ),
+                                    Chip(
+                                      label: Text(
+                                        '${_selectedUserIds.length} invited',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_openInvitation) ...[
+                                  const SizedBox(height: 4),
+                                  const Chip(label: Text('Open Invitation')),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                        if (constraints.maxWidth >= AppBreakpoints.tablet) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: inventoryCard),
+                              const SizedBox(width: 12),
+                              Expanded(child: staffingCard),
+                            ],
+                          );
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            inventoryCard,
+                            const SizedBox(height: 12),
+                            staffingCard,
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     Wrap(

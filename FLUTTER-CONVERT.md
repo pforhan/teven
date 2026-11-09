@@ -41,8 +41,8 @@ Task numbers are stable across all three files. Where a task below says "see the
 ## Phase 9 — Responsive, accessibility, polish
 
 - [x] **9.0** missing routes/pages for user details and user edit.  May be able to reuse some of /profile for details 
-- [ ] **9.01** inventory should not always show the organization field.  Apply the same logic we use in Add/edit customer (for that matter see if it's duplicated elsewhere too)
-- [ ] **9.1** Audit all 25 former Bootstrap `row`/`col` sites; confirm each degrades to single-column on mobile.
+- [x] **9.01** inventory should not always show the organization field.  Apply the same logic we use in Add/edit customer (for that matter see if it's duplicated elsewhere too)
+- [x] **9.1** Audit all 25 former Bootstrap `row`/`col` sites; confirm each degrades to single-column on mobile.
 - [ ] **9.2** Replace fixed pixel sizing that was tuned for wide viewports: calendar `height: 800` (`EventCalendar.tsx:297`), search input `width: '250px'` (line 248), list column `maxWidth: '150px'` (`UserList.tsx:179`), modal `maxHeight: '300px'` (`QuickOrganizationPickerModal.tsx:72`).
 - [ ] **9.3** Add `Semantics` labels to icon-only buttons, now Material icons rather than `<i>` tags.
 - [ ] **9.4** Verify touch target sizes (≥44pt) on all mobile list actions.
@@ -451,6 +451,18 @@ Please ensure that class is marked as '@Serializable' and that the serialization
   - Create `backend/app/src/test/kotlin/...` and a minimal Ktor `testApplication` harness that can install the pieces a route needs (`ContentNegotiation`/JSON, relevant routes from `configureRouting`/routing, and a way to supply an authenticated `AuthContext` principal where required). Routes wired through Koin (`inject<...>()`) will need test-module/Koin setup or an equivalent seam.
 
   **Specific missing case (7.26 caveat):** authenticated `POST /api/invitations` with a malformed `expiresAt` is rejected in `backend/app/src/main/kotlin/alphainterplanetary/teven/app/invitation/InvitationRoutes.kt` (returns `400` with `failure("Invalid invitation expiry")`) before calling `InvitationService`. Add a route test asserting the 400 status and envelope message for that case. It is a good first route test because the malformed branch does not need a service/DAO happy path.
+
+- [ ] **10.24** **Extract the shared create-form organization resolution.** The create screens for customers, inventory, and users repeat the same 3-rule policy: the shell's selected organization wins; otherwise a global manager uses the dropdown (defaulting to the first loaded organization, with the control and the submit path agreeing on that value); otherwise the caller's own organization. They also repeat the same visibility rule (`canManageGlobal && selectedOrg == null`) and the null-organization guard. Inventory had the wrong global permission until 9.01, which is the class of bug a shared helper makes harder to reintroduce.
+
+  **Share the policy, not the form.** Extract a small helper for the resolution/default-selection and dropdown-visibility mechanics; keep the resource-specific global permission, service call, request DTO, route, and fields at the call site. Do not build a generic create screen.
+
+  **This commit changes no behaviour.** Existing create-form tests (and `./teven verify`) must pass unchanged; treat them as the safety net for the refactor.
+
+- [ ] **10.25** **Standardize edit-form load/error handling and the global-organization submit rule.** The resource edit screens (customer, inventory, user, and any others with the same shape) share a "load record, seed fields, submit, navigate away" flow, but their load/error UX and small policy details are inconsistent. The customer edit renders a recoverable load failure ("Try again") and shows the server message rather than spinning forever; align the others to that behaviour without merging field sets.
+
+  Also make the global-organization rule explicit and consistent where it applies: the dropdown is shown only to a global manager, and `organizationId` is sent on update only for that caller (omitted otherwise), per the server's rule for each resource. **Do not force one implementation across types whose field sets, permissions, or load shapes differ** — 9.13 is the precedent for unifying a form only when the differences can be named as parameters.
+
+  **This commit changes no behaviour** except where it fixes a stuck-loading-on-error case to match the recoverable pattern. Existing edit-form tests must still pass; add or adjust coverage only where behaviour is intentionally brought into line.
 
 ---
 
