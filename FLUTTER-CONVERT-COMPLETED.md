@@ -180,3 +180,155 @@ Covers `TableView.tsx` (90 lines) plus six list screens (~676 lines). **Redesign
 
 ---
 
+## Phase 7A — Timezones
+
+The app has **no concept of a time zone anywhere** — not in the database, not in the API, not in the Flutter app. Every date and time is a string, read in whatever zone the reader happens to be in. This phase fixes that: **capture the zone in everything, API and backend included.**
+
+**The model, the decisions behind it, and the order the work lands in are in [`FLUTTER-CONVERT-DESIGN.md`](FLUTTER-CONVERT-DESIGN.md) under *Time zones*.** The survey that produced these tasks is in [`FLUTTER-CONVERT-NOTES.md`](FLUTTER-CONVERT-NOTES.md) under 2026-10-21, and the per-defect inventory is in that file's *Time zone discrepancies* table.
+
+Three things to carry into every task below:
+
+- **Three zones, kept apart.** The organization's (its home clock), the event's (its identity), and the reader's (what things render in). The reader's resolves: **local override → device zone → the organization's zone → UTC**.
+- **The reader's override is local-only** — `shared_preferences`, never the server. A detected zone is a property of the device, not the account.
+- **On the wire:** an instant carries an offset, a wall clock carries its zone, a day is a day, and the server never guesses — a naive timestamp is a **400**.
+
+**The React app's event screens break at 7.21** and are restored by 7.22. That is an accepted cost, and the ground rule above is amended for it.
+
+### The tasks
+
+- [x] **7.13** **Pin the server's clock and its time zone.**
+
+  The JVM's zone and the Postgres session zone are two independent defaults that agree by accident, and there is no `Clock` seam, so no temporal logic is testable.
+
+  - `docker-compose.yml`: `TZ: UTC` on `db` and `backend`, plus `PGTZ: UTC` on `db`. `Dockerfile` (final stage): `ENV JAVA_TOOL_OPTIONS="-Duser.timezone=UTC"`. `gradle.properties`: `-Duser.timezone=UTC`.
+  - Add `single<Clock> { Clock.systemUTC() }` to `app/di/KoinModule.kt`; inject it into `InvitationService`, `InvitationDao` and `InventoryDao`, replacing the five static `now()` calls (`InvitationService.kt:57,67,82`, `InvitationDao.kt:83`, `InventoryDao.kt:166`).
+  - **Collapse the duplicated expiry check.** SQL (`InvitationDao.kt:83`) and Kotlin (`InvitationService.kt:67,82`) judge the same expiry against two clocks. The DAO filter should be an index-friendly pre-filter; Kotlin decides.
+  - Leave `AuthServiceImpl.kt:46` alone — epoch millis are zone-independent.
+
+  Verify: `./teven verify-backend`; `docker exec teven_backend date` and `psql -c "SHOW timezone"` both UTC; a fixed-`Clock` test drives an invitation past its expiry.
+
+- [x] **7.14** **Type the date columns that are not events, and make an invitation's expiry a real instant.**
+
+  | Column | Today | Becomes |
+  |---|---|---|
+  | `invitations.expires_at` | `TIMESTAMP` | `TIMESTAMP WITH TIME ZONE` |
+  | `invitations.created_at` | `TIMESTAMP` + `CURRENT_TIMESTAMP` | `TIMESTAMP WITH TIME ZONE` + `CurrentTimestampWithTimeZone` |
+  | `staffhours.date` | `varchar(255)` | `date` |
+  | `inventoryusage.usage_date` | `varchar(255)` | `date` |
+  | `staff_details.date_of_birth` | `varchar(20)` | `date` (declaration only — 10.13 creates the table) |
+
+  - **`timestamp()` is not a `timestamptz`** — `timestampType()` delegates to `dateTimeType()`, which Postgres returns as `"TIMESTAMP"`. Use **`timestampWithTimeZone()`**, which gives a `Column<OffsetDateTime>`. `exposed-java-time` is already a dependency.
+  - **A day is a day.** `staffhours.date` and `date_of_birth` must not gain a zone.
+  - `core/user/Invitation.kt` — `expiresAt` and `createdAt` become `Instant`. The DAO's comparison becomes `greaterEq OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)`; the two Kotlin checks become `isAfter` / `isBefore` against `clock.instant()`.
+  - `InvitationResponse.expiresAt` / `.createdAt` serialize as offset-bearing ISO 8601, not `LocalDateTime.toString()`'s naive form.
+  - `CreateInvitationRequest.expiresAt` accepts an offset-bearing ISO string, parsed with `OffsetDateTime.parse`. **A malformed value must be a 400, not a 500** — catch the `DateTimeParseException` and answer with `failure(...)`.
+  - **Schema regeneration:** the dev database is dropped and recreated. `createMissingTablesAndColumns` will not change a column's type, and this project has no migration path.
+
+  Verify: `./teven verify-backend`; an invitation's expiry round-trips with an offset.
+
+- [x] **7.15** **Give an organization a home time zone.**
+
+  - `data/organization/Organizations.kt` — `val timezone = varchar("timezone", 64)`.
+  - `OrganizationResponse.timezone: String` — **required**, so every consumer sees it. `UserResponse.organization` and `EventResponse.organization` are `OrganizationResponse`s, so the zone rides along everywhere, and the reader's own organization's zone comes from the auth context with **no extra fetch**.
+  - `CreateOrganizationRequest.timezone: String` — **required**, so an organization is never created or edited without a zone. `UpdateOrganizationRequest.timezone: String` — **required**; there is no "unchanged" value any more, an update always carries the new zone.
+  - **Validate server-side:** an unknown id is a **400**, not a 500 (`ZoneId.of` throws `ZoneIdRulesException`). The check is `ZoneId.getAvailableZoneIds().contains(id)`.
+  - **The client owns the picker list, the server owns the validation.** The Dart list is a subset of Java's, which is what makes the pairing safe — the client can only ever send a zone the server accepts. Verify that rather than assuming it.
+  - **Seed distinct zones** so the interesting cases are visible: the two seeded test organizations get `America/New_York` and `Pacific/Auckland` (Auckland because it is UTC+13 in summer and UTC+12 in winter, and because it is on the other side of the date line). The bootstrap "Teven" organization gets `UTC`.
+  - Schema regeneration, as 7.14.
+
+  Verify: `./teven verify-backend`; `GET /api/organizations` shows the zone; a bogus zone answers 400.
+
+- [x] **7.16** **Add the `MANAGE_ORGANIZATION` permission.**
+
+  The org-scoped counterpart to `MANAGE_ORGANIZATIONS_GLOBAL` — it is what lets an **Organizer** set their organization's zone.
+
+  - `core/security/Permission.kt` — add `MANAGE_ORGANIZATION`. `app/InitialSetup.kt` — grant it to the seeded **Organizer** role. `flutter_app/lib/models/permissions.dart` — add the client constant; this is one of the 18 that 10.16 covers, added early for the same reason `MANAGE_CUSTOMERS_GLOBAL` was.
+  - **Enforce it in the service, not only on the route.** 10.22 is still open: the permission plugin does not short-circuit, so a route-level `withPermission` is not a guard today. `OrganizationService.updateOrganization` takes the caller's id and allows the update when the caller holds `MANAGE_ORGANIZATIONS_GLOBAL`, **or** holds `MANAGE_ORGANIZATION` and the target is their own organization. Otherwise `AuthorizationException`.
+  - **`OrganizationRoutes` passes the caller's id down**, and the route's `withPermission` widens to accept either permission — the *scoping* lives in the service.
+  - **The read path needs the same treatment, or the edit screen cannot load.** `GET /api/organizations/{id}` is gated on `VIEW_ORGANIZATIONS_GLOBAL`, which an Organizer does not hold. Widen it the same way, with the same service-level scoping.
+
+  Verify by signing in as the seeded Organizer: their own organization reads and writes; **another** organization's answers 403.
+
+- [x] **7.17** **Flutter: the time zone foundation.**
+
+  Adds `timezone: ^0.11.2` (the IANA database — Dart's `DateTime` converts between local and UTC and nothing else) and `flutter_timezone: ^5.1.1` (the device's IANA id — `timeZoneName` gives an ambiguous abbreviation). Justify both in the commit message.
+
+  - **Initialize the embedded database** (`timezone/data/latest.dart`), not the browser variant, which fetches a `.tzf` at runtime. Record the bundle-size cost against task 0.11's baseline in the progress log.
+  - **A `TimeZoneService`** wrapping the package: `locations` for the picker; `offsetAt(zoneId, instant)` (DST-aware); `wallClockAt(instant, zoneId)`; and `instantAt(localDate, localTime, zoneId)` — which must **reject a wall clock that does not exist** (`02:30` on a spring-forward morning) and **flag one that happens twice** (`02:30` on a fall-back morning), rather than silently picking an occurrence.
+  - **A `TimeZoneController`** resolving the reader's zone in the order settled above, exposing the effective zone, the detected zone, the override, and `setOverride(String?)` — `null` clears the override and falls back to detection. The override lives in `shared_preferences` under its own key and is never sent to the server.
+  - **A shared `TimeZoneField` widget** (used by 7.19 and 7.23): shows the zone with its current offset; opens a searchable sheet (mobile) or dialog (desktop) listing every zone, grouped by offset, current value pre-selected; **marks the organization's zone** as the default; and **de-emphasizes itself when it agrees with that default**.
+  - **A "Time zone" row on the profile screen** showing the detected zone and any override, with the same picker. This is where "see and override the detected timezone" lives.
+  - **Tests override the detector** — `flutter_timezone` is a platform plugin and cannot answer in a headless VM test. Follow the `tokenStoreProvider` pattern (`test/support/fakes.dart`). **Verify the web implementation returns an IANA id**, not an abbreviation or an offset: the plugin's web path differs from its native one, and the browser is the platform this app ships on.
+
+- [x] **7.18** **An event becomes an instant plus a zone.**
+
+  - `data/event/Events.kt` — drop `date` and `time`; add `val startsAt = timestampWithTimeZone("starts_at")` (**not** `timestamp()` — see 7.14) and `val timezone = varchar("timezone", 64)`.
+  - `EventResponse` **gains** `startsAt: String` (offset-bearing ISO 8601) and `timezone: String`, and **keeps** `date` and `time` — now computed by the server from `startsAt` in the event's own zone. Keeping them is what keeps the React app alive until 7.21.
+  - `CreateEventRequest` / `UpdateEventRequest` **accept both shapes** for one commit: the new `startsAt` + `timezone`, and the legacy `date` + `time`, resolved as a wall clock in `timezone` (defaulting to the caller's organization's zone). A naive `startsAt` is a **400**.
+  - **`GET /api/events` gains a `timezone` query parameter.** `startDate` and `endDate` stay local dates; the server converts the pair into an instant range. **`timezone` absent** → the caller's organization's zone → UTC when there is no organization scope. The upper bound is **exclusive** (`endDate.plusDays(1).atStartOfDay(zone)`), because a fall-back day is 25 hours long and a naive `23:59:59` would drop its last hour.
+  - **`ORDER BY startsAt` replaces `ORDER BY date`** — `date` and `time` were never combined, so same-day ties sorted arbitrarily. Ordering by the instant makes it deterministic and correct.
+  - **Seed data** writes `startsAt` and `timezone`, deliberately spread across zones and across a DST boundary.
+  - Schema regeneration, as 7.14.
+
+  The Flutter client is unaffected by this commit — it keeps reading `date` and `time`, which now mean "the event's own local date and time".
+
+- [x] **7.19** **The event forms pick a zone, and send an instant.** **Done.** `TimeZoneField` lands between the date and the time on both forms. The create form defaults to the reader's effective zone and to today 10:00 in that zone (wall clock unchanged when the zone changes); the edit form loads the event's own zone and its wall clock. Request models drop `date`/`time` and send `startsAt` (offset-bearing, at the event's date in the chosen zone) + `timezone` — the update always sends both. The dead `?startTime`/`?endTime`/`?time` path and its fragile parse are gone; `?date=` stays (**closes 7.8**). `EventResponse` now carries `startsAt`/`timezone` on the client (keeping `date`/`time` for 7.20's readers). Verified: 09:00 `Europe/Berlin` on 2026-03-04 resolves via `TimeZoneService` to `2026-03-04T08:00:00Z` with `+01:00` (CET); recomputing the same wall clock in the same zone yields the same instant (`./teven verify` green, 442 tests).
+
+- [x] **7.20** **Every event surface renders in the reader's zone.** **Done.** `EventResponse` now exposes `instant` plus explicit zone conversions (`wallClockIn`/`dateIn`/`timeIn`) via `lib/core/util/local_date.dart`; it never picks a zone. Calendar, list, details, day/panel, and RSVP surfaces render in the reader's effective zone (calendar buckets by `dateIn(readerZone)`; details show the event's own zone when different). `ListQuery` gained `timezone`; date-windowed event queries (calendar month, list start-date filter, other-events panel day window) send reader-zone local dates plus `timezone` (forms pass `queryTimezone` for event-zone double-booking checks). Invitation expiry uses `formatInstantDate`; `user_list_screen.dart`'s local `formatDate(String)` was removed. The naive-local `EventResponse` time group was deleted and 7.20-affected tests were rewritten for explicit/UTC reader-zone semantics. Verified: `./teven verify` green (analyze clean, format clean, 436 tests passed).
+
+  - **`EventResponse` gains the conversions, and they take the zone as an argument** — the model never picks a zone itself. `instant` (UTC), `wallClockIn(zoneId)`, `dateIn(zoneId)`, `timeIn(zoneId)`.
+  - **The calendar** — the day an event lands on is its date **in the reader's zone**. This is the change that matters most: an event at 02:00 Berlin is on the **previous** day in New York, and one at 23:00 Berlin is on the **next** day in Auckland. The grid keys on `yyyy-MM-dd` today (`event_calendar_screen.dart:427`); the key becomes the reader's-zone date of the instant. The "today" highlight and the focused month follow too.
+  - **The event list** — the Date and Time columns render in the reader's zone (`:196`, `:204`).
+  - **The event details screen** — the meta items render in the reader's zone, and the **event's own zone is shown alongside when it differs** ("9:00 AM · Europe/Berlin"). Both are worth seeing: they are two different questions, and the event was scheduled against the second one.
+  - **The other-events panel** — the heading date and the row times render in the reader's zone, and it **queries** the reader's-zone date, or it lists the wrong day.
+  - **The RSVP widget** — the "date at time" line renders in the reader's zone.
+  - **The user list's invitation expiry** — now an instant (7.14), so it must be converted explicitly. **This also retires the second date formatter**: fold `user_list_screen.dart:646`'s `formatDate(String)` into `lib/core/util/local_date.dart`. There should be **one** place that turns a `DateTime` into a wire date.
+  - **The date-windowed queries send the zone.** The calendar's month window, the event list's "Start Date" filter and the panel's single-day window all send local dates **in the reader's zone** plus the zone itself. `ListQuery` gains a `timezone` field.
+  - **A date of birth is not a time.** `StaffDetails.dateOfBirth` is a day; it is never converted and never picks up a zone.
+  - **The tests that assert the old semantics are rewritten, not adjusted** — `models_test.dart`'s `naive-local event times` group is deleted, and the `DateTime.now()`-relative assertions in the calendar and list tests become explicit-zone assertions. 7.25 writes the replacements.
+
+- [x] **7.21** **Retire the legacy event date and time.** **Done (closes 7.9).** Backend drops `date`/`time` from `CreateEventRequest`/`UpdateEventRequest`/`EventResponse` and removes legacy wall-clock resolution (`EventService`); `startsAt`+`timezone` are the only event time input (required together on create, both-or-neither on update). A naive `startsAt` (no offset, `OffsetDateTime.parse` fails) and an unknown `timezone` return **400** (`BadRequestException` → `failure(...)` via `StatusPages`). Flutter `EventResponse` drops `date`/`time`; `edit_event_screen.dart` loads the event’s wall clock via `event.wallClockIn(event.timezone)`. React event screens would break, but **7.22 is will-not-do** (React retired). Verified: `./teven verify-backend` green; `./teven verify` green (436 tests).
+
+- [x] **7.22** **will not do: Patch the React client for the new event shape.**. React app is considered retired as of now.
+
+- [x] **7.23** **The organization's time zone in the UI.** **Done.** `OrganizationResponse`/`CreateOrganizationRequest`/`UpdateOrganizationRequest` now carry required `timezone` (mirroring 7.15 DTOs; `UpdateOrganizationRequest` always carries the new zone). `create/edit` org screens merged into `OrganizationScreen` (nullable `organizationId`): create defaults to the reader's effective zone (full weight, no default marker), edit loads the org and uses `TimeZoneField` with the edited org as its own `defaultZone`. The edit route accepts `MANAGE_ORGANIZATIONS_GLOBAL | MANAGE_ORGANIZATION` (backend enforces own-org scope). Org list adds a "Time Zone" column and its name link points at the edit route (dead `organizationDetails` route repointed). Sidebar: non-super-admin with `MANAGE_ORGANIZATION` gets a tappable org name linking to their org's edit screen; others unchanged. Org JSON fixtures across tests updated for required `timezone`. Verified: `./teven verify` clean (436 tests passed).
+
+  - **A super-admin** selects an organization in the organization list and lands on the **Edit Organization** screen. The list's name column links to `/organizations/{id}` today — a **dead route** (the same defect 10.20 records for the customer, inventory and user name links). **Point it at the edit route**, which resolves the organization half of that row.
+  - **Anyone holding `MANAGE_ORGANIZATION`** clicks their own organization's name in the sidebar and lands on the same screen. The sidebar's static label (`organization_selector.dart`'s non-super-admin branch) becomes a link for those who hold the permission and stays plain text otherwise. A super-admin's sidebar control is a **dropdown**, not a name, so the two paths do not overlap.
+  - **One screen for create and edit**, following 9.13's pattern: *"edit loads an item first, create starts empty → the initial values."* The port currently has two near-identical files (`create_organization_screen.dart`, `edit_organization_screen.dart`). Merge them into one `OrganizationScreen` with a nullable `organizationId`.
+  - **The time zone field** is the shared `TimeZoneField`, with **the organization being edited as its own "organization default"**. On the create screen there is no organization yet, so the field is at full weight and defaults to the reader's effective zone.
+  - **The list shows the zone** — a "Time Zone" column, so a super-admin can see which organizations are on which clock.
+  - **The Flutter model gains the field**: `OrganizationResponse.timezone` (required), `CreateOrganizationRequest.timezone` (required), `UpdateOrganizationRequest.timezone` (required) — mirroring the server's DTOs.
+
+- [x] **7.24** **Zone-aware report windows, and the inventory usage date.** **Done.** `StaffHoursReportRequest` gains required `timezone` (IANA zone naming the window; `startDate`/`endDate` remain local dates compared against `staffhours.date`, a zone-free `date` column — correct because a day is a day). `ReportService` validates unknown `timezone` / malformed dates as **400**. `InventoryDao.trackInventoryUsage` now sets `usage_date` to the **event's date in the event's own zone** (PK lookup of the event's `startsAt`/`timezone`; no join) instead of the server wall clock. Flutter `StaffHoursReportRequest`/`ReportService.getStaffHoursReport` updated to send `timezone` in the POST body (matching the backend route). Staff-hours aggregate and `usage_date` read-side behavior intentionally unchanged (aggregate → 8.2; `usage_date` remains write-only/all-time report).
+
+- [x] **7.25** **Tests: the zone conversions.** **Done.** Resolution ladder covered (`time_zone_controller_test.dart`: override > detection > org zone > UTC, clearing override falls back). DST cases covered (`time_zone_service_test.dart`): Berlin/NY/Auckland DST offsets, nonexistent wall clock rejected, ambiguous flagged, and 23/25-hour DST days round-trip as query windows. Calendar day bucketing covered (`time_zone_conversion_test.dart`): 02:00 Berlin → previous day in New York and 23:00 Berlin → next day in Auckland (opposite directions). Event form request bodies asserted via stub adapter; edit form does **not** re-zone an event (load Europe/Berlin as America/New_York reader, save untouched → original instant + `Europe/Berlin` timezone). Zone picker pre-selects current value (`time_zone_field_test.dart`); field marks/de-emphasizes when equal to org default. Replaced naive-local tests remain deleted (not edited). Small `TimeZoneField` picker layout fix (scrollable list) to keep the picker usable/testable.
+
+  - **The resolution ladder** — override beats detection, detection beats the organization's zone, the organization's zone beats UTC, and clearing the override falls back to detection.
+  - **The DST cases, which are the whole reason the `timezone` package is here:** a Berlin summer event and its winter twin have **different offsets**; a wall clock that **does not exist** is rejected with a message; one that **happens twice** is flagged rather than silently resolved; and a **23-hour** and a **25-hour** day both round-trip through the query window.
+  - **The calendar's day bucketing** — 02:00 Berlin is on the **previous** day in New York, and 23:00 Berlin is on the **next** day in Auckland. The two pull in opposite directions, which is what makes them worth two assertions: one example only ever proves half the mechanism.
+  - **The event form's request body**, asserted on what goes **out** via `test/support/stub_adapter.dart`, the way 9.18 does.
+  - **The edit form does not re-zone an event** — load a `Europe/Berlin` event as a reader in `America/New_York`, save without touching anything, and assert the request carries the original instant. **This guards the most damaging bug in the phase**, the one that is invisible because the form looks right and the save succeeds.
+  - **The zone picker** — current value pre-selected, the organization's default marked, the field de-emphasized when the two agree.
+  - **The tests this task replaces are deleted, not edited.** `models_test.dart`'s `naive-local event times` group asserts the old model. A test that still says "the local `DateTime`" is asserting the thing this phase removed.
+
+- [x] **7.26** **Tests: the server's zone handling.** **Done.** `EventServiceTest` covers: `Pacific/Auckland` month window bounds (`2026-03-01`–`2026-03-31` → `2026-02-28T11:00Z`..`2026-03-31T11:00Z`, so `2026-02-28T23:00Z` is included and `2026-03-31T23:00Z` excluded); 25-hour fall-back day in `America/New_York` (`2026-11-01` window `[2026-11-01T04:00Z, 2026-11-02T05:00Z)`, containing both 01:30 occurrences with exclusive end); `timezone` absent uses the caller’s organization zone, and falls back to UTC when no organization zone resolves. Bad input throws `BadRequestException` (mapped to 400 by the app): naive `startsAt`, malformed `startsAt` (create/update), and unknown `timezone`. `MANAGE_ORGANIZATION` scoping is asserted at the service in `OrganizationServiceTest` (own org allowed, other org rejected). Fixed `Clock` drives invitation expiry in `InvitationServiceTest`. Malformed invitation `expiresAt` is validated at the route (`InvitationRoutes`) returning 400 with the envelope message; no route test harness exists in `backend/app`.
+
+- [x] **7.27** **Regenerate `API.md`.**
+
+  Regenerate from `API_TEMPLATE.md` and the Dokka output via `generateApiDocs` (`build.gradle.kts:23-87`) — **do not hand-edit**. The models change substantially: the event response and requests lose `date` / `time` and gain `startsAt` / `timezone`; the organization DTOs gain `timezone`; the invitation timestamps change shape.
+
+  **The template's prose needs the new formats described**, not just the models regenerated: what `startsAt` looks like (ISO 8601 **with an offset**), what `timezone` is (an IANA zone id), what the `timezone` query parameter means, and that a naive value is a 400. A regenerated model list with prose still saying *"ISO 8601 date string (e.g., YYYY-MM-DD)"* is worse than the old file, because it looks current.
+
+- [x] **7.28** **Reconcile the design doc, and write the progress log.**
+
+  **The design doc's groundwork is already in place** — the decisions went in when the phase was planned. What this task does is correct them against what was actually built: a plan written before the work is a hypothesis, and a design doc written after it is a record.
+
+  - Re-read each decision against the code. If the implementation diverged, the design doc gets the **implementation's** answer and the progress log records the divergence and its reason.
+  - Update the *Time zone discrepancies* table's Fix column to point at the task that actually landed.
+  - Add whatever the phase found that the survey missed — the survey was a reading of the source; the work is a reading of the running system.
+  - Append a dated entry to `FLUTTER-CONVERT-NOTES.md` covering the phase: what each task did, the React app's state after 7.21 and 7.22, the `timezone` package's bundle-size cost against task 0.11's baseline, and anything that turned out differently from what these tasks say.
+
+  **Do this as the last task of the phase, not as each task's commit.** The plan's convention is one progress entry per phase, and a phase this size earns one.
+
+---

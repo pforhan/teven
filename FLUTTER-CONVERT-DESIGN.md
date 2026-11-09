@@ -17,7 +17,7 @@ The decisions behind the Flutter port: what was chosen and what it cost, which R
 | Web serving | Same-origin via Ktor `staticResources` | Invite links and no-CORS setup are preserved |
 | Environment | **Local only** — `flutter run -d chrome` + `docker compose` | All verification happens on a developer machine |
 | Tests | Written alongside each task | Layers with non-obvious logic are tested as they are built; Phase 12 covers integration and UI suites |
-| Time zones | **An instant plus a zone on the wire; the reader's zone on screen** | Phase 7A. Breaks the React app's event screens at 7.21, restored by 7.22 |
+| Time zones | **An instant plus a zone on the wire; the reader's zone on screen** | Phase 7A. Breaks the React app's event screens at 7.21; 7.22 (restore the React client) is **will-not-do** — the React app is considered retired |
 
 **Deployment is out of scope.** How and where this app is hosted is handled independently of building the app, and nothing in this plan should wait on it or plan for it. The single place hosting touches a code decision is task 1.13.
 
@@ -85,8 +85,8 @@ The backend and the client cannot move independently, so the sequence is arrange
 | 7.18 | The event becomes an instant + a zone | The server **keeps** sending `date` and `time` alongside the new fields |
 | 7.19 | The event forms send the new shape | The server accepts both shapes for one commit |
 | 7.20 | Every surface renders in the reader's zone | Pure client-side rendering change |
-| 7.21 | The legacy event fields retired | **The React app breaks here** |
-| 7.22 | React client patched | Restores the live app |
+| 7.21 | The legacy event fields retired | **The React app's event screens break here** |
+| 7.22 | React client patched | **Will-not-do.** Planned to restore the live React app; the React app was retired instead, so there is nothing to restore |
 | 7.23 | The organization's zone in the UI | Additive |
 | 7.24 | Zone-aware report windows | The Flutter report screens do not exist yet (Phase 8) |
 | 7.25–7.26 | Tests | — |
@@ -96,7 +96,7 @@ The backend and the client cannot move independently, so the sequence is arrange
 
 #### What breaks, and what it costs
 
-**The React app's event screens break at 7.21** and are restored by 7.22. That is an accepted cost: the event wire format changes from a naive date and time to an instant and a zone, and the React client reads the old shape. The plan's "do not modify the backend" rule is amended for it.
+**The React app's event screens break at 7.21.** 7.22 was planned to restore them, but is **will-not-do**: the React app is considered retired. The accepted cost therefore became permanent for the React client — the event wire format moved to an instant and a zone, and the React client was not updated. The plan's "do not modify the backend" rule was amended for the Phase 7A work regardless.
 
 **Nothing else breaks.** The invitation expiry (7.14) changes shape but stays readable by the React client, with one rendering shift: a naive string was parsed as the browser's local time and a `Z` string is parsed as UTC, so a reader far from UTC may see a different calendar day for an invitation expiring late in the day. The value is now unambiguous, which is the point.
 
@@ -180,15 +180,15 @@ Documented here so task 10.6 can address them. **Do not fix these during the por
 
 Found while surveying the codebase for Phase 7A. These are not "the port did not reproduce a behaviour" rows — they are defects in the server and in the wire format that the zone rework removes.
 
-| Discrepancy | Evidence | Fix |
+| Discrepancy | Evidence | Fix (landed) |
 |---|---|---|
-| **The app has no time zone concept anywhere** | `events.date` and `events.time` are `varchar(255)`; `staffhours.date` and `inventoryusage.usage_date` are `varchar`; `invitations.expires_at` is `TIMESTAMP` (no zone). No `ZoneId`, `ZoneOffset`, `Clock`, `TZ` or `PGTZ` anywhere in the repo — verified by grep across `backend/`, `docker-compose.yml`, `Dockerfile` and `.env` | **7.13–7.24** |
-| **Every date comparison is a string comparison** | `EventDao.kt:159-160` and `ReportDao.kt:33-34` compare `varchar` columns against `varchar` query parameters. Correct today **only because the writers emit ISO `YYYY-MM-DD`** — a different format would silently misbehave | **7.14**, **7.18** |
-| **Two independent zone defaults that agree by accident** | The JVM's zone comes from `/etc/localtime` in the image (`Etc/UTC`); the Postgres session zone comes from the server default (`UTC`). Set `TZ` on one container and `invitations.created_at` (written by Postgres) and `invitations.expires_at` (compared against the JVM's clock) diverge by the offset | **7.13** |
-| **`timestamp()` is not a `timestamptz`** | `DataTypeProvider.timestampType()` delegates to `dateTimeType()`, which the Postgres provider returns as `"TIMESTAMP"` — **without** a zone. `timestampWithTimeZone()` is the one that returns `"TIMESTAMP WITH TIME ZONE"`. Getting this backwards is the easy mistake, and it fails silently | **7.14**, **7.18** |
-| **A malformed invitation expiry is a 500, not a 400** | `InvitationRoutes.kt:75` calls `LocalDateTime.parse(it)`; a bad value throws `DateTimeParseException`, which the generic `StatusPages` handler turns into a 500 with a stack trace (`Application.kt:77-83`) | **7.14** |
-| **Events on the same day sort in an unspecified order** | `EventDao.kt:173` orders by `Events.date` alone. `Events.date` and `Events.time` are **never combined** anywhere — there is no "event start instant" in the system — so same-day ties come back in whatever order Postgres feels like | **7.18** (`ORDER BY startsAt`) |
-| **`usage_date` is stamped from the server's wall clock** | `InventoryDao.kt:166` writes `LocalDate.now().toString()` — the **server's** calendar day, in the server's zone, unrelated to when the inventory was used. The column is also **never read** and never surfaced in any DTO | **7.24** (correct source; still write-only) |
-| **No `Clock` seam, so no temporal logic is testable** | Five static `now()` calls: `InvitationService.kt:57,67,82`, `InvitationDao.kt:83`, `InventoryDao.kt:166`. All implicitly coupled to the JVM's default zone | **7.13** |
-| **The Flutter app has no device-zone detection and no zone database** | `pubspec.yaml` has neither `timezone` nor `flutter_timezone`; `DateTime` can only convert between local and UTC. `DateTime.now().timeZoneName` returns an abbreviation (`"EDT"`), which is ambiguous and unusable as an identifier | **7.17** |
-| **The client would render an offset-bearing timestamp in UTC** | `user_list_screen.dart:646`'s `formatDate(String)` parses the timestamp and reads `.year/.month/.day` — with an offset-bearing string that reads the **UTC** date, not the reader's. It is also a **second** wire-date formatter, alongside `lib/core/util/local_date.dart` | **7.20** (folded into the shared helper) |
+| **The app has no time zone concept anywhere** | `events.date` and `events.time` were `varchar(255)`; `staffhours.date` and `inventoryusage.usage_date` were `varchar`; `invitations.expires_at` was `TIMESTAMP` (no zone). No `ZoneId`, `ZoneOffset`, `Clock`, `TZ` or `PGTZ` anywhere — verified by grep across `backend/`, `docker-compose.yml`, `Dockerfile` and `.env` | **7.13–7.24** |
+| **Every date comparison is a string comparison** | `EventDao.kt:159-160` and `ReportDao.kt:33-34` compared `varchar` columns against `varchar` query parameters. Correct only because the writers emitted ISO `YYYY-MM-DD` — a different format would silently misbehave | **7.14**, **7.18** |
+| **Two independent zone defaults that agree by accident** | The JVM's zone came from `/etc/localtime` (`Etc/UTC`); the Postgres session zone came from the server default (`UTC`). Setting `TZ` on one container would have made `invitations.created_at` (Postgres) and `invitations.expires_at` (JVM clock) diverge | **7.13** |
+| **`timestamp()` is not a `timestamptz`** | `DataTypeProvider.timestampType()` delegates to `dateTimeType()`, which the Postgres provider returns as `"TIMESTAMP"` — **without** a zone. `timestampWithTimeZone()` is the one that returns `"TIMESTAMP WITH TIME ZONE"` | **7.14**, **7.18** |
+| **A malformed invitation expiry is a 500, not a 400** | `InvitationRoutes` parsed expiry naively; a bad value threw `DateTimeParseException`, which the generic `StatusPages` handler turned into a 500 with a stack trace | **7.14** (route now rejects malformed `expiresAt` with 400 + envelope) |
+| **Events on the same day sort in an unspecified order** | `EventDao` ordered by `Events.date` alone. `Events.date` and `Events.time` were never combined — no "event start instant" — so same-day ties came back in unspecified order | **7.18** (`ORDER BY startsAt`) |
+| **`usage_date` is stamped from the server's wall clock** | `InventoryDao` wrote `LocalDate.now().toString()` — the server's calendar day, unrelated to when inventory was used. The column was also never read / never surfaced | **7.24** (derived from the event's `startsAt` in the event's zone; still write-only, report still all-time) |
+| **No `Clock` seam, so no temporal logic is testable** | Five static `now()` calls: `InvitationService`, `InvitationDao`, `InventoryDao`. All implicitly coupled to the JVM default zone | **7.13** |
+| **The Flutter app has no device-zone detection and no zone database** | `pubspec.yaml` had neither `timezone` nor `flutter_timezone`; `DateTime` could only convert between local and UTC. `DateTime.now().timeZoneName` returns an ambiguous abbreviation | **7.17** |
+| **The client would render an offset-bearing timestamp in UTC** | `user_list_screen.dart`'s local `formatDate(String)` read `.year/.month/.day` from a parsed timestamp — for an offset-bearing string that reads the UTC date. It was also a second wire-date formatter | **7.20** (folded into the shared helper) |
