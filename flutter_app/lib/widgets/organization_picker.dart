@@ -11,13 +11,12 @@ import '../providers/organization_list.dart';
 /// `null` means dismissed without choosing — by Cancel, by the barrier, or by
 /// the back gesture.
 ///
-/// Task 3.7: a bottom sheet on mobile, a centred dialog above it. The React
-/// original was one modal (`QuickOrganizationPickerModal.tsx`) used at both
-/// sizes, which on a phone put a 300px-tall list with a search box above it
-/// into the middle of a small screen. A sheet anchors the same content to the
-/// thumb and gets the full height; a dialog keeps the dismiss-on-outside-tap
-/// affordance that a sheet's barrier mostly gives you anyway but a desktop user
-/// expects.
+/// Task 3.7: a bottom sheet on mobile, a centred dialog above it. The original
+/// used one modal at every size, which on a phone put a fixed-height list with
+/// a search box above it into the middle of a small screen. A sheet anchors the
+/// same content to the thumb and gets the full height; a dialog keeps the
+/// dismiss-on-outside-tap affordance that a sheet's barrier mostly gives you
+/// anyway but a desktop user expects.
 ///
 /// Tablet counts as desktop here. A 700px-wide window has room for the
 /// centred dialog, and the sheet's drag-to-dismiss would fight the rail's
@@ -50,8 +49,7 @@ Future<OrganizationResponse?> showOrganizationPicker(
 /// They differ only in their container, so everything below the title is
 /// shared rather than duplicated: the search filter, the loading and error
 /// states, and the selection handler all behave identically at both sizes.
-/// Task 9.2 flags the React `maxHeight: '300px'` for replacement; the list
-/// here flexes instead.
+/// The list flexes to fill the available space rather than using a fixed height.
 class _OrganizationPicker extends ConsumerStatefulWidget {
   const _OrganizationPicker({
     required this.title,
@@ -69,18 +67,15 @@ class _OrganizationPicker extends ConsumerStatefulWidget {
 }
 
 class _OrganizationPickerState extends ConsumerState<_OrganizationPicker> {
-  /// `QuickOrganizationPickerModal.tsx:35` filters on a lowercased substring
-  /// match. Reproduced rather than "improved" to a fuzzy match, because the
-  /// picker is a switcher, not a search engine.
+  /// Filters on a lowercased substring match. Kept as a simple match rather
+  /// than a fuzzy one, because the picker is a switcher, not a search engine.
   String _searchTerm = '';
 
   /// Applies the selection, closes, and hands the choice back to the caller.
   ///
-  /// `QuickOrganizationPickerModal.tsx:40-42` does all three: it writes the
-  /// selection to `OrganizationContext`, notifies its parent, and hides.
-  /// Persisting and notifying are separated here — [onSelected] persists, the
-  /// `Navigator.pop` below returns the value — because a caller in Phase 6
-  /// that *declines* a selection still wants the context untouched.
+  /// Persisting and notifying are separated: [onSelected] persists the choice,
+  /// and `Navigator.pop` below returns the value — because a caller that
+  /// *declines* a selection still wants the context untouched.
   Future<void> _select(OrganizationResponse organization) async {
     await ref
         .read(organizationControllerProvider.notifier)
@@ -131,9 +126,8 @@ class _OrganizationPickerState extends ConsumerState<_OrganizationPicker> {
     AsyncValue<List<OrganizationResponse>> organizations,
     String searchTerm,
   ) {
-    // `QuickOrganizationPickerModal.tsx:25-27` swallows the failure and logs
-    // it, which leaves the user staring at an empty list that reads exactly
-    // like "there are no organizations". Worth showing.
+    // Show the failure rather than an empty list that looks like "no
+    // organizations exist".
     final error = organizations.whenOrNull(error: (error, stackTrace) => error);
     if (error != null) {
       return _Message(

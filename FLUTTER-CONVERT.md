@@ -43,7 +43,7 @@ Task numbers are stable across all three files. Where a task below says "see the
 - [x] **9.0** missing routes/pages for user details and user edit.  May be able to reuse some of /profile for details 
 - [x] **9.01** inventory should not always show the organization field.  Apply the same logic we use in Add/edit customer (for that matter see if it's duplicated elsewhere too)
 - [x] **9.1** Audit all 25 former Bootstrap `row`/`col` sites; confirm each degrades to single-column on mobile.
-- [ ] **9.2** Replace fixed pixel sizing that was tuned for wide viewports: calendar `height: 800` (`EventCalendar.tsx:297`), search input `width: '250px'` (line 248), list column `maxWidth: '150px'` (`UserList.tsx:179`), modal `maxHeight: '300px'` (`QuickOrganizationPickerModal.tsx:72`).
+- [x] **9.2** Replace fixed pixel sizing that was tuned for wide viewports: calendar `height: 800` (`EventCalendar.tsx:297`), search input `width: '250px'` (line 248), list column `maxWidth: '150px'` (`UserList.tsx:179`), modal `maxHeight: '300px'` (`QuickOrganizationPickerModal.tsx:72`).
 - [ ] **9.3** Add `Semantics` labels to icon-only buttons, now Material icons rather than `<i>` tags.
 - [ ] **9.4** Verify touch target sizes (≥44pt) on all mobile list actions.
 - [ ] **9.5** Add `FocusTraversalGroup` / focus order for keyboard and screen-reader navigation on web.

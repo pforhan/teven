@@ -544,10 +544,9 @@ class _InvitationSection extends StatelessWidget {
 
 /// The "Link" cell: a copy button and the URL beside it.
 ///
-/// `UserList.tsx:170-183`. The URL is truncated at 150px with
-/// `text-truncate` in the original; a [Flexible] does the same job without
-/// pinning a pixel width into a column that also has to survive a card layout
-/// at mobile.
+/// The URL is ellipsized rather than given a fixed pixel width, so it fits the
+/// column on a wide table and the card layout on mobile without pinning a size
+/// that only made sense on a desktop.
 class _InvitationLinkCell extends StatelessWidget {
   const _InvitationLinkCell({
     required this.invitation,

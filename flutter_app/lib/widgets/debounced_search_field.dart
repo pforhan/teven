@@ -64,10 +64,9 @@ class _DebouncedSearchFieldState extends State<DebouncedSearchField> {
 
   @override
   Widget build(BuildContext context) {
-    // `col-md-6` in the React originals, and a fixed `width: 250px` on the
-    // event calendar's search box — task 9.2 is the pass that revisits fixed
-    // widths. A bounded box beats both: it stops the field stretching across a
-    // 4K window and stays usable at 500px.
+    // Bounded rather than fixed-width: it caps how far the field can stretch on
+    // a wide window, but shrinks to the space it is given (a phone, or a narrow
+    // column inside a `Wrap`) instead of forcing an overflow.
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 400),
       child: TextField(

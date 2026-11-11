@@ -345,9 +345,8 @@ DateTime _monthOf(DateTime date) => DateTime(date.year, date.month);
 /// [ListScreenHeader] as the screen's primary action, because that is the slot
 /// it occupies and the header is what that slot is for.
 ///
-/// The 250px search input is gone. Task 9.2 flags it among the fixed pixel
-/// sizes tuned for a wide viewport, and a `Wrap` does the same job at every
-/// width: full-width search above the link on a phone, beside it on a desktop.
+/// The search field and the list link sit in a `Wrap`, so they stack on a
+/// narrow viewport and sit side by side when there is room — no fixed width.
 class _Toolbar extends StatelessWidget {
   const _Toolbar({required this.onSearch});
 
