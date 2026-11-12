@@ -112,6 +112,7 @@ Task numbers are stable across all three files. Where a task below says "see the
 - [ ] **9.20** Fix navigation from the "Other events" panel: tapping an event row appears clickable but does not navigate to the event details screen. Reproduce across the panel's contexts (event details sidebar, day view, create/edit sidebars), confirm the expected destination, and make the row navigate reliably.  Happpens no matter the organization selected, SuperAdmin or Organizer.  The url changes but the content does not.  A Reload picks up the correct content.  A browser back at this point does the same thing, keeps showing the last-refreshed page.
 - [ ] **9.21** Clicking the day number (or that whole horizontal space) in the event view leads to the day view.  Currently on mobile we taps anywhere in the day to lead to this view; on desktop/web hovering over the day number or the blank space beside it should show a "View day" hint and clicking either leads to the day view.~~~~
 - [ ] **9.22** Day View > Selecting an event > has a "Back to Events" button which leads to the event calendar, not day view.  Not sure if this is desktop/web only but we should go back to where we came from.  Could use browser back, not sure if that applies everywhere though.
+- [ ] **9.23** The day view doesn't work for "All Organizations" selected as a super admin -- it seems to only load the current (superadmin) organization's events.
 
 ---
 
@@ -501,6 +502,6 @@ The distinction: per-task tests cover logic whose behaviour is not obvious from 
 - [ ] **12.2** Integration tests for login → context fetch → authenticated call, per `AGENTS.md` expectations.
 - [ ] **12.3** Broaden `ApiClient` coverage beyond task 1.19 — currently the five response-shape cases only.
 - [ ] **12.4** Widget tests for the permission guard and the responsive list.
-- [ ] **12.5** Golden tests for the calendar month grid and the event forms.
+- [ ] **12.5** Golden tests for the calendar month grid, day view, view event, and create/edit event forms.
 - [ ] **12.6** Ensure the suite runs on both VM and Chrome. **Partly done:** `flutter test` and `flutter test --platform chrome` both work; the socket-based tests skip on web because `dart:io`'s `HttpServer` is unavailable there — they skip explicitly rather than passing vacuously. Every widget test added in Phases 3–7 has been verified on both, and two failure classes found only on Chrome are now written down in the Phase 7 entry of `FLUTTER-CONVERT-NOTES.md`. **Not done:** a green full-suite Chrome run — see that entry for the counts and what is still unowned.
 ---
