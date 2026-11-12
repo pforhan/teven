@@ -510,6 +510,14 @@ class _CalendarGrid extends ConsumerWidget {
       headerStyle: const HeaderStyle(
         formatButtonVisible: false,
         titleCentered: false,
+        leftChevronIcon: Tooltip(
+          message: 'Previous month',
+          child: Icon(Icons.chevron_left),
+        ),
+        rightChevronIcon: Tooltip(
+          message: 'Next month',
+          child: Icon(Icons.chevron_right),
+        ),
       ),
       // Tall enough for the day number plus [kMaxEventsPerDay] bars. The
       // height is a budget rather than a preference — `table_calendar` gives

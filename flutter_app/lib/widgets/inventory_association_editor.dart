@@ -194,6 +194,7 @@ class _InventoryAssociationEditorState
               ),
               trailing: IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
+                tooltip: 'Remove item',
                 onPressed: () => _remove(item.inventoryId),
               ),
             ),

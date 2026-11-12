@@ -44,9 +44,9 @@ Task numbers are stable across all three files. Where a task below says "see the
 - [x] **9.01** inventory should not always show the organization field.  Apply the same logic we use in Add/edit customer (for that matter see if it's duplicated elsewhere too)
 - [x] **9.1** Audit all 25 former Bootstrap `row`/`col` sites; confirm each degrades to single-column on mobile.
 - [x] **9.2** Replace fixed pixel sizing that was tuned for wide viewports: calendar `height: 800` (`EventCalendar.tsx:297`), search input `width: '250px'` (line 248), list column `maxWidth: '150px'` (`UserList.tsx:179`), modal `maxHeight: '300px'` (`QuickOrganizationPickerModal.tsx:72`).
-- [ ] **9.3** Add `Semantics` labels to icon-only buttons, now Material icons rather than `<i>` tags.
-- [ ] **9.4** Verify touch target sizes (≥44pt) on all mobile list actions.
-- [ ] **9.5** Add `FocusTraversalGroup` / focus order for keyboard and screen-reader navigation on web.
+- [x] **9.3** Add `Semantics` labels to icon-only buttons, now Material icons rather than `<i>` tags.
+- [x] **9.4** Verify touch target sizes (≥44pt) on all mobile list actions.
+- [x] **9.5** Add `FocusTraversalGroup` / focus order for keyboard and screen-reader navigation on web.
 - [ ] **9.6** Handle concurrent-request cancellation. Three React `setTimeout` calls exist (`AcceptInvitationPage.tsx:73`, `UserList.tsx:160`, calendar hover); the React code never cancels them — use `CancellationToken` and cancel in `dispose`.
 - [ ] **9.7** Add pull-to-refresh on mobile list screens.
 - [ ] **9.8** Add an app-level error boundary surfacing `ApiException.details`. **Note:** `Application.kt:55-75` returns `cause.stackTraceToString()` in `error.details` on 500s, so server internals reach the client. Consider rendering `details` only behind a debug flag.
@@ -107,6 +107,11 @@ Task numbers are stable across all three files. Where a task below says "see the
   **Assert on the request body, not on the response.** The behaviour that matters in 9.17 is what goes *out*, and the port's harness already records outgoing requests and their bodies (`test/support/stub_adapter.dart`) — use it rather than asserting on what the screen shows afterwards.
 
   Record the whole sequence in the progress log (`FLUTTER-CONVERT-NOTES.md`) when it lands, including what the shared form replaced.
+
+- [ ] **9.19** Add previous/next event navigation on the event details screen. Define the ordering and scope during implementation (for example, adjacent events by start time within the same organization/range), and ensure the controls are accessible and keyboard-focusable.
+- [ ] **9.20** Fix navigation from the "Other events" panel: tapping an event row appears clickable but does not navigate to the event details screen. Reproduce across the panel's contexts (event details sidebar, day view, create/edit sidebars), confirm the expected destination, and make the row navigate reliably.  Happpens no matter the organization selected, SuperAdmin or Organizer.  The url changes but the content does not.  A Reload picks up the correct content.  A browser back at this point does the same thing, keeps showing the last-refreshed page.
+- [ ] **9.21** Clicking the day number (or that whole horizontal space) in the event view leads to the day view.  Currently on mobile we taps anywhere in the day to lead to this view; on desktop/web hovering over the day number or the blank space beside it should show a "View day" hint and clicking either leads to the day view.~~~~
+- [ ] **9.22** Day View > Selecting an event > has a "Back to Events" button which leads to the event calendar, not day view.  Not sure if this is desktop/web only but we should go back to where we came from.  Could use browser back, not sure if that applies everywhere though.
 
 ---
 

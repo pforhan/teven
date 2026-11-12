@@ -3824,3 +3824,40 @@ Phase 7A is complete (7.13–7.21, 7.23–7.28 landed; **7.22 will-not-do**).
 - **Discrepancies table:** the *Time zone discrepancies* Fix column in `FLUTTER-CONVERT-DESIGN.md` was reviewed against landed work and kept pointed at the tasks that actually landed (7.13–7.24/7.20), with row text tightened to reflect landed behavior where useful.
 - **Substantive implementation notes already captured:** update-event start changes enforce `startsAt`+`timezone` together (400 when mixed); `UpdateOrganizationRequest.timezone` is required (always sent); DST/nonexistent/ambiguous wall clocks handled by `TimeZoneService`; report `usage_date` now event-zone-derived but still write-only. No further survey-miss defects required new discrepancy rows during this reconciliation pass.
 - **7.27 tooling:** `generateApiDocs` failed under default JDK 27 due to Dokka's `JavaVersion.parse` handling of `27.0.1.0.3`; regeneration was run with JDK 21 (`JAVA_HOME=$(/usr/libexec/java_home -v 21)`). Environment-only workaround, no repo config changed.
+
+---
+
+### 2026-11-11 — Tasks 9.3–9.5: semantics, touch targets, focus order
+
+**Done.** Three Phase 9 cleanup tasks landed together: semantic labels on
+icon-only actions, a touch-target floor on RSVP list actions, and focus
+traversal groups in the app shell. `./teven verify` clean.
+
+**9.3 (semantics).** `InventoryAssociationEditor`'s trailing remove control was
+an icon-only `IconButton` with no tooltip/semantic name; it now carries
+`tooltip: 'Remove item'` (which Flutter also exposes as the accessible label).
+Other icon-only controls audited in this pass already had tooltips or were
+wrapped in `Tooltip` (e.g. `ResponsiveListView` row actions,
+`OrganizationSelector` compact controls, password visibility toggles, day/event
+navigation, and the RSVP buttons).
+
+**9.4 (touch targets).** The event list's inline RSVP buttons used a 40px
+minimum (`kRsvpButtonSize`) with `padding: EdgeInsets.zero` and
+`MaterialTapTargetSize.shrinkWrap`, below the 44pt floor called out by the
+task. Raised to 44px so the three mobile list actions remain usable targets
+while still fitting across the RSVP cell.
+
+**9.5 (focus order).** The tablet/desktop `_RailShell` now groups focus
+traversal: a `FocusTraversalGroup` around the `NavigationRail` and another
+around the routed body (inside an outer group for the row). This keeps keyboard
+and screen-reader traversal moving through the rail chrome and then the page
+content in a predictable order on web, without changing the existing navigation
+structure.
+
+**Files changed:** `flutter_app/lib/widgets/inventory_association_editor.dart`,
+`flutter_app/lib/screens/events/event_list_screen.dart`,
+`flutter_app/lib/widgets/app_shell.dart`, `FLUTTER-CONVERT.md`.
+
+**Not a browser or device pass.** Verified by `./teven verify` (analyze,
+format check, tests); no manual keyboard/screen-reader or touch-device audit was
+performed in this change.

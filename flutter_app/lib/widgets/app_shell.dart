@@ -116,44 +116,51 @@ class _RailShell extends ConsumerWidget {
     final destinations = _visibleDestinations(ref);
 
     return Scaffold(
-      body: Row(
-        children: [
-          NavigationRail(
-            minWidth: _railWidth,
-            minExtendedWidth: _railExtendedWidth,
-            selectedIndex: _selectedIndex(destinations, _currentPath(context)),
-            onDestinationSelected: (index) =>
-                _go(context, destinations[index].route),
-            extended: extended,
-            labelType: extended
-                ? NavigationRailLabelType.none
-                : NavigationRailLabelType.all,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: _Brand(compact: !extended),
-            ),
-            trailing: Expanded(child: _RailTrailing(extended: extended)),
-            destinations: [
-              for (final destination in destinations)
-                NavigationRailDestination(
-                  icon: Icon(destination.icon),
-                  selectedIcon: Icon(destination.icon),
-                  // Always rendered, never just the selected one: a rail whose
-                  // labels appear on selection makes the chrome reflow on every
-                  // tap, which is what the collapsed Material default does.
-                  label: Text(destination.label),
+      body: FocusTraversalGroup(
+        child: Row(
+          children: [
+            FocusTraversalGroup(
+              child: NavigationRail(
+                minWidth: _railWidth,
+                minExtendedWidth: _railExtendedWidth,
+                selectedIndex: _selectedIndex(
+                  destinations,
+                  _currentPath(context),
                 ),
-            ],
-          ),
-          // Bootstrap drew the navbar's bottom edge as a full-width border.
-          // The rail's right edge is the same line.
-          VerticalDivider(
-            width: 1,
-            thickness: 1,
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-          Expanded(child: child),
-        ],
+                onDestinationSelected: (index) =>
+                    _go(context, destinations[index].route),
+                extended: extended,
+                labelType: extended
+                    ? NavigationRailLabelType.none
+                    : NavigationRailLabelType.all,
+                leading: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: _Brand(compact: !extended),
+                ),
+                trailing: Expanded(child: _RailTrailing(extended: extended)),
+                destinations: [
+                  for (final destination in destinations)
+                    NavigationRailDestination(
+                      icon: Icon(destination.icon),
+                      selectedIcon: Icon(destination.icon),
+                      // Always rendered, never just the selected one: a rail whose
+                      // labels appear on selection makes the chrome reflow on every
+                      // tap, which is what the collapsed Material default does.
+                      label: Text(destination.label),
+                    ),
+                ],
+              ),
+            ),
+            // Bootstrap drew the navbar's bottom edge as a full-width border.
+            // The rail's right edge is the same line.
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+            Expanded(child: FocusTraversalGroup(child: child)),
+          ],
+        ),
       ),
     );
   }

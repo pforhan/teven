@@ -497,9 +497,8 @@ const String kRsvpCleared = 'no response';
 /// off — so a screen cannot ask which layout it is in from the window, and the
 /// `context.layoutSize` this file could read is the window and would disagree.
 /// [kRsvpButtonSize] is therefore one compromise chosen to fit three across a
-/// table cell and still be a usable target in a card. Task 9.4 is the pass that
-/// audits touch target sizes across the app, including this one.
-const double kRsvpButtonSize = 40;
+/// table cell and still meet the 44pt touch-target floor in a card (task 9.4).
+const double kRsvpButtonSize = 44;
 
 class _RsvpButton extends StatelessWidget {
   const _RsvpButton({
