@@ -255,10 +255,17 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     _query = query;
     final actionError = _actionError;
 
+    Future<void> onRefresh() async {
+      if (_query != null) {
+        await ref.read(eventListProvider(_query!).notifier).reload();
+      }
+    }
+
     return Scaffold(
       body: PagedScrollView(
         onLoadMore: () =>
             ref.read(eventListProvider(_query!).notifier).loadMore(),
+        onRefresh: onRefresh,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

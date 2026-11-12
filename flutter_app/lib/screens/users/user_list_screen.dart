@@ -385,10 +385,18 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
         (loadedInvitations != null && loadedInvitations.isNotEmpty) ||
         invitations.hasError;
 
+    Future<void> onRefresh() async {
+      if (_query != null) {
+        await ref.read(userPageProvider(_query!).notifier).reload();
+      }
+      ref.invalidate(unusedInvitationsProvider);
+    }
+
     return Scaffold(
       body: PagedScrollView(
         onLoadMore: () =>
             ref.read(userPageProvider(_query!).notifier).loadMore(),
+        onRefresh: onRefresh,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -149,10 +149,17 @@ class _OrganizationListScreenState
     _query = query;
     final actionError = _actionError;
 
+    Future<void> onRefresh() async {
+      if (_query != null) {
+        await ref.read(organizationPageProvider(_query!).notifier).reload();
+      }
+    }
+
     return Scaffold(
       body: PagedScrollView(
         onLoadMore: () =>
             ref.read(organizationPageProvider(_query!).notifier).loadMore(),
+        onRefresh: onRefresh,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

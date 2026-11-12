@@ -175,6 +175,7 @@ class PagedScrollView extends StatelessWidget {
     required this.onLoadMore,
     required this.child,
     this.padding = const EdgeInsets.all(16),
+    this.onRefresh,
   });
 
   /// Requests the next page. Called by the scroll listener and by the footer
@@ -188,26 +189,38 @@ class PagedScrollView extends StatelessWidget {
   /// parameter only so a screen with a different one is not editing a default.
   final EdgeInsets padding;
 
+  /// Optional callback for pull-to-refresh. When provided, the list is wrapped
+  /// in a [RefreshIndicator].
+  final Future<void> Function()? onRefresh;
+
   @override
-  Widget build(
-    BuildContext context,
-  ) => NotificationListener<ScrollNotification>(
-    // `false` — the list does not consume the notification. Returning `true`
-    // here would stop the scroll view from receiving it and, with it, the
-    // scrolling itself.
-    onNotification: (notification) {
-      final metrics = notification.metrics;
-      // No dimensions yet means the first layout has not happened, so
-      // `maxScrollExtent` is 0 and every position looks like "at the end" —
-      // which would fire a request for a list that has not been measured.
-      if (!metrics.hasContentDimensions) return false;
-      if (metrics.pixels >= metrics.maxScrollExtent - loadMoreThreshold) {
-        onLoadMore();
-      }
-      return false;
-    },
-    child: SingleChildScrollView(padding: padding, child: child),
-  );
+  Widget build(BuildContext context) {
+    final scrollView = NotificationListener<ScrollNotification>(
+      // `false` — the list does not consume the notification. Returning `true`
+      // here would stop the scroll view from receiving it and, with it, the
+      // scrolling itself.
+      onNotification: (notification) {
+        final metrics = notification.metrics;
+        // No dimensions yet means the first layout has not happened, so
+        // `maxScrollExtent` is 0 and every position looks like "at the end" —
+        // which would fire a request for a list that has not been measured.
+        if (!metrics.hasContentDimensions) return false;
+        if (metrics.pixels >= metrics.maxScrollExtent - loadMoreThreshold) {
+          onLoadMore();
+        }
+        return false;
+      },
+      child: SingleChildScrollView(padding: padding, child: child),
+    );
+
+    if (onRefresh != null) {
+      return RefreshIndicator(
+        onRefresh: onRefresh!,
+        child: scrollView,
+      );
+    }
+    return scrollView;
+  }
 }
 
 /// How close to the end of the list a scroll gets before the next page is asked

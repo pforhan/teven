@@ -157,10 +157,17 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     _query = query;
     final actionError = _actionError;
 
+    Future<void> onRefresh() async {
+      if (_query != null) {
+        await ref.read(inventoryListProvider(_query!).notifier).reload();
+      }
+    }
+
     return Scaffold(
       body: PagedScrollView(
         onLoadMore: () =>
             ref.read(inventoryListProvider(_query!).notifier).loadMore(),
+        onRefresh: onRefresh,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

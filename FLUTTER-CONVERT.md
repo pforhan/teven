@@ -47,7 +47,7 @@ Task numbers are stable across all three files. Where a task below says "see the
 - [x] **9.3** Add `Semantics` labels to icon-only buttons, now Material icons rather than `<i>` tags.
 - [x] **9.4** Verify touch target sizes (≥44pt) on all mobile list actions.
 - [x] **9.5** Add `FocusTraversalGroup` / focus order for keyboard and screen-reader navigation on web.
-- [ ] **9.6** Handle concurrent-request cancellation. Three React `setTimeout` calls exist (`AcceptInvitationPage.tsx:73`, `UserList.tsx:160`, calendar hover); the React code never cancels them — use `CancellationToken` and cancel in `dispose`.
+- [x] **9.6** Handle concurrent-request cancellation. Three React `setTimeout` calls exist (`AcceptInvitationPage.tsx:73`, `UserList.tsx:160`, calendar hover); the React code never cancels them — use `CancellationToken` and cancel in `dispose`.
 - [ ] **9.7** Add pull-to-refresh on mobile list screens.
 - [ ] **9.8** Add an app-level error boundary surfacing `ApiException.details`. **Note:** `Application.kt:55-75` returns `cause.stackTraceToString()` in `error.details` on 500s, so server internals reach the client. Consider rendering `details` only behind a debug flag.
 - [ ] **9.9** Fix the known 500 stack-trace leak server-side, or suppress `details` in the UI.

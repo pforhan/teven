@@ -184,10 +184,17 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     _query = query;
     final actionError = _actionError;
 
+    Future<void> onRefresh() async {
+      if (_query != null) {
+        await ref.read(customerListProvider(_query!).notifier).reload();
+      }
+    }
+
     return Scaffold(
       body: PagedScrollView(
         onLoadMore: () =>
             ref.read(customerListProvider(_query!).notifier).loadMore(),
+        onRefresh: onRefresh,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
