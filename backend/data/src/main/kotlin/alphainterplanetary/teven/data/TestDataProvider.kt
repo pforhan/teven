@@ -366,6 +366,7 @@ suspend fun populateTestData() {
     Events.insert {
       it[title] = "Fence Repair"
       it[startsAt] = eventInstant(today, LocalTime.of(10, 0), "America/New_York")
+      it[timezone] = "America/New_York"
       it[durationMinutes] = 120
       it[location] = "456 Business Ave"
       it[description] = "Replace two broken panels"
@@ -377,6 +378,7 @@ suspend fun populateTestData() {
     Events.insert {
       it[title] = "Mulch Delivery"
       it[startsAt] = eventInstant(today, LocalTime.of(13, 15), "America/New_York")
+      it[timezone] = "America/New_York"
       it[durationMinutes] = 30
       // **No location, on purpose.** The panel renders the location only when
       // the event has one (`OtherEventsPanel.tsx:88`), and without an event
@@ -390,6 +392,7 @@ suspend fun populateTestData() {
     Events.insert {
       it[title] = "Gutter Cleaning"
       it[startsAt] = eventInstant(today, LocalTime.of(16, 0), "America/New_York")
+      it[timezone] = "America/New_York"
       it[durationMinutes] = 90
       it[location] = "123 Main St"
       it[description] = "Clear the downspouts"
