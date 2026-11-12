@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:teven_app/core/api/api_exception.dart';
 import 'package:teven_app/models/permissions.dart';
@@ -60,7 +61,28 @@ void main() {
         adapter: StubAdapter((_) => throw const NetworkException('offline')),
       );
 
-      expect(await container.read(authControllerProvider.future), isNull);
+      final previousDebugPrint = debugPrint;
+      final logs = <String>[];
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) logs.add(message);
+      };
+      addTearDown(() => debugPrint = previousDebugPrint);
+      try {
+        expect(await container.read(authControllerProvider.future), isNull);
+      } finally {
+        debugPrint = previousDebugPrint;
+      }
+
+      final output = logs.join('\n');
+      expect(
+        output,
+        contains(
+          'AuthController: failed to fetch user context: '
+          'NetworkException: Could not reach the server',
+        ),
+      );
+      expect(output, contains('ApiClient._send'));
+      expect(output, contains('AuthController.build'));
     });
   });
 

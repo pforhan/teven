@@ -34,7 +34,11 @@ void main() {
     ValueNotifier<String>? day,
     void Function(int eventId)? onOpen,
   }) async {
-    final container = authTestContainer(adapter: adapter, token: 'token');
+    // The panel fetches events but does not read the signed-in user, so it
+    // does not need an authenticated boot. Skipping the token avoids the
+    // context fetch (and the incidental "failed to fetch user context" log) that
+    // a narrow events-only stub would answer with 404.
+    final container = authTestContainer(adapter: adapter);
     final theDay = day ?? ValueNotifier(date);
     addTearDown(theDay.dispose);
     final router = GoRouter(
