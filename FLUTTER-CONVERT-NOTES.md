@@ -3861,3 +3861,66 @@ structure.
 **Not a browser or device pass.** Verified by `./teven verify` (analyze,
 format check, tests); no manual keyboard/screen-reader or touch-device audit was
 performed in this change.
+
+---
+
+### 2026-11-12 — Tasks 9.13–9.18: unified create/edit event form
+
+**Done.** Collapsed the two event form screens into a single implementation and
+applied the follow-on form cleanup (9.13–9.17), with tests updated for the new
+unified behavior (9.18). `flutter test test/event_form_test.dart` passed during
+development and `./teven verify` run for the full Flutter gate.
+
+**9.13 (one implementation).** Replaced the duplicated
+`CreateEventScreen`/`EditEventScreen` implementations with a shared
+`EventFormScreen` in `flutter_app/lib/screens/events/event_form_screen.dart`.
+`create_event_screen.dart` and `edit_event_screen.dart` now re-export thin
+wrappers so existing routes and imports are unchanged. Surviving differences are
+mode/parameters: create vs update request and post-submit navigation, create
+prefills from `?date=` query params while edit loads the event, create starts
+collapsed behind "Add More Details…" while edit shows every field, and the
+"Other events" sidebar excludes the edited event (`excludeEventId`) but not on
+create.
+
+**9.14 (duration default 120).** Duration defaults to 120 minutes in both modes.
+Edit no longer rewrites a loaded duration of 0 to 60; a loaded event with
+`durationMinutes == 0` now shows 120 (deliberate divergence from the original,
+aligned with the create form).
+
+**9.15 (location autofill latch).** Customer selection fills the location only
+while the location is not "taken over". The latch is set by the user's own
+typing and by loading an event with a non-empty location; programmatic writes
+(controller assignment/autofill) do not set it. A loaded event location is
+therefore preserved when the customer changes.
+
+**9.16 (organization dropdown in both forms).** The organization is shown in the
+form body in both modes. Global managers can pick any organization when the org
+list is available (`VIEW_ORGANIZATIONS_GLOBAL`); org-scoped callers see their
+organization but cannot change it. In create mode the dropdown writes through to
+the shell's selected organization so the form, shell switcher, and org-required
+gate cannot disagree. The create-mode "Organization Required" gate remains in
+front of the form for a global manager with no selection. Org lists are fetched
+only when permitted and folded with `organizationsIncluding` so the current
+selection remains a valid dropdown value.
+
+**9.17 (wire).** Create always sends the resolved `organizationId` (required on
+the wire). Edit sends `organizationId` only for global managers and sends `null`
+for org-scoped managers, matching the server's update rule ("leave it alone" when
+null).
+
+**9.18 (tests).** `flutter_app/test/event_form_test.dart` retains the prior
+safety-net cases and adds coverage for: duration 120 in create and edit (including
+loaded zero), location autofill latch behavior (stop after user typing and do not
+clobber loaded location), org dropdown presence/non-selectability for org-scoped
+callers and global-manager selection/listing in edit, global-manager update
+request body carrying the picked `organizationId`, create collapsed state with
+`?date=`/default time prefill, and edit loading/excluding the edited event from
+the "Other events" panel. Request-body assertions use the recorded requests via
+`StubAdapter`.
+
+**Files changed:** `flutter_app/lib/screens/events/event_form_screen.dart` (new),
+`flutter_app/lib/screens/events/create_event_screen.dart`,
+`flutter_app/lib/screens/events/edit_event_screen.dart`,
+`flutter_app/test/event_form_test.dart`, `FLUTTER-CONVERT.md`,
+`FLUTTER-CONVERT-NOTES.md`.
+

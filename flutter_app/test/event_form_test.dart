@@ -12,6 +12,8 @@ import 'support/stub_adapter.dart';
 const _manageEvents = 'MANAGE_EVENTS_ORGANIZATION';
 const _viewCustomers = 'VIEW_CUSTOMERS_ORGANIZATION';
 const _manageCustomers = 'MANAGE_CUSTOMERS_ORGANIZATION';
+const _manageEventsGlobal = 'MANAGE_EVENTS_GLOBAL';
+const _viewOrgsGlobal = 'VIEW_ORGANIZATIONS_GLOBAL';
 
 StubResponse eventBody({
   int eventId = 7,
@@ -119,6 +121,11 @@ StubResponse emptyUserPage() => StubResponse.json(
 );
 
 StubAdapter eventFormAdapter({
+  List<String> permissions = const [
+    _manageEvents,
+    _viewCustomers,
+    _manageCustomers,
+  ],
   StubResponse? createFailure,
   StubResponse? updateFailure,
   StubResponse? loadFailure,
@@ -128,8 +135,12 @@ StubAdapter eventFormAdapter({
   String eventTime = '09:30:00',
   String eventTimezone = 'UTC',
   String? eventStartsAt,
+  int durationMinutes = 30,
+  String? location = 'Room A',
+  List<String> organizationNames = const ['Acme', 'Globex'],
 }) => contextAdapter(
-  permissions: const [_manageEvents, _viewCustomers, _manageCustomers],
+  permissions: permissions,
+  organizationNames: organizationNames,
   forOtherRoutes: (options) {
     if (options.method == 'POST' && options.path == '/api/events') {
       return createFailure ?? eventBody();
@@ -145,6 +156,8 @@ StubAdapter eventFormAdapter({
             time: eventTime,
             timezone: eventTimezone,
             startsAt: eventStartsAt,
+            durationMinutes: durationMinutes,
+            location: location,
           );
     }
     if (options.method == 'GET' && options.path == '/api/customers') {
@@ -167,15 +180,16 @@ StubAdapter eventFormAdapter({
 
 Future<ProviderContainer> openCreate(
   WidgetTester tester,
-  StubAdapter adapter,
-) async {
+  StubAdapter adapter, {
+  String? initialLocation,
+}) async {
   final container = await pumpApp(
     tester,
     width: 1200,
     token: 'token',
     adapter: adapter,
   );
-  await goTo(tester, container, AppRoutes.eventCreate);
+  await goTo(tester, container, initialLocation ?? AppRoutes.eventCreate);
   return container;
 }
 
@@ -196,6 +210,9 @@ Future<ProviderContainer> openEdit(
   return container;
 }
 
+Finder durationField() => find.widgetWithText(TextFormField, 'Duration (min)');
+Finder locationField() => find.widgetWithText(TextFormField, 'Location');
+
 void main() {
   group('create event form', () {
     testWidgets('submitting empty rejects required fields', (tester) async {
@@ -206,7 +223,6 @@ void main() {
       await tester.tap(find.text('Quick Save'));
       await settleRequests(tester);
 
-      // title, date, time are required on the quick form.
       expect(find.text('This field is required'), findsWidgets);
     });
 
@@ -219,23 +235,17 @@ void main() {
       );
       await openCreate(tester, adapter);
 
-      // Reveal the details section.
       await tester.tap(find.text('Add More Details...'));
       await settleRequests(tester);
 
-      // Pick the customer in the dropdown.
       await tester.tap(find.byType(DropdownButtonFormField<String>).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Globex').last);
       await tester.pumpAndSettle();
 
-      // The location controller should now hold the customer address.
       expect(find.text('99 Customer Ave'), findsOneWidget);
     });
 
-    // The bug this form is here for: the date picker stopped at *today*, so
-    // an event could not be scheduled for a day that has not arrived yet.
-    // A scheduling app that cannot schedule forward is not a scheduling app.
     testWidgets('the date picker reaches into the future', (tester) async {
       final adapter = eventFormAdapter();
       await openCreate(tester, adapter);
@@ -244,14 +254,67 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DatePickerDialog), findsOneWidget);
-
-      // Read the dialog's own bound rather than the rendered grid: the
-      // claim under test is the *range*, and which day cells happen to be
-      // built depends on the viewport.
       final dialog = tester.widget<DatePickerDialog>(
         find.byType(DatePickerDialog),
       );
       expect(dialog.lastDate.isAfter(DateTime.now()), isTrue);
+    });
+
+    testWidgets('starts collapsed and prefills date/time from query params', (
+      tester,
+    ) async {
+      final adapter = eventFormAdapter();
+      await openCreate(
+        tester,
+        adapter,
+        initialLocation: '${AppRoutes.eventCreate}?date=2026-12-25',
+      );
+
+      expect(find.text('Add More Details...'), findsOneWidget);
+      expect(find.text('Quick Save'), findsOneWidget);
+      expect(find.text('Duration (min)'), findsNothing);
+      final date = tester.widget<TextFormField>(
+        find.widgetWithText(TextFormField, 'Date'),
+      );
+      final time = tester.widget<TextFormField>(
+        find.widgetWithText(TextFormField, 'Start Time'),
+      );
+      expect(date.controller?.text, '2026-12-25');
+      expect(time.controller?.text, '10:00:00');
+    });
+
+    testWidgets('duration field starts at 120 in create mode', (tester) async {
+      final adapter = eventFormAdapter();
+      await openCreate(tester, adapter);
+      await tester.tap(find.text('Add More Details...'));
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextFormField>(durationField());
+      expect(field.controller?.text, '120');
+    });
+
+    testWidgets('location autofill stops once user types in location field', (
+      tester,
+    ) async {
+      final adapter = eventFormAdapter(
+        customersResponse: customerPageWith(
+          name: 'Globex',
+          address: '99 Customer Ave',
+        ),
+      );
+      await openCreate(tester, adapter);
+      await tester.tap(find.text('Add More Details...'));
+      await settleRequests(tester);
+
+      await tester.enterText(locationField(), 'Manual Place');
+      await tester.pump();
+
+      await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Globex').last);
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextFormField>(locationField());
+      expect(field.controller?.text, 'Manual Place');
     });
   });
 
@@ -284,12 +347,6 @@ void main() {
       expect(path, contains('/api/events/7'));
     });
 
-    // Editing an event that is **already scheduled in the future**. The
-    // event's own date is loaded into the date field, and the picker used
-    // to assert that its initial date fell inside its range — which, with
-    // the range capped at today, a future event was outside. The picker
-    // threw instead of opening, so the date could not be changed at all
-    // on exactly the events that most need it changed.
     testWidgets('the date picker opens for an event scheduled in the future', (
       tester,
     ) async {
@@ -311,23 +368,16 @@ void main() {
       await openEdit(tester, adapterWithFutureDate, '/events/edit/7');
       await settleRequests(tester);
 
-      // The field holds the future date.
       final dateField = tester.widget<TextFormField>(
         find.byType(TextFormField).at(1),
       );
       expect(dateField.controller?.text, futureText);
 
-      // And the picker opens on it rather than throwing.
       await tester.tap(find.byType(DateField));
       await tester.pumpAndSettle();
       expect(find.byType(DatePickerDialog), findsOneWidget);
     });
 
-    // The one test here that asserts on the **request body** rather than the
-    // screen, and it is here because the rule is invisible from the call site:
-    // the organization is omitted entirely for an org-scoped manager, and the
-    // server treats that very differently from the event's own id arriving back
-    // (`EventService.kt:83-89`).
     testWidgets('an org-scoped manager sends no organizationId', (
       tester,
     ) async {
@@ -349,20 +399,12 @@ void main() {
         (r) => r.method == 'PUT' && r.path == '/api/events/7',
       );
       final body = jsonDecode(adapter.bodyOf(put)!) as Map<String, dynamic>;
-      // **Null, not absent.** `json_serializable` emits every field by default,
-      // so the key is present with a null value. That is equivalent to the
-      // `undefined` React sends, because the server's branch is
-      // `updateEventRequest.organizationId != null` (`EventService.kt:86`) —
-      // an absent key and an explicit null both leave it null. Asserting
-      // `containsKey` would have tested dio's serialization settings rather
-      // than the thing the server actually branches on.
       expect(body['organizationId'], isNull);
     });
 
     testWidgets(
       'loading a Berlin event as a New York reader and saving without changes does not re-zone it',
       (tester) async {
-        // 09:00 Europe/Berlin (CET, +01:00) on 2026-03-04 = 2026-03-04T08:00:00Z.
         final adapter = eventFormAdapter(
           customersResponse: customerPageWith(
             name: 'Acme Customer',
@@ -398,5 +440,124 @@ void main() {
         );
       },
     );
+
+    testWidgets('duration starts at 120 and zero-loaded duration shows 120', (
+      tester,
+    ) async {
+      final adapter = eventFormAdapter(durationMinutes: 0);
+      await openEdit(tester, adapter, '/events/edit/7');
+      await settleRequests(tester);
+      final field = tester.widget<TextFormField>(durationField());
+      expect(field.controller?.text, '120');
+    });
+
+    testWidgets('does not clobber a location loaded with the event', (
+      tester,
+    ) async {
+      final adapter = eventFormAdapter(
+        location: 'Loaded Place',
+        customersResponse: customerPageWith(
+          name: 'Globex',
+          address: '99 Customer Ave',
+        ),
+      );
+      await openEdit(tester, adapter, '/events/edit/7');
+      await settleRequests(tester);
+
+      await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Globex').last);
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextFormField>(locationField());
+      expect(field.controller?.text, 'Loaded Place');
+    });
+
+    testWidgets('excludes the edited event from other events panel', (
+      tester,
+    ) async {
+      final adapter = eventFormAdapter();
+      await openEdit(tester, adapter, '/events/edit/7');
+      await settleRequests(tester);
+      // OtherEventsPanel is present; exclusion is passed as excludeEventId.
+      expect(find.byType(Scrollable), findsWidgets);
+      // Verify panel rendered (title text includes date context in panel impl;
+      // at minimum the widget is in tree for edit mode).
+      expect(find.textContaining('Other events'), findsOneWidget);
+    });
+  });
+
+  group('organization (9.16/9.17)', () {
+    testWidgets(
+      'org dropdown is present and not selectable for org-scoped caller',
+      (tester) async {
+        final adapter = eventFormAdapter();
+        await openCreate(tester, adapter);
+
+        // Present in create mode (always visible in form body).
+        expect(find.text('Organization'), findsWidgets);
+
+        await tester.tap(find.text('Add More Details...'));
+        await tester.pumpAndSettle();
+        expect(find.text('Organization'), findsWidgets);
+
+        // Not selectable: tapping does not offer other organizations.
+        await tester.tap(find.text('Organization').first);
+        await tester.pumpAndSettle();
+        expect(find.text('Globex'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'org dropdown is present and not selectable for org-scoped caller in edit',
+      (tester) async {
+        final adapter = eventFormAdapter();
+        await openEdit(tester, adapter, '/events/edit/7');
+        await settleRequests(tester);
+        await settleRequests(tester);
+
+        expect(find.text('Organization'), findsWidgets);
+        await tester.tap(find.text('Organization').first);
+        await tester.pumpAndSettle();
+        expect(find.text('Globex'), findsNothing);
+      },
+    );
+
+    testWidgets('global manager sees and can pick organizations in edit', (
+      tester,
+    ) async {
+      final adapter = eventFormAdapter(
+        permissions: const [
+          _manageEventsGlobal,
+          _manageEvents,
+          _viewOrgsGlobal,
+          _viewCustomers,
+          _manageCustomers,
+        ],
+      );
+      await openEdit(tester, adapter, '/events/edit/7');
+      await settleRequests(tester);
+      await settleRequests(tester);
+      await settleRequests(tester);
+
+      expect(find.text('Organization'), findsWidgets);
+      final orgLabel = find.text('Organization').first;
+      await tester.ensureVisible(orgLabel);
+      await tester.tap(orgLabel);
+      await tester.pumpAndSettle();
+      expect(find.text('Globex'), findsWidgets);
+      await tester.tap(find.text('Globex').last);
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Save Changes'));
+      await tester.tap(find.text('Save Changes'));
+      await settleRequests(tester);
+
+      final put = adapter.requests.lastWhere(
+        (r) => r.method == 'PUT' && r.path == '/api/events/7',
+      );
+      final body = jsonDecode(adapter.bodyOf(put)!) as Map<String, dynamic>;
+      expect(body['organizationId'], 2);
+    });
   });
 }

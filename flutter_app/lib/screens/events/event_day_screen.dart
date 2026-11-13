@@ -20,7 +20,7 @@ import '../../widgets/other_events_panel.dart';
 /// and when that landed (task 7.11) it opens **here**.
 ///
 /// **It reuses [OtherEventsPanel] rather than growing a second event list**, for
-/// the reason task 9.13 records twice and task 9.18 tests once: a second copy
+/// the reason the unified form keeps a mirrored copy: a second copy
 /// of a list is how the two event forms drifted in the first place.
 ///
 /// The chevrons move one calendar day at a time. A previous/next gesture turns

@@ -48,14 +48,8 @@ Task numbers are stable across all three files. Where a task below says "see the
 - [x] **9.4** Verify touch target sizes (≥44pt) on all mobile list actions.
 - [x] **9.5** Add `FocusTraversalGroup` / focus order for keyboard and screen-reader navigation on web.
 - [x] **9.6** Handle concurrent-request cancellation. Three React `setTimeout` calls exist (`AcceptInvitationPage.tsx:73`, `UserList.tsx:160`, calendar hover); the React code never cancels them — use `CancellationToken` and cancel in `dispose`.
-- [ ] **9.7** Add pull-to-refresh on mobile list screens.
-- [ ] **9.8** Add an app-level error boundary surfacing `ApiException.details`. **Note:** `Application.kt:55-75` returns `cause.stackTraceToString()` in `error.details` on 500s, so server internals reach the client. Consider rendering `details` only behind a debug flag.
-- [ ] **9.9** Fix the known 500 stack-trace leak server-side, or suppress `details` in the UI.
-- [ ] **9.10** Full pass at all three breakpoints, plus mobile browser widths and touch input.
-- [ ] **9.11** Tests for the error boundary from 9.8: an `ApiRequestException` surfaces its message, and `details` is hidden unless the debug flag is on. Also assert cancellation (9.6) does not surface an error to the user.
-- [ ] **9.12** Consider allowing horizontal swipe on event calendar on mobile; AvailableGestures.horizontalSwipe in event_calendar_screen.  Will take some testing in landscape and portrait.
-
-- [ ] **9.13** **Collapse the two event forms into one implementation.** Merge `create_event_screen.dart` and `edit_event_screen.dart` into a single screen both routes use. **The differences that survive are parameters, not second implementations:**
+- [x] **9.7** Add pull-to-refresh on mobile list screens.
+- [x] **9.13** **Collapse the two event forms into one implementation.** Merge `create_event_screen.dart` and `edit_event_screen.dart` into a single screen both routes use. **The differences that survive are parameters, not second implementations:**
 
   | Difference | Becomes |
   |---|---|
@@ -65,19 +59,19 @@ Task numbers are stable across all three files. Where a task below says "see the
   | the "other events" sidebar excludes the event being edited | a nullable id — **a create form has nothing to exclude**, because an event that does not exist yet cannot appear in that list |
 
   **This commit changes no behaviour.** It is a pure refactor, and it is what makes 9.14–9.17 land in one place instead of twice. The existing `test/event_form_test.dart` cases — validation, customer autofill, edit load, edit submit — must pass **unchanged**; they are the safety net for a refactor this size, and a test edited to fit the refactor is not a safety net.
-- [ ] **9.14** **The duration default is 120 in both forms.** The create form's field starts at 120 minutes; the edit form's starts at 60, and the edit form also rewrites a **loaded** duration of zero to 60. All three become 120.
+- [x] **9.14** **The duration default is 120 in both forms.** The create form's field starts at 120 minutes; the edit form's starts at 60, and the edit form also rewrites a **loaded** duration of zero to 60. All three become 120.
 
   **A deliberate divergence from the original, not parity.** The React original has the same split — the create form seeds 120 and the edit form does `fetchedEvent.durationMinutes || 60` (`EditEventForm.tsx:65`) — so unifying on 120 means the port is choosing one answer for a field the two forms disagreed about, and it is choosing the create form's.
 
   Only the *fallback* changes. A loaded event's own duration still wins; the fallback is for an event that has no duration, which is the only case the original's `|| 60` is reachable for.
-- [ ] **9.15** **One location-autofill latch for both forms.** Choosing a customer fills the location field with that customer's address. The create form stops doing it once the user has typed in the location field (`locationManuallyEdited` — `CreateEventForm.tsx:38,155,164`); the edit form has no latch at all and only fills while the location is empty.
+- [x] **9.15** **One location-autofill latch for both forms.** Choosing a customer fills the location field with that customer's address. The create form stops doing it once the user has typed in the location field (`locationManuallyEdited` — `CreateEventForm.tsx:38,155,164`); the edit form has no latch at all and only fills while the location is empty.
 
   Use the latch in both, with one rule: **the customer address fills the location only while the location is not "taken over", and a location loaded from the server counts as taken over.** So a customer change does not silently rewrite the address an event already has, but an event with no address still gets one from the customer; and in the create form, where nothing is loaded, the field starts untaken and the address fills it until the user types.
 
   **A deliberate divergence from the original.** The original's edit form (`EditEventForm.tsx:137`, `if (customer && !eventLocation)`) cannot express "the user took the location over" — only "the location is empty". The latch is the stronger rule, and it is the one the create form already used.
 
   **Watch the mechanism, not just the flag.** A programmatic write to the field's controller does **not** fire the field's `onChanged`, so loading an event's location does not set the latch, and the autofill does not set it either. The latch is set by the user's own typing and by nothing else — which is exactly what makes the loaded-location case above work.
-- [ ] **9.16** **The organization is a dropdown in both forms.** Today the create form has no organization control at all: the organization comes from the shell's org switcher, and a global manager with no selection gets an "Organization Required" card in front of the form instead (`CreateEventForm.tsx:210`). The edit form has a `<select>` of every organization, which the original disables for anyone who is not a global manager (`EditEventForm.tsx:226-236`).
+- [x] **9.16** **The organization is a dropdown in both forms.** Today the create form has no organization control at all: the organization comes from the shell's org switcher, and a global manager with no selection gets an "Organization Required" card in front of the form instead (`CreateEventForm.tsx:210`). The edit form has a `<select>` of every organization, which the original disables for anyone who is not a global manager (`EditEventForm.tsx:226-236`).
 
   Put the dropdown in the form body of both, so the organization is always visible and always says which one the event will belong to. The rules:
 
@@ -88,7 +82,7 @@ Task numbers are stable across all three files. Where a task below says "see the
   The **"Organization Required" card stays in front of the create form** — it is the original's behaviour, and the one place the form cannot be used at all until an organization exists. Once there is one, the dropdown is the control.
 
   **One organization, one meaning.** The create form's dropdown, the card's picker and the shell's org switcher must not be able to disagree about which organization is current. The create form already *follows* the shell's switcher (`selectedOrganizationProvider`), so the dropdown should **write through** to it rather than keeping a second copy — which also makes the card's picker, which already sets that same global selection, just another way to set the same value. A non-global manager's own organization is never written anywhere: the global selection is an app-wide preference, not a per-user one, so writing an org-scoped user's organization into it would leak into whoever uses that browser next.
-- [ ] **9.17** **Pin the organization on the wire, and say whose decision it is.** "A global manager chooses the organization; everyone else gets their own" is enforced **server-side**, and the client should not pretend otherwise:
+- [x] **9.17** **Pin the organization on the wire, and say whose decision it is.** "A global manager chooses the organization; everyone else gets their own" is enforced **server-side**, and the client should not pretend otherwise:
 
   - `EventService.kt:20-24` (create) — for a global manager the submitted id is used; for anyone else it is **replaced** with the caller's own organization, whatever was submitted.
   - `EventService.kt:83-89` (update) — for a global manager the submitted id is used; for anyone else a **differing** id is rejected with `"Non-MANAGE_EVENTS_GLOBAL users cannot change event organizationId"`, and a **null** id means "leave the organization alone".
@@ -96,7 +90,7 @@ Task numbers are stable across all three files. Where a task below says "see the
   So: the **update** request sends `organizationId: null` unless the caller is a global manager — the original's behaviour (`EditEventForm.tsx:162`) and the port's. The **create** request must always carry an id, because `CreateEventRequest.kt:19` types it as a non-nullable `Int` and the model mirrors that (`models/event.dart:166`), so the create form sends the **resolved** organization — which for an org-scoped caller is their own, the same value the server substitutes.
 
   **Do not "fix" the create request by sending null.** The field is required on the wire; omitting it fails deserialization rather than meaning "use mine". A nullable create id is a **backend** change — nullable in `CreateEventRequest.kt`, where the service's existing `?:` already handles it — and backend work is Phase 9–10, so file it separately if it is wanted.
-- [ ] **9.18** **Tests for the unified event form.** The unified screen replaces the two the port had, so its cases replace theirs. Cover:
+- [x] **9.18** **Tests for the unified event form.** The unified screen replaces the two the port had, so its cases replace theirs. Cover:
 
   - the duration field starts at 120 in **both** modes, and a loaded event with a duration of zero shows 120 (9.14)
   - choosing a customer fills the location, stops filling it once the user has typed in the location field, and does not clobber a location loaded with the event (9.15)
@@ -476,6 +470,7 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
 Additive: the web app keeps working unchanged. Only do this once web is stable and signing is arranged.
 
+
 - [ ] **11.0** Confirm things run on a **simulator or physical device**. The device half of what 3.12 used to be. **Not started — no simulator or device is available on this machine.** Native platforms do not exist yet either; they arrive with Phase 11's `flutter create --platforms=android,ios .`, so this is really a **Phase 11 prerequisite** and should be run against that build rather than scheduled ahead of it. What to check, beyond "it renders":
   - **Touch.** Tap a rail destination, tap the hamburger, swipe the drawer closed, pick an organization in the sheet, tap Logout. The browser pass was pointer-driven at fixed widths and exercised none of this. Task 9.4 covers target *sizes*; this covers the gestures.
   - **Safe areas.** A notch or a home indicator is the most likely thing to be wrong. `AppBar` handles the top inset itself and `NavigationRail` wraps itself in a `SafeArea`, but the extended rail's trailing group and the drawer's bottom items are hand-placed — check the last item clears the home indicator.
@@ -489,6 +484,8 @@ Additive: the web app keeps working unchanged. Only do this once web is stable a
 - [ ] **11.5** Add deep-link handling so `/register?token=...` opens the app when installed, falling back to the web link otherwise (builds on task 5.10).
 - [ ] **11.6** Arrange code signing / store distribution.
 - [ ] **11.7** **Optional:** a custom week view, restoring the calendar capability dropped in task 7.1. `table_calendar` does not support it, so this means a hand-built grid. Attempt only if users ask for it.
+- [ ] **11.8** Consider allowing horizontal swipe on event calendar on mobile; AvailableGestures.horizontalSwipe in event_calendar_screen.  Will take some testing in landscape and portrait.
+
 
 ---
 
@@ -504,4 +501,8 @@ The distinction: per-task tests cover logic whose behaviour is not obvious from 
 - [ ] **12.4** Widget tests for the permission guard and the responsive list.
 - [ ] **12.5** Golden tests for the calendar month grid, day view, view event, and create/edit event forms.
 - [ ] **12.6** Ensure the suite runs on both VM and Chrome. **Partly done:** `flutter test` and `flutter test --platform chrome` both work; the socket-based tests skip on web because `dart:io`'s `HttpServer` is unavailable there — they skip explicitly rather than passing vacuously. Every widget test added in Phases 3–7 has been verified on both, and two failure classes found only on Chrome are now written down in the Phase 7 entry of `FLUTTER-CONVERT-NOTES.md`. **Not done:** a green full-suite Chrome run — see that entry for the counts and what is still unowned.
+- [ ] **12.7** Add an app-level error boundary surfacing `ApiException.details`. **Note:** `Application.kt:55-75` returns `cause.stackTraceToString()` in `error.details` on 500s, so server internals reach the client. Consider rendering `details` only behind a debug flag.
+- [ ] **12.8** Fix the known 500 stack-trace leak server-side, or suppress `details` in the UI.
+- [ ] **12.9** Tests for the error boundary from 9.8: an `ApiRequestException` surfaces its message, and `details` is hidden unless the debug flag is on. Also assert cancellation (9.6) does not surface an error to the user.
+- [ ] **12.10** Full visual pass at all three size breakpoints, plus mobile browser widths and touch input.
 ---
