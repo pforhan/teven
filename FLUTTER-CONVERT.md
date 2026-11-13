@@ -108,6 +108,12 @@ Task numbers are stable across all three files. Where a task below says "see the
 - [ ] **9.22** Day View > Selecting an event > has a "Back to Events" button which leads to the event calendar, not day view.  Not sure if this is desktop/web only but we should go back to where we came from.  Could use browser back, not sure if that applies everywhere though.
 - [ ] **9.23** The day view doesn't work for "All Organizations" selected as a super admin -- it seems to only load the current (superadmin) organization's events.
 
+- [ ] **9.24** **Unify the customer create and edit forms.** `create_customer_screen.dart` and `edit_customer_screen.dart` share the same fields and form flow but duplicate controllers, validation, submit wiring, and parts of organization handling. Merge them into one screen implementation (as with the event form in 9.13), with differences expressed as parameters: create vs update request and post-submit navigation, edit loads an existing customer while create starts empty, and the resource-specific organization rules (including the create/edit differences called out in the existing screen docs and the server rules). Keep behaviour unchanged apart from any fixes made intentionally and covered by tests; coordinate with 10.24/10.25 so org-resolution and edit-load/error work is not duplicated or contradicted.
+
+- [ ] **9.25** **Unify the inventory create and edit forms.** `create_inventory_screen.dart` and `edit_inventory_screen.dart` are a small parallel pair (name/description/quantity and organization handling). Merge them into one implementation with mode-specific parameters for initial/load state, submit request, and post-submit navigation. Preserve the current global-vs-org-scoped organization rules on the wire and in the UI, and update/add tests for the unified form.
+
+- [ ] **9.26** **Unify the user create and edit forms.** `create_user_screen.dart` and `edit_user_screen.dart` share role selection and organization handling but differ in fields and lifecycle (create includes username/password and role loading; edit loads an existing user, preselects roles/organization, and omits immutable/create-only fields). Assess and merge into one implementation only where differences can be expressed clearly as parameters/mode branches without obscuring resource-specific rules; otherwise extract shared pieces (role/org selectors, submit/error handling) and document the split. Cover the unified or shared behavior with tests.
+
 ---
 
 ## Phase 10 — Cutover and cleanup
