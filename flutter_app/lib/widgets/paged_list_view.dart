@@ -214,10 +214,7 @@ class PagedScrollView extends StatelessWidget {
     );
 
     if (onRefresh != null) {
-      return RefreshIndicator(
-        onRefresh: onRefresh!,
-        child: scrollView,
-      );
+      return RefreshIndicator(onRefresh: onRefresh!, child: scrollView);
     }
     return scrollView;
   }
