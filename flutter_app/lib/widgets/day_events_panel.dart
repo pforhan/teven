@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -92,11 +94,15 @@ class DayEventsPanel extends ConsumerStatefulWidget {
 }
 
 class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
-  /// The events listed, already filtered and sorted.
-  List<EventResponse> _events = const [];
+  /// The fetched events for the day, unfiltered by [DayEventsPanel.excludeEventId].
+  List<EventResponse> _fetchedItems = const [];
 
   /// Whether a request is in flight.
   bool _loading = false;
+
+  /// True when a load has been in flight for more than 200ms.
+  bool _showLoadingBar = false;
+  Timer? _loadingBarTimer;
 
   /// The failure, when the request failed.
   ApiException? _error;
@@ -105,27 +111,9 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
   int _notShown = 0;
 
   /// Counts requests, so a slow answer cannot overwrite a newer one.
-  ///
-  /// **The React original has no such guard**, and gets away with it because
-  /// its refetches are rare. This one refetches whenever the date changes,
-  /// which on the create and edit forms is every time the user picks one — so
-  /// a slow answer for a day they have moved on from can land after a faster
-  /// one for the day they are on, and quietly replace it.
   int _request = 0;
 
   /// The most events a single day's list may hold.
-  ///
-  /// **The React original asks for no limit at all**, which the server reads
-  /// as "no cap" — `EventDao.kt:176` does `limit?.let { query.limit(it) }`, so
-  /// an omitted limit returns every event on the day, however many that is.
-  ///
-  /// The port has to send one, because `EventService.getAllEvents` defaults to
-  /// ten (`EventService.dart:24`) and ten would silently truncate a busy day.
-  /// A thousand is far above any real single-day count for one organization.
-  ///
-  /// It is a ceiling and not a page: there is no "load more" here, so a day
-  /// with more events than this says how many it is not showing rather than
-  /// pretending they are not there.
   static const int _dayLimit = 1000;
 
   @override
@@ -135,21 +123,42 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
   }
 
   @override
+  void dispose() {
+    _loadingBarTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   void didUpdateWidget(covariant DayEventsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // excludeEventId and marker are applied client-side; no refetch needed.
     if (oldWidget.date != widget.date ||
         oldWidget.organizationId != widget.organizationId ||
-        oldWidget.excludeEventId != widget.excludeEventId ||
         oldWidget.queryTimezone != widget.queryTimezone) {
       _fetch();
     }
+  }
+
+  void _startLoadingBarTimer() {
+    _loadingBarTimer?.cancel();
+    _loadingBarTimer = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted || !_loading) return;
+      setState(() => _showLoadingBar = true);
+    });
+  }
+
+  void _stopLoadingBar() {
+    _loadingBarTimer?.cancel();
+    _loadingBarTimer = null;
+    _showLoadingBar = false;
   }
 
   Future<void> _fetch() async {
     final orgId = int.tryParse(widget.organizationId);
     if (widget.date.isEmpty || orgId == null) {
       _set(() {
-        _events = const [];
+        _stopLoadingBar();
+        _fetchedItems = const [];
         _error = null;
         _notShown = 0;
         _loading = false;
@@ -162,6 +171,7 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
       _loading = true;
       _error = null;
     });
+    _startLoadingBarTimer();
 
     final readerZone =
         ref.read(timeZoneControllerProvider).value?.effectiveZone ?? 'UTC';
@@ -182,26 +192,18 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
       // A answer for a day the user has already moved on from.
       if (!mounted || request != _request) return;
 
-      final items = [...response.items];
-      final exclude = widget.excludeEventId;
-      if (exclude != null) {
-        items.removeWhere((event) => event.eventId.toString() == exclude);
-      }
-      items.sort((a, b) => a.instant.compareTo(b.instant));
-
       _set(() {
-        _events = items;
-        // **The rows the server did not send**, not the rows the exclusion
-        // removed. The excluded event is the one the panel is shown beside, and
-        // the user already knows about it — counting it as "not shown" would
-        // put a "and 1 more" under a list that is showing everything.
+        _stopLoadingBar();
+        _fetchedItems = [...response.items]
+          ..sort((a, b) => a.instant.compareTo(b.instant));
         _notShown = response.total - response.items.length;
         _loading = false;
       });
     } catch (error) {
       if (!mounted || request != _request) return;
       _set(() {
-        _events = const [];
+        _stopLoadingBar();
+        _fetchedItems = const [];
         _error = error is ApiException ? error : ApiRequestException('$error');
         _notShown = 0;
         _loading = false;
@@ -221,64 +223,88 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
     final readerZone =
         ref.watch(timeZoneControllerProvider).value?.effectiveZone ?? 'UTC';
     final marker = widget.marker;
+    final exclude = widget.excludeEventId;
+    final events = exclude == null
+        ? _fetchedItems
+        : _fetchedItems
+              .where((event) => event.eventId.toString() != exclude)
+              .toList(growable: false);
     final rows = <_PanelEntry>[
-      for (final event in _events) _EventEntry(event),
+      for (final event in events) _EventEntry(event),
       if (marker != null) _MarkerEntry(marker),
     ]..sort((a, b) => a.instant.compareTo(b.instant));
+
+    final hasContent = rows.isNotEmpty || _error != null;
+    final showBlockingLoader = _loading && !hasContent;
+    final showBar = _showLoadingBar && _loading;
+
+    final body = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (header != null) ...[header, const SizedBox(height: 16)],
+          if (showBlockingLoader)
+            const _LoadingBody()
+          else if (_error != null)
+            ErrorDisplay.fromException(_error!)
+          else if (rows.isEmpty)
+            Text(
+              'No events scheduled for this day.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.secondary,
+              ),
+            )
+          else ...[
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0)
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+              switch (rows[i]) {
+                _EventEntry(:final event) => _EventRow(
+                  event: event,
+                  readerZone: readerZone,
+                  onTap: () =>
+                      context.go(AppRoutes.eventDetailsPath(event.eventId)),
+                ),
+                _MarkerEntry(:final marker) => _MarkerRow(
+                  marker: marker,
+                  readerZone: readerZone,
+                ),
+              },
+            ],
+            if (_notShown > 0) ...[
+              const SizedBox(height: 12),
+              Text(
+                '…and $_notShown more on this day',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.secondary,
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
 
     return Card(
       elevation: 0,
       color: theme.colorScheme.surfaceContainerLowest,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (header != null) ...[header, const SizedBox(height: 16)],
-            if (_loading)
-              const _LoadingBody()
-            else if (_error != null)
-              ErrorDisplay.fromException(_error!)
-            else if (rows.isEmpty)
-              Text(
-                'No events scheduled for this day.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.secondary,
-                ),
-              )
-            else ...[
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0)
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: theme.colorScheme.outlineVariant,
-                  ),
-                switch (rows[i]) {
-                  _EventEntry(:final event) => _EventRow(
-                    event: event,
-                    readerZone: readerZone,
-                    onTap: () =>
-                        context.go(AppRoutes.eventDetailsPath(event.eventId)),
-                  ),
-                  _MarkerEntry(:final marker) => _MarkerRow(
-                    marker: marker,
-                    readerZone: readerZone,
-                  ),
-                },
-              ],
-              if (_notShown > 0) ...[
-                const SizedBox(height: 12),
-                Text(
-                  '…and $_notShown more on this day',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.secondary,
-                  ),
-                ),
-              ],
-            ],
-          ],
-        ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          body,
+          if (showBar)
+            const Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
+        ],
       ),
     );
   }

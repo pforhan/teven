@@ -1,4 +1,4 @@
-import 'dart:async' show unawaited;
+import 'dart:async' show Timer, unawaited;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,13 +56,18 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
   /// The event, once it has loaded.
   EventResponse? _event;
 
-  /// The first load is in flight.
-  ///
-  /// **Only the first load.** A refetch — the one after an RSVP — leaves the
-  /// event on screen, because taking it away and putting a spinner in its
-  /// place is the flash task 4.14 was filed to remove. The React original
-  /// does the same: its `fetchEvent` sets `event` and never clears it.
+  /// True while there is no event to show yet.
   bool _loading = true;
+
+  /// A fetch is in flight while an event is already on screen.
+  ///
+  /// Used to keep the previous event visible when navigating to another event,
+  /// instead of flashing a full-screen spinner.
+  bool _refreshing = false;
+
+  /// True when a refresh has been in flight for more than 200ms.
+  bool _showRefreshingBar = false;
+  Timer? _refreshingBarTimer;
 
   /// The load failed.
   ApiException? _loadError;
@@ -101,7 +106,27 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    unawaited(_load(initial: true));
+    unawaited(_load(initial: _event == null));
+  }
+
+  @override
+  void dispose() {
+    _refreshingBarTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startRefreshingBarTimer() {
+    _refreshingBarTimer?.cancel();
+    _refreshingBarTimer = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted || !_refreshing) return;
+      setState(() => _showRefreshingBar = true);
+    });
+  }
+
+  void _stopRefreshingBar() {
+    _refreshingBarTimer?.cancel();
+    _refreshingBarTimer = null;
+    _showRefreshingBar = false;
   }
 
   @override
@@ -109,25 +134,41 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.eventId != widget.eventId) {
       setState(() {
-        _event = null;
-        _loadError = null;
         _actionError = null;
         _successMessage = null;
-        _myRsvpStatus = null;
         _submitting = false;
+        // Keep the previous event visible while the next one loads to avoid a
+        // full-screen flash; _load will replace it (or show a load error).
+        _refreshing = _event != null;
+        _loading = _event == null;
+        if (!_refreshing) _stopRefreshingBar();
       });
-      unawaited(_load(initial: true));
+      if (_refreshing) _startRefreshingBarTimer();
+      unawaited(_load(initial: _event == null));
     }
   }
 
   /// Fetches the event.
   ///
-  /// [initial] distinguishes the first load — which shows a spinner and owns
-  /// the error state — from the refetch after an RSVP, which does neither.
+  /// [initial] means there is no event content to keep on screen — show a
+  /// spinner and treat failures as load errors. Otherwise keep existing content
+  /// visible while refreshing; RSVP refetch failures surface as action errors.
   Future<void> _load({required bool initial}) async {
     final request = ++_request;
-    if (initial && mounted) {
-      setState(() => _loading = true);
+    final showAsInitial = initial && _event == null;
+    final wasRefreshing = _refreshing;
+    if (mounted) {
+      setState(() {
+        if (showAsInitial) {
+          _loading = true;
+        } else if (initial) {
+          // Navigating to a different event while one is shown.
+          _refreshing = true;
+        }
+      });
+    }
+    if (initial && !showAsInitial && !wasRefreshing) {
+      _startRefreshingBarTimer();
     }
     try {
       final event = await ref
@@ -138,12 +179,22 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
         _event = event;
         _myRsvpStatus = _statusOf(event);
         _loadError = null;
-        if (initial) _loading = false;
+        _loading = false;
+        _refreshing = false;
+        _stopRefreshingBar();
       });
     } on ApiException catch (error) {
       if (!mounted || request != _request) return;
       setState(() {
-        if (initial) {
+        _refreshing = false;
+        _stopRefreshingBar();
+        if (showAsInitial) {
+          _loadError = error;
+          _loading = false;
+        } else if (initial) {
+          // Failed to load the newly requested event: do not keep showing the
+          // previous event under a different URL.
+          _event = null;
           _loadError = error;
           _loading = false;
         } else {
@@ -269,7 +320,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
               onDelete: () => unawaited(_confirmDelete()),
             ),
             const SizedBox(height: 16),
-            if (_loading)
+            if (_loading && event == null)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 48),
                 child: Center(child: CircularProgressIndicator()),
@@ -282,57 +333,69 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
                     const ApiRequestException('That event could not be found.'),
               )
             else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final main = _EventCard(
-                    event: event,
-                    readerZone: readerZone,
-                    actionError: _actionError,
-                    successMessage: _successMessage,
-                  );
-                  final side = _Sidebar(
-                    event: event,
-                    readerZone: readerZone,
-                    canJoin: canJoin,
-                    canManage: canManage,
-                    myRsvpStatus: _myRsvpStatus,
-                    submitting: _submitting,
-                    onRsvp: (availability) => unawaited(_rsvp(availability)),
-                  );
+              Stack(
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final main = _EventCard(
+                        event: event,
+                        readerZone: readerZone,
+                        actionError: _actionError,
+                        successMessage: _successMessage,
+                      );
+                      final side = _Sidebar(
+                        event: event,
+                        readerZone: readerZone,
+                        canJoin: canJoin,
+                        canManage: canManage,
+                        myRsvpStatus: _myRsvpStatus,
+                        submitting: _submitting,
+                        onRsvp: (availability) =>
+                            unawaited(_rsvp(availability)),
+                      );
 
-                  // **`col-lg-8` / `col-lg-4`, one column below.**
-                  //
-                  // **The threshold is the content width, not the window's**,
-                  // and the difference is not cosmetic. Bootstrap's `lg` is
-                  // 992px of *viewport*; the React original has a navbar
-                  // across the top, so its content *is* its viewport. This
-                  // port has a rail down the side, which takes 80px on a
-                  // tablet layout and 256px on a desktop one — so a viewport
-                  // of 1100px leaves about 820px of column, and a split
-                  // keyed on the window would put a 330px sidebar into a
-                  // 820px space.
-                  //
-                  // 860 is the width at which a 2:1 split gives the sidebar
-                  // about 280px and the main card about 560px. Below it the
-                  // sidebar stacks under the card instead — and the thing
-                  // that decides it is the width of the *card*, not of the
-                  // window.
-                  if (constraints.maxWidth < kTwoColumnContentWidth) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [main, const SizedBox(height: 16), side],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 8 of 12 and 4 of 12.
-                      Expanded(flex: 2, child: main),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 1, child: side),
-                    ],
-                  );
-                },
+                      // **`col-lg-8` / `col-lg-4`, one column below.**
+                      //
+                      // **The threshold is the content width, not the window's**,
+                      // and the difference is not cosmetic. Bootstrap's `lg` is
+                      // 992px of *viewport*; the React original has a navbar
+                      // across the top, so its content *is* its viewport. This
+                      // port has a rail down the side, which takes 80px on a
+                      // tablet layout and 256px on a desktop one — so a viewport
+                      // of 1100px leaves about 820px of column, and a split
+                      // keyed on the window would put a 330px sidebar into a
+                      // 820px space.
+                      //
+                      // 860 is the width at which a 2:1 split gives the sidebar
+                      // about 280px and the main card about 560px. Below it the
+                      // sidebar stacks under the card instead — and the thing
+                      // that decides it is the width of the *card*, not of the
+                      // window.
+                      if (constraints.maxWidth < kTwoColumnContentWidth) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [main, const SizedBox(height: 16), side],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 8 of 12 and 4 of 12.
+                          Expanded(flex: 2, child: main),
+                          const SizedBox(width: 16),
+                          Expanded(flex: 1, child: side),
+                        ],
+                      );
+                    },
+                  ),
+                  if (_showRefreshingBar && _refreshing)
+                    const Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      child: LinearProgressIndicator(minHeight: 2),
+                    ),
+                ],
               ),
           ],
         ),
