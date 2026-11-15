@@ -89,10 +89,35 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
   /// A delete or an RSVP is in flight.
   bool _submitting = false;
 
+  /// Counts loads so a slow response cannot overwrite a newer one.
+  ///
+  /// Navigating between events reuses this screen with a different
+  /// [EventDetailsScreen.eventId] (the "Other events" panel, the day view, and
+  /// browser back all do this). Without a guard, an earlier request that
+  /// resolves late would repaint the wrong event — the URL would name one event
+  /// while the content showed another.
+  int _request = 0;
+
   @override
   void initState() {
     super.initState();
     unawaited(_load(initial: true));
+  }
+
+  @override
+  void didUpdateWidget(covariant EventDetailsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.eventId != widget.eventId) {
+      setState(() {
+        _event = null;
+        _loadError = null;
+        _actionError = null;
+        _successMessage = null;
+        _myRsvpStatus = null;
+        _submitting = false;
+      });
+      unawaited(_load(initial: true));
+    }
   }
 
   /// Fetches the event.
@@ -100,6 +125,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
   /// [initial] distinguishes the first load — which shows a spinner and owns
   /// the error state — from the refetch after an RSVP, which does neither.
   Future<void> _load({required bool initial}) async {
+    final request = ++_request;
     if (initial && mounted) {
       setState(() => _loading = true);
     }
@@ -107,7 +133,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
       final event = await ref
           .read(eventServiceProvider)
           .getEvent(widget.eventId);
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _event = event;
         _myRsvpStatus = _statusOf(event);
@@ -115,7 +141,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
         if (initial) _loading = false;
       });
     } on ApiException catch (error) {
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         if (initial) {
           _loadError = error;
