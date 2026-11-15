@@ -55,6 +55,7 @@ class DayEventsPanel extends ConsumerStatefulWidget {
     this.queryTimezone,
     this.headerMode = DayEventsPanelHeaderMode.staticLabel,
     this.marker,
+    this.interactive = true,
   });
 
   /// The day, as `YYYY-MM-DD`.
@@ -88,6 +89,11 @@ class DayEventsPanel extends ConsumerStatefulWidget {
 
   /// Optional ghost marker for a current or proposed event placement.
   final DayEventsPanelMarker? marker;
+
+  /// Whether event rows can be tapped to navigate to their details.
+  ///
+  /// Disabled in create/edit flows to avoid leaving unsaved form state.
+  final bool interactive;
 
   @override
   ConsumerState<DayEventsPanel> createState() => _DayEventsPanelState();
@@ -267,8 +273,11 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
                 _EventEntry(:final event) => _EventRow(
                   event: event,
                   readerZone: readerZone,
-                  onTap: () =>
-                      context.go(AppRoutes.eventDetailsPath(event.eventId)),
+                  onTap: widget.interactive
+                      ? () => context.go(
+                          AppRoutes.eventDetailsPath(event.eventId),
+                        )
+                      : null,
                 ),
                 _MarkerEntry(:final marker) => _MarkerRow(
                   marker: marker,
@@ -392,7 +401,7 @@ class _EventRow extends StatelessWidget {
 
   final EventResponse event;
   final String readerZone;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -400,84 +409,79 @@ class _EventRow extends StatelessWidget {
     final location = event.location;
     final hasLocation = location != null && location.isNotEmpty;
 
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        // `py-3` — twelve pixels above and below.
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              // `align-items-center`, so the time stays level with the first
-              // line of a title that wraps.
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    event.title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  event.timeIn(readerZone),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.primary,
+    final content = Padding(
+      // `py-3` — twelve pixels above and below.
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            // `align-items-center`, so the time stays level with the first
+            // line of a title that wraps.
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  event.title,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                // The clock. **The Bootstrap Icons were never installed** and
-                // the original's icon tags render as empty elements, so there
-                // is nothing to match — task 3.11 settles it: Material icons
-                // throughout.
-                Icon(
-                  Icons.schedule,
-                  size: 14,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                event.timeIn(readerZone),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              // The clock. **The Bootstrap Icons were never installed** and
+              // the original's icon tags render as empty elements, so there
+              // is nothing to match — task 3.11 settles it: Material icons
+              // throughout.
+              Icon(
+                Icons.schedule,
+                size: 14,
+                color: theme.colorScheme.secondary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${event.durationMinutes} min',
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.secondary,
                 ),
+              ),
+              if (hasLocation) ...[
+                // `ms-3` — a rem's worth of space between the two details.
+                const SizedBox(width: 16),
+                Icon(Icons.place, size: 14, color: theme.colorScheme.secondary),
                 const SizedBox(width: 4),
-                Text(
-                  '${event.durationMinutes} min',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.secondary,
-                  ),
-                ),
-                if (hasLocation) ...[
-                  // `ms-3` — a rem's worth of space between the two details.
-                  const SizedBox(width: 16),
-                  Icon(
-                    Icons.place,
-                    size: 14,
-                    color: theme.colorScheme.secondary,
-                  ),
-                  const SizedBox(width: 4),
-                  // Expanded rather than free: the location is the one part of
-                  // this row that can be long, and a `Row` of unbounded
-                  // children overflows a narrow sidebar rather than wrapping.
-                  Expanded(
-                    child: Text(
-                      location,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.secondary,
-                      ),
+                // Expanded rather than free: the location is the one part of
+                // this row that can be long, and a `Row` of unbounded
+                // children overflows a narrow sidebar rather than wrapping.
+                Expanded(
+                  child: Text(
+                    location,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.secondary,
                     ),
                   ),
-                ],
+                ),
               ],
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
+    if (onTap == null) return content;
+    return InkWell(onTap: onTap, child: content);
   }
 }
 

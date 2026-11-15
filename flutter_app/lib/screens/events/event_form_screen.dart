@@ -1176,6 +1176,7 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
               excludeEventId: _isEdit ? '${widget.eventId}' : null,
               queryTimezone: _eventZone,
               marker: marker,
+              interactive: false,
             );
 
             if (wide) {
