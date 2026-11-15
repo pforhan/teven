@@ -156,11 +156,15 @@ class TimeField extends StatelessWidget {
     required this.controller,
     required this.label,
     this.validator,
+    this.onChanged,
   });
 
   final TextEditingController controller;
   final String label;
   final String? Function(String?)? validator;
+
+  /// Called after a time is picked.
+  final ValueChanged<TimeOfDay>? onChanged;
 
   /// Parses `HH:MM` or `HH:MM:SS`, returning null if neither matches.
   static TimeOfDay? _parse(String text) {
@@ -196,6 +200,7 @@ class TimeField extends StatelessWidget {
     final picked = await showTimePicker(context: context, initialTime: initial);
     if (picked != null) {
       controller.text = _formatTime(picked);
+      onChanged?.call(picked);
     }
   }
 }

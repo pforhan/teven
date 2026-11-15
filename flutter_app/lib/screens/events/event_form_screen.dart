@@ -905,6 +905,7 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
                     controller: _time,
                     label: 'Start Time',
                     validator: Validators.requiredText,
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 16),
                   _buildOrganizationField(theme),
@@ -1149,28 +1150,24 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
             );
 
             OtherEventsPanelMarker? marker;
-            if (_isEdit) {
-              final date = DateTime.tryParse(_dateValue);
-              if (date != null && _time.text.isNotEmpty) {
-                try {
-                  final instant = ref
-                      .read(timeZoneServiceProvider)
-                      .instantAt(
-                        zoneId: _eventZone,
-                        localDate: date,
-                        localTime: _parseTimeText(_time.text),
-                      );
-                  marker = OtherEventsPanelMarker(
-                    instant: instant,
-                    label: _title.text.trim().isEmpty
-                        ? 'This event'
-                        : _title.text.trim(),
-                  );
-                } on TimeZoneException {
-                  marker = null;
-                } on FormatException {
-                  marker = null;
-                }
+            final date = DateTime.tryParse(_dateValue);
+            if (date != null && _time.text.isNotEmpty) {
+              try {
+                final instant = ref
+                    .read(timeZoneServiceProvider)
+                    .instantAt(
+                      zoneId: _eventZone,
+                      localDate: date,
+                      localTime: _parseTimeText(_time.text),
+                    );
+                marker = OtherEventsPanelMarker(
+                  instant: instant,
+                  label: _isEdit ? 'This event' : 'New event',
+                );
+              } on TimeZoneException {
+                marker = null;
+              } on FormatException {
+                marker = null;
               }
             }
             final sidebar = OtherEventsPanel(
