@@ -483,7 +483,7 @@ void main() {
       expect(find.byType(Scrollable), findsWidgets);
       // Verify panel rendered (title text includes date context in panel impl;
       // at minimum the widget is in tree for edit mode).
-      expect(find.textContaining('Other events'), findsOneWidget);
+      expect(find.textContaining('Events on'), findsOneWidget);
     });
   });
 

@@ -821,13 +821,18 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      // **`EventDetails.tsx:175-181`.** The panel fetches the other events on
-      // this event's day, in this event's organization, minus this event.
+      // **`EventDetails.tsx:175-181`.** The panel fetches the events on this
+      // event's day, in this event's organization, and marks this event's
+      // placement with a ghost marker.
       OtherEventsPanel(
         date: event.dateIn(readerZone),
         organizationId: event.organization.organizationId.toString(),
         excludeEventId: event.eventId.toString(),
         headerMode: OtherEventsPanelHeaderMode.linkToDayView,
+        marker: OtherEventsPanelMarker(
+          instant: event.instant,
+          label: 'This event',
+        ),
       ),
       const SizedBox(height: 16),
       _AvailabilityCard(

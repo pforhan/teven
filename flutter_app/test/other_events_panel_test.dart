@@ -182,10 +182,7 @@ void main() {
       await pumpPanel(tester, adapter: adapter, date: '');
 
       expect(adapter.requests.where((o) => o.path == '/api/events'), isEmpty);
-      expect(
-        find.text('No other events scheduled for this day.'),
-        findsOneWidget,
-      );
+      expect(find.text('No events scheduled for this day.'), findsOneWidget);
     });
 
     testWidgets('asks for nothing without an organization', (tester) async {
@@ -193,10 +190,7 @@ void main() {
       await pumpPanel(tester, adapter: adapter, organizationId: '');
 
       expect(adapter.requests.where((o) => o.path == '/api/events'), isEmpty);
-      expect(
-        find.text('No other events scheduled for this day.'),
-        findsOneWidget,
-      );
+      expect(find.text('No events scheduled for this day.'), findsOneWidget);
     });
 
     testWidgets('asks for nothing when the organization is not a number', (
@@ -314,10 +308,7 @@ void main() {
     testWidgets('says the day is empty when it is', (tester) async {
       await pumpPanel(tester, adapter: eventsAdapter());
 
-      expect(
-        find.text('No other events scheduled for this day.'),
-        findsOneWidget,
-      );
+      expect(find.text('No events scheduled for this day.'), findsOneWidget);
     });
   });
 
@@ -336,7 +327,7 @@ void main() {
           .map((o) => o.queryParameters['startDate'])
           .toList();
       expect(dates, ['2026-10-24', '2026-10-25']);
-      expect(find.text('Other events on 2026-10-25'), findsOneWidget);
+      expect(find.text('Events on 2026-10-25'), findsOneWidget);
     });
 
     testWidgets('a slow answer for the old day does not replace the new one', (
@@ -432,10 +423,7 @@ void main() {
       // scheduled for this day."** — a statement about the day that the
       // failure makes untrue. This says what happened instead.
       expect(find.textContaining('Something broke'), findsOneWidget);
-      expect(
-        find.text('No other events scheduled for this day.'),
-        findsNothing,
-      );
+      expect(find.text('No events scheduled for this day.'), findsNothing);
     });
 
     testWidgets('counts the events the server did not send', (tester) async {

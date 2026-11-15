@@ -1148,11 +1148,37 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
               ),
             );
 
+            OtherEventsPanelMarker? marker;
+            if (_isEdit) {
+              final date = DateTime.tryParse(_dateValue);
+              if (date != null && _time.text.isNotEmpty) {
+                try {
+                  final instant = ref
+                      .read(timeZoneServiceProvider)
+                      .instantAt(
+                        zoneId: _eventZone,
+                        localDate: date,
+                        localTime: _parseTimeText(_time.text),
+                      );
+                  marker = OtherEventsPanelMarker(
+                    instant: instant,
+                    label: _title.text.trim().isEmpty
+                        ? 'This event'
+                        : _title.text.trim(),
+                  );
+                } on TimeZoneException {
+                  marker = null;
+                } on FormatException {
+                  marker = null;
+                }
+              }
+            }
             final sidebar = OtherEventsPanel(
               date: _dateValue,
               organizationId: _selectedOrganizationId,
               excludeEventId: _isEdit ? '${widget.eventId}' : null,
               queryTimezone: _eventZone,
+              marker: marker,
             );
 
             if (wide) {

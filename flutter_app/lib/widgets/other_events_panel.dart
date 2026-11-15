@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/api/api_exception.dart';
 import '../core/services/list_query.dart';
+import '../core/util/local_date.dart';
 import '../models/event.dart';
 import '../providers/service_providers.dart';
 import '../providers/time_zone_controller.dart';
@@ -22,15 +23,27 @@ enum OtherEventsPanelHeaderMode {
   linkToDayView,
 }
 
-/// The "Other events on {date}" card.
+/// A ghost marker showing where an event sits or would sit in the day.
+class OtherEventsPanelMarker {
+  const OtherEventsPanelMarker({required this.instant, required this.label});
+
+  /// The event's start instant, used to position the marker among fetched rows.
+  final DateTime instant;
+
+  /// Text shown for the marker.
+  final String label;
+}
+
+/// The "Events on {date}" card.
 ///
-/// The sidebar card that lists what else is scheduled on the same day, in the
-/// same organization, so a user can see what they are about to double-book.
+/// The sidebar card that lists events scheduled on the same day, in the same
+/// organization, so a user can see what they are about to double-book.
 ///
 /// **Mounted in three places:** the event details screen's sidebar, the day
-/// view, and the create/edit form sidebars. Two of the three pass the event's
-/// own id as [excludeEventId], so the event you are looking at is never listed
-/// as one of the others.
+/// view, and the create/edit form sidebars. A persisted event shown alongside
+/// the panel may be excluded from fetched results via [excludeEventId] and
+/// represented by [marker] so its placement can be shown (and, when editing,
+/// move as its time changes).
 class OtherEventsPanel extends ConsumerStatefulWidget {
   const OtherEventsPanel({
     super.key,
@@ -39,6 +52,7 @@ class OtherEventsPanel extends ConsumerStatefulWidget {
     this.excludeEventId,
     this.queryTimezone,
     this.headerMode = OtherEventsPanelHeaderMode.staticLabel,
+    this.marker,
   });
 
   /// The day, as `YYYY-MM-DD`.
@@ -54,11 +68,10 @@ class OtherEventsPanel extends ConsumerStatefulWidget {
   /// theirs in state as one.
   final String organizationId;
 
-  /// An event to leave out of the list.
+  /// A persisted event to leave out of the fetched list.
   ///
-  /// The event the panel is shown beside — the details screen and the edit form
-  /// both pass the event's own id, so a user does not see the event they are
-  /// looking at listed as one of the others.
+  /// Used with [marker] to avoid duplicating an event while still showing its
+  /// placement (for example the event being viewed or edited).
   final String? excludeEventId;
 
   /// The zone [date] is interpreted in for the query.
@@ -70,6 +83,9 @@ class OtherEventsPanel extends ConsumerStatefulWidget {
 
   /// How the date header is shown for this context.
   final OtherEventsPanelHeaderMode headerMode;
+
+  /// Optional ghost marker for a current or proposed event placement.
+  final OtherEventsPanelMarker? marker;
 
   @override
   ConsumerState<OtherEventsPanel> createState() => _OtherEventsPanelState();
@@ -202,6 +218,14 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final header = _buildHeader(context, theme);
+    final readerZone =
+        ref.watch(timeZoneControllerProvider).value?.effectiveZone ?? 'UTC';
+    final marker = widget.marker;
+    final rows = <_PanelEntry>[
+      for (final event in _events) _EventEntry(event),
+      if (marker != null) _MarkerEntry(marker),
+    ]..sort((a, b) => a.instant.compareTo(b.instant));
+
     return Card(
       elevation: 0,
       color: theme.colorScheme.surfaceContainerLowest,
@@ -215,36 +239,33 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
               const _LoadingBody()
             else if (_error != null)
               ErrorDisplay.fromException(_error!)
-            else if (_events.isEmpty)
+            else if (rows.isEmpty)
               Text(
-                'No other events scheduled for this day.',
+                'No events scheduled for this day.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.secondary,
                 ),
               )
             else ...[
-              for (var i = 0; i < _events.length; i++) ...[
-                // **The rule between rows.** Every row of the list this
-                // replaced carried a bottom border, so the list is ruled
-                // rather than floating.
+              for (var i = 0; i < rows.length; i++) ...[
                 if (i > 0)
                   Divider(
                     height: 1,
                     thickness: 1,
                     color: theme.colorScheme.outlineVariant,
                   ),
-                _EventRow(
-                  event: _events[i],
-                  readerZone:
-                      ref
-                          .watch(timeZoneControllerProvider)
-                          .value
-                          ?.effectiveZone ??
-                      'UTC',
-                  onTap: () => context.go(
-                    AppRoutes.eventDetailsPath(_events[i].eventId),
+                switch (rows[i]) {
+                  _EventEntry(:final event) => _EventRow(
+                    event: event,
+                    readerZone: readerZone,
+                    onTap: () =>
+                        context.go(AppRoutes.eventDetailsPath(event.eventId)),
                   ),
-                ),
+                  _MarkerEntry(:final marker) => _MarkerRow(
+                    marker: marker,
+                    readerZone: readerZone,
+                  ),
+                },
               ],
               if (_notShown > 0) ...[
                 const SizedBox(height: 12),
@@ -265,7 +286,7 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
   Widget? _buildHeader(BuildContext context, ThemeData theme) {
     if (widget.headerMode == OtherEventsPanelHeaderMode.hidden) return null;
     final text = Text(
-      'Other events on ${widget.date}',
+      'Events on ${widget.date}',
       style: theme.textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.bold,
         color: theme.colorScheme.secondary,
@@ -287,6 +308,24 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
     }
     return text;
   }
+}
+
+sealed class _PanelEntry {
+  DateTime get instant;
+}
+
+class _EventEntry extends _PanelEntry {
+  _EventEntry(this.event);
+  final EventResponse event;
+  @override
+  DateTime get instant => event.instant;
+}
+
+class _MarkerEntry extends _PanelEntry {
+  _MarkerEntry(this.marker);
+  final OtherEventsPanelMarker marker;
+  @override
+  DateTime get instant => marker.instant;
 }
 
 /// The body shown while the list loads.
@@ -408,6 +447,61 @@ class _EventRow extends StatelessWidget {
                   ),
                 ],
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A non-navigable ghost row showing where an event sits or would sit.
+class _MarkerRow extends StatelessWidget {
+  const _MarkerRow({required this.marker, required this.readerZone});
+
+  final OtherEventsPanelMarker marker;
+  final String readerZone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final time = formatTimeInZone(marker.instant, readerZone);
+    return Semantics(
+      label: '${marker.label}, $time',
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.arrow_right_alt,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                marker.label,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              time,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
