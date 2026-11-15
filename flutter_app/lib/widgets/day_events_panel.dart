@@ -56,6 +56,7 @@ class DayEventsPanel extends ConsumerStatefulWidget {
     this.headerMode = DayEventsPanelHeaderMode.staticLabel,
     this.marker,
     this.interactive = true,
+    this.organizationName,
   });
 
   /// The day, as `YYYY-MM-DD`.
@@ -93,6 +94,12 @@ class DayEventsPanel extends ConsumerStatefulWidget {
   ///
   /// Disabled in create/edit flows to avoid leaving unsaved form state.
   final bool interactive;
+
+  /// When set, shown as the scoped organization for this panel's events.
+  ///
+  /// Used on view-event to clarify which organization's events are listed when
+  /// a superadmin may be comparing against all-org views.
+  final String? organizationName;
 
   @override
   ConsumerState<DayEventsPanel> createState() => _DayEventsPanelState();
@@ -243,13 +250,37 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
     final hasContent = rows.isNotEmpty || _error != null;
     final showBlockingLoader = _loading && !hasContent;
     final showBar = _showLoadingBar && _loading;
+    final showOrganization = widget.organizationId == null;
 
+    final orgLabel = widget.organizationName;
     final body = Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (header != null) ...[header, const SizedBox(height: 16)],
+          if (header != null) ...[
+            header,
+            if (orgLabel != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Organization: $orgLabel',
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.secondary,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+          ] else if (orgLabel != null) ...[
+            Text(
+              'Organization: $orgLabel',
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.secondary,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (showBlockingLoader)
             const _LoadingBody()
           else if (_error != null)
@@ -273,6 +304,7 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
                 _EventEntry(:final event) => _EventRow(
                   event: event,
                   readerZone: readerZone,
+                  showOrganization: showOrganization,
                   onTap: widget.interactive
                       ? () => context.go(
                           AppRoutes.eventDetailsPath(event.eventId),
@@ -409,11 +441,13 @@ class _EventRow extends StatelessWidget {
   const _EventRow({
     required this.event,
     required this.readerZone,
+    required this.showOrganization,
     required this.onTap,
   });
 
   final EventResponse event;
   final String readerZone;
+  final bool showOrganization;
   final VoidCallback? onTap;
 
   @override
@@ -428,6 +462,17 @@ class _EventRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (showOrganization) ...[
+            Text(
+              event.organization.name,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.secondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 2),
+          ],
           Row(
             // `align-items-center`, so the time stays level with the first
             // line of a title that wraps.

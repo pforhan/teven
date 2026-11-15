@@ -12,6 +12,7 @@ import '../../models/customer.dart';
 import '../../models/event.dart';
 import '../../models/permissions.dart';
 import '../../providers/auth_controller.dart';
+import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
@@ -861,7 +862,7 @@ class _InventoryTile extends StatelessWidget {
 }
 
 /// The sidebar: the other events, this user's availability, and the roster.
-class _Sidebar extends StatelessWidget {
+class _Sidebar extends ConsumerWidget {
   const _Sidebar({
     required this.event,
     required this.readerZone,
@@ -881,33 +882,41 @@ class _Sidebar extends StatelessWidget {
   final ValueChanged<String> onRsvp;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      // **`EventDetails.tsx:175-181`.** The panel fetches the events on this
-      // event's day, in this event's organization, and marks this event's
-      // placement with a ghost marker.
-      DayEventsPanel(
-        date: event.dateIn(readerZone),
-        organizationId: event.organization.organizationId.toString(),
-        excludeEventId: event.eventId.toString(),
-        headerMode: DayEventsPanelHeaderMode.linkToDayView,
-        marker: DayEventsPanelMarker(
-          instant: event.instant,
-          label: 'This event',
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showOrganizationName =
+        ref.watch(selectedOrganizationProvider) == null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // **`EventDetails.tsx:175-181`.** The panel fetches the events on this
+        // event's day, in this event's organization, and marks this event's
+        // placement with a ghost marker.
+        DayEventsPanel(
+          date: event.dateIn(readerZone),
+          organizationId: event.organization.organizationId.toString(),
+          organizationName: showOrganizationName
+              ? event.organization.name
+              : null,
+          excludeEventId: event.eventId.toString(),
+          headerMode: DayEventsPanelHeaderMode.linkToDayView,
+          marker: DayEventsPanelMarker(
+            instant: event.instant,
+            label: 'This event',
+          ),
         ),
-      ),
-      const SizedBox(height: 16),
-      _AvailabilityCard(
-        canJoin: canJoin,
-        myRsvpStatus: myRsvpStatus,
-        submitting: submitting,
-        onRsvp: onRsvp,
-      ),
-      const SizedBox(height: 16),
-      _RosterCard(event: event, canManage: canManage),
-    ],
-  );
+        const SizedBox(height: 16),
+        _AvailabilityCard(
+          canJoin: canJoin,
+          myRsvpStatus: myRsvpStatus,
+          submitting: submitting,
+          onRsvp: onRsvp,
+        ),
+        const SizedBox(height: 16),
+        _RosterCard(event: event, canManage: canManage),
+      ],
+    );
+  }
 }
 
 /// "Your Availability" — the two RSVP buttons.
