@@ -320,14 +320,27 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
 
   Widget? _buildHeader(BuildContext context, ThemeData theme) {
     if (widget.headerMode == DayEventsPanelHeaderMode.hidden) return null;
-    final text = Text(
-      'Events on ${widget.date}',
-      style: theme.textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.bold,
-        color: theme.colorScheme.secondary,
-      ),
+    final baseStyle = theme.textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.bold,
+      color: theme.colorScheme.secondary,
     );
     if (widget.headerMode == DayEventsPanelHeaderMode.linkToDayView) {
+      final text = Text.rich(
+        TextSpan(
+          style: baseStyle,
+          children: [
+            const TextSpan(text: 'Events on '),
+            TextSpan(
+              text: widget.date,
+              style: baseStyle?.copyWith(
+                color: theme.colorScheme.primary,
+                decoration: TextDecoration.underline,
+                decorationColor: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+      );
       return Semantics(
         button: true,
         label: 'View day ${widget.date}',
@@ -341,7 +354,7 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
         ),
       );
     }
-    return text;
+    return Text('Events on ${widget.date}', style: baseStyle);
   }
 }
 
