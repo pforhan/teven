@@ -10,15 +10,27 @@ import '../providers/time_zone_controller.dart';
 import '../routing/app_router.dart';
 import 'error_display.dart';
 
+/// How the panel's date header is presented.
+enum OtherEventsPanelHeaderMode {
+  /// A plain, non-interactive header.
+  staticLabel,
+
+  /// No header — the surrounding screen already shows the day.
+  hidden,
+
+  /// A tappable header that opens the day view for [OtherEventsPanel.date].
+  linkToDayView,
+}
+
 /// The "Other events on {date}" card.
 ///
 /// The sidebar card that lists what else is scheduled on the same day, in the
 /// same organization, so a user can see what they are about to double-book.
 ///
-/// **Mounted in three places:** the event details screen's sidebar, the create
-/// form's sidebar and the edit form's sidebar. Two of the three pass the
-/// event's own id as [excludeEventId], so the event you are looking at is never
-/// listed as one of the others.
+/// **Mounted in three places:** the event details screen's sidebar, the day
+/// view, and the create/edit form sidebars. Two of the three pass the event's
+/// own id as [excludeEventId], so the event you are looking at is never listed
+/// as one of the others.
 class OtherEventsPanel extends ConsumerStatefulWidget {
   const OtherEventsPanel({
     super.key,
@@ -26,6 +38,7 @@ class OtherEventsPanel extends ConsumerStatefulWidget {
     required this.organizationId,
     this.excludeEventId,
     this.queryTimezone,
+    this.headerMode = OtherEventsPanelHeaderMode.staticLabel,
   });
 
   /// The day, as `YYYY-MM-DD`.
@@ -54,6 +67,9 @@ class OtherEventsPanel extends ConsumerStatefulWidget {
   /// timezone so the double-booking check runs against the day being scheduled,
   /// not the reader's day.
   final String? queryTimezone;
+
+  /// How the date header is shown for this context.
+  final OtherEventsPanelHeaderMode headerMode;
 
   @override
   ConsumerState<OtherEventsPanel> createState() => _OtherEventsPanelState();
@@ -185,6 +201,7 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final header = _buildHeader(context, theme);
     return Card(
       elevation: 0,
       color: theme.colorScheme.surfaceContainerLowest,
@@ -193,17 +210,7 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // `<h5 className="fw-bold mb-3 text-secondary">Other events on
-            // {date}</h5>`. The heading stays put while the list loads, which
-            // the React original does not do — see the note on the body below.
-            Text(
-              'Other events on ${widget.date}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.secondary,
-              ),
-            ),
-            const SizedBox(height: 16),
+            if (header != null) ...[header, const SizedBox(height: 16)],
             if (_loading)
               const _LoadingBody()
             else if (_error != null)
@@ -253,6 +260,32 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
         ),
       ),
     );
+  }
+
+  Widget? _buildHeader(BuildContext context, ThemeData theme) {
+    if (widget.headerMode == OtherEventsPanelHeaderMode.hidden) return null;
+    final text = Text(
+      'Other events on ${widget.date}',
+      style: theme.textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.secondary,
+      ),
+    );
+    if (widget.headerMode == OtherEventsPanelHeaderMode.linkToDayView) {
+      return Semantics(
+        button: true,
+        label: 'View day ${widget.date}',
+        child: InkWell(
+          onTap: () => context.go('${AppRoutes.eventDay}?date=${widget.date}'),
+          borderRadius: BorderRadius.circular(4),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Align(alignment: Alignment.centerLeft, child: text),
+          ),
+        ),
+      );
+    }
+    return text;
   }
 }
 

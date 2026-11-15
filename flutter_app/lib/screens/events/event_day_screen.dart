@@ -88,6 +88,7 @@ class _EventDayScreenState extends ConsumerState<EventDayScreen> {
               child: OtherEventsPanel(
                 date: widget.date,
                 organizationId: organizationId,
+                headerMode: OtherEventsPanelHeaderMode.hidden,
               ),
             ),
           ),

@@ -827,6 +827,7 @@ class _Sidebar extends StatelessWidget {
         date: event.dateIn(readerZone),
         organizationId: event.organization.organizationId.toString(),
         excludeEventId: event.eventId.toString(),
+        headerMode: OtherEventsPanelHeaderMode.linkToDayView,
       ),
       const SizedBox(height: 16),
       _AvailabilityCard(

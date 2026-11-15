@@ -111,7 +111,9 @@ void main() {
       );
       await openDay(tester, adapter);
 
-      expect(find.text('Other events on 2026-10-24'), findsOneWidget);
+      // 9.19: the day view suppresses the panel header because the screen
+      // already shows the day.
+      expect(find.text('Other events on 2026-10-24'), findsNothing);
       expect(find.text('Fence Repair'), findsOneWidget);
       // 7.20: panel rows render in the reader's zone (`DateFormat.jm()`).
       expect(
