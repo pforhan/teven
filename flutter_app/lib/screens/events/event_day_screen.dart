@@ -41,8 +41,14 @@ class EventDayScreen extends ConsumerStatefulWidget {
 class _EventDayScreenState extends ConsumerState<EventDayScreen> {
   @override
   Widget build(BuildContext context) {
-    final organization = ref.watch(selectedOrganizationProvider);
-    final organizationId = organization?.organizationId.toString() ?? '';
+    final isSuperAdmin = ref
+        .watch(permissionGateProvider)
+        .has(Permission.viewUsersGlobal);
+    final selectedOrganization = ref.watch(selectedOrganizationProvider);
+    final userOrganization = ref.watch(userContextProvider)?.user.organization;
+    final String? organizationId = isSuperAdmin
+        ? selectedOrganization?.organizationId.toString()
+        : userOrganization?.organizationId.toString();
 
     // The day is a wire date (`YYYY-MM-DD`); the previous and next gestures
     // move a single calendar day in the reader's local date, which is the only

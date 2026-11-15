@@ -66,10 +66,9 @@ class DayEventsPanel extends ConsumerStatefulWidget {
 
   /// The organization to scope the list to, as a decimal string.
   ///
-  /// A string because every call site holds it as one: the details screen
-  /// renders the event's organization id into one, and the two forms keep
-  /// theirs in state as one.
-  final String organizationId;
+  /// `null` means no organization filter (e.g. a superadmin viewing all
+  /// organizations).
+  final String? organizationId;
 
   /// A persisted event to leave out of the fetched list.
   ///
@@ -160,8 +159,9 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
   }
 
   Future<void> _fetch() async {
-    final orgId = int.tryParse(widget.organizationId);
-    if (widget.date.isEmpty || orgId == null) {
+    final rawOrgId = widget.organizationId;
+    final orgId = rawOrgId == null ? null : int.tryParse(rawOrgId);
+    if (widget.date.isEmpty || (rawOrgId != null && orgId == null)) {
       _set(() {
         _stopLoadingBar();
         _fetchedItems = const [];
