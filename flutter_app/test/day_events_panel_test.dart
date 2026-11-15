@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:teven_app/widgets/other_events_panel.dart';
+import 'package:teven_app/widgets/day_events_panel.dart';
 
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The "other events on this day" panel — task 7.7.
+/// The "events on this day" panel — task 7.7.
 ///
 /// Driven on a page of its own rather than through the event details screen,
 /// because the panel's contract is its three inputs — a day, an organization
@@ -49,7 +49,7 @@ void main() {
           builder: (context, state) => Scaffold(
             body: ValueListenableBuilder<String>(
               valueListenable: theDay,
-              builder: (context, value, _) => OtherEventsPanel(
+              builder: (context, value, _) => DayEventsPanel(
                 date: value,
                 organizationId: organizationId,
                 excludeEventId: excludeEventId,

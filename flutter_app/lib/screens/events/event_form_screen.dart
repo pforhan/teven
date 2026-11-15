@@ -24,7 +24,7 @@ import '../../routing/app_router.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/inventory_association_editor.dart';
 import '../../widgets/organization_picker.dart';
-import '../../widgets/other_events_panel.dart';
+import '../../widgets/day_events_panel.dart';
 import '../../widgets/picker_fields.dart';
 import '../../widgets/time_zone_field.dart';
 import '../../widgets/validators.dart';
@@ -1149,7 +1149,7 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
               ),
             );
 
-            OtherEventsPanelMarker? marker;
+            DayEventsPanelMarker? marker;
             final date = DateTime.tryParse(_dateValue);
             if (date != null && _time.text.isNotEmpty) {
               try {
@@ -1160,7 +1160,7 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
                       localDate: date,
                       localTime: _parseTimeText(_time.text),
                     );
-                marker = OtherEventsPanelMarker(
+                marker = DayEventsPanelMarker(
                   instant: instant,
                   label: _isEdit ? 'This event' : 'New event',
                 );
@@ -1170,7 +1170,7 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
                 marker = null;
               }
             }
-            final sidebar = OtherEventsPanel(
+            final sidebar = DayEventsPanel(
               date: _dateValue,
               organizationId: _selectedOrganizationId,
               excludeEventId: _isEdit ? '${widget.eventId}' : null,

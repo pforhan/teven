@@ -12,20 +12,20 @@ import '../routing/app_router.dart';
 import 'error_display.dart';
 
 /// How the panel's date header is presented.
-enum OtherEventsPanelHeaderMode {
+enum DayEventsPanelHeaderMode {
   /// A plain, non-interactive header.
   staticLabel,
 
   /// No header — the surrounding screen already shows the day.
   hidden,
 
-  /// A tappable header that opens the day view for [OtherEventsPanel.date].
+  /// A tappable header that opens the day view for [DayEventsPanel.date].
   linkToDayView,
 }
 
 /// A ghost marker showing where an event sits or would sit in the day.
-class OtherEventsPanelMarker {
-  const OtherEventsPanelMarker({required this.instant, required this.label});
+class DayEventsPanelMarker {
+  const DayEventsPanelMarker({required this.instant, required this.label});
 
   /// The event's start instant, used to position the marker among fetched rows.
   final DateTime instant;
@@ -44,14 +44,14 @@ class OtherEventsPanelMarker {
 /// the panel may be excluded from fetched results via [excludeEventId] and
 /// represented by [marker] so its placement can be shown (and, when editing,
 /// move as its time changes).
-class OtherEventsPanel extends ConsumerStatefulWidget {
-  const OtherEventsPanel({
+class DayEventsPanel extends ConsumerStatefulWidget {
+  const DayEventsPanel({
     super.key,
     required this.date,
     required this.organizationId,
     this.excludeEventId,
     this.queryTimezone,
-    this.headerMode = OtherEventsPanelHeaderMode.staticLabel,
+    this.headerMode = DayEventsPanelHeaderMode.staticLabel,
     this.marker,
   });
 
@@ -82,16 +82,16 @@ class OtherEventsPanel extends ConsumerStatefulWidget {
   final String? queryTimezone;
 
   /// How the date header is shown for this context.
-  final OtherEventsPanelHeaderMode headerMode;
+  final DayEventsPanelHeaderMode headerMode;
 
   /// Optional ghost marker for a current or proposed event placement.
-  final OtherEventsPanelMarker? marker;
+  final DayEventsPanelMarker? marker;
 
   @override
-  ConsumerState<OtherEventsPanel> createState() => _OtherEventsPanelState();
+  ConsumerState<DayEventsPanel> createState() => _DayEventsPanelState();
 }
 
-class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
+class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
   /// The events listed, already filtered and sorted.
   List<EventResponse> _events = const [];
 
@@ -135,7 +135,7 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
   }
 
   @override
-  void didUpdateWidget(covariant OtherEventsPanel oldWidget) {
+  void didUpdateWidget(covariant DayEventsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.date != widget.date ||
         oldWidget.organizationId != widget.organizationId ||
@@ -284,7 +284,7 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
   }
 
   Widget? _buildHeader(BuildContext context, ThemeData theme) {
-    if (widget.headerMode == OtherEventsPanelHeaderMode.hidden) return null;
+    if (widget.headerMode == DayEventsPanelHeaderMode.hidden) return null;
     final text = Text(
       'Events on ${widget.date}',
       style: theme.textTheme.titleMedium?.copyWith(
@@ -292,7 +292,7 @@ class _OtherEventsPanelState extends ConsumerState<OtherEventsPanel> {
         color: theme.colorScheme.secondary,
       ),
     );
-    if (widget.headerMode == OtherEventsPanelHeaderMode.linkToDayView) {
+    if (widget.headerMode == DayEventsPanelHeaderMode.linkToDayView) {
       return Semantics(
         button: true,
         label: 'View day ${widget.date}',
@@ -323,7 +323,7 @@ class _EventEntry extends _PanelEntry {
 
 class _MarkerEntry extends _PanelEntry {
   _MarkerEntry(this.marker);
-  final OtherEventsPanelMarker marker;
+  final DayEventsPanelMarker marker;
   @override
   DateTime get instant => marker.instant;
 }
@@ -459,7 +459,7 @@ class _EventRow extends StatelessWidget {
 class _MarkerRow extends StatelessWidget {
   const _MarkerRow({required this.marker, required this.readerZone});
 
-  final OtherEventsPanelMarker marker;
+  final DayEventsPanelMarker marker;
   final String readerZone;
 
   @override

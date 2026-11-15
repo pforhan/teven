@@ -10,7 +10,7 @@ import '../../providers/auth_controller.dart';
 import '../../providers/organization_controller.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/create_event_button.dart';
-import '../../widgets/other_events_panel.dart';
+import '../../widgets/day_events_panel.dart';
 
 /// The day view — task 7.11, plus day-to-day navigation.
 ///
@@ -19,7 +19,7 @@ import '../../widgets/other_events_panel.dart';
 /// filed the gap: a touch's tap is inert because there was nowhere for it to go,
 /// and when that landed (task 7.11) it opens **here**.
 ///
-/// **It reuses [OtherEventsPanel] rather than growing a second event list**, for
+/// **It reuses [DayEventsPanel] rather than growing a second event list**, for
 /// the reason the unified form keeps a mirrored copy: a second copy
 /// of a list is how the two event forms drifted in the first place.
 ///
@@ -85,10 +85,10 @@ class _EventDayScreenState extends ConsumerState<EventDayScreen> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              child: OtherEventsPanel(
+              child: DayEventsPanel(
                 date: widget.date,
                 organizationId: organizationId,
-                headerMode: OtherEventsPanelHeaderMode.hidden,
+                headerMode: DayEventsPanelHeaderMode.hidden,
               ),
             ),
           ),

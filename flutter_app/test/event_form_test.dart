@@ -479,7 +479,7 @@ void main() {
       final adapter = eventFormAdapter();
       await openEdit(tester, adapter, '/events/edit/7');
       await settleRequests(tester);
-      // OtherEventsPanel is present; exclusion is passed as excludeEventId.
+      // DayEventsPanel is present; exclusion is passed as excludeEventId.
       expect(find.byType(Scrollable), findsWidgets);
       // Verify panel rendered (title text includes date context in panel impl;
       // at minimum the widget is in tree for edit mode).

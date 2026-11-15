@@ -17,7 +17,7 @@ import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/error_display.dart';
-import '../../widgets/other_events_panel.dart';
+import '../../widgets/day_events_panel.dart';
 
 /// One event, in full — task 7.6.
 ///
@@ -824,12 +824,12 @@ class _Sidebar extends StatelessWidget {
       // **`EventDetails.tsx:175-181`.** The panel fetches the events on this
       // event's day, in this event's organization, and marks this event's
       // placement with a ghost marker.
-      OtherEventsPanel(
+      DayEventsPanel(
         date: event.dateIn(readerZone),
         organizationId: event.organization.organizationId.toString(),
         excludeEventId: event.eventId.toString(),
-        headerMode: OtherEventsPanelHeaderMode.linkToDayView,
-        marker: OtherEventsPanelMarker(
+        headerMode: DayEventsPanelHeaderMode.linkToDayView,
+        marker: DayEventsPanelMarker(
           instant: event.instant,
           label: 'This event',
         ),
