@@ -217,7 +217,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Click a day for options. Click an event to open it.',
+              'Click the day number to open the day, blank space for options, or an event to open it.',
               style: Theme.of(context).textTheme.bodySmall
                   ?.copyWith(color: Theme.of(context).colorScheme.outline),
             ),
@@ -432,17 +432,17 @@ class _CalendarGrid extends ConsumerWidget {
         defaultBuilder: (context, day, focusedDay) => _DayCell(
           day: day,
           isToday: isSameDay(day, readerTodayDate),
-          onActivate: () => onDaySelected(day, focusedDay),
+          onViewDay: () => context.go(AppRoutes.eventDayUrlForDay(day)),
         ),
         outsideBuilder: (context, day, focusedDay) => _DayCell(
           day: day,
           outside: true,
-          onActivate: () => onDaySelected(day, focusedDay),
+          onViewDay: () => context.go(AppRoutes.eventDayUrlForDay(day)),
         ),
         todayBuilder: (context, day, focusedDay) => _DayCell(
           day: day,
           isToday: isSameDay(day, readerTodayDate),
-          onActivate: () => onDaySelected(day, focusedDay),
+          onViewDay: () => context.go(AppRoutes.eventDayUrlForDay(day)),
         ),
         // The weekday row is written by hand, and the reason is the rules:
         // see [_DayOfWeekCell].
@@ -629,23 +629,23 @@ int _columnOf(DateTime day) => day.weekday % 7;
 
 /// One day cell: the number, today's background, and the grid's rules.
 ///
-/// The day number is shown in a light pill. Activating the cell's blank space
-/// (including this row) opens the day actions popup; event pills handle their
-/// own taps.
+/// The day number pill opens the day view directly. Activating other blank
+/// space in the cell opens the day actions popup; event pills handle their own
+/// taps.
 class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
     this.isToday = false,
     this.outside = false,
-    this.onActivate,
+    this.onViewDay,
   });
 
   final DateTime day;
   final bool isToday;
   final bool outside;
 
-  /// Shows the day actions popup for [day].
-  final VoidCallback? onActivate;
+  /// Opens the day view for [day].
+  final VoidCallback? onViewDay;
 
   @override
   Widget build(BuildContext context) {
@@ -695,7 +695,7 @@ class _DayCell extends StatelessWidget {
                   day: day,
                   isToday: isToday,
                   outside: outside,
-                  onTap: onActivate,
+                  onTap: onViewDay,
                 ),
               ),
             ),
@@ -759,8 +759,8 @@ class _DayNumberPill extends StatelessWidget {
   }
 }
 
-/// The interactive day-number pill: activates the day actions popup and reveals
-/// a view icon on hover of the region.
+/// The interactive day-number pill: opens the day view and reveals a view icon
+/// on hover of the region.
 class _DayNumberButton extends StatefulWidget {
   const _DayNumberButton({
     required this.day,

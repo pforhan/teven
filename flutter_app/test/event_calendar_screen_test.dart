@@ -466,7 +466,23 @@ void main() {
           : DateTime(today.year, today.month, 15);
     }
 
-    testWidgets('activating a day shows a unified popup', (tester) async {
+    testWidgets('clicking the day number pill opens the day view', (
+      tester,
+    ) async {
+      final container = await openCalendar(tester, calendarAdapter());
+      final target = targetDay();
+
+      await tester.tapAt(
+        tester.getTopLeft(dayCell(target)) + const Offset(18, 10),
+      );
+      await tester.pump();
+
+      expect(currentLocation(container), AppRoutes.eventDayUrlForDay(target));
+      expect(find.byType(SimpleDialog), findsNothing);
+      await settleRequests(tester);
+    });
+
+    testWidgets('activating blank space shows a unified popup', (tester) async {
       await openCalendar(tester, calendarAdapter());
       final target = targetDay();
 
@@ -488,7 +504,9 @@ void main() {
     testWidgets('shows the same hint for all input kinds', (tester) async {
       await openCalendar(tester, calendarAdapter());
       expect(
-        find.text('Click a day for options. Click an event to open it.'),
+        find.text(
+          'Click the day number to open the day, blank space for options, or an event to open it.',
+        ),
         findsOneWidget,
       );
     });
