@@ -597,6 +597,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Request:
         ```kotlin
         data class StaffHoursReportRequest(
+          val organizationId: Int, 
           val startDate: String, 
           val endDate: String, 
           val timezone: String
@@ -978,6 +979,7 @@ data class StaffDetails(
 )
 
 data class StaffHoursReportRequest(
+  val organizationId: Int, 
   val startDate: String, 
   val endDate: String, 
   val timezone: String
