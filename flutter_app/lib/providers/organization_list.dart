@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/services/list_query.dart';
 import '../models/common.dart';
 import '../models/organization.dart';
+import 'organization_controller.dart';
 import 'paged_list.dart';
 import 'service_providers.dart';
 
@@ -31,8 +32,55 @@ final organizationListProvider = FutureProvider<List<OrganizationResponse>>((
   final page = await ref
       .watch(organizationServiceProvider)
       .getAllOrganizations(const ListQuery(limit: 1000));
-  return page.items;
+  final items = page.items;
+  await reconcileSelectedOrganization(ref, items);
+  return items;
 }, retry: noRetry);
+
+/// Reconciles the persisted super-admin selection with [available].
+///
+/// DEV_MODE reseeds drop and recreate organizations, so a selection restored
+/// from storage can point at an id that no longer exists. A stale id both adds
+/// a phantom row (see [organizationsIncluding]) and scopes queries to an
+/// organization the server no longer knows.
+///
+/// Prefers the organization with the same id; falls back to a same-name match
+/// so a reseed that preserved names keeps the user's scope; otherwise clears to
+/// "All Organizations" rather than leaving the UI pinned to nothing.
+///
+/// No-op when nothing is selected, and no-op when the selection already matches
+/// by id and value, so ordinary fetches do not churn persistence.
+Future<void> reconcileSelectedOrganization(
+  Ref ref,
+  List<OrganizationResponse> available,
+) async {
+  final controllerState = ref.read(organizationControllerProvider);
+  final OrganizationResponse? current = controllerState.hasValue
+      ? controllerState.value
+      : await ref.read(organizationControllerProvider.future);
+  if (current == null) {
+    return;
+  }
+  final selectedId = current.organizationId;
+  final selectedName = current.name;
+
+  OrganizationResponse? replacement;
+  for (final org in available) {
+    if (org.organizationId == selectedId) {
+      if (org == current) {
+        return;
+      }
+      replacement = org;
+      break;
+    }
+  }
+  replacement ??= available.cast<OrganizationResponse?>().firstWhere(
+    (org) => org!.name == selectedName,
+    orElse: () => null,
+  );
+
+  await ref.read(organizationControllerProvider.notifier).select(replacement);
+}
 
 /// The organizations, or an empty list while loading or after a failure.
 ///

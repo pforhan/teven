@@ -1,8 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:teven_app/core/services/crud_services.dart';
+import 'package:teven_app/core/services/list_query.dart';
+import 'package:teven_app/models/common.dart';
 import 'package:teven_app/models/organization.dart';
 import 'package:teven_app/providers/organization_controller.dart';
+import 'package:teven_app/providers/organization_list.dart';
+import 'package:teven_app/providers/service_providers.dart';
 
 /// Organization selection and its persistence — task 2.4.
 ///
@@ -98,4 +103,116 @@ void main() {
 
     expect(await container.read(organizationControllerProvider.future), isNull);
   });
+
+  group('reconcileSelectedOrganization', () {
+    ProviderContainer buildWithList(
+      List<OrganizationResponse> available, {
+      required String stored,
+    }) {
+      SharedPreferences.setMockInitialValues({
+        OrganizationController.storageKey: stored,
+      });
+      container = ProviderContainer(
+        overrides: [
+          organizationServiceProvider.overrideWithValue(
+            _FakeOrganizationService(available),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test('replaces a stale id with the same-name organization', () async {
+      buildWithList(
+        const [
+          OrganizationResponse(
+            organizationId: 99,
+            name: 'Acme',
+            contactInformation: 'new@example.com',
+            timezone: 'UTC',
+          ),
+        ],
+        stored:
+            '{"organizationId":7,"name":"Acme",'
+            '"contactInformation":"acme@example.com","timezone":"UTC"}',
+      );
+
+      expect(await container.read(organizationControllerProvider.future), org);
+      await container.read(organizationListProvider.future);
+
+      final selected = container.read(selectedOrganizationProvider);
+      expect(selected?.organizationId, 99);
+      expect(selected?.name, 'Acme');
+      expect(selected?.contactInformation, 'new@example.com');
+    });
+
+    test('clears the selection when no id or name match remains', () async {
+      buildWithList(
+        const [
+          OrganizationResponse(
+            organizationId: 99,
+            name: 'Other',
+            contactInformation: '',
+            timezone: 'UTC',
+          ),
+        ],
+        stored:
+            '{"organizationId":7,"name":"Acme",'
+            '"contactInformation":"acme@example.com","timezone":"UTC"}',
+      );
+
+      await container.read(organizationControllerProvider.future);
+      await container.read(organizationListProvider.future);
+
+      expect(container.read(selectedOrganizationProvider), isNull);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString(OrganizationController.storageKey), isNull);
+    });
+
+    test('refreshes the stored object when the id still exists', () async {
+      buildWithList(
+        const [
+          OrganizationResponse(
+            organizationId: 7,
+            name: 'Acme',
+            contactInformation: 'updated@example.com',
+            timezone: 'UTC',
+          ),
+        ],
+        stored:
+            '{"organizationId":7,"name":"Acme",'
+            '"contactInformation":"acme@example.com","timezone":"UTC"}',
+      );
+
+      await container.read(organizationControllerProvider.future);
+      await container.read(organizationListProvider.future);
+
+      expect(
+        container.read(selectedOrganizationProvider)?.contactInformation,
+        'updated@example.com',
+      );
+    });
+  });
+}
+
+class _FakeOrganizationService implements OrganizationService {
+  _FakeOrganizationService(this._items);
+
+  final List<OrganizationResponse> _items;
+
+  @override
+  Future<PaginatedResponse<OrganizationResponse>> getAllOrganizations([
+    ListQuery query = const ListQuery(),
+  ]) async {
+    return PaginatedResponse<OrganizationResponse>(
+      items: _items,
+      total: _items.length,
+      limit: query.limit ?? 0,
+      offset: query.offset ?? 0,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
