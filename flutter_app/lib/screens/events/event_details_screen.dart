@@ -883,8 +883,11 @@ class _Sidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final selectedOrganization = ref.watch(selectedOrganizationProvider);
     final showOrganizationName =
-        ref.watch(selectedOrganizationProvider) == null;
+        selectedOrganization == null ||
+        selectedOrganization.organizationId !=
+            event.organization.organizationId;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

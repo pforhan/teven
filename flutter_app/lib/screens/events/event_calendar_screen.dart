@@ -303,9 +303,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
 ///
 /// **The hint exists because a gesture that is silently inert is
 /// indistinguishable from a broken cell, and a gesture nobody discovers on
-/// their own is inert.** Task 7.11 gave a finger's tap something to open — the
-/// day view — so the tap's hint is now a *view* hint rather than a missing-gesture
-/// one, and only the long press keeps the create wording.
+/// their own is inert.
 class _GestureHint extends StatelessWidget {
   const _GestureHint({required this.kind});
 
@@ -320,7 +318,7 @@ class _GestureHint extends StatelessWidget {
       builder: (context, value, _) => Text(
         value == PointerDeviceKind.touch
             ? 'Tap a day to open the day view; long-press to create.'
-            : 'Click a day to create an event.',
+            : 'Click a day to create an event, or click the day number to open the day view.',
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.outline,
         ),
@@ -535,12 +533,21 @@ class _CalendarGrid extends ConsumerWidget {
       // the only way to get a full-cell highlight at all. "Today" is the reader's
       // zone, which may differ from the device's.
       calendarBuilders: CalendarBuilders<EventResponse>(
-        defaultBuilder: (context, day, focusedDay) =>
-            _DayCell(day: day, isToday: isSameDay(day, readerTodayDate)),
-        outsideBuilder: (context, day, focusedDay) =>
-            _DayCell(day: day, outside: true),
-        todayBuilder: (context, day, focusedDay) =>
-            _DayCell(day: day, isToday: isSameDay(day, readerTodayDate)),
+        defaultBuilder: (context, day, focusedDay) => _DayCell(
+          day: day,
+          isToday: isSameDay(day, readerTodayDate),
+          onViewDay: () => context.go(AppRoutes.eventDayUrlForDay(day)),
+        ),
+        outsideBuilder: (context, day, focusedDay) => _DayCell(
+          day: day,
+          outside: true,
+          onViewDay: () => context.go(AppRoutes.eventDayUrlForDay(day)),
+        ),
+        todayBuilder: (context, day, focusedDay) => _DayCell(
+          day: day,
+          isToday: isSameDay(day, readerTodayDate),
+          onViewDay: () => context.go(AppRoutes.eventDayUrlForDay(day)),
+        ),
         // The weekday row is written by hand, and the reason is the rules:
         // see [_DayOfWeekCell].
         dowBuilder: (context, day) => _DayOfWeekCell(day: day),
@@ -734,20 +741,31 @@ const DaysOfWeekStyle _daysOfWeekStyle = DaysOfWeekStyle(
 int _columnOf(DateTime day) => day.weekday % 7;
 
 /// One day cell: the number, today's background, and the grid's rules.
+///
+/// The day number is shown in a light pill so the day row reads as an
+/// affordance. On desktop/web, hovering that pill reveals a view icon and
+/// clicking it opens the day view (task 9.21), while clicking elsewhere in the
+/// cell keeps the existing create gesture. On touch, a tap anywhere in the cell
+/// already opens the day view.
 class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
     this.isToday = false,
     this.outside = false,
+    this.onViewDay,
   });
 
   final DateTime day;
   final bool isToday;
   final bool outside;
 
+  /// Opens the day view for [day]. When set, the number pill becomes an
+  /// interactive target that navigates to the day view instead of falling
+  /// through to the cell's create/open gesture.
+  final VoidCallback? onViewDay;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
       // Keyed on the full date, not the day-of-month. **A month grid has two
       // cells for most day numbers** — this month's, and the neighbouring
@@ -758,7 +776,6 @@ class _DayCell extends StatelessWidget {
       key: ValueKey('day-${formatLocalDate(day)}'),
       color: isToday ? TevenTheme.todayHighlight : Colors.transparent,
       alignment: Alignment.topLeft,
-      padding: const EdgeInsets.only(top: 2, left: 6),
       // **The rules, drawn over the cell rather than under it.**
       //
       // `foregroundDecoration` rather than `decoration`, for two reasons.
@@ -780,12 +797,131 @@ class _DayCell extends StatelessWidget {
           bottom: const BorderSide(color: TevenTheme.gridline),
         ),
       ),
-      child: Text(
-        '${day.day}',
-        style: theme.textTheme.bodySmall?.copyWith(
-          // Today's number is bold in the month header and nothing else.
-          fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-          color: outside ? theme.colorScheme.outline : null,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: _dayNumberHeight,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: onViewDay == null
+                    ? _DayNumberPill(
+                        day: day,
+                        isToday: isToday,
+                        outside: outside,
+                      )
+                    : _DayNumberButton(
+                        day: day,
+                        isToday: isToday,
+                        outside: outside,
+                        onTap: onViewDay!,
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A light pill around the day number, always present so the day row reads as
+/// an affordance rather than plain text.
+class _DayNumberPill extends StatelessWidget {
+  const _DayNumberPill({
+    required this.day,
+    required this.isToday,
+    required this.outside,
+    this.showViewIcon = false,
+  });
+
+  final DateTime day;
+  final bool isToday;
+  final bool outside;
+  final bool showViewIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = outside
+        ? theme.colorScheme.outline
+        : theme.colorScheme.onSurface;
+    final textStyle = theme.textTheme.bodySmall?.copyWith(
+      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+      color: color,
+      height: 1.1,
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9ECEF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('${day.day}', style: textStyle),
+          const SizedBox(width: 3),
+          Opacity(
+            opacity: showViewIcon ? 1 : 0,
+            child: Icon(
+              Icons.calendar_view_day_outlined,
+              size: 12,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The interactive day-number pill: opens the day view on activation and
+/// reveals a view icon on hover of the region.
+class _DayNumberButton extends StatefulWidget {
+  const _DayNumberButton({
+    required this.day,
+    required this.isToday,
+    required this.outside,
+    required this.onTap,
+  });
+
+  final DateTime day;
+  final bool isToday;
+  final bool outside;
+  final VoidCallback onTap;
+
+  @override
+  State<_DayNumberButton> createState() => _DayNumberButtonState();
+}
+
+class _DayNumberButtonState extends State<_DayNumberButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'View day',
+      waitDuration: const Duration(milliseconds: 400),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: _DayNumberPill(
+            day: widget.day,
+            isToday: widget.isToday,
+            outside: widget.outside,
+            showViewIcon: _hovered,
+          ),
         ),
       ),
     );

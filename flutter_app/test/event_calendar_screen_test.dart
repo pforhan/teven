@@ -566,7 +566,12 @@ void main() {
 
       // **Before anything has been touched**, the hint offers the click —
       // the common case, and the one a keyboard activation would use.
-      expect(find.text('Click a day to create an event.'), findsOneWidget);
+      expect(
+        find.text(
+          'Click a day to create an event, or click the day number to open the day view.',
+        ),
+        findsOneWidget,
+      );
       expect(
         find.text('Tap a day to open the day view; long-press to create.'),
         findsNothing,
@@ -584,7 +589,12 @@ void main() {
         find.text('Tap a day to open the day view; long-press to create.'),
         findsOneWidget,
       );
-      expect(find.text('Click a day to create an event.'), findsNothing);
+      expect(
+        find.text(
+          'Click a day to create an event, or click the day number to open the day view.',
+        ),
+        findsNothing,
+      );
       await touch.cancel();
       await tester.pump();
 
@@ -596,7 +606,12 @@ void main() {
         kind: PointerDeviceKind.mouse,
       );
       await tester.pump();
-      expect(find.text('Click a day to create an event.'), findsOneWidget);
+      expect(
+        find.text(
+          'Click a day to create an event, or click the day number to open the day view.',
+        ),
+        findsOneWidget,
+      );
       await gesture.cancel();
       await tester.pump();
     });
