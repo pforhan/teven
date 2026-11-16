@@ -15,10 +15,10 @@ import 'service_providers.dart';
 
 /// The signed-in user, or `null` when nobody is signed in.
 ///
-/// Replaces `AuthContext` (`AuthContext.tsx`) and, with it, `useAuth`.
-/// The boot sequence is preserved: read the token, and only then ask the server
-/// who the user is. A token in hand proves nothing — it may be stale, revoked,
-/// or for a deleted account — so the context fetch is what decides.
+/// Replaces the original auth context and its `useAuth` hook. The boot sequence
+/// is preserved: read the token, and only then ask the server who the user is. A
+/// token in hand proves nothing — it may be stale, revoked, or for a deleted
+/// account — so the context fetch is what decides.
 final authControllerProvider =
     AsyncNotifierProvider<AuthController, UserContextResponse?>(
       AuthController.new,
@@ -41,10 +41,10 @@ class AuthController extends AsyncNotifier<UserContextResponse?> {
       return null;
     } on ApiException catch (error, stack) {
       // Anything else — the server is down, DNS failed — is logged and treated
-      // as "not signed in", exactly as `AuthContext.tsx` does. That means an
-      // outage sends the user to the login screen rather than showing an error,
-      // which is worth knowing but is the behaviour we are porting, not
-      // inventing.
+      // as "not signed in", exactly as the original auth context did. That means
+      // an outage sends the user to the login screen rather than showing an
+      // error, which is worth knowing but is the behaviour being ported, not
+      // invented.
       debugPrint('AuthController: failed to fetch user context: $error');
       debugPrintStack(stackTrace: stack);
       return null;
@@ -53,9 +53,9 @@ class AuthController extends AsyncNotifier<UserContextResponse?> {
 
   /// Authenticates, then reloads the context.
   ///
-  /// The React login screen calls `AuthService.login` and then
-  /// `refetchUserContext` (`Auth.tsx`). Folding both into one method
-  /// means a screen cannot get the second half wrong.
+  /// The original login screen authenticated and then refetched the user
+  /// context. Folding both into one method means a screen cannot get the second
+  /// half wrong.
   Future<void> login({
     required String username,
     required String password,
@@ -117,10 +117,10 @@ final permissionsProvider = Provider<List<String>>(
 
 /// Permission tests bound to the current user.
 ///
-/// Replaces `usePermissions` (`AuthContext.tsx`). Exists as a value
-/// rather than a bare function so the router's guard can `watch` it and be
-/// re-evaluated when the context changes, instead of reading a value that
-/// could go stale mid-navigation.
+/// Replaces the original `usePermissions` hook. Exists as a value rather than a
+/// bare function so the router's guard can `watch` it and be re-evaluated when
+/// the context changes, instead of reading a value that could go stale
+/// mid-navigation.
 final permissionGateProvider = Provider<PermissionGate>(
   (ref) => PermissionGate(ref.watch(permissionsProvider)),
 );
@@ -137,14 +137,14 @@ class PermissionGate {
 
   /// Whether the user holds [permission].
   ///
-  /// Matches `AuthContext.tsx`: a straight membership test against the
+  /// Matches the original auth context: a straight membership test against the
   /// context's permission list.
   bool has(Permission permission) => Permissions.has(granted, permission);
 
   /// Whether the user holds **any** of [required].
   ///
-  /// Matches `ProtectedRoute.tsx`, which treats an array as `.some`.
-  /// `App.tsx` depends on it, gating user creation on either global or
+  /// Matches the original protected route, which treated an array as "some". The
+  /// original router depended on it, gating user creation on either global or
   /// organization scope.
   bool hasAny(List<Permission> required) =>
       Permissions.hasAny(granted, required);
@@ -152,9 +152,9 @@ class PermissionGate {
 
 /// Whether a redirect due to a 401 is already under way.
 ///
-/// Replaces the module-level `isRedirecting` flag at `AuthContext.tsx`.
-/// Riverpod state rather than a bare variable, so that a test can reset it and
-/// so that it is scoped to the container instead of the isolate.
+/// Replaces the module-level redirect flag in the original auth context. Riverpod
+/// state rather than a bare variable, so that a test can reset it and so that it
+/// is scoped to the container instead of the isolate.
 final unauthorizedRedirectProvider =
     NotifierProvider<UnauthorizedRedirect, bool>(UnauthorizedRedirect.new);
 

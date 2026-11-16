@@ -8,14 +8,14 @@ import '../widgets/validators.dart';
 
 /// The login screen.
 ///
-/// Replaces `Auth.tsx` — 71 lines of a single card, no register link and no
-/// "forgot password", since neither exists in the React app.
+/// Replaces the original login screen — a single card with no register link and
+/// no "forgot password", since neither existed in the original app.
 ///
 /// Deliberately narrower than the rest of the port in one respect: **it does
-/// not use [FormCard].** That widget was written afterwards, for and
-/// it owns a `Scaffold` — so adopting it here would mean nesting one inside the
-/// other. The convention this screen does share is `Validators.required` in
-/// place of its own private copy, which removed.
+/// not use [FormCard].** That widget was written afterwards and owns a
+/// `Scaffold` — so adopting it here would mean nesting one inside the other. The
+/// convention this screen does share is `Validators.required` in place of its
+/// own private copy.
 ///
 /// What the screen reproduces is the behaviour — see [_submit] — and the card
 /// sizing, fixed up for small viewports.
@@ -44,16 +44,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   /// Authenticates, then reloads the context.
   ///
-  /// `Auth.tsx` calls `AuthService.login` and then
-  /// `refetchUserContext`; [AuthController.login] does both, and the router
-  /// reacts to the resulting context change by leaving `/login` on its own.
-  /// Nothing here navigates — doing so would race the redirect that lands the
-  /// user on `/events`.
+  /// The original screen authenticated and then refetched the user context;
+  /// [AuthController.login] does both, and the router reacts to the resulting
+  /// context change by leaving `/login` on its own. Nothing here navigates —
+  /// doing so would race the redirect that lands the user on `/events`.
   ///
-  /// Every failure is funnelled into [_error] and shown through
-  /// [ErrorDisplay], matching `Auth.tsx`. The React version branches
-  /// between `ApiErrorWithDetails`, a bare `Error`, and a fallback string; the
-  /// exception hierarchy already collapses those three into one type.
+  /// Every failure is funnelled into [_error] and shown through [ErrorDisplay],
+  /// matching the original screen. The original branched between a details-
+  /// bearing error, a bare error, and a fallback string; the exception hierarchy
+  /// already collapses those cases into one type.
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -151,8 +150,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 24),
                       FilledButton(
                         // Disabled while in flight so a double-tap cannot fire
-                        // two logins — the React form has no such guard, and a
-                        // second POST races the first one's token write.
+                        // two logins — the original form had no such guard, and a
+                        // second POST would race the first token write.
                         onPressed: _submitting ? null : _submit,
                         child: _submitting
                             ? const SizedBox.square(

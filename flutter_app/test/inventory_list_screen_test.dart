@@ -127,7 +127,7 @@ void main() {
       expect(find.text('Chairs'), findsOneWidget);
       expect(find.text('Tables'), findsOneWidget);
       expect(find.text('Description 1'), findsOneWidget);
-      // `InventoryList.tsx` stringifies the number; it is a `Text` column.
+      // the original inventory list screen stringifies the number; it is a `Text` column.
       expect(find.text('10'), findsOneWidget);
       expect(find.text('20'), findsOneWidget);
     });
@@ -240,7 +240,7 @@ void main() {
       // `InventoryDao.getInventoryItems` builds every row through
       // `toInventoryItemResponse`, which selects *all* of `EventInventory` for
       // the item — so the `events` list is unpaginated on the list endpoint as
-      // well as on `GET /api/inventory/{id}`. `InventoryList.tsx`
+      // well as on `GET /api/inventory/{id}`. the original inventory list screen
       // rendered all of them, and a heavily-used item makes a table row tall
       // enough to swallow the screen.
       await openInventory(
@@ -340,7 +340,7 @@ void main() {
         adapter.requests.where((o) => o.method == 'DELETE').map((o) => o.path),
         ['/api/inventory/1'],
       );
-      // `InventoryList.tsx` re-fetched after deleting.
+      // the original inventory list screen re-fetched after deleting.
       expect(getRequests(adapter), hasLength(2));
     });
   });
@@ -361,7 +361,7 @@ void main() {
         'quantity',
       ]);
       // A different column starts ascending rather than inheriting the
-      // direction — `InventoryList.tsx`.
+      // direction — the original inventory list screen.
       expect(getRequests(adapter).map((r) => r.queryParameters['sortOrder']), [
         'asc',
         'asc',

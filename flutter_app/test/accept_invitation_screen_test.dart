@@ -56,7 +56,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('as a Admin'), findsOneWidget);
-      // The two `<p>`s of `AcceptInvitationPage.tsx` are one text node
+      // The two `<p>`s of the original invitation-acceptance screen are one text node
       // separated by a newline, so this matches the second sentence alone.
       expect(
         find.textContaining('Please create your account below.'),
@@ -146,11 +146,11 @@ void main() {
         findsOneWidget,
       );
       // The form is replaced by the success box, per the React ternary at
-      // `AcceptInvitationPage.tsx`.
+      // the original invitation-acceptance screen.
       expect(find.widgetWithText(TextFormField, 'Username'), findsNothing);
       expect(currentPath(container), AppRoutes.register);
 
-      // `setTimeout(..., 3000)` at `AcceptInvitationPage.tsx`.
+      // `setTimeout(..., 3000)` at the original invitation-acceptance screen.
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
 
@@ -387,7 +387,7 @@ void main() {
     testWidgets('a stale link shows the validation error as well', (
       tester,
     ) async {
-      // `AcceptInvitationPage.tsx` renders the validation error *outside*
+      // the original invitation-acceptance screen renders the validation error *outside*
       // the logged-in branch, so both appear at once. Reproducing only one of
       // the two would make the screen lose information the original shows.
       await _pumpRegister(

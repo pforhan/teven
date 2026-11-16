@@ -120,10 +120,10 @@ class PagedListView<T> extends StatelessWidget {
   /// asked for — a count for the wrong filter, and a button that would page the
   /// previous query. The same holds of a failed query, for the same reason.
   ///
-  /// **There is now no visual indication that the rows are stale**, which is
-  /// what `TableView.tsx` did: it had no loading state at all, so a search was
-  /// silent until the rows changed. That is the behaviour being restored, and it
-  /// is a deliberate trade rather than an omission.
+  /// **There is now no visual indication that the rows are stale**, which is what
+  /// the original table component did: it had no loading state at all, so a
+  /// search was silent until the rows changed. That is the behaviour being
+  /// restored, and it is a deliberate trade rather than an omission.
   final bool stale;
 
   @override
@@ -339,20 +339,20 @@ class _Footer<T> extends StatelessWidget {
 /// A list screen's rows, keeping the previous result on screen while a new query
 /// loads.
 ///
-/// **What the React original did, precisely, because "it kept the rows" is not
-/// the whole of it.** `TableView.tsx` has *no loading state at all* — it renders
-/// `data` unconditionally, and `CustomerList.tsx` sets state only inside the
-/// `try`, so a failed or in-flight fetch left `customers` untouched. Two
-/// consequences, and the port had both wrong before this:
+/// **What the original did, precisely, because "it kept the rows" is not the
+/// whole of it.** The original table component had *no loading state at all* —
+/// it rendered `data` unconditionally, and the list screens set state only inside
+/// the `try`, so a failed or in-flight fetch left the previous data untouched.
+/// Two consequences, and the port had both wrong before this:
 ///
 /// 1. **Rows stay put during a search.** The whole card used to be replaced by
-/// a spinner, so the heading, the column headers and every row blinked out
-/// and back on each debounced keystroke. That is the filed symptom.
+/// a spinner, so the heading, the column headers and every row blinked out and
+/// back on each debounced keystroke. That is the filed symptom.
 /// 2. **On failure the error appears *above* the stale rows, not instead of
-/// them.** `TableView.tsx` and `:42` are siblings inside the same card
-/// body, so React rendered the banner and the previous table together. The
-/// port replaced the list with the error, which is a divergence this task
-/// did not originally mention.
+/// them.** The original table and its error banner were siblings in the same card
+/// body, so it rendered the banner and the previous table together. The port
+/// replaced the list with the error, which is a divergence this task did not
+/// originally mention.
 ///
 /// **How the retention works, and why it is a field rather than a provider.** A
 /// new search term is a different `ListQuery` key and therefore a *different*
@@ -454,7 +454,7 @@ class _PagedListSectionState<T> extends ConsumerState<PagedListSection<T>> {
     }
 
     // An error with something retained: the banner above the stale rows, which
-    // is what `TableView.tsx,42` renders. With nothing retained there is
+    // is what the original table rendered. With nothing retained there is
     // nothing to sit under it.
     //
     // `value`/`error`/`isLoading` rather than `hasValue`/`hasError`: in

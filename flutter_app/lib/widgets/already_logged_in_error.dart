@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 
 /// Tells a signed-in user that they cannot accept an invitation.
 ///
-/// Replaces `AlreadyLoggedInError.tsx` — 16 lines, one Bootstrap `alert-danger`
-/// with a heading, a rule, and a link home.
+/// Replaces the original "already logged in" error panel — one alert with a
+/// heading, a rule, and a link home.
 ///
-/// The link is a callback rather than a route reference. The React original
-/// hardcodes `href="/"`, which the router turns into `/events`
-/// (`App.tsx`); naming that destination here would make this widget depend
-/// on `app_router.dart`, which imports the screens that import this widget. The
-/// route builder passes the real destination in instead, and a test can assert
-/// on it without a router at all.
+/// The link is a callback rather than a route reference. The original hardcoded
+/// `href="/"`, which the router turned into `/events`; naming that destination
+/// here would make this widget depend on `app_router.dart`, which imports the
+/// screens that import this widget. The route builder passes the real
+/// destination in instead, and a test can assert on it without a router at all.
 ///
 /// **The link is a `TextSpan` with a gesture recognizer, not a `TextButton`.** A
 /// button cannot be an inline link: it brings its own chrome (the circular

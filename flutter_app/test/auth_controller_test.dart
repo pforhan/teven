@@ -27,7 +27,7 @@ void main() {
     });
 
     test('no token means no request at all', () async {
-      // `AuthContext.tsx` returns before touching the network. Asserting
+      // the original auth context returns before touching the network. Asserting
       // the absence of a request catches a regression that is otherwise
       // invisible: a 401 treated as "logged out" looks identical at the call
       // site but costs a round trip on every cold boot.
@@ -53,7 +53,7 @@ void main() {
     });
 
     test('a network failure also leaves the user signed out', () async {
-      // `AuthContext.tsx` swallows every non-401 the same way. Recorded as
+      // the original auth context swallows every non-401 the same way. Recorded as
       // a test because it is a deliberate port, not an oversight: an outage
       // presents as "please log in", with no error anywhere.
       final container = authTestContainer(
@@ -107,7 +107,7 @@ void main() {
     });
 
     test('default to none when signed out', () async {
-      // `AuthContext.tsx` defaults to `[]`. Same default here so a screen
+      // the original auth context defaults to `[]`. Same default here so a screen
       // never has to distinguish "no permissions" from "nobody signed in".
       final container = authTestContainer(adapter: contextAdapter());
       await container.read(authControllerProvider.future);
@@ -120,8 +120,8 @@ void main() {
     });
 
     test('an array requirement is OR, not AND', () async {
-      // `App.tsx` gates `/users/create` on either scope and
-      // `ProtectedRoute.tsx` implements that as `.some`. Reading it as
+      // the original app router gates `/users/create` on either scope and
+      // the original protected route implements that as `.some`. Reading it as
       // "all of" locks out every org-scoped admin — a failure that looks like
       // a missing permission rather than a logic error.
       const gate = PermissionGate(['MANAGE_USERS_ORGANIZATION']);
@@ -135,7 +135,7 @@ void main() {
     });
 
     test('an empty requirement grants access', () async {
-      // `ProtectedRoute.tsx` renders children unconditionally when no
+      // the original protected route renders children unconditionally when no
       // permission prop is passed, which is how `/profile` works.
       expect(const PermissionGate([]).hasAny(const []), isTrue);
     });
@@ -176,7 +176,7 @@ void main() {
     test('rearms the 401 latch', () async {
       // The latch must not stay closed for the life of the session, or the
       // next genuine expiry — a different cause, minutes later — is silently
-      // ignored. The React flag at `AuthContext.tsx` never resets; this is
+      // ignored. The React flag at the original auth context never resets; this is
       // the one place the port deliberately differs.
       final container = authTestContainer(adapter: contextAdapter());
       await container.read(authControllerProvider.future);

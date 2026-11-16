@@ -1,9 +1,9 @@
 /// Base class for every failure the API layer can raise.
 ///
-/// Replaces the copy-pasted `try/catch` blocks spread across the ~20 service
-/// call sites in `frontend/src/api/`. The React code catches
-/// `ApiErrorWithDetails` in each component and inspects `.message` / `.details`;
-/// here a single `on ApiException` at the call site covers all of them.
+/// Replaces the copy-pasted `try`/`catch` blocks spread across the original API
+/// call sites. The original code caught a details-bearing error type in each
+/// component and inspected its message and details; here a single
+/// `on ApiException` at the call site covers all of them.
 sealed class ApiException implements Exception {
   const ApiException(this.message, {this.details, this.statusCode});
 
@@ -30,8 +30,8 @@ sealed class ApiException implements Exception {
 /// The caller is not authenticated — HTTP 401.
 ///
 /// Signals that the session is gone and the app should return to the login
-/// screen. wires the single-flight redirect; this type is the signal
-/// it keys off.
+/// screen. The auth layer wires the single-flight redirect; this type is the
+/// signal it keys off.
 ///
 /// Note the server also returns 401 from `GET /api/users/context` when the
 /// token is missing or unparseable (`UserRoutes.kt`), and as a **bare

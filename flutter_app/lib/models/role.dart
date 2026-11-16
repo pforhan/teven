@@ -21,9 +21,8 @@ abstract class RoleResponse with _$RoleResponse {
 
 /// Well-known role names.
 ///
-/// Mirrors `Constants` in `frontend/src/core/Constants.ts`. The server stores
-/// roles by name in a string column, so these are compared as strings rather
-/// than by id.
+/// Mirrors the original frontend constants. The server stores roles by name in a
+/// string column, so these are compared as strings rather than by id.
 abstract final class RoleNames {
   const RoleNames._();
 

@@ -8,8 +8,8 @@ import 'service_providers.dart';
 
 /// How many events the calendar asks for in a month.
 ///
-/// `EventCalendar.tsx` calls `getAllEvents(1000, …)`, so this is the
-/// original's number rather than one chosen here.
+/// The original calendar called `getAllEvents(1000, …)`, so this is that number
+/// rather than one chosen here.
 ///
 /// **It is a large number for this endpoint**, and the port is not in a position
 /// to lower it without changing what the calendar shows. `EventResponse`

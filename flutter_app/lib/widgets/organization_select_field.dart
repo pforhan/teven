@@ -6,14 +6,14 @@ import '../providers/organization_list.dart';
 
 /// The organization `<select>` the customer and user forms share.
 ///
-/// `CreateCustomerForm.tsx` and `CreateUserForm.tsx` render the same
-/// control — a `form-select` over `getAllOrganizations(1000).items`, holding an
-/// `organizationId` — and differ only in what they do with it. React wrote
-/// each one out again; this is the one widget both use.
+/// The original create-customer and create-user forms rendered the same
+/// control — a select over `getAllOrganizations(1000).items`, holding an
+/// `organizationId` — and differed only in what they did with it. This is the
+/// one widget both use.
 ///
 /// **It watches [organizationListProvider] itself, and that is the load-bearing
-/// part.** The React forms fetch inside a `useEffect` guarded by
-/// `canManageGlobal`, precisely so that a user without it never asks — and
+/// part.** The original forms fetched inside an effect guarded by
+/// `canManageGlobal`, precisely so that a user without it never asked — and
 /// `GET /api/organizations` is gated on `VIEW_ORGANIZATIONS_GLOBAL` server-side
 /// (`OrganizationRoutes.kt`), so an `Organizer` who made that request would get
 /// a 403. Watching it unconditionally would put a guaranteed-403 request on
@@ -45,11 +45,11 @@ class OrganizationSelectField extends ConsumerWidget {
 
   /// Derives the value to *display* when the caller has not chosen one.
   ///
-  /// Exists because `CreateCustomerForm.tsx` and `CreateUserForm.tsx`
-  /// both seed their `<select>` with `items[0]`, and the rule has to be the
-  /// same one the submit handler applies — otherwise the control shows one
-  /// organization while the request names another, and nothing on screen
-  /// disagrees. `CreateCustomerScreen` passes the same function to both.
+  /// Exists because the original create-customer and create-user forms both
+  /// seeded their select with `items[0]`, and the rule has to be the same one the
+  /// submit handler applies — otherwise the control shows one organization while
+  /// the request names another, and nothing on screen disagrees.
+  /// `CreateCustomerScreen` passes the same function to both.
   ///
   /// Null (the default) shows exactly what the caller chose, which is what the
   /// edit forms want: their value comes from the record they loaded.

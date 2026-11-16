@@ -45,12 +45,12 @@ Once the Flutter web app is verified working locally against the real backend. T
 - [x] **10.3** **Delete `frontend/`.** The last commit touching it is the deletion commit.
 - [x] **10.1** Remove/inline `WEB_SOURCE` in `Dockerfile` and elsewhere -- replacing it with `flutter` the only remaining frontend.  No longer needs indirection.
 - [x] **10.4** Remove React deps, ESLint config, and node tooling references from the repo.
-- [ ] **10.5** Update `AGENTS.md`, `README.md`, and `BACKEND-DESIGN.md` for Flutter conventions.
+- [x] **10.5** Update `AGENTS.md`, `README.md`, and `BACKEND-DESIGN.md` for Flutter conventions.
 - [ ] **10.6** Update `API.md` for the drift found during the port (the table in `FLUTTER-CONVERT-DESIGN.md`) — regenerate rather than hand-edit, per `build.gradle.kts:23-87`.
 - [ ] **10.7** Remove dead `backend/service/geo/` code if the Flutter app does client-side geocoding, or wire up `GeoRoutes` if it does.
-- [ ] **10.8** **Strip dangling `frontend/` references from `flutter_app/lib/`.** 10.3 deletes the directory these comments point at, leaving paths like ``frontend/src/api/apiClient.ts`` that resolve to nothing — a comment that looks like a citation a reader could follow but cannot. 10.4 covers React *dependencies* and node tooling; it does not reach prose in doc comments.
+- [x] **10.8** **Strip dangling `frontend/` references from `flutter_app/lib/`.** 10.3 deletes the directory these comments point at, leaving paths like ``frontend/src/api/apiClient.ts`` that resolve to nothing — a comment that looks like a citation a reader could follow but cannot. 10.4 covers React *dependencies* and node tooling; it does not reach prose in doc comments.
 
-  **Do not delete these references wholesale — they carry the rationale for non-obvious decisions.** Most of the current occurrences explain *why* something is shaped the way it is, and that reasoning is the durable value. Reword to keep the explanation and drop the path, e.g. rather than "Replaces `apiClient` in `frontend/src/api/apiClient.ts`", say "Replaces the React app's hand-rolled `apiClient`, which wrapped `fetch`".
+   Most of the current occurrences explain *why* something is shaped the way it is, and that reasoning is the durable value. Reword to keep the explanation and drop the path, file, or source type, e.g. rather than "Replaces `apiClient` in `frontend/src/api/apiClient.ts`", say "Replaces a hand-rolled `apiClient`, which wrapped `fetch`".
 
   **The scope is much larger than the table below, which counts only the `frontend/src` occurrences.** A grep for `.ts`/`.tsx` finds **388** citations across **71 files** — 53 in `flutter_app/lib/` and 18 in `flutter_app/test/` — most of them the `Component.tsx:123` form, and `user_list_screen.dart` alone has 33. The table lists the ten `frontend/src` ones because those are the ones a reader cannot possibly reconstruct; the rest are equally dangling. **The calendar screen was swept separately**, as a demonstration of the shape, and the panel and the two event forms with it (task 7.7).
 

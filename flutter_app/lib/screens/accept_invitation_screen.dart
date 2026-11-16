@@ -13,9 +13,9 @@ import '../widgets/validators.dart';
 
 /// Accepts an invitation and creates the account behind it.
 ///
-/// Replaces `AcceptInvitationPage.tsx` — 176 lines. Reachable at
-/// `/register?token=...`, outside the authenticated branch
-/// (`App.tsx`), because the invitee following an emailed link has no session.
+/// Replaces the original invitation-acceptance screen. Reachable at
+/// `/register?token=...`, outside the authenticated branch of the original
+/// router, because the invitee following an emailed link has no session.
 ///
 /// **The query parameter is the reason this route exists as a path.** An
 /// invitee opens `/register?token=abc123` in a browser. established
@@ -25,13 +25,12 @@ import '../widgets/validators.dart';
 ///
 /// ## Where the two logged-in branches come from
 ///
-/// `AcceptInvitationPage.tsx` sets `alreadyLoggedIn` from an effect on
-/// `userContext`, and `:78-79` sets it again when `acceptInvitation` rejects
-/// with `"Cannot accept invitation while logged in."`. Only the first is
-/// reproduced here, because the second cannot happen without the first:
-/// `InvitationRoutes.kt` rejects the caller on the strength of an
-/// `AuthContext` principal, which only exists for a token that
-/// [userContextProvider] has already resolved. Deriving the flag from the
+/// The original screen set `alreadyLoggedIn` from an effect on `userContext`,
+/// and also when `acceptInvitation` rejected with `"Cannot accept invitation
+/// while logged in."`. Only the first is reproduced here, because the second
+/// cannot happen without the first: `InvitationRoutes.kt` rejects the caller on
+/// the strength of an `AuthContext` principal, which only exists for a token
+/// that [userContextProvider] has already resolved. Deriving the flag from the
 /// context rather than storing it also means it cannot go stale.
 class AcceptInvitationScreen extends ConsumerStatefulWidget {
   const AcceptInvitationScreen({
@@ -85,13 +84,13 @@ class _AcceptInvitationScreenState
     super.initState();
     final token = widget.token;
     if (token == null || token.isEmpty) {
-      // `AcceptInvitationPage.tsx` — no token in the URL at all.
+      // No token in the URL at all, as in the original screen.
       _error = const ApiRequestException('Invitation token not found in URL.');
       return;
     }
 
-    // `AcceptInvitationPage.tsx`. Fire-and-forget on purpose: the screen
-    // has its own loading state, and the outcome lands in `_invitation` or
+    // Fire-and-forget on purpose, as in the original screen: the screen has its
+    // own loading state, and the outcome lands in `_invitation` or
     // `_validationError`.
     setState(() => _validating = true);
     unawaited(_validate(token));
@@ -134,11 +133,10 @@ class _AcceptInvitationScreenState
 
   /// Creates the account, then points the user at the login screen.
   ///
-  /// `AcceptInvitationPage.tsx`. The 3-second pause before navigating
-  /// (`setTimeout`, `:73`) exists so the success message is readable; it is
-  /// reproduced rather than dropped, and the timer is cancelled on dispose so a
-  /// navigation that unmounts this screen does not fire a callback against a
-  /// dead [State].
+  /// The original screen paused for 3 seconds before navigating so the success
+  /// message was readable; that pause is reproduced rather than dropped, and the
+  /// timer is cancelled on dispose so a navigation that unmounts this screen
+  /// does not fire a callback against a dead [State].
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -163,13 +161,12 @@ class _AcceptInvitationScreenState
             ),
           );
 
-      // `AcceptInvitationPage.tsx`. **The `else` here is unreachable.** A
-      // service-level rejection is converted by `InvitationRoutes.kt`
-      // into an envelope-level failure, which `ApiClient` raises as an
-      // `ApiRequestException`, so a `success: false` DTO never reaches the
-      // client — see `AcceptInvitationResponse`. The branch is kept because the
-      // DTO has the field and dropping it would make a server change look like
-      // a no-op here.
+      // **The `else` here is unreachable.** A service-level rejection is
+      // converted by `InvitationRoutes.kt` into an envelope-level failure, which
+      // `ApiClient` raises as an `ApiRequestException`, so a `success: false`
+      // DTO never reaches the client — see `AcceptInvitationResponse`. The
+      // branch is kept because the DTO has the field and dropping it would make
+      // a server change look like a no-op here.
       if (response.success) {
         _redirectTimer = Timer(const Duration(seconds: 3), widget.onAccepted);
         if (mounted) {
@@ -201,8 +198,8 @@ class _AcceptInvitationScreenState
 
   @override
   Widget build(BuildContext context) {
-    // `AcceptInvitationPage.tsx` — a signed-in visitor gets the
-    // already-logged-in screen and nothing else.
+    // A signed-in visitor gets the already-logged-in screen and nothing else, as
+    // in the original screen.
     final alreadyLoggedIn = ref.watch(userContextProvider) != null;
 
     return Scaffold(
@@ -226,9 +223,8 @@ class _AcceptInvitationScreenState
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
-                  // Rendered above the logged-in branch, matching
-                  // `AcceptInvitationPage.tsx` — a signed-in user who
-                  // followed a stale link sees both.
+                  // Rendered above the logged-in branch, matching the original
+                  // screen — a signed-in user who followed a stale link sees both.
                   if (_validationError != null) ...[
                     ErrorDisplay(message: _validationError!),
                     const SizedBox(height: 16),
@@ -261,15 +257,15 @@ class _AcceptInvitationScreenState
     );
   }
 
-  /// The four render states of `AcceptInvitationPage.tsx`.
+  /// The four render states of the original screen.
   ///
-  /// **One deliberate departure from the React ternaries.** `:103-104` picks the
-  /// loading box on `!invitationDetails && !validationError`, and neither is set
-  /// when the URL carried no token — that path sets the ordinary [error] instead
-  /// (`:46`). So the original renders "Invitation token not found in URL."
-  /// *and* an indefinite "Loading invitation..." box, one on top of the other,
-  /// for a page that will never load anything. Transcribing that produces a
-  /// spinner that never stops.
+  /// **One deliberate departure from the original ternaries.** The original
+  /// picked the loading box on `!invitationDetails && !validationError`, and
+  /// neither was set when the URL carried no token — that path set the ordinary
+  /// error instead. So the original rendered "Invitation token not found in
+  /// URL." *and* an indefinite "Loading invitation..." box, one on top of the
+  /// other, for a page that would never load anything. Transcribing that
+  /// produces a spinner that never stops.
   ///
   /// [_validating] tracks the request itself instead, so the box appears only
   /// while a request is genuinely in flight. Every other state matches: a
@@ -382,7 +378,7 @@ class _AcceptInvitationScreenState
     );
   }
 
-  /// Stands in for `required` (`AcceptInvitationPage.tsx`).
+  /// Stands in for the original screen's `required` attribute.
   static String? _required(String? value) =>
       (value == null || value.isEmpty) ? 'This field is required' : null;
 }
@@ -434,9 +430,9 @@ class _InfoBanner extends StatelessWidget {
             ),
             const SizedBox(width: 12),
           ],
-          // The invitation summary is two `<p>`s in the React original; the
-          // newline between them is the only thing distinguishing them from
-          // inside one text node, and `mb-0` on the second meant no gap.
+          // The invitation summary was two paragraphs in the original; the
+          // newline between them is the only thing distinguishing them inside one
+          // text node, and the second had no bottom margin.
           Expanded(
             child: Text(message, style: TextStyle(color: onBackground)),
           ),

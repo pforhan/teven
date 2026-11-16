@@ -3,8 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Reads and writes the auth token.
 ///
-/// Replaces `localStorage`, which the React `AuthService` uses
-/// (`frontend/src/api/AuthService.ts`).
+/// Replaces the original app's `localStorage`-based token storage.
 ///
 /// **Storage format is encrypted, not plaintext.** The web implementation
 /// namespaces keys as `publicKey.<key>` and stores AES-GCM ciphertext

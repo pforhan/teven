@@ -7,9 +7,9 @@ import '../core/theme/teven_theme.dart';
 
 /// One column of a [ResponsiveListView].
 ///
-/// `TableView.tsx`, minus the `'actions'` magic key — actions are a
-/// separate widget here because they are not a column of data and putting them
-/// in the list is what let them drift per call site.
+/// Based on the original table component, minus the `'actions'` magic key —
+/// actions are a separate widget here because they are not a column of data and
+/// putting them in the list is what let them drift per call site.
 class ListColumn<T> {
   const ListColumn({
     required this.key,
@@ -24,8 +24,8 @@ class ListColumn<T> {
          'not both — text is the default for render.',
        );
 
-  /// Stable identifier for the column, used for the sort key and as the
-  /// React original's `keyof T` accessor.
+  /// Stable identifier for the column, used for the sort key and as the original
+  /// column's `keyof T` accessor.
   final String key;
 
   /// Header text, shown in both layouts.
@@ -61,7 +61,7 @@ class ListColumn<T> {
   /// Whether the header is a sort control.
   ///
   /// `sortBy` on the screen is compared against [key]; the widget only reports
-  /// the click. `CustomerList.tsx` owns the toggle.
+  /// the click. The owning screen decides the toggle.
   final bool sortable;
 
   /// The cell for [item].
@@ -97,17 +97,17 @@ class ListRowAction {
 
   final VoidCallback onPressed;
 
-  /// Paints the button in the error colour. `CustomerList.tsx` used
-  /// `btn-light` for both; the delete is styled separately here because a
-  /// destructive control that looks identical to the edit beside it is the
-  /// kind of thing a phone user mis-taps.
+  /// Paints the button in the error colour. The original lists used the same
+  /// light style for both; the delete is styled separately here because a
+  /// destructive control that looks identical to the edit beside it is the kind
+  /// of thing a phone user mis-taps.
   final bool isDestructive;
 }
 
 /// A list of records: a table where there is room for one, cards where there
 /// is not.
 ///
-/// Replaces `TableView.tsx` (90 lines) with the redesign Phase 4 calls for.
+/// Replaces the original table component with the redesign Phase 4 calls for.
 ///
 /// | Width | Layout |
 /// |---|---|
@@ -158,7 +158,7 @@ class ResponsiveListView<T> extends StatefulWidget {
   final SortOrder? sortOrder;
 
   /// Called with a column [key] when a sortable header is tapped. The screen
-  /// decides what that means, exactly as `CustomerList.tsx` does.
+  /// decides what that means, exactly as the original list screens did.
   final ValueChanged<String>? onSort;
 
   final String emptyMessage;
@@ -246,8 +246,8 @@ class _ResponsiveListViewState<T> extends State<ResponsiveListView<T>> {
   /// The row's action buttons, or nothing when the user may take none.
   ///
   /// Shared by both layouts so a screen wires its buttons once — which is the
-  /// point of the redesign: `TableView.tsx` had six call sites, each of which
-  /// built its own `OverlayTrigger` pair.
+  /// point of the redesign: the original table had six call sites, each of which
+  /// built its own tooltip/button pair.
   List<Widget> actionButtons(BuildContext context, T item) {
     final actions = widget.actions;
     if (actions == null) return const [];
@@ -324,9 +324,9 @@ class _TableLayout<T> extends StatelessWidget {
 
   /// The sort control in a header cell.
   ///
-  /// `TableView.tsx`: label, then an arrow for the active column and a
-  /// faint one for the rest. The arrow here is Material's rather than
-  /// `FaSortUp`/`FaSortDown` no attempt at glyph parity.
+  /// The original: label, then an arrow for the active column and a faint one
+  /// for the rest. The arrow here is Material's rather than the original glyphs —
+  /// no attempt at glyph parity.
   Widget _headerCell(BuildContext context, ListColumn<T> column) {
     final widget = state.widget;
     final active = widget.sortBy == column.key;

@@ -289,7 +289,7 @@ void main() {
       await searchWithoutSettling(tester, 'Ga');
       await settleRequests(tester);
 
-      // **Parity with `TableView.tsx`, where `:40` and `:42` are siblings** —
+      // **Parity with the original table component, where `:40` and `:42` are siblings** —
       // React rendered the error banner and the previous table together. The
       // port replaced the list with the error, which the plan never mentioned
       // and which the same mechanism fixes.

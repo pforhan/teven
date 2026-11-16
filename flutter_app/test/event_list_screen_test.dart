@@ -308,7 +308,7 @@ void main() {
         ),
       );
 
-      // `EventListPage.tsx` — `event.customer?.name || 'N/A'`. Not
+      // the original event list screen — `event.customer?.name || 'N/A'`. Not
       // decoration: `customerId` is nullable on the DTO and the schema, so an
       // event with no customer is a real state rather than a broken row.
       expect(find.text('N/A'), findsOneWidget);
@@ -348,7 +348,7 @@ void main() {
       await openList(tester, adapter);
 
       final request = getRequests(adapter).last;
-      // `EventListPage.tsx` passes `startDate` and leaves `endDate`
+      // the original event list screen passes `startDate` and leaves `endDate`
       // undefined. A month *window*, as the calendar sends, would be a
       // different screen.
       expect(
@@ -372,7 +372,7 @@ void main() {
 
       final requests = getRequests(adapter);
       expect(requests.length, before + 1);
-      // And it resets the page, which `EventListPage.tsx` does explicitly
+      // And it resets the page, which the original event list screen does explicitly
       // with `setOffset(0)`. That is free here — a changed `ListQuery` is a new
       // provider, which starts at offset 0 — so this pins the outcome rather than
       // the mechanism.
@@ -437,7 +437,7 @@ void main() {
       await tester.pumpAndSettle();
       await settleRequests(tester);
 
-      // `handleSort` on a new column starts ascending, `EventListPage.tsx`.
+      // `handleSort` on a new column starts ascending, the original event list screen.
       expect(getRequests(adapter).last.queryParameters['sortBy'], 'title');
       expect(getRequests(adapter).last.queryParameters['sortOrder'], 'asc');
     });
@@ -511,7 +511,7 @@ void main() {
       await tester.pump();
       await settleRequests(tester);
 
-      // `'no response'`, verbatim from `EventListPage.tsx` — **not** `''`
+      // `'no response'`, verbatim from the original event list screen — **not** `''`
       // and **not** a member of [RsvpAvailability]. The server stores it as a
       // free-form string, so "improving" it here would change what lands in the
       // `rsvps.availability` column and every existing filter over it. Task
@@ -535,7 +535,7 @@ void main() {
     ) async {
       final today = formatLocalDate(DateTime.now().toUtc());
       // Two RSVPs, only one of them this user's — `userId: 1` in the harness's
-      // context. `EventListPage.tsx` finds the current user's among the
+      // context. the original event list screen finds the current user's among the
       // event's; taking the first would show Bob's answer as yours.
       await openList(
         tester,
@@ -622,7 +622,7 @@ void main() {
       await tester.tap(find.byTooltip('Delete'));
       await tester.pumpAndSettle();
 
-      // The shared dialog — `EventListPage.tsx` sixth and last
+      // The shared dialog — the original event list screen sixth and last
       // call site. Named after the record, because that is what the other five
       // sites do and a generic "Are you sure?" is what made six of them worth
       // sharing.

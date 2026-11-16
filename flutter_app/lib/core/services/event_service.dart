@@ -6,7 +6,7 @@ import 'list_query.dart';
 /// Events — the heaviest resource in the API, and the one with the most
 /// response quirks.
 ///
-/// Replaces `EventService` in `frontend/src/api/EventService.ts`.
+/// Replaces the original event API service.
 class EventService {
   const EventService(this._client);
 
@@ -104,8 +104,7 @@ class EventService {
             .toList(),
       );
 
-  /// **Not implemented.** The React app calls `POST /api/events/{id}/join`
-  /// (`EventService.ts`), but no such route exists in `EventRoutes.kt` —
-  /// the request 404s at the `/api` catch-all. Omitted rather than stubbed so
-  /// the compiler surfaces it.
+  /// **Not implemented.** The original app called `POST /api/events/{id}/join`,
+  /// but no such route exists in `EventRoutes.kt` — the request 404s at the
+  /// `/api` catch-all. Omitted rather than stubbed so the compiler surfaces it.
 }

@@ -298,7 +298,7 @@ void main() {
         ),
       );
 
-      // **The divergence from the React original.** `EventDetails.tsx`
+      // **The divergence from the React original.** the original event details screen
       // returns a spinner whenever the event is null, and the error it
       // catches is rendered *inside* the card that the spinner replaces — so
       // a failed load spins forever and says nothing. The port shows the
@@ -336,7 +336,7 @@ void main() {
         detailsAdapter(permissions: const [viewEvents, manageEvents]),
       );
 
-      // `EventDetails.tsx`.
+      // the original event details screen.
       expect(
         find.text("You don't have permission to RSVP to this event."),
         findsOneWidget,
@@ -387,7 +387,7 @@ void main() {
         ),
         isNotNull,
       );
-      // **Away, not a refetch.** `EventDetails.tsx` navigates to the events
+      // **Away, not a refetch.** the original event details screen navigates to the events
       // list, and the record is gone — there is nothing to refetch. This is
       // the one delete in the app where *not* refetching is the point.
       expect(currentPath(container), AppRoutes.events);
@@ -474,7 +474,7 @@ void main() {
       final post = adapter.requests.firstWhere(
         (o) => o.method == 'POST' && o.path == '/api/events/42/rsvp',
       );
-      // `'no response'`, verbatim from `EventDetails.tsx`. **Not** `''`,
+      // `'no response'`, verbatim from the original event details screen. **Not** `''`,
       // and **not** a member of `RsvpAvailability` — the server stores it as
       // a free-form string, so it is a fourth answer rather than the absence
       // of one.
@@ -582,7 +582,7 @@ void main() {
         ),
       );
 
-      // `EventDetails.tsx` — the gate is the manage permission, not the
+      // the original event details screen — the gate is the manage permission, not the
       // size of the list.
       expect(find.text('DECLINED'), findsNothing);
       expect(find.text('Dan'), findsNothing);
@@ -641,7 +641,7 @@ void main() {
       final adapter = detailsAdapter();
       await openDetails(tester, adapter);
 
-      // `EventDetails.tsx` hands the panel the date, the
+      // the original event details screen hands the panel the date, the
       // organization and this event's id to leave out.
       final query = otherEventsQuery(adapter);
       expect(query, isNotNull);

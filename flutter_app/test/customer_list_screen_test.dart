@@ -315,7 +315,7 @@ void main() {
         adapter.requests.where((o) => o.method == 'DELETE').map((o) => o.path),
         ['/api/customers/1'],
       );
-      // `CustomerList.tsx` re-fetched after deleting.
+      // the original customer list screen re-fetched after deleting.
       expect(getRequests(adapter), hasLength(2));
     });
   });
@@ -351,7 +351,7 @@ void main() {
       final adapter = customerAdapter();
       await openCustomers(tester, adapter);
 
-      // `CustomerList.tsx` marks `name` sortable and the other three not.
+      // the original customer list screen marks `name` sortable and the other three not.
       // `CustomerDao` does honour `sortBy` for phone and address, so this is a
       // choice the React app made rather than a server limit — worth knowing
       // before goes looking for sort controls that should be there.

@@ -13,13 +13,12 @@ import 'organization_picker.dart';
 
 /// The "Create Event" button, and the organization it needs before it will work.
 ///
-/// **Built once rather than per screen, because two versions of this
-/// control disagreed and only one of them was right.** The calendar button
-/// (`EventCalendar.tsx`) carried a `pendingNavigateUrl` and resumed the
-/// navigation after a selection; the list-page button
-/// (`EventListPage.tsx`) had none, so dismissing the picker did
-/// nothing and a selection always went to a bare `/events/create` — losing the
-/// `?date=` a calendar click had supplied.
+/// **Built once rather than per screen, because two versions of this control
+/// disagreed and only one of them was right.** The original calendar button
+/// carried a pending navigate URL and resumed navigation after a selection; the
+/// original list-page button had none, so dismissing the picker did nothing and a
+/// selection always went to a bare `/events/create` — losing the `?date=` a
+/// calendar click had supplied.
 ///
 /// [resumeUrl] is the one answer to that, and it is a parameter rather than a
 /// constant so both callers can pass what they mean: the header buttons pass
@@ -27,10 +26,10 @@ import 'organization_picker.dart';
 /// own URL.
 ///
 /// **Why the picker is asked for *before* navigating rather than after.** A
-/// `VIEW_USERS_GLOBAL` user with no organization selected lands on the create
-/// form's "Organization Required" card (`CreateEventForm.tsx`) and has
-/// to tap through it. That card exists because the server refuses the create
-/// anyway — `EventService.kt` throws `"organizationId is required for
+/// `VIEW_USERS_GLOBAL` user with no organization selected would land on the
+/// create form's "Organization Required" card and have to tap through it. That
+/// card existed because the server refuses the create anyway —
+/// `EventService.kt` throws `"organizationId is required for
 /// MANAGE_EVENTS_GLOBAL users"` — so the button is where the requirement gets
 /// *answered*, and answering it here is the difference between one tap and three.
 class CreateEventButton extends ConsumerWidget {
@@ -52,10 +51,10 @@ class CreateEventButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Null rather than a disabled button, matching `ListScreenHeader.action`
-    // and the React screens, which render the button only when the permission
-    // is held. `EventCalendar.tsx` and `EventListPage.tsx` derive it
-    // independently of each other and of the route guard, and the screen you
-    // are on is reachable without it — `/events` needs only `VIEW_*`.
+    // and the original screens, which rendered the button only when the
+    // permission was held. The original calendar and event list derived it
+    // independently of each other and of the route guard, and the screen you are
+    // on is reachable without it — `/events` needs only `VIEW_*`.
     if (!ref
         .watch(permissionGateProvider)
         .has(Permission.manageEventsOrganization)) {
@@ -83,7 +82,7 @@ class CreateEventButton extends ConsumerWidget {
     final gate = ref.read(permissionGateProvider);
     final organization = ref.read(selectedOrganizationProvider);
 
-    // Both conditions, not either. `EventCalendar.tsx` is
+    // Both conditions, not either. The original calendar checked
     // `hasPermission('VIEW_USERS_GLOBAL') && !selectedOrganization` — the
     // permission decides whether a selection is *possible* at all, since only a
     // global user gets the switcher. Without it the button would demand an
@@ -99,8 +98,8 @@ class CreateEventButton extends ConsumerWidget {
     // Dismissed with no choice is a cancellation, and `showOrganizationPicker`
     // answers `null` for the barrier tap and the back gesture as well as for the
     // Cancel button. Navigating then would defeat the picker — which is exactly
-    // what the list-page button did in the React original, where `onHide` had
-    // no pending URL to clear and so could not tell "cancelled" from "chosen".
+    // what the original list-page button did, where `onHide` had no pending URL
+    // to clear and so could not tell "cancelled" from "chosen".
     final selected = await showOrganizationPicker(context);
     if (selected == null || !context.mounted) return;
     context.go(target);
@@ -109,7 +108,7 @@ class CreateEventButton extends ConsumerWidget {
   /// [create], for a tapped calendar day cell.
   ///
   /// The day becomes `?date=yyyy-MM-dd`, which `CreateEventScreen` reads to
-  /// prefill its date field — the same query parameter `EventCalendar.tsx`
+  /// prefill its date field — the same query parameter the original calendar
   /// built. Handed as a [DateTime] rather than a formatted string so the one
   /// place that knows the wire format is [eventCreateUrlForDay].
   static Future<void> createForDay(
@@ -121,9 +120,9 @@ class CreateEventButton extends ConsumerWidget {
 
 /// The create URL for one calendar day.
 ///
-/// `EventCalendar.tsx` builds `` `/events/create?date=${date}` `` from a
-/// tapped cell. A function rather than an inline string at the call sites
-/// because the query parameter is a contract with the create screen, and a
-/// format written in two places is one that will be fixed in one.
+/// The original calendar built `/events/create?date=...` from a tapped cell. A
+/// function rather than an inline string at the call sites because the query
+/// parameter is a contract with the create screen, and a format written in two
+/// places is one that will be fixed in one.
 String eventCreateUrlForDay(DateTime day) =>
     '${AppRoutes.eventCreate}?date=${formatLocalDate(day)}';

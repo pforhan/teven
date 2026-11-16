@@ -17,8 +17,8 @@ This repository contains the core documentation for the Teven project. As the pr
   This document details the proposed backend architecture for Teven, including technology choices (Ktor, Exposed, Kotlin Coroutines), modular structure, and API design principles.  
   See [the backend Eng Design](BACKEND-DESIGN.md) and [API specification](API.md) for more.
 * Flutter Conversion Plan:  
-  The React frontend in `frontend/` is being rewritten in Flutter, web-first. The plan tracks every task, the parity matrix against the React source, and decisions made along the way.  
-  See [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for the task checklist, [FLUTTER-CONVERT-NOTES.md](FLUTTER-CONVERT-NOTES.md) for progress, and [the Flutter app README](flutter_app/README.md) for development setup.
+  The frontend was rewritten in Flutter (web-first) from the original React SPA. The plan tracks every task, the parity matrix, and decisions made along the way.  
+  See [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md) for the task checklist, [FLUTTER-CONVERT-NOTES.md](FLUTTER-CONVERT-NOTES.md) for progress and history, and [the Flutter app README](flutter_app/README.md) for development setup.
 * **Future Documents:**  
   * Frontend Design Specifications  
   * Database Schema  

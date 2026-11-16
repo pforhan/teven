@@ -15,15 +15,15 @@ import 'organization_picker.dart';
 
 /// The organization control in the chrome.
 ///
-/// together, because they are two branches of one widget:
-/// `MainLayout.tsx` renders either a super-admin's switcher or a static
-/// label, decided by whether the user holds `VIEW_USERS_GLOBAL`.
+/// Two branches of one widget: the original layout rendered either a super-admin
+/// switcher or a static label, decided by whether the user held
+/// `VIEW_USERS_GLOBAL`.
 ///
-/// **One divergence from the React original.** `OrganizationSelector.tsx` is a
-/// `<select>`, which on a phone opens a platform picker sheet anyway. Inside a
-/// 72px rail there is no room for one, so the desktop rendering is a real
-/// dropdown and the two narrower layouts open the sheet/dialog the event forms
-/// use ([showOrganizationPicker]). The state, the persistence and the "All
+/// **One divergence from the original.** The original selector was a `<select>`,
+/// which on a phone opens a platform picker sheet anyway. Inside a 72px rail
+/// there is no room for one, so the desktop rendering is a real dropdown and the
+/// two narrower layouts open the sheet/dialog the event forms use
+/// ([showOrganizationPicker]). The state, the persistence and the "All
 /// Organizations" option are the same in all three — only the presentation
 /// differs.
 ///
@@ -38,7 +38,7 @@ class OrganizationSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // `MainLayout.tsx`. Derived from a permission, not from a role name.
+    // Derived from a permission, not from a role name, as in the original layout.
     if (!ref.watch(isSuperAdminProvider)) {
       return _StaticOrganizationLabel(layoutSize: layoutSize);
     }
@@ -55,11 +55,10 @@ class OrganizationSelector extends ConsumerWidget {
 
 /// The non-super-admin branch: the user's organization name.
 ///
-/// `MainLayout.tsx` rendered a static label, because a non-super-admin cannot
-/// change their organization scope. makes it a link to the
-/// organization's edit screen for anyone holding `MANAGE_ORGANIZATION` (their
-/// own organization only; the backend enforces scope). It stays plain text
-/// otherwise.
+/// The original layout rendered a static label, because a non-super-admin cannot
+/// change their organization scope. Task 11.5 makes it a link to the
+/// organization's edit screen for anyone holding `MANAGE_ORGANIZATION` (their own
+/// organization only; the backend enforces scope). It stays plain text otherwise.
 class _StaticOrganizationLabel extends ConsumerWidget {
   const _StaticOrganizationLabel({required this.layoutSize});
 
@@ -70,8 +69,8 @@ class _StaticOrganizationLabel extends ConsumerWidget {
     final organization = ref.watch(userContextProvider)?.user.organization;
     final theme = Theme.of(context);
 
-    // `MainLayout.tsx` renders an empty span when there is no organization, so
-    // nothing is shown rather than a placeholder.
+    // The original layout rendered an empty span when there was no organization,
+    // so nothing is shown rather than a placeholder.
     if (organization == null || organization.name.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -136,9 +135,9 @@ class _StaticOrganizationLabel extends ConsumerWidget {
 
 /// The compact super-admin control. Opens [showOrganizationPicker].
 ///
-/// `QuickOrganizationPickerModal.tsx` is the same control in the React app —
-/// `OrganizationSelector` is not reachable from a phone-sized layout at all,
-/// since the navbar collapses and the select is inside it.
+/// The original app had the same picker as a quick modal — the full selector was
+/// not reachable from a phone-sized layout at all, since the navbar collapsed and
+/// the select was inside it.
 class _CompactOrganizationButton extends ConsumerWidget {
   const _CompactOrganizationButton({required this.iconOnly});
 
@@ -198,10 +197,9 @@ class _OrganizationDropdown extends ConsumerWidget {
       selected,
     );
 
-    // `OrganizationSelector.tsx` replaces the control outright with
-    // `<div class="text-danger">Error: {message}</div>`. Reproduced, including
-    // the prefix, but kept in place rather than swapped so the chrome keeps its
-    // shape. The message is the server's, not a generic one.
+    // The original selector replaced the control outright with an error message.
+    // Reproduced, including the prefix, but kept in place rather than swapped so
+    // the chrome keeps its shape. The message is the server's, not a generic one.
     final failure = ref.watch(organizationListProvider).error;
     if (failure != null) {
       return Text(
@@ -242,8 +240,8 @@ class _OrganizationDropdown extends ConsumerWidget {
           ),
           icon: const Icon(Icons.expand_more, color: Colors.white),
           items: [
-            // `OrganizationSelector.tsx` — the empty option means "no
-            // organization filter", not "no organization".
+            // The empty option means "no organization filter", not "no
+            // organization", as in the original selector.
             const DropdownMenuItem<int?>(
               value: null,
               child: Text(allOrganizationsLabel, style: ink),
@@ -259,10 +257,9 @@ class _OrganizationDropdown extends ConsumerWidget {
               ),
           ],
           onChanged: (organizationId) {
-            // `OrganizationSelector.tsx` resolves the id back to the full
-            // object — the context stores a whole `OrganizationResponse`, not
-            // an id. Choosing the empty option passes null, which clears the
-            // stored key.
+            // The original selector resolved the id back to the full object — the
+            // context stores a whole `OrganizationResponse`, not an id. Choosing
+            // the empty option passes null, which clears the stored key.
             ref
                 .read(organizationControllerProvider.notifier)
                 .select(_byId(organizations, organizationId));
@@ -285,14 +282,14 @@ class _OrganizationDropdown extends ConsumerWidget {
 /// background.
 bool _onDarkRail(LayoutSize size) => size != LayoutSize.mobile;
 
-/// `OrganizationSelector.tsx`.
+/// Label for the "no organization filter" option.
 const String allOrganizationsLabel = 'All Organizations';
 
 /// The organization with [id], or null for the "all" option and for an id that
 /// is not in the list.
 ///
-/// Null rather than a throw, matching `OrganizationSelector.tsx`, which
-/// falls back to `organization || null` for an id it cannot resolve.
+/// Null rather than a throw, matching the original selector, which fell back to
+/// `organization || null` for an id it could not resolve.
 OrganizationResponse? _byId(List<OrganizationResponse> organizations, int? id) {
   if (id == null) {
     return null;

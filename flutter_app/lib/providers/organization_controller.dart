@@ -7,11 +7,11 @@ import 'service_providers.dart';
 
 /// The organization the super-admin is currently working in, or `null`.
 ///
-/// Replaces `OrganizationContext` (`OrganizationContext.tsx`), which held the
-/// same single value in React state and mirrored it into `localStorage`.
+/// Replaces the original organization context, which held the same single value
+/// in React state and mirrored it into `localStorage`.
 ///
-/// Scoped to super-admins only — `MainLayout.tsx` shows everyone else a static
-/// label — but the persistence is unconditional, matching the React original,
+/// Scoped to super-admins only — the original layout showed everyone else a
+/// static label — but the persistence is unconditional, matching the original,
 /// which also wrote the key whoever set it.
 final organizationControllerProvider =
     AsyncNotifierProvider<OrganizationController, OrganizationResponse?>(
@@ -19,7 +19,7 @@ final organizationControllerProvider =
     );
 
 class OrganizationController extends AsyncNotifier<OrganizationResponse?> {
-  /// Mirrors `OrganizationContext.tsx`: restore from storage on boot,
+  /// Mirrors the original organization context: restore from storage on boot,
   /// seeded synchronously in React and asynchronously here.
   ///
   /// `localStorage` is a synchronous store, so React could initialize during
@@ -35,10 +35,10 @@ class OrganizationController extends AsyncNotifier<OrganizationResponse?> {
 
   /// Sets the selected organization and persists it.
   ///
-  /// Persistence is awaited before the state is published, matching
-  /// `OrganizationContext.tsx`, where `setItem` runs synchronously inside
-  /// the setter. Publishing first and writing second would let a fast reload
-  /// land between the two and read the old value back.
+  /// Persistence is awaited before the state is published, matching the original
+  /// context, where `setItem` ran synchronously inside the setter. Publishing
+  /// first and writing second would let a fast reload land between the two and
+  /// read the old value back.
   ///
   /// A `null` [organization] clears the key rather than storing `"null"` —
   /// `removeItem` in the original.
@@ -56,11 +56,10 @@ class OrganizationController extends AsyncNotifier<OrganizationResponse?> {
 
   /// Parses a stored value, tolerating anything unreadable.
   ///
-  /// The original calls a bare `JSON.parse` on whatever is in
-  /// `localStorage` (`OrganizationContext.tsx`), so a value written by an
-  /// older build — or edited by hand — throws during the first render and
-  /// takes the whole app down. A stale selection is recoverable; a white
-  /// screen is not.
+  /// The original called a bare `JSON.parse` on whatever was in
+  /// `localStorage`, so a value written by an older build — or edited by hand —
+  /// threw during the first render and took the whole app down. A stale
+  /// selection is recoverable; a white screen is not.
   static OrganizationResponse? _decode(String? raw) {
     if (raw == null || raw.isEmpty) {
       return null;

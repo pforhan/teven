@@ -18,7 +18,7 @@ PaginatedResponse<T> _page<T>(
 /// Users, scoped to the caller's organization unless a super-admin passes an
 /// explicit [ListQuery.organizationId].
 ///
-/// Replaces `UserService` in `frontend/src/api/UserService.ts`.
+/// Replaces the original user API service.
 class UserService {
   const UserService(this._client);
 
@@ -53,19 +53,19 @@ class UserService {
 
   /// Deletes a user. **This endpoint does not exist.**
   ///
-  /// The React app calls `DELETE /api/users/{id}` and `UserList.tsx` surfaces
-  /// it as a working delete button, but `UserRoutes.kt` defines no `delete`
-  /// route — the request falls through to the `/api` catch-all and 404s with a
-  /// JSON envelope. The button has therefore never worked.
+  /// The original app called `DELETE /api/users/{id}` and surfaced it as a
+  /// working delete button, but `UserRoutes.kt` defines no `delete` route — the
+  /// request falls through to the `/api` catch-all and 404s with a JSON
+  /// envelope. The button has therefore never worked.
   ///
   /// **Reproduced rather than fixed or dropped**, on the same terms as the dead
   /// detail links (`AppRoutes.customerDetails`): the port is faithful through
   /// Phase 8, and a 404 that the screen surfaces as an error is a more honest
-  /// reproduction than a button quietly missing. `UserList.tsx` caught the
-  /// failure and put it in the shared `error` state; the ported screen does the
+  /// reproduction than a button quietly missing. The original screen caught the
+  /// failure and put it in the shared error state; the ported screen does the
   /// same through its action-error banner.
   ///
-  /// owns the fix, and its decision is made — **hard delete**, with
+  /// Task 10.12 owns the fix, and its decision is made — **hard delete**, with
   /// the four dependent tables cascaded and `Invitations.usedByUserId` nulled
   /// rather than cascaded. Until then this call always fails.
   Future<void> deleteUser(int userId) => _client.delete('/api/users/$userId');

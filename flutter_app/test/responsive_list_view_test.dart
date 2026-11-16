@@ -291,7 +291,7 @@ void main() {
 
   group('sorting', () {
     // client half: the widget reports the column, the screen
-    // decides. `TableView.tsx` did exactly this.
+    // decides. the original table component did exactly this.
     testWidgets('a sortable header reports its key', (tester) async {
       final keys = <String>[];
       await pumpList(tester, width: desktopWidth, onSort: keys.add);

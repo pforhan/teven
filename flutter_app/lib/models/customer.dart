@@ -10,11 +10,11 @@ part 'customer.g.dart';
 /// Mirrors `CustomerResponse` in
 /// `backend/api/.../model/customer/CustomerResponse.kt`.
 ///
-/// The geo fields (`latitude`, `longitude`, `formattedAddress`) are absent
-/// from the React types in `frontend/src/types/customers.ts` but **are** on
-/// the wire. They are included here so the data is not silently dropped; the
-/// backend's geo service is currently dead code (see
-/// the backend discrepancy notes), so these are normally null.
+/// The geo fields (`latitude`, `longitude`, `formattedAddress`) were absent
+/// from the original frontend types but **are** on the wire. They are included
+/// here so the data is not silently dropped; the backend's geo service is
+/// currently dead code (see the backend discrepancy notes), so these are
+/// normally null.
 @freezed
 abstract class CustomerResponse with _$CustomerResponse {
   const factory CustomerResponse({

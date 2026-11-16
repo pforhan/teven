@@ -12,29 +12,28 @@ import 'error_display.dart';
 
 /// The list of events waiting for this user's answer.
 ///
-/// `RsvpWidget.tsx` (72 lines) — the "You have pending RSVP requests" card,
-/// with an Accept and a Decline button on each row.
+/// The "You have pending RSVP requests" card, with an Accept and a Decline
+/// button on each row.
 ///
-/// **The React component was never mounted.** It was added in `f13ae83`, the
-/// same commit that added `GET /api/events/rsvps/requested`, and nothing has
-/// imported it since. So the endpoint has been reachable and unused for the
-/// whole life of the app, and the widget itself is the only place in the
-/// React codebase that knows about it.
+/// **The original component was never mounted.** It was added in `f13ae83`, the
+/// same commit that added `GET /api/events/rsvps/requested`, and nothing ever
+/// imported it. So the endpoint had been reachable and unused for the whole life
+/// of the app, and the widget itself was the only place in the original codebase
+/// that knew about it.
 ///
 /// It is mounted here, on the calendar — which is the app's landing page and
-/// which already marks a pending request in orange on the event's bar. The
-/// card is the action for that mark: without it, a user can see that something
-/// is waiting and have no way to answer it except by opening each event in
-/// turn. owns the question of whether the route should be exposed
-/// at all; this is the answer this port gives it.
+/// which already marks a pending request in orange on the event's bar. The card
+/// is the action for that mark: without it, a user can see that something is
+/// waiting and have no way to answer it except by opening each event in turn.
+/// Task 7.12 owns the question of whether the route should be exposed at all;
+/// this is the answer this port gives it.
 ///
 /// **The availability is a free-form string, not an enum.** The server type is
-/// `String` with no validation (`RsvpRequest.kt`), so anything posted is
-/// stored as-is. [RsvpAvailability.available] and
-/// [RsvpAvailability.unavailable] are `String` constants for exactly that
-/// reason — a Dart enum would be a closed set the server does not enforce.
-/// owns the question of whether the column should hold a closed
-/// set.
+/// `String` with no validation (`RsvpRequest.kt`), so anything posted is stored
+/// as-is. [RsvpAvailability.available] and [RsvpAvailability.unavailable] are
+/// `String` constants for exactly that reason — a Dart enum would be a closed
+/// set the server does not enforce. Task 10.17 owns the question of whether the
+/// column should hold a closed set.
 class RsvpWidget extends ConsumerStatefulWidget {
   const RsvpWidget({super.key});
 
@@ -45,11 +44,11 @@ class RsvpWidget extends ConsumerStatefulWidget {
 class _RsvpWidgetState extends ConsumerState<RsvpWidget> {
   /// The events answered in this sitting.
   ///
-  /// **Removed locally rather than refetched,** which is what the React
-  /// original does: `setRsvps(rsvps.filter(rsvp => rsvp.eventId !== eventId))`.
-  /// The server now holds an `available` or `unavailable` row instead of a
-  /// `requested` one, so the event is no longer in the requested list and a
-  /// refetch would agree — but it would cost a round trip to say so.
+  /// **Removed locally rather than refetched,** which is what the original did:
+  /// filter the answered event out of local state. The server now holds an
+  /// `available` or `unavailable` row instead of a `requested` one, so the event
+  /// is no longer in the requested list and a refetch would agree — but it would
+  /// cost a round trip to say so.
   final Set<int> _answered = {};
 
   /// The events with a request in flight.
@@ -70,9 +69,9 @@ class _RsvpWidgetState extends ConsumerState<RsvpWidget> {
         .where((event) => !_answered.contains(event.eventId))
         .toList();
 
-    // `RsvpWidget.tsx` returns `null` when there is nothing to show, and
-    // the card is not part of the page's furniture — it appears only when
-    // there is something to answer.
+    // The original returned `null` when there was nothing to show, and the card
+    // is not part of the page's furniture — it appears only when there is
+    // something to answer.
     if (error == null && events.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -112,10 +111,9 @@ class _RsvpWidgetState extends ConsumerState<RsvpWidget> {
 
   /// Posts one availability and drops the row.
   ///
-  /// **The row is dropped only on success.** React does the same
-  /// (`RsvpWidget.tsx` is inside the `try`), and it matters: a failed post
-  /// means the request is still outstanding, and hiding it would hide the
-  /// thing the user needs to retry.
+  /// **The row is dropped only on success.** The original did the same, and it
+  /// matters: a failed post means the request is still outstanding, and hiding
+  /// it would hide the thing the user needs to retry.
   Future<void> _answer(EventResponse event, String availability) async {
     if (_pending.contains(event.eventId)) {
       return;

@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 
 /// A record's name, linking to its detail page.
 ///
-/// The React lists wrapped the name column in a react-router `<Link>` and put
-/// the row's action buttons in an absolutely-positioned box over it
-/// (`CustomerList.tsx`, and the same shape in `InventoryList` and
-/// `OrganizationList`). That works in a table and not in a card, so
-/// [ResponsiveListView] moved the actions to their own column and this became
-/// the whole of what the name column still needs.
+/// The original lists wrapped the name column in a link and put the row's action
+/// buttons in an absolutely-positioned box over it. That worked in a table and
+/// not in a card, so [ResponsiveListView] moved the actions to their own column
+/// and this became the whole of what the name column still needs.
 ///
 /// Three screens use it, which is why it is here rather than a private class in
 /// each. None of the three destinations exists — see

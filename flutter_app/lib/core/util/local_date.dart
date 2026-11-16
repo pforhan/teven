@@ -2,11 +2,11 @@
 ///
 /// `yyyy-MM-dd`, produced from a [DateTime]'s **local** calendar fields.
 ///
-/// **Never `DateTime.toIso8601String.split('T')[0]`**, which is what the React
-/// originals do in two places — `EventListPage.tsx` for the "Start Date"
-/// default, and every `moment(...).format('YYYY-MM-DD')` in
-/// `EventCalendar.tsx`. `toIso8601String` converts to **UTC first**, so the
-/// date it reports is the local date only for part of the world.
+/// **Never `DateTime.toIso8601String.split('T')[0]`**, which is what the
+/// original app did in two places — the event list's "Start Date" default, and
+/// every `moment(...).format('YYYY-MM-DD')` in the original calendar.
+/// `toIso8601String` converts to **UTC first**, so the date it reports is the
+/// local date only for part of the world.
 ///
 /// Concretely: at local midnight on Tuesday in `UTC+13` — Auckland, for
 /// instance — `toIso8601String` returns Sunday. The default start date would

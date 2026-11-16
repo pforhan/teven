@@ -26,7 +26,7 @@ void main() {
   const viewInventory = 'VIEW_INVENTORY_ORGANIZATION';
 
   group('signed out', () {
-    // `App.tsx`: only `/login` exists under this branch.
+    // the original app router: only `/login` exists under this branch.
     testWidgets('every other path redirects to /login', (tester) async {
       final container = await pumpApp(tester, adapter: contextAdapter());
 
@@ -49,7 +49,7 @@ void main() {
 
       expect(await goTo(tester, container, AppRoutes.login), AppRoutes.login);
       // An invitee arrives here from an emailed link with no session, so this
-      // one has to survive the signed-out branch — `App.tsx` sits outside it.
+      // one has to survive the signed-out branch — the original app router sits outside it.
       expect(
         await goTo(tester, container, AppRoutes.register),
         AppRoutes.register,
@@ -68,7 +68,7 @@ void main() {
 
   group('signed in', () {
     testWidgets('an unknown path falls through to /events', (tester) async {
-      // `App.tsx` sends the catch-all to `/`, whose index redirects on.
+      // the original app router sends the catch-all to `/`, whose index redirects on.
       final container = await pumpApp(
         tester,
         token: 'token',
@@ -104,7 +104,7 @@ void main() {
     });
 
     testWidgets('the root redirects to /events', (tester) async {
-      // `App.tsx`.
+      // the original app router.
       final container = await pumpApp(
         tester,
         token: 'token',
@@ -210,7 +210,7 @@ void main() {
     testWidgets('a missing permission sends the user to /events', (
       tester,
     ) async {
-      // `ProtectedRoute.tsx`.
+      // the original protected route.
       final container = await pumpApp(
         tester,
         token: 'token',
@@ -224,7 +224,7 @@ void main() {
     });
 
     testWidgets('either scope suffices for /users/create', (tester) async {
-      // `App.tsx` passes an array and `ProtectedRoute.tsx` treats it
+      // the original app router passes an array and the original protected route treats it
       // as `.some`. One case per scope: both halves matter, and the failure
       // mode — an org admin locked out of user creation — reads like a missing
       // permission rather than a broken guard.
@@ -289,7 +289,7 @@ void main() {
     });
 
     testWidgets('/profile needs no permission at all', (tester) async {
-      // `App.tsx` — the one authenticated route with no guard.
+      // the original app router — the one authenticated route with no guard.
       final container = await pumpApp(
         tester,
         token: 'token',
@@ -359,7 +359,7 @@ void main() {
     testWidgets('the loading gate holds the screen during the boot fetch', (
       tester,
     ) async {
-      // `App.tsx`. The gate matters most for a deep link: the redirect
+      // the original app router. The gate matters most for a deep link: the redirect
       // alone would let a public path such as `/register` through with no
       // context behind it, and would bounce a private one to `/login` before
       // the token had even been read.

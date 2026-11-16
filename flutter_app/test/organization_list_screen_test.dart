@@ -190,11 +190,11 @@ void main() {
       );
 
       // **The one thing this screen does that no other list does.**
-      // `CustomerList.tsx` and `InventoryList.tsx` both pass
+      // the original customer list screen and the original inventory list screen both pass
       // `selectedOrganization?.organizationId` to narrow their results, and a
       // copy of either would narrow this one too. That would hide every
       // organization but one from the screen whose whole job is to show all
-      // of them. `OrganizationList.tsx` sends five parameters and no
+      // of them. the original organization list screen sends five parameters and no
       // organization, so this sends five and none.
       expect(
         screenRequests(adapter).last.queryParameters
@@ -223,7 +223,7 @@ void main() {
 
       final landed = await goTo(tester, container, AppRoutes.organizations);
 
-      // `ProtectedRoute.tsx` sends an unauthorized user to `/events`, and
+      // the original protected route sends an unauthorized user to `/events`, and
       // this user holds the permission that route needs — so the fallback is
       // not itself another redirect loop.
       expect(landed, AppRoutes.events);
@@ -295,7 +295,7 @@ void main() {
         adapter.requests.where((o) => o.method == 'DELETE').map((o) => o.path),
         ['/api/organizations/1'],
       );
-      // `OrganizationList.tsx` re-fetched after deleting.
+      // the original organization list screen re-fetched after deleting.
       expect(screenRequests(adapter), hasLength(2));
     });
   });
@@ -319,7 +319,7 @@ void main() {
       final adapter = organizationAdapter();
       await openOrganizations(tester, adapter);
 
-      // `OrganizationList.tsx` marks `contactInformation` not sortable,
+      // the original organization list screen marks `contactInformation` not sortable,
       // and `OrganizationDao` agrees — its `when` handles `name` and falls
       // through to `id`. So here the client and the server happen to match;
       // the customer screen's `sortBy` for phone is honoured by `CustomerDao`

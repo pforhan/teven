@@ -143,10 +143,9 @@ class DateField extends StatelessWidget {
 
 /// A read-only text field that opens `showTimePicker` on tap.
 ///
-/// Replaces `<input type="time">` — the React event forms use it
-/// for the event time (`CreateEventForm.tsx`, `EditEventForm.tsx`).
-/// No Phase 5 form has a time input; this is here so Phase 6 has one place
-/// for the convention.
+/// Replaces `<input type="time">` — the original event forms used it for the
+/// event time. No Phase 5 form had a time input; this is here so Phase 6 has one
+/// place for the convention.
 ///
 /// The controller text is `HH:MM:00` — the `HH:MM:SS` shape the event
 /// system uses, with seconds zeroed because `showTimePicker` cannot pick them.
@@ -207,14 +206,13 @@ class TimeField extends StatelessWidget {
 
 /// A text field that only accepts digits.
 ///
-/// Replaces `<input type="number">` — the React forms use it for
-/// quantity fields (`CreateInventoryForm.tsx`,
-/// `EditInventoryForm.tsx`, `InventoryAssociationEditor.tsx`).
+/// Replaces `<input type="number">` — the original forms used it for quantity
+/// fields.
 ///
-/// `FilteringTextInputFormatter.digitsOnly` strips non-digit characters as
-/// the user types, so the validator's `int.tryParse` check is a safety net
-/// rather than the primary defense — the formatter means a non-numeric value
-/// cannot reach the field in the first place.
+/// `FilteringTextInputFormatter.digitsOnly` strips non-digit characters as the
+/// user types, so the validator's `int.tryParse` check is a safety net rather
+/// than the primary defense — the formatter means a non-numeric value cannot
+/// reach the field in the first place.
 class NumberField extends StatelessWidget {
   const NumberField({
     super.key,

@@ -5,7 +5,7 @@ import '../api/api_client.dart';
 
 /// Invitations to join an organization.
 ///
-/// Replaces `InvitationService` in `frontend/src/api/InvitationService.ts`.
+/// Replaces the original invitation API service.
 ///
 /// Note the two route groups: `GET /api/invitations/validate` and
 /// `POST /api/invitations/accept` are **public** (`publicInvitationRoutes`),
@@ -85,7 +85,7 @@ class InvitationService {
 
 /// Staff-hours and inventory-usage reports.
 ///
-/// Replaces `ReportService` in `frontend/src/api/ReportService.ts`.
+/// Replaces the original report API service.
 ///
 /// **Both endpoints are unpaginated** and scoped server-side. The API requires
 /// [organizationId]; callers without `VIEW_REPORTS_GLOBAL` may only request
@@ -133,7 +133,7 @@ class ReportService {
 
 /// Roles and their permissions.
 ///
-/// Replaces `RoleService` in `frontend/src/api/RoleService.ts`.
+/// Replaces the original role API service.
 ///
 /// `GET /api/roles` is deliberately **ungated** (`RoleRoutes.kt` has no
 /// `withPermission` wrapper), so any authenticated caller can list roles. Only

@@ -10,7 +10,7 @@ import 'support/stub_adapter.dart';
 
 /// The pending-RSVP card
 ///
-/// `RsvpWidget.tsx` was dead code in the React app: written in the same
+/// the original RSVP widget was dead code in the React app: written in the same
 /// commit that added `GET /api/events/rsvps/requested`, and never imported by
 /// anything since. These tests are for the port's version of it, mounted on
 /// the calendar.

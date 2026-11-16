@@ -11,9 +11,9 @@ import 'organization_selector.dart';
 
 /// The chrome every authenticated screen sits inside.
 ///
-/// `MainLayout.tsx` — the `<nav>` plus `<main class="container mt-4">`. Task
-/// 3.1: a `go_router` `ShellRoute` wrapping the authenticated branch, so the
-/// routes under it declare only their own path and permissions.
+/// Replaces the original layout's `<nav>` plus main container. Task 3.1: a
+/// `go_router` `ShellRoute` wrapping the authenticated branch, so the routes
+/// under it declare only their own path and permissions.
 ///
 /// The React original is desktop-only: `navbar-expand-lg` collapses the whole
 /// bar behind a hamburger below Bootstrap's 992px breakpoint, and there is no
@@ -73,9 +73,8 @@ class _DrawerShell extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const _Brand(),
-        // The brand is a link to `/` in the React original
-        // (`MainLayout.tsx`); in the drawer it has to stay a button, since
-        // `AppBar.title` is not a navigation target.
+        // The brand was a link to `/` in the original layout; in the drawer it
+        // has to stay a button, since `AppBar.title` is not a navigation target.
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
@@ -168,11 +167,11 @@ class _RailShell extends ConsumerWidget {
 
 /// The brand.
 ///
-/// `MainLayout.tsx` renders the text "Teven" linking to `/`. Collapsed into
+/// The original layout rendered the text "Teven" linking to `/`. Collapsed into
 /// a 72px rail there is no room for the word, so a calendar glyph stands in.
-/// is relevant here: the React app's icon set was `react-icons/fa`
-/// plus `bi bi-*` tags that were never installed, so there is no existing glyph
-/// to match — and the navbar never carried a logo image, only this text.
+/// Task 3.2 is relevant here: the original app's icon set was never fully
+/// installed, so there is no existing glyph to match — and the navbar never
+/// carried a logo image, only this text.
 class _Brand extends StatelessWidget {
   const _Brand({this.color, this.compact = false});
 
@@ -212,8 +211,8 @@ class _Brand extends StatelessWidget {
 
 /// The nav destinations the signed-in user may see.
 ///
-/// `MainLayout.tsx` — each `<li>` wrapped in its own permission test, so
-/// an item the user cannot reach is absent rather than disabled.
+/// The original layout wrapped each navigation item in its own permission test,
+/// so an item the user cannot reach is absent rather than disabled.
 List<NavDestination> _visibleDestinations(WidgetRef ref) {
   final gate = ref.watch(permissionGateProvider);
   return kPrimaryNavDestinations.where((d) => d.isVisibleTo(gate)).toList();
@@ -243,9 +242,8 @@ int? _selectedIndex(List<NavDestination> destinations, String path) {
 
 /// The rail's bottom group: organization, Profile, Logout.
 ///
-/// `MainLayout.tsx` — the second `<ul>`, which held the org selector, the
-/// Profile link and the Logout button, as opposed to the first which held the
-/// gated navigation.
+/// The original layout's second list held the org selector, the Profile link and
+/// the Logout button, as opposed to the first which held the gated navigation.
 class _RailTrailing extends ConsumerWidget {
   const _RailTrailing({required this.extended});
 
@@ -268,7 +266,7 @@ class _RailTrailing extends ConsumerWidget {
           // `Expanded` fills the leftover height, but a `MainAxisSize.min`
           // column still hugs the *top* of it — which put Profile and Logout
           // directly under the destinations instead of at the foot of the
-          // rail, the way `MainLayout.tsx` pushes them to the end of the
+          // rail, the way the original layout pushed them to the end of the
           // navbar. Invisible to a presence-only widget test; obvious the first
           // time the shell was rendered in a browser.
           mainAxisAlignment: MainAxisAlignment.end,
@@ -313,7 +311,7 @@ class _DrawerContents extends ConsumerWidget {
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) => goTo(destinations[index].route),
         children: [
-          // The brand, which `MainLayout.tsx` puts in the navbar rather than
+          // The brand, which the original layout put in the navbar rather than
           // the collapsed menu. In a drawer it is the one heading the panel
           // has, and it is the only place to say what the app is.
           const Padding(
@@ -358,11 +356,11 @@ class _DrawerContents extends ConsumerWidget {
   }
 }
 
-/// The Profile link. `MainLayout.tsx`.
+/// The Profile link.
 ///
 /// Ungated, because `/profile` is the one authenticated route with no
-/// permission requirement (`App.tsx`) — the router would redirect the user
-/// straight back out.
+/// permission requirement in the original router — the router would redirect the
+/// user straight back out.
 class _ProfileAction extends StatelessWidget {
   const _ProfileAction({required this.extended});
 
@@ -386,7 +384,7 @@ class _ProfileAction extends StatelessWidget {
   }
 }
 
-/// The Logout action. `MainLayout.tsx`.
+/// The Logout action.
 ///
 /// There is no navigation here. Logging out clears the context, and the
 /// router's redirect — which already sends any non-public path to `/login` once

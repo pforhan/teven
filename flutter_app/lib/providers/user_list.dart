@@ -15,9 +15,9 @@ import 'service_providers.dart';
 /// is what resets the accumulated pages. See [PagedListController].
 ///
 /// The organization scoping is the one thing here that a copy of the customer
-/// or inventory screen would get right by accident and this one has to earn:
-/// `UserList.tsx` passes `selectedOrganization?.organizationId`, so the
-/// super-admin's switcher narrows this list the same way it narrows those two.
+/// or inventory screen would get right by accident and this one has to earn: the
+/// original user list passed the selected organization's id, so the super-admin's
+/// switcher narrows this list the same way it narrows those two.
 final userPageProvider = AsyncNotifierProvider.autoDispose
     .family<PagedUserList, PagedListState<UserResponse>, ListQuery>(
       PagedUserList.new,
@@ -34,12 +34,11 @@ class PagedUserList extends PagedListController<UserResponse> {
 
 /// Outstanding invitations, or an empty list.
 ///
-/// [UserList.tsx] fetches these only when the caller can manage users,
-/// and the screen renders the table only when the list comes back non-empty
-/// (`UserList.tsx`). Both conditions are applied at the call site rather
-/// than here: an unauthorized fetch would 403, and a provider cannot read the
-/// permission gate without making this a `Provider` that rebuilds whenever the
-/// session does.
+/// The original user list fetched these only when the caller could manage users,
+/// and rendered the table only when the list came back non-empty. Both
+/// conditions are applied at the call site rather than here: an unauthorized
+/// fetch would 403, and a provider cannot read the permission gate without
+/// making this a `Provider` that rebuilds whenever the session does.
 ///
 /// **Not a family and not paged.** `GET /api/invitations` takes no query
 /// parameters at all and returns a bare list rather than a `PaginatedResponse`.

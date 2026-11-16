@@ -44,7 +44,7 @@ String userContextJson({List<String> permissions = const []}) => jsonEncode({
 ///
 /// `/api/organizations` is answered too, because the chrome asks for it as soon
 /// as a super-admin is signed in — the super-admin branch of the organization
-/// selector (`MainLayout.tsx`) builds the switcher, which fetches the list.
+/// selector (the original layout) builds the switcher, which fetches the list.
 /// Without this the stub would return 401 for it, the client would raise a
 /// [teven_app.core.api.api_exception.UnauthorizedException], and the
 /// single-flight 401 redirect would sign the test out mid-assertion.

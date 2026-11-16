@@ -27,25 +27,25 @@ import '../../widgets/picker_fields.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
-/// The event list
+/// The event list.
 ///
-/// `EventListPage.tsx` (240 lines). Search, a start-date floor with a "Today"
-/// button, six columns, inline RSVP, edit and delete.
+/// Search, a start-date floor with a "Today" button, six columns, inline RSVP,
+/// edit and delete.
 ///
 /// **The RSVP column is the reason this screen is more than another
-/// [ResponsiveListView].** `EventListPage.tsx` renders three buttons per
-/// row that post an availability and refetch — a per-row *mutation*, in a table
-/// cell, on a screen whose other cells are text. `ListColumn.render` takes a
+/// [ResponsiveListView].** The original rendered three buttons per row that
+/// posted an availability and refetched — a per-row *mutation*, in a table cell,
+/// on a screen whose other cells are text. `ListColumn.render` takes a
 /// `BuildContext`, which is all that is needed for it; see [_RsvpButton] for why
 /// the buttons are one size in both layouts rather than one size per layout.
 ///
-/// **What this screen drops from the original, and why.** The React page had its
-/// own Previous/Next pair and a "Showing X - Y of Z" line. It is built on
+/// **What this screen drops from the original, and why.** The original page had
+/// its own Previous/Next pair and a "Showing X - Y of Z" line. It is built on
 /// [PagedScrollView] instead, which is the same pagination the other four list
-/// screens gained in — infinite scroll with a "Load more" button as the
+/// screens gained in task 4.3 — infinite scroll with a "Load more" button as the
 /// floor. Two pages of a bespoke pager would be a second pagination
-/// implementation in the app, and `4.8`'s rule for the delete dialog applies here
-/// too: shared means one implementation, not one per screen.
+/// implementation in the app, and task 4.8's rule for the delete dialog applies
+/// here too: shared means one implementation, not one per screen.
 class EventListScreen extends ConsumerStatefulWidget {
   const EventListScreen({super.key});
 
@@ -89,7 +89,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
   /// `error` for both and rendered it through `TableView`.
   ApiException? _actionError;
 
-  /// `EventListPage.tsx`: re-tapping the active column reverses it, a
+  /// Matches the original list: re-tapping the active column reverses it, a
   /// different column starts ascending.
   void _onSort(String key) {
     setState(() {
@@ -112,15 +112,15 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     // Organizations" sees every organization, a superadmin with a selection
     // sees that one, and everyone else sees their own.
     organizationId: organizationId,
-    // **A floor, not a range.** `EventListPage.tsx` passes `startDate` and
-    // leaves `endDate` undefined, so the original shows upcoming events only.
-    // The date is interpreted in the reader's zone, so "today" means the same
-    // day the reader is looking at.
+    // **A floor, not a range.** The original passed `startDate` and left
+    // `endDate` undefined, so it showed upcoming events only. The date is
+    // interpreted in the reader's zone, so "today" means the same day the reader
+    // is looking at.
     startDate: _startDate,
     timezone: readerZone,
   );
 
-  /// `EventListPage.tsx`.
+  /// The delete confirmation.
   ///
   /// The dialog is shared — see [confirmDestructiveAction] — and what stays here
   /// is this screen's own consequence: the service call, and a **reload from the
@@ -145,18 +145,17 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     }
   }
 
-  /// `EventListPage.tsx`.
+  /// Posts the availability and reloads.
   ///
-  /// Posts the availability and reloads. The server answers `success("OK")`, so
-  /// nothing comes back to display and a refetch is the only way to repaint the
-  /// three buttons' selected state — which is what the original's
-  /// `fetchEvents` did.
+  /// The server answers `success("OK")`, so nothing comes back to display and a
+  /// refetch is the only way to repaint the three buttons' selected state — which
+  /// is what the original did.
   ///
-  /// `'no response'` is the literal the original posts for its clear button
-  /// (`:153`), and it is **not** one of [RsvpAvailability]'s named values.
-  /// Reproduced verbatim: inventing `''` or `'none'` would change what lands in
-  /// the `rsvps.availability` column, and owns the question of
-  /// whether that column should hold a closed set at all.
+  /// `'no response'` is the literal the original posted for its clear button,
+  /// and it is **not** one of [RsvpAvailability]'s named values. Reproduced
+  /// verbatim: inventing `''` or `'none'` would change what lands in the
+  /// `rsvps.availability` column, and task 10.17 owns the question of whether
+  /// that column should hold a closed set at all.
   Future<void> _rsvp(EventResponse event, String availability) async {
     try {
       await ref
@@ -177,10 +176,10 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
       key: 'title',
       label: 'Title',
       sortable: true,
-      // `EventListPage.tsx` gates the hover actions on the row being hovered,
-      // which `ResponsiveListView` already does for `actions` — the actions live
-      // in their own column here rather than absolutely positioned over the
-      // title, for the same reason as the customer screen.
+      // The original gated the hover actions on the hovered row, which
+      // `ResponsiveListView` already does for `actions` — the actions live in
+      // their own column here rather than absolutely positioned over the title,
+      // for the same reason as the customer screen.
       render: (context, event) => RecordLinkButton(
         label: event.title,
         onPressed: () => context.go(AppRoutes.eventDetailsPath(event.eventId)),
@@ -208,16 +207,16 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     ListColumn<EventResponse>(
       key: 'customer',
       label: 'Customer',
-      // `EventListPage.tsx` — `event.customer?.name || 'N/A'`. The fallback is
-      // the original's, and it is not decoration: `customerId` is nullable on
-      // both the DTO and the schema, so an event with no customer is a real state.
+      // The original used `event.customer?.name || 'N/A'`. The fallback is kept,
+      // and it is not decoration: `customerId` is nullable on both the DTO and
+      // the schema, so an event with no customer is a real state.
       text: (event) => event.customer?.name ?? 'N/A',
     ),
     ListColumn<EventResponse>(
       key: 'rsvp',
       label: 'RSVP',
-      // Not sortable, matching the original: only `title` and `date` carry
-      // `sortable: true` at `EventListPage.tsx,125`.
+      // Not sortable, matching the original: only `title` and `date` were
+      // sortable there.
       render: (context, event) => _RsvpCell(
         event: event,
         currentUserId: currentUserId,
@@ -359,21 +358,18 @@ class _Filters extends StatelessWidget {
       children: [
         // **Row one: the search box and the sibling view.**
         //
-        // The "Calendar view" button is a **divergence from the React
-        // original**, and the original has the same gap: `EventListPage.tsx`
-        // links nowhere, and the only way back to the calendar is the nav
-        // rail's "Events" item — which is a drawer on a phone. The calendar
-        // page links *out* to this list (`EventCalendar.tsx`, "View All
-        // Events"), so the two screens are siblings in one direction only, and
-        // a user who arrived here has to know to go back rather than being
-        // offered it.
+        // The "Calendar view" button is a **divergence from the original**, and
+        // the original had the same gap: it linked nowhere, and the only way
+        // back to the calendar was the nav rail's "Events" item — which is a
+        // drawer on a phone. The calendar page linked *out* to this list, so the
+        // two screens were siblings in one direction only, and a user who arrived
+        // here had to know to go back rather than being offered it.
         //
-        // It sits **beside the search box** because that is where the
-        // calendar's own "View All Events" button sits
-        // (`EventCalendar.tsx` — the 250px input, then the link, then
-        // Create). The two pages now read as mirror images, and the button is a
-        // *view switch* rather than a filter control — which is why the date
-        // fields moved to their own row instead of sharing this one.
+        // It sits **beside the search box** because that is where the calendar's
+        // own "View All Events" button sat. The two pages now read as mirror
+        // images, and the button is a *view switch* rather than a filter control
+        // — which is why the date fields moved to their own row instead of
+        // sharing this one.
         Wrap(
           spacing: 12,
           runSpacing: 12,
@@ -393,9 +389,8 @@ class _Filters extends StatelessWidget {
         const SizedBox(height: 12),
         // **Row two: the start-date floor.**
         //
-        // Its own row because it is a *filter*, and it used to share a row
-        // with the search box in the React original (`EventListPage.tsx`
-        // — two `col-md-4` columns). Separating the two kinds of control is
+        // Its own row because it is a *filter*, and it used to share a row with
+        // the search box in the original. Separating the two kinds of control is
         // what lets the view switch live where the search box is.
         Wrap(
           spacing: 12,
@@ -424,8 +419,7 @@ class _Filters extends StatelessWidget {
 
 /// The three RSVP buttons, and which of them is currently selected.
 ///
-/// `EventListPage.tsx`. The selected button is filled (`btn-success` /
-/// `btn-danger`) and the others are neutral (`btn-light`); that is the entire
+/// The selected button is filled and the others are neutral; that is the entire
 /// "what is my current answer" display, and it is reproduced rather than
 /// improved, because the server has no notion of "cleared" that the client could
 /// render differently — the clear button simply posts `'no response'` and the
@@ -443,8 +437,8 @@ class _RsvpCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // `EventListPage.tsx` finds *this* user's RSVP among the event's, rather
-    // than reading a field the server denormalizes. Null when the user has not
+    // The original found *this* user's RSVP among the event's, rather than
+    // reading a field the server denormalizes. Null when the user has not
     // answered, which is also the state where all three buttons are neutral.
     final mine = currentUserId == null
         ? null
@@ -483,12 +477,12 @@ class _RsvpCell extends StatelessWidget {
 
 /// What the clear button posts.
 ///
-/// `'no response'`, verbatim from `EventListPage.tsx`. **Not** `''`, not
-/// `'none'`, and not a member of [RsvpAvailability] — the server stores it as a
-/// free-form string (`RsvpRequest.availability` has no validation) and the
-/// original's own "what did I answer" test is an equality check against
-/// `'available'` or `'unavailable'`, so any other value reads as unanswered.
-/// decides whether that column should hold a closed set.
+/// `'no response'`, verbatim from the original. **Not** `''`, not `'none'`, and
+/// not a member of [RsvpAvailability] — the server stores it as a free-form
+/// string (`RsvpRequest.availability` has no validation) and the original's own
+/// "what did I answer" test was an equality check against `'available'` or
+/// `'unavailable'`, so any other value read as unanswered. Task 10.17 decides
+/// whether that column should hold a closed set.
 const String kRsvpCleared = 'no response';
 
 /// One RSVP button.

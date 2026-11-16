@@ -178,8 +178,8 @@ abstract class PagedListController<T> extends AsyncNotifier<PagedListState<T>> {
   /// without refetching, and refetching everything is the whole list. Starting
   /// from page 0 discards them and costs one request.
   ///
-  /// This is also what the React original did — `CustomerList.tsx` calls
-  /// `fetchCustomers`, which refetched its single fixed page.
+  /// This is also what the original did — the customer list refetched its
+  /// single fixed page.
   ///
   /// Rows stay on screen while this is in flight. Dropping them would flash the
   /// list for the same reason was filed, and there is nothing here

@@ -8,8 +8,8 @@ This document outlines the conventions and best practices to follow when using L
 - **Follow Existing Conventions:** Before generating or modifying code, always analyze the surrounding files to understand and adopt the existing coding style, formatting, and architectural patterns.
 - **Modular Architecture:** The backend is designed with a modular structure. Ensure that new code is placed in the appropriate module (`app`, `core`, `data`, `service`, `api`, `auth`).
 - **2-Space Indentation:** Use 2 spaces for indentation in all code files.
-- **No whitespace inside link text:** A link's label must never begin or end with a space. The underline starts in blank space and the hit area extends past the word, which looks broken and is trivially avoidable. Put the separating space in the surrounding sentence, not in the link — `"clicking here."` is three spans (`"clicking "`, `"here"`, `"."`), not one. Applies to both Flutter `TextSpan`s and React/HTML `<a>`.
-- **No citations to files that are on their way out:** Do not name a TypeScript source file (`.ts`, `.tsx`) in a code comment. `frontend/` is deleted in Phase 10, and a comment pointing at a file that will not exist is a citation a reader cannot follow — it looks followable and is not. **Describe the original instead:** "the calendar this replaced branched on the gesture", not "the React calendar at `EventCalendar.tsx:230`". Keep the *reasoning* — that is the durable value — and drop the path. **The React sources are still citable in `FLUTTER-CONVERT-NOTES.md`,** which is the historical record and keeps them deliberately. Kotlin and Dart files stay citable in comments; only the frontend's are going away.
+- **No whitespace inside link text:** A link's label must never begin or end with a space. The underline starts in blank space and the hit area extends past the word, which looks broken and is trivially avoidable. Put the separating space in the surrounding sentence, not in the link — `"clicking here."` is three spans (`"clicking "`, `"here"`, `"."`), not one. Applies to Flutter `TextSpan`s and to HTML `<a>` elements.
+- **No citations to removed frontend sources:** Do not name a TypeScript source file (`.ts`, `.tsx`) in a code comment. The original React frontend has been removed, so a comment pointing at one of its files is a citation a reader cannot follow. **Describe the original instead:** "the calendar this replaced branched on the gesture", not a path to a deleted component. Keep the *reasoning* — that is the durable value — and drop the path. **The removed React sources are still citable in `FLUTTER-CONVERT-NOTES.md`,** which is the historical record and keeps them deliberately. Kotlin and Dart files stay citable in comments.
 - **Confirmation of changes:** Always run the build and tests to confirm any changes. For the Flutter app that is `./teven verify`; for the backend, `./teven verify-backend` — see the command reference below.
 - **Do not check in code:** Unless specifically instructed to do so, don't set up any git commands.
 
@@ -84,8 +84,9 @@ Add `-n`/`--dry-run` to any of them to print the commands without running them.
 
 ## Frontend (Flutter/Dart)
 
-The Flutter app in `flutter_app/` is the conversion target and is being built in
-parallel with the live React app. The conversion plan is three files:
+The frontend is the Flutter app in `flutter_app/` (Dart, Riverpod, go_router),
+served by the backend. The conversion from the original React SPA is tracked in
+three files:
 
 | File | Holds |
 |---|---|
@@ -111,25 +112,13 @@ the source of truth for what actually happened and how it was verified.
   the command reference above for why not to call `flutter run` directly.
 - **After a fresh clone:** `dart run build_runner build` in `flutter_app/` is
   **required** before anything compiles. See "Commits" below.
-- **Doc comments citing the React original are load-bearing.** The port is
+- **Doc comments about the original app are load-bearing.** The port is
   deliberate about where it diverges, and `FLUTTER-CONVERT-NOTES.md` is where
   that reasoning lives. When you change behaviour, update the task in
   `FLUTTER-CONVERT.md` and add a progress entry — a closed task nobody re-reads
   is how a regression survives review.
 - **Commit and format:** Dart uses `dart format` (2-space, trailing commas);
   `.freezed.dart` and `.g.dart` are generated and gitignored.
-
-## Frontend (React/TypeScript)
-
-The live application until cutover. Do not modify during the conversion, except
-where a task in `FLUTTER-CONVERT.md` explicitly says to.
-
-- **Building:** Build and test frontend with `npm run build --prefix frontend`
-- **Component-Based Architecture:** Follow a component-based architecture, creating reusable components where possible.
-- **TypeScript:** Use TypeScript for all frontend code to ensure type safety.
-- **State Management:** Use a consistent state management library (e.g., Redux, MobX) if one is established in the project.
-- **Styling:** Follow the existing styling conventions (e.g., CSS-in-JS, CSS Modules).
-- **API Interaction:** Use the API service classes in `src/api` to interact with the backend.
 
 ## Commits
 

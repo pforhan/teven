@@ -33,9 +33,9 @@ enum ResponseBody {
 
 /// The single HTTP entry point.
 ///
-/// Replaces `apiClient` in `frontend/src/api/apiClient.ts` and its ~20
-/// call-site `try/catch` blocks, which are consolidated into the
-/// [ApiException] hierarchy instead of being ported.
+/// Replaces the original hand-rolled `apiClient` and its duplicated `try`/`catch`
+/// blocks, which are consolidated into the [ApiException] hierarchy instead of
+/// being ported.
 class ApiClient {
   /// Builds a client around a caller-supplied transport.
   ///
@@ -338,8 +338,8 @@ class ApiClient {
     // JSON *object* that is not an envelope means the request fell through to
     // the SPA handler and we were served index.html.
     //
-    // `apiClient.ts` sniffs content-type for the same reason. Here the
-    // check is structural, which is stronger: index.html decodes as a String,
+    // The original client sniffed the content type for the same reason. Here the
+    // check is structural, which is stronger: `index.html` decodes as a `String`,
     // so it would be misread as a bare-string body.
     if (decoded is Map || decoded is List) {
       throw ApiRequestException(
@@ -382,8 +382,8 @@ class ApiClient {
     // `catch` below, and the raw HTML would be handed back as if it were a
     // legitimate bare-string body — a silent success carrying a web page.
     //
-    // Sniffing the content type catches it at the source. This mirrors
-    // `apiClient.ts`, which checks the header before calling `.json`.
+    // Sniffing the content type catches it at the source. This mirrors the
+    // original client, which checked the header before parsing JSON.
     final contentType = response.headers.value(Headers.contentTypeHeader);
     if (contentType != null && !_isJson(contentType)) {
       return _NonJsonBody(data, contentType: contentType);

@@ -164,7 +164,7 @@ void main() {
   });
 
   group('nav items are permission-gated', () {
-    // `MainLayout.tsx` wraps each `<li>` in its own test, so
+    // the original layout wraps each `<li>` in its own test, so
     // an item the user cannot reach is absent rather than disabled.
     testWidgets('only the granted items appear', (tester) async {
       await pumpAt(
@@ -198,7 +198,7 @@ void main() {
     });
 
     testWidgets('Users is shown for either scope', (tester) async {
-      // `MainLayout.tsx` is the one OR-gated item. One case per scope: the
+      // the original layout is the one OR-gated item. One case per scope: the
       // failure mode of getting it wrong — a global admin who cannot reach the
       // Users screen they are the only people who can administer — is silent.
       for (final permission in const [viewUsersOrg, viewUsersGlobal]) {
@@ -283,7 +283,7 @@ void main() {
       // trailing slot an `Expanded`, but a `MainAxisSize.min` column inside it
       // still hugs the *top* — so Profile and Logout rendered directly beneath
       // the destinations instead of at the bottom, which is where
-      // `MainLayout.tsx` puts them. Every assertion above passed with the
+      // the original layout puts them. Every assertion above passed with the
       // bug present; only a rendered screenshot showed it.
       await pumpAt(tester, tabletWidth, permissions: allNavPermissions);
 
@@ -338,13 +338,13 @@ void main() {
     ) async {
       await pumpAt(tester, desktopWidth, permissions: const [viewEvents]);
 
-      // `MainLayout.tsx` — the user's own organization from the context.
+      // the original layout — the user's own organization from the context.
       expect(find.text('Acme'), findsOneWidget);
       expect(find.text('All Organizations'), findsNothing);
     });
 
     testWidgets('a super-admin gets the switcher', (tester) async {
-      // `VIEW_USERS_GLOBAL` is what derives `isSuperAdmin` (`MainLayout.tsx`).
+      // `VIEW_USERS_GLOBAL` is what derives `isSuperAdmin` (the original layout).
       await pumpAt(tester, desktopWidth, permissions: const [viewUsersGlobal]);
 
       expect(find.text('All Organizations'), findsOneWidget);

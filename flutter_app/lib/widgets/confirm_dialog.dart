@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 
 /// Confirms a destructive action, returning whether the user agreed.
 ///
-/// Replaces the six `window.confirm` calls in the React list screens
-/// (`CustomerList.tsx`, `InventoryList.tsx`, `OrganizationList.tsx`,
-/// `UserList.tsx,94`, `EventDetails.tsx`).
+/// Replaces the six `window.confirm` calls in the original list and details
+/// screens (customers, inventory, organizations, users, invitations, and event
+/// details).
 ///
-/// The six differ only in the noun they name, so the dialog is shared and the
-/// *consequence* stays at the call site — a refetch, a redirect, an
-/// invitation that must outlive the user who accepted it. That split is the
-/// point: `UserList.tsx` deletes an invitation, and `EventDetails.tsx`
-/// navigates away rather than re-fetching, and neither belongs in a widget
-/// that is only asking a question.
+/// The six differed only in the noun they named, so the dialog is shared and the
+/// *consequence* stays at the call site — a refetch, a redirect, an invitation
+/// that must outlive the user who accepted it. That split is the point: the user
+/// list deleted an invitation, and event details navigated away rather than
+/// re-fetching, and neither belongs in a widget that is only asking a question.
 ///
 /// `window.confirm` was worth replacing on all three counts. It blocks the
 /// whole browser tab, it cannot say *which* record is about to go, and it

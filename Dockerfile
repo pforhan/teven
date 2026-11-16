@@ -72,10 +72,10 @@ RUN set -eux; \
 #
 # Split out from `final` so the expensive Kotlin compile (measured at ~265s
 # cold on a native arm64 JDK) is cached independently of the web bundle. It
-# depends only on backend sources, so a Flutter-only change -- the common case
-# for the rest of this port -- reuses this layer untouched and skips the
-# compile entirely. Previously the web bundle was copied *before* the assemble,
-# so every frontend edit invalidated and repeated the whole Kotlin build.
+# depends only on backend sources, so a web-bundle-only change -- the common case
+# for UI work -- reuses this layer untouched and skips the compile entirely.
+# Previously the web bundle was copied *before* the assemble, so every bundle
+# change invalidated and repeated the whole Kotlin build.
 #
 # Only `classes` is compiled here. Packaging into the fat jar happens in
 # `final`, after the web bundle lands in the jar's static resources.
@@ -200,7 +200,7 @@ RUN mkdir -p /home/circleci/.gradle \
 # Copy the web bundle into the backend's static resources, where Ktor serves it
 # from "/" (backend/.../app/Routing.kt, staticResources).
 #
-# This is the only input that changes on a frontend-only edit, so it is placed
+# This is the only input that changes on a web-bundle-only edit, so it is placed
 # after the compile deliberately.
 COPY --chown=circleci:circleci --from=web-assets /web-dist /app/backend/app/src/main/resources/static
 

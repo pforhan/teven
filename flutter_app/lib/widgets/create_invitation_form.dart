@@ -11,7 +11,10 @@ import '../providers/auth_controller.dart';
 import '../providers/service_providers.dart';
 import '../screens/users/user_list_screen.dart' show invitationUrl;
 
-/// Port of `CreateInvitationForm.tsx`.
+/// The inline form for creating an invitation.
+///
+/// Ports the original invitation-creation form, including its role and
+/// organization selection rules and the invitation link it returns on success.
 class CreateInvitationForm extends ConsumerStatefulWidget {
   const CreateInvitationForm({
     super.key,

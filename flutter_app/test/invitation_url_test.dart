@@ -14,7 +14,7 @@ import 'package:teven_app/screens/users/user_list_screen.dart'
 /// ```
 ///
 /// So the `http`/`https` branch of `_appOrigin` — the one that runs in
-/// production, the one `UserList.tsx` was actually ported from, the one that
+/// production, the one the original user list screen was actually ported from, the one that
 /// decides whether an invitee gets `https://teven.example/register?token=…` or
 /// a bare relative `/register?token=…` — **cannot be reached by any widget test
 /// in this repo**, no matter how it is written.
@@ -59,7 +59,7 @@ void main() {
       // fail.** On web `Uri.base` is the whole document URL, so a user sitting
       // on `/users` would otherwise email a link to
       // `/users/register?token=…`. The SPA fallback would serve it, the router
-      // would not match it, and `App.tsx`'s catch-all would redirect the
+      // would not match it, and the original app router's catch-all would redirect the
       // invitee to `/` — silently discarding the token that is the entire point
       // of the link.
       expect(

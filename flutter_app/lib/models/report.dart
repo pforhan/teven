@@ -8,9 +8,8 @@ part 'report.g.dart';
 /// Mirrors `StaffHoursReportResponse` in
 /// `backend/api/.../model/report/StaffHoursReportResponse.kt`.
 ///
-/// [displayName] is on the wire but missing from the React type in
-/// `frontend/src/types/reports.ts`, so the current report table has no name
-/// column. It is included here.
+/// [displayName] is on the wire but was missing from the original frontend type,
+/// so the current report table has no name column. It is included here.
 @freezed
 abstract class StaffHoursReportResponse with _$StaffHoursReportResponse {
   const factory StaffHoursReportResponse({

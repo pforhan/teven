@@ -4,8 +4,8 @@ import '../core/api/api_exception.dart';
 
 /// A failure to show the user: a summary, plus details behind a disclosure.
 ///
-/// Replaces `ErrorDisplay.tsx`, which renders `Error: {message}` with the
-/// details collapsed behind a "Show Details" toggle.
+/// Replaces the original error-display component, which rendered
+/// `Error: {message}` with the details collapsed behind a "Show Details" toggle.
 ///
 /// Shared rather than per-screen, because the React original is shared and
 /// every form in Phase 5 needs the same treatment.
@@ -14,10 +14,10 @@ class ErrorDisplay extends StatelessWidget {
 
   /// Builds from an API exception, showing [ApiException.details] when present.
   ///
-  /// Note `Application.kt` puts `cause.stackTraceToString` in
-  /// `details` on a 500, so server internals reach the client. The React app
-  /// shows them behind a toggle and so does this, deliberately
-  /// decides whether to suppress it.
+  /// Note `Application.kt` puts `cause.stackTraceToString` in `details` on a
+  /// 500, so server internals reach the client. The original app showed them
+  /// behind a toggle and so does this; task 12.7 decides whether to suppress
+  /// them.
   factory ErrorDisplay.fromException(ApiException error) =>
       ErrorDisplay(message: error.message, details: error.details);
 
@@ -48,13 +48,13 @@ class _Banner extends StatelessWidget {
   );
 }
 
-/// The collapsible-details half of [ErrorDisplay], matching `ErrorDisplay.tsx`
-/// lines 14-27.
+/// The collapsible-details half of [ErrorDisplay], matching the original
+/// component.
 ///
-/// A local `useState` in the React original becomes state in a [StatefulWidget]
-/// here. An `ExpansionTile` would be fewer lines, but it changes the control
-/// and the copy; the button-label parity matters more than the line count when
-/// the point is that the port is faithful.
+/// Local React state becomes state in a [StatefulWidget] here. An
+/// `ExpansionTile` would be fewer lines, but it changes the control and the
+/// copy; the button-label parity matters more than the line count when the point
+/// is that the port is faithful.
 class _DisclosureBanner extends StatefulWidget {
   const _DisclosureBanner({required this.message, required this.details});
 
@@ -87,8 +87,8 @@ class _DisclosureBannerState extends State<_DisclosureBanner> {
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.error,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                // The React button is `btn-sm`; this keeps the tap target at
-                // the 48dp minimum once vertical padding is factored in.
+                // The original button was small; this keeps the tap target at the
+                // 48dp minimum once vertical padding is factored in.
                 minimumSize: const Size(64, 48),
               ),
               onPressed: () => setState(() => _showDetails = !_showDetails),

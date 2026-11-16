@@ -18,10 +18,10 @@ import '../../widgets/validators.dart';
 
 /// Unified create/edit customer form.
 ///
-/// `CreateCustomerForm.tsx` and `EditCustomerForm.tsx` share the same four
-/// fields and form flow but differ in load, organization rules, submit request,
-/// and post-submit behaviour. The differences are expressed as parameters/mode
-/// branches rather than a second implementation.
+/// The original create and edit forms shared the same four fields and form flow
+/// but differed in load, organization rules, submit request, and post-submit
+/// behaviour. The differences are expressed as parameters/mode branches rather
+/// than a second implementation.
 ///
 /// **Organization rules differ by mode and are kept as-is (9.24).** Create uses
 /// the shell's selected organization first, otherwise a global manager's

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 /// Stands in for a screen that has not been ported yet.
 ///
-/// Every route in `App.tsx` is registered from Phase 2 onward, well before the
-/// screens themselves exist in Phases 3–8. A route that is missing entirely
-/// would fall through to the catch-all and redirect — so a signed-in user
-/// clicking "Customers" would be sent back to `/events` with no explanation,
-/// and the router tests would have nothing to assert against.
+/// Every route from the original app was registered from Phase 2 onward, well
+/// before the screens themselves existed in Phases 3–8. A route that was
+/// missing entirely would fall through to the catch-all and redirect — so a
+/// signed-in user clicking "Customers" would be sent back to `/events` with no
+/// explanation, and the router tests would have nothing to assert against.
 ///
 /// Naming the route on screen makes the gap visible while it lasts. Each one
 /// disappears as its phase lands; `grep PlaceholderScreen` is the checklist.

@@ -29,9 +29,8 @@ abstract class PaginatedResponse<T> with _$PaginatedResponse<T> {
 /// Note the server does not actually use this shape for deletes — those
 /// return `204 No Content` with an empty body. It is used for the handful of
 /// endpoints that answer `success("OK")` / `success("...")`, whose `data` is a
-/// bare string rather than this object. Kept for parity with
-/// `frontend/src/types/common.ts`; decides per-endpoint what a
-/// bare-string body actually decodes to.
+/// bare string rather than this object. Kept for parity with the original
+/// frontend types; each endpoint decides what a bare-string body decodes to.
 @freezed
 abstract class StatusResponse with _$StatusResponse {
   const factory StatusResponse({

@@ -21,10 +21,10 @@ import '../../widgets/responsive_list_view.dart';
 
 /// The inventory list.
 ///
-/// `InventoryList.tsx` (144 lines). Search, sort by name or quantity, create,
-/// delete, and pagination. The React original fetched `25, 0` with no way past
-/// the first page; the page size is unchanged, and added a way to ask
-/// for the next one. See the customer screen for the fuller note.
+/// Search, sort by name or quantity, create, delete, and pagination. The
+/// original screen fetched the first 25 rows with no way past the first page;
+/// the page size is unchanged, and task 4.3 added a way to ask for the next one.
+/// See the customer screen for the fuller note.
 ///
 /// Two things here are not a transcription:
 ///
@@ -35,9 +35,9 @@ import '../../widgets/responsive_list_view.dart';
 /// swallow the rest of the screen. [maxEventsShown] bounds it and the
 /// remainder becomes a count.
 /// - **The row actions sit in their own column** rather than absolutely
-/// positioned over the name, which is what `InventoryList.tsx` does.
+/// positioned over the name, which is what the original list did.
 /// [ResponsiveListView] owns that decision; the customer screen made the same
-/// call in
+/// call in task 4.4.
 class InventoryListScreen extends ConsumerStatefulWidget {
   const InventoryListScreen({super.key});
 
@@ -61,7 +61,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   ApiException? _actionError;
 
   void _onSort(String key) {
-    // `InventoryList.tsx`: re-tapping the active column reverses it, and
+    // Matches the original list: re-tapping the active column reverses it, and
     // a different column starts ascending.
     setState(() {
       if (_sortBy == key) {
@@ -75,7 +75,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     });
   }
 
-  /// The delete confirmation. `InventoryList.tsx`.
+  /// The delete confirmation.
   Future<void> _confirmDelete(InventoryItemResponse item) async {
     final confirmed = await confirmDestructiveAction(
       context,
@@ -131,8 +131,8 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       key: 'quantity',
       label: 'Quantity',
       sortable: true,
-      // `InventoryList.tsx` passes the raw number; it is a `Text` column, so
-      // the original stringified it the same way.
+      // The original list passed the raw number; in a text column it was
+      // stringified the same way.
       text: (item) => '${item.quantity}',
     ),
     ListColumn<InventoryItemResponse>(
@@ -234,9 +234,9 @@ const int maxEventsShown = 3;
 
 /// The "Used in Events" cell.
 ///
-/// `InventoryList.tsx` rendered every entry, which the server has no
-/// bound on — see [InventoryListScreen]. Shown as a bulleted list in a table
-/// cell and as a labelled block in a card, because the cell renders in both.
+/// The original list rendered every entry, which the server has no bound on —
+/// see [InventoryListScreen]. Shown as a bulleted list in a table cell and as a
+/// labelled block in a card, because the cell renders in both.
 class _UsedInEvents extends StatelessWidget {
   const _UsedInEvents({required this.events});
 
@@ -259,9 +259,9 @@ class _UsedInEvents extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // The React original's `<li>` text, verbatim in substance. `title` is
-        // never rendered because the server does not populate it:
-        // `InventoryDao` builds each `EventSummaryResponse` with `""`.
+        // The original list item's text, verbatim in substance. `title` is never
+        // rendered because the server does not populate it: `InventoryDao`
+        // builds each `EventSummaryResponse` with `""`.
         for (final event in shown)
           Padding(
             padding: const EdgeInsets.only(bottom: 2),

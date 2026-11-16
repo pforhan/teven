@@ -26,37 +26,35 @@ import '../../widgets/paged_list_view.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
-/// The user list
+/// The user list.
 ///
-/// `UserList.tsx` (264 lines), the largest of the four list screens, and the
-/// only one that renders **two** tables: unused invitations above the users,
-/// both inside one route. That is why this screen is not a copy of the customer
-/// one with different columns.
+/// The original screen was the largest of the four list screens, and the only
+/// one that rendered **two** tables: unused invitations above the users, both
+/// inside one route. That is why this screen is not a copy of the customer one
+/// with different columns.
 ///
 /// Four things here are worth knowing before reading the code:
 ///
-/// - **The two deletes do different things, and only one of them works.**
-/// `UserList.tsx` deletes a user through an endpoint that does not exist
-/// `UserList.tsx` deletes an invitation, which is real. Both
-/// go through the shared [confirmDestructiveAction], and both refetch rather
-/// than navigate away — the *consequence* of a delete stays at the call site,
-/// which is the whole reason the dialog is shared These are 4.8's
-/// fifth and sixth wired flows; the last two arrived with Phase 7 (7.5's
-/// event list and 7.6's event details), so all six are now wired.
-/// - **The organization column is conditional.** `UserList.tsx` adds it
-/// only for a caller holding `VIEW_USERS_GLOBAL`. An organization-scoped
-/// admin sees users in their own organization already, so the column would
-/// be four identical values — which is also why [userPageProvider] scopes the
-/// query to the selected organization for exactly that caller.
-/// - **"Create Invitation" is not here.** `UserList.tsx` toggles an inline
-/// `CreateInvitationForm` (182 lines), which is There is no route
-/// for it in `App.tsx` — the React original renders it in place — so there is
-/// nothing to navigate to, and a button that opens nothing is worse than no
-/// button. It returns with the form that owns it.
+/// - **The two deletes do different things, and only one of them works.** The
+/// original user delete called an endpoint that does not exist (task 10.12); the
+/// invitation delete is real. Both go through the shared
+/// [confirmDestructiveAction], and both refetch rather than navigate away — the
+/// *consequence* of a delete stays at the call site, which is the whole reason
+/// the dialog is shared. These are task 4.8's fifth and sixth wired flows; the
+/// last two arrived with Phase 7 (the event list and event details), so all six
+/// are now wired.
+/// - **The organization column is conditional.** The original screen added it
+/// only for a caller holding `VIEW_USERS_GLOBAL`. An organization-scoped admin
+/// sees users in their own organization already, so the column would be four
+/// identical values — which is also why [userPageProvider] scopes the query to
+/// the selected organization for exactly that caller.
+/// - **"Create Invitation" is in place here.** The original toggled an inline
+/// invitation form with no dedicated route, so this screen renders it in place
+/// as well.
 /// - **The invite link is built from `Uri.base`,** not from
-/// `window.location.origin` as `UserList.tsx` does. asks for
-/// that; doing it here rather than waiting means the link this screen hands a
-/// user is correct on every platform from the start.
+/// `window.location.origin` as the original did. Task 5.10 asked for that;
+/// doing it here rather than waiting means the link this screen hands a user is
+/// correct on every platform from the start.
 class UserListScreen extends ConsumerStatefulWidget {
   const UserListScreen({super.key});
 
@@ -65,21 +63,21 @@ class UserListScreen extends ConsumerStatefulWidget {
 }
 
 class _UserListScreenState extends ConsumerState<UserListScreen> {
-  /// How long the "Copied!" label stays up. `UserList.tsx` — `setTimeout`
-  /// at 2000ms.
+  /// How long the "Copied!" label stays up. The original screen reset the label
+  /// after 2000ms.
   static const Duration _copiedIndicatorDuration = Duration(seconds: 2);
 
   String _searchTerm = '';
 
   bool _showInvitationForm = false;
 
-  /// `UserList.tsx` — the list opens sorted by username ascending, which is
-  /// one of the three columns `UserDao` actually honours.
+  /// The original list opened sorted by username ascending, which is one of the
+  /// three columns `UserDao` actually honours.
   String _sortBy = 'username';
   SortOrder _sortOrder = SortOrder.asc;
 
-  /// The invitation whose link was last copied, or null. `UserList.tsx`'s
-  /// `copiedInvitationId`.
+  /// The invitation whose link was last copied, or null. Mirrors the original
+  /// screen's copied-invitation state.
   int? _copiedInvitationId;
 
   Timer? _copiedTimer;
@@ -106,7 +104,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     super.dispose();
   }
 
-  /// `UserList.tsx`: re-tapping the active column reverses it, and a
+  /// Matches the original list: re-tapping the active column reverses it, and a
   /// different column starts ascending.
   void _onSort(String key) {
     setState(() {
@@ -121,12 +119,12 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     });
   }
 
-  /// The user delete. `UserList.tsx`.
+  /// The user delete.
   ///
-  /// **This request 404s** — see [UserService.deleteUser] and The
-  /// React original behaved identically: the button was there, the call went
-  /// nowhere, and the caught error went into the shared `error` state the table
-  /// rendered. That is what the action-error banner below is.
+  /// **This request 404s** — see [UserService.deleteUser] and task 10.12. The
+  /// original behaved identically: the button was there, the call went nowhere,
+  /// and the caught error went into the shared error state the table rendered.
+  /// That is what the action-error banner below is.
   Future<void> _confirmDeleteUser(UserResponse user) async {
     final confirmed = await confirmDestructiveAction(
       context,
@@ -150,10 +148,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     }
   }
 
-  /// The invitation delete. `UserList.tsx`.
+  /// The invitation delete.
   ///
-  /// Refetches the invitations rather than the users, for the reason 4.8 keeps
-  /// the consequence at the call site: this deletes a different collection
+  /// Refetches the invitations rather than the users, for the reason task 4.8
+  /// kept the consequence at the call site: this deletes a different collection
   /// from the one the row sits in, and the two lists are independent fetches.
   Future<void> _confirmDeleteInvitation(InvitationResponse invitation) async {
     final confirmed = await confirmDestructiveAction(
@@ -178,18 +176,18 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     }
   }
 
-  /// Copies an invite link to the clipboard. `UserList.tsx`.
+  /// Copies an invite link to the clipboard.
   ///
-  /// The origin comes from [Uri.base] rather than `window.location.origin`
-  /// `Uri.base` is the document's own address on web and the
-  /// running app's elsewhere, so one expression is right on both, and an
-  /// invitee always receives a link they can open in a browser.
+  /// The origin comes from [Uri.base] rather than `window.location.origin`.
+  /// `Uri.base` is the document's own address on web and the running app's
+  /// elsewhere, so one expression is right on both, and an invitee always
+  /// receives a link they can open in a browser.
   Future<void> _copyInvitationLink(InvitationResponse invitation) async {
     final url = invitationUrl(invitation.token);
 
-    // The React original logs a copy failure to the console and says nothing.
-    // A user watching a button that visibly does nothing is worse than being
-    // told why, so the failure goes to the same banner as a failed delete.
+    // The original logged a copy failure to the console and said nothing. A
+    // user watching a button that visibly does nothing is worse than being told
+    // why, so the failure goes to the same banner as a failed delete.
     try {
       await Clipboard.setData(ClipboardData(text: url));
     } on PlatformException catch (error) {
@@ -216,7 +214,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     });
   }
 
-  /// The user columns. `UserList.tsx`.
+  /// The user columns.
   ///
   /// Three of the five are sortable, and those three are exactly the ones
   /// `UserDao.getUsers` switches on (`username`, `displayName`, `email`) —
@@ -264,16 +262,16 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
           flex: 3,
           text: (user) => user.email,
         ),
-        // `UserList.tsx` — `user.roles.join(', ')`. Not sortable: roles live
-        // in a join table and `UserDao` has no case for them. Narrowest column,
-        // because a role name is one word.
+        // The original screen joined the roles as a comma-separated list. Not
+        // sortable: roles live in a join table and `UserDao` has no case for
+        // them. Narrowest column, because a role name is one word.
         ListColumn<UserResponse>(
           key: 'roles',
           label: 'Roles',
           flex: 1,
           text: (user) => user.roles.join(', '),
         ),
-        // `UserList.tsx` — appended only for a global viewer. Widest,
+        // Appended only for a global viewer, as in the original screen. Widest,
         // because this is the one column holding a free-text name written by
         // whoever created the organization.
         if (canViewGlobal)
@@ -290,13 +288,12 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
           ),
       ];
 
-  /// The invitation columns. `UserList.tsx`.
+  /// The invitation columns.
   ///
-  /// None are sortable — `TableView` only renders a sort control on a column
-  /// marked `sortable`, and none of these are. The React table also had a
-  /// hand-rolled "Actions" column holding a labelled delete button;
-  /// [ResponsiveListView]'s action list replaces it, which is what the other
-  /// three screens did.
+  /// None are sortable — [ResponsiveListView] only renders a sort control on a
+  /// column marked `sortable`, and none of these are. The original table also had
+  /// a hand-rolled "Actions" column holding a labelled delete button; the action
+  /// list here replaces it, which is what the other three screens did.
   /// Builds the provider key from this screen's own state.
   ///
   /// **`limit` and `offset` are deliberately absent** — they belong to
@@ -312,7 +309,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     organizationId: organizationId,
   );
 
-  /// The invitation columns. `UserList.tsx`.
+  /// The invitation columns.
   List<ListColumn<InvitationResponse>> _invitationColumns(String readerZone) =>
       [
         ListColumn<InvitationResponse>(
@@ -320,8 +317,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
           label: 'Role',
           text: (invitation) => invitation.roleName,
         ),
-        // `UserList.tsx` renders `invitation.note || 'N/A'`, so a null note
-        // is shown as text rather than as an empty cell.
+        // The original screen rendered a null note as `N/A`, so it is shown as
+        // text rather than as an empty cell.
         ListColumn<InvitationResponse>(
           key: 'note',
           label: 'Note',
@@ -347,9 +344,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   @override
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
-    // `UserList.tsx`. Wider than any other list screen's gate: either
-    // scope can manage users, matching `App.tsx`'s OR-semantics on the
-    // create route.
+    // Wider than any other list screen's gate: either scope can manage users,
+    // matching the original router's OR-semantics on the create route.
     final canManage = gate.hasAny([
       Permission.manageUsersGlobal,
       Permission.manageUsersOrganization,
@@ -357,10 +353,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     final canViewGlobal = gate.has(Permission.viewUsersGlobal);
     final organizationId = ref.watch(queryOrganizationIdProvider);
 
-    // `UserList.tsx` fetches invitations only for a manager, and
-    // `UserList.tsx` renders the table only when there is something in it.
-    // Gating the watch rather than the fetch keeps an unauthorized caller from
-    // issuing a request that would 403.
+    // The original screen fetched invitations only for a manager and rendered
+    // the table only when there was something in it. Gating the watch rather
+    // than the fetch keeps an unauthorized caller from issuing a request that
+    // would 403.
     final invitations = canManage
         ? ref.watch(unusedInvitationsProvider)
         : const AsyncValue<List<InvitationResponse>>.data(
@@ -374,11 +370,11 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     // Read through `value` rather than Riverpod 3's removed `valueOrNull`.
     //
     // A screen whose invitations are still in flight shows nothing there rather
-    // than an empty table that flickers into a populated one, which is also
-    // what `UserList.tsx` does — it gates the section on
-    // `invitations.length > 0`, and an empty array while loading satisfies that
-    // as quietly as a real one. A **failure** does show, because a user with
-    // invitations they cannot see has no way to know they are there.
+    // than an empty table that flickers into a populated one, which is also what
+    // the original screen did — it gated the section on a non-empty list, and an
+    // empty array while loading satisfied that as quietly as a real one. A
+    // **failure** does show, because a user with invitations they cannot see has
+    // no way to know they are there.
     final loadedInvitations = invitations.value;
     final showInvitations =
         (loadedInvitations != null && loadedInvitations.isNotEmpty) ||
@@ -441,7 +437,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
               ),
             ],
             const SizedBox(height: 24),
-            // `UserList.tsx`. Above the users, as in the original.
+            // Above the users, as in the original screen.
             if (showInvitations) ...[
               Text(
                 'Unused Invitations',
@@ -511,9 +507,9 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
 
 /// The invitations table, with its own loading and error states.
 ///
-/// `UserList.tsx` hands the invitation list to the same `TableView` as
-/// the users, with the same shared `error`. Split out here so a failure to
-/// load invitations cannot blank the users table below it, and so the delete's
+/// The original screen handed the invitation list to the same table component as
+/// the users, with the same shared error. Split out here so a failure to load
+/// invitations cannot blank the users table below it, and so the delete's
 /// consequence — refetching *this* list — reads as belonging to it.
 class _InvitationSection extends StatelessWidget {
   const _InvitationSection({
@@ -588,10 +584,10 @@ class _InvitationLinkCell extends StatelessWidget {
 
 /// The link an invitee opens: the app's own origin plus `/register?token=`.
 ///
-/// `UserList.tsx,179` writes this twice, from `window.location.origin`.
-/// One function so the copy button and the displayed text cannot disagree —
-/// which is the same defect class as the bare-string responses in
-/// two values that are supposed to be one.
+/// The original screen built this twice from `window.location.origin`. One
+/// function so the copy button and the displayed text cannot disagree — which is
+/// the same defect class as the bare-string responses in task 10.9: two values
+/// that are supposed to be one.
 ///
 /// `Uri.base` rather than `window.location.origin` it is the
 /// document's address on web and the running app's elsewhere, so the same
@@ -615,8 +611,8 @@ class _InvitationLinkCell extends StatelessWidget {
 /// [Uri.base]. **`flutter test` runs against a `file:` URI**, so every widget
 /// test in this repo sees the empty-origin branch and nothing has ever executed
 /// the `http`/`https` one — which is the branch that runs in production and the
-/// branch `UserList.tsx` was actually ported from. It is a parameter rather than
-/// a private helper so a test can hold the production function to its real
+/// branch this screen was actually ported from. It is a parameter rather than a
+/// private helper so a test can hold the production function to its real
 /// contract rather than to a copy of it.
 String invitationUrl(String token, {Uri? base}) =>
     '${_appOrigin(base ?? Uri.base)}${AppRoutes.register}?token=$token';
@@ -631,10 +627,10 @@ String invitationUrl(String token, {Uri? base}) =>
 ///
 /// **The path is dropped, and that is a real decision rather than a detail of
 /// `origin`.** On web [Uri.base] is the whole document URL, so a user sitting
-/// on `/users` would otherwise email their colleagues a link to `/users/register`
-/// — which the SPA fallback would serve, and which `App.tsx` would then redirect
-/// away from, losing the token. The React original got this right by accident:
-/// `window.location.origin` has no path to keep.
+/// on `/users` would otherwise email their colleagues a link to
+/// `/users/register` — which the SPA fallback would serve, and which the
+/// original router would then redirect away from, losing the token. The original
+/// got this right by accident: `window.location.origin` has no path to keep.
 String _appOrigin(Uri base) {
   if (base.scheme == 'http' || base.scheme == 'https') return base.origin;
   // **`base.authority.isNotEmpty`, not `base.hasAuthority`, and the difference

@@ -22,22 +22,20 @@ import '../../widgets/responsive_list_view.dart';
 
 /// The customer list.
 ///
-/// `CustomerList.tsx` (134 lines). Search, sort, create and delete, plus
-/// pagination — the one thing here the React original does not have.
+/// Search, sort, create and delete, plus pagination — the one thing here the
+/// original app did not have.
 ///
 /// **The paging is new rather than ported, and it is worth being clear which
-/// part of it is not.** `CustomerList.tsx` fetched `getAllCustomers(25, 0,
-/// …)` and there is no control anywhere in the React app to reach row 26, so
-/// recorded "premise did not hold" and closed. The page *size* is
-/// still 25 — [kListPageSize], shared by all four list screens — because that is
-/// what the original asked for. What is new is that there is now a way to ask
-/// for the next page, and that it is the same shape on every list screen rather
-/// than four private `static const _pageLimit` copies.
+/// part of it is not.** The original screen fetched the first 25 rows and there
+/// was no control anywhere in the original app to reach row 26, so task 4.2
+/// recorded "premise did not hold" and closed. The page *size* is still 25 —
+/// [kListPageSize], shared by all four list screens — because that is what the
+/// original asked for. What is new is that there is now a way to ask for the
+/// next page, and that it is the same shape on every list screen.
 ///
-/// The row actions are hover-revealed in the React original
-/// (`CustomerList.tsx`), which is unreachable on a phone. The shared
-/// [ResponsiveListView] resolves that: hover on a pointer, always visible in a
-/// card.
+/// The row actions were hover-revealed in the original, which is unreachable on
+/// a phone. The shared [ResponsiveListView] resolves that: hover on a pointer,
+/// always visible in a card.
 class CustomerListScreen extends ConsumerStatefulWidget {
   const CustomerListScreen({super.key});
 
@@ -68,7 +66,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   /// provider, so only the mutation's needs a field.
   ApiException? _actionError;
 
-  /// `CustomerList.tsx`: re-tapping the active column reverses it, and a
+  /// Matches the original list: re-tapping the active column reverses it, and a
   /// different column starts ascending.
   void _onSort(String key) {
     setState(() {
@@ -83,7 +81,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     });
   }
 
-  /// The delete confirmation. `CustomerList.tsx`.
+  /// The delete confirmation.
   ///
   /// The dialog is shared — see [confirmDestructiveAction] — and what stays here
   /// is the part that is specific to this screen: the service call, the refetch,

@@ -2,19 +2,17 @@
 
 Flutter client for the Teven API. Web-first; native packaging is deferred.
 
-Conversion of the React SPA in `../frontend` is tracked in
-[`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md) — the task checklist — with
-progress in [`../FLUTTER-CONVERT-NOTES.md`](../FLUTTER-CONVERT-NOTES.md). The
-React app remains the live application until task 10.3 of that plan.
+The app replaced the original React SPA. The conversion is tracked in
+[`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md) (task checklist) and
+[`../FLUTTER-CONVERT-NOTES.md`](../FLUTTER-CONVERT-NOTES.md) (progress and
+history), with design context in
+[`../FLUTTER-CONVERT-DESIGN.md`](../FLUTTER-CONVERT-DESIGN.md).
 
 ## Status
 
-**In progress.** Auth, the responsive shell, and the customer, inventory, and
-organization lists are ported and working against the backend; most routes still
-render a placeholder naming the path. The React frontend in `../frontend`
-remains the live application. See [`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md)
-for the task list and [`../FLUTTER-CONVERT-DESIGN.md`](../FLUTTER-CONVERT-DESIGN.md)
-for the parity matrix.
+The Flutter app is the frontend served by the backend. See
+[`../FLUTTER-CONVERT.md`](../FLUTTER-CONVERT.md) for what is ported and what
+remains.
 
 ## Running locally
 
@@ -103,5 +101,5 @@ dart run build_runner build --delete-conflicting-outputs
 | Path | Purpose |
 |---|---|
 | `lib/core/config/` | Build-time configuration (`ApiConfig`) |
-| `lib/core/theme/` | Theme, carrying over Bootstrap values from the React app |
+| `lib/core/theme/` | Theme, carrying over Bootstrap values from the original app |
 | `lib/screens/` | Screens |

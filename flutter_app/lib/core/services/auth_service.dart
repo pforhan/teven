@@ -4,7 +4,7 @@ import '../api/token_store.dart';
 
 /// Login, logout, and the current user's identity.
 ///
-/// Replaces `AuthService` in `frontend/src/api/AuthService.ts`.
+/// Replaces the original authentication service.
 ///
 /// Token storage is injected as [TokenStore] rather than reached for
 /// statically, so [login] can persist the token without this class depending

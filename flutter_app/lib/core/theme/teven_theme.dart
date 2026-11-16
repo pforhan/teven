@@ -17,23 +17,23 @@ abstract final class TevenTheme {
 
   /// Bootstrap `$primary` as this app uses it: `#3174ad`.
   ///
-  /// Worth being precise about, because the React app has no Bootstrap theme
-  /// override file — `frontend/src/index.css` sets only the body background.
-  /// So `btn-primary` really did render Bootstrap's stock `#0d6efd`, and
-  /// `#3174ad` is the colour the app uses explicitly, for event pills in
-  /// `EventCalendar.tsx`. The plan names it "the primary", the Phase 0
-  /// theme file had already adopted it, and a single coherent accent beats a
-  /// palette of two nearly identical blues. Recorded rather than quietly
-  /// resolved, since it is a judgement call and not a fact.
+  /// Worth being precise about, because the original app had no Bootstrap theme
+  /// override — its stylesheet set only the body background. So `btn-primary`
+  /// really did render Bootstrap's stock `#0d6efd`, and `#3174ad` is the colour
+  /// the app used explicitly, for event pills in the original calendar. The plan
+  /// names it "the primary", the Phase 0 theme file had already adopted it, and
+  /// a single coherent accent beats a palette of two nearly identical blues.
+  /// Recorded rather than quietly resolved, since it is a judgement call and not
+  /// a fact.
   static const Color primary = Color(0xFF3174AD);
 
-  /// Page background, from `body { background-color: #f8f9fa }` in
-  /// `frontend/src/index.css`. Bootstrap's `$light`.
+  /// Page background, from `body { background-color: #f8f9fa }` in the original
+  /// stylesheet. Bootstrap's `$light`.
   static const Color surface = Color(0xFFF8F9FA);
 
-  /// Nav and rail background. Bootstrap's `$dark`, from
-  /// `navbar navbar-expand-lg navbar-dark bg-dark` (`MainLayout.tsx`) —
-  /// which is also where Material's notion of an "on-surface" ink comes from.
+  /// Nav and rail background. Bootstrap's `$dark`, from the original layout's
+  /// dark navbar (`navbar navbar-expand-lg navbar-dark bg-dark`) — which is also
+  /// where Material's notion of an "on-surface" ink comes from.
   static const Color darkSurface = Color(0xFF212529);
 
   /// Secondary text, links and disabled controls. Bootstrap's `$secondary`.
@@ -42,14 +42,12 @@ abstract final class TevenTheme {
   /// Muted body copy, the `.text-muted` class. Bootstrap's `$gray-500`.
   static const Color muted = Color(0xFFADB5BD);
 
-  /// Errors. Bootstrap's `$danger`, used by `.text-danger` in
-  /// `OrganizationSelector.tsx` and by `.alert-danger` on the invitation
-  /// screen.
+  /// Errors. Bootstrap's `$danger`, used by error text in the original
+  /// organization selector and by alert styling on the invitation screen.
   static const Color danger = Color(0xFFDC3545);
 
-  /// Successes. Bootstrap's `$success`, used by the `btn-success` RSVP
-  /// buttons on the event list (`EventListPage.tsx`) and the event
-  /// details screen (`EventDetails.tsx`).
+  /// Successes. Bootstrap's `$success`, used by the success RSVP buttons on the
+  /// original event list and event details screens.
   static const Color success = Color(0xFF198754);
 
   /// The `alert-success` background — Bootstrap's `$success` tinted to
@@ -60,12 +58,12 @@ abstract final class TevenTheme {
   /// `#0f5132`.
   static const Color onSuccessSurface = Color(0xFF0F5132);
 
-  /// Today's date highlight in the calendar, from `EventCalendar.tsx`.
+  /// Today's date highlight in the original calendar.
   static const Color todayHighlight = Color(0xFFE7F0F7);
 
-  /// The unresolved "requested" RSVP pill (`EventCalendar.tsx`).
+  /// The unresolved "requested" RSVP pill in the original calendar.
   ///
-  /// The React value is the CSS keyword `orange` — `#FFA500`.
+  /// The original value was the CSS keyword `orange` — `#FFA500`.
   static const Color requestedRsvp = Color(0xFFFFA500);
 
   /// The month grid's rules.
@@ -117,7 +115,7 @@ abstract final class TevenTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: surface,
       textTheme: textTheme,
-      // The React shell is one dark navbar over a light page. The Material
+      // The original shell was one dark navbar over a light page. The Material
       // default would put a light app bar there instead, which is a different
       // app rather than the same one rendered differently.
       appBarTheme: const AppBarTheme(

@@ -56,7 +56,7 @@ void main() {
   });
 
   group('Permissions — OR semantics', () {
-    // ProtectedRoute.tsx treats an array as.some, and an empty array
+    // the original protected route treats an array as.some, and an empty array
     // renders unconditionally. Both matter for the route guard.
     test('has finds a granted permission', () {
       expect(

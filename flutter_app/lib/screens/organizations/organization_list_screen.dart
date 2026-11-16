@@ -18,22 +18,20 @@ import '../../widgets/paged_list_view.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
-/// The organization list
+/// The organization list.
 ///
-/// `OrganizationList.tsx` (134 lines). Search, sort, create and delete, over
-/// two columns. It is the smallest of the four React lists and the only one
-/// that is global rather than organization-scoped: `OrganizationList.tsx`
-/// gates viewing on `VIEW_ORGANIZATIONS_GLOBAL`, so this screen is reachable
-/// only by a super-admin and every row is an organization the caller may not
-/// otherwise be scoped to.
+/// Search, sort, create and delete, over two columns. It is the smallest of the
+/// four original list screens and the only one that is global rather than
+/// organization-scoped: the original screen gated viewing on
+/// `VIEW_ORGANIZATIONS_GLOBAL`, so this screen is reachable only by a super-admin
+/// and every row is an organization the caller may not otherwise be scoped to.
 ///
 /// **No organization scoping is applied to its own query, and that is
 /// deliberate.** `selectedOrganization` filters every *other* list in the app,
 /// but scoping this one to the caller's selected organization would hide every
 /// org but one from the list meant to show all of them — and the super-admin
-/// selector draws from the same underlying table. The React original passes
-/// only `25, 0, search, sortBy, sortOrder` (`OrganizationList.tsx`), and
-/// the same five parameters are all this sends.
+/// selector draws from the same underlying table. The original screen passed
+/// only the page, search, and sort parameters, and the same are all this sends.
 class OrganizationListScreen extends ConsumerStatefulWidget {
   const OrganizationListScreen({super.key});
 
@@ -57,8 +55,8 @@ class _OrganizationListScreenState
   /// provider.
   ApiException? _actionError;
 
-  /// `OrganizationList.tsx`: re-tapping the active column reverses it,
-  /// and a different column starts ascending.
+  /// Matches the original list: re-tapping the active column reverses it, and a
+  /// different column starts ascending.
   void _onSort(String key) {
     setState(() {
       if (_sortBy == key) {
@@ -72,7 +70,7 @@ class _OrganizationListScreenState
     });
   }
 
-  /// The delete confirmation. `OrganizationList.tsx`.
+  /// The delete confirmation.
   Future<void> _confirmDelete(OrganizationResponse organization) async {
     final confirmed = await confirmDestructiveAction(
       context,
@@ -107,9 +105,8 @@ class _OrganizationListScreenState
   /// list screen scopes by the super-admin's selection, and copying that line
   /// here — the obvious way to make this screen match its three siblings — would
   /// hide every organization but one from the list whose entire job is to show
-  /// all of them. See the class doc comment. The React original passes only
-  /// `25, 0, search, sortBy, sortOrder` (`OrganizationList.tsx`), and so
-  /// does this.
+  /// all of them. See the class doc comment. The original screen passed only the
+  /// page, search, and sort parameters, and so does this.
   ListQuery _buildQuery() => ListQuery(
     search: _searchTerm.isEmpty ? null : _searchTerm,
     sortBy: _sortBy,

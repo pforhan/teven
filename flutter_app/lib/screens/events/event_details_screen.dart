@@ -20,30 +20,28 @@ import '../../widgets/confirm_dialog.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/day_events_panel.dart';
 
-/// One event, in full
+/// One event, in full.
 ///
-/// `EventDetails.tsx` (277 lines). The title, the date, the time, the
-/// location, the description, the customer, the inventory; and in the
-/// sidebar, the other events on the same day, this user's own availability,
-/// and the staff roster.
+/// The title, the date, the time, the location, the description, the customer,
+/// the inventory; and in the sidebar, the other events on the same day, this
+/// user's own availability, and the staff roster.
 ///
-/// **Two things about the React original are worth stating before the code.**
+/// **Two things about the original screen are worth stating before the code.**
 ///
-/// The first is that **it never shows an error when the event fails to load.**
-/// `EventDetails.tsx` returns a spinner whenever `event` is null, and the
-/// `catch` at `:31` only sets `error` — which is rendered at `:133`, *inside*
-/// the card that the spinner's early return never reaches. So a 404, a 403
-/// or a dead backend produce an endless spinner and a message nobody can
-/// read. This port shows the error instead, which is what every other screen
-/// in the port does (see the event list's `ErrorDisplay`) and the only thing
-/// that can be done about a failure that is not going to fix itself.
+/// The first is that **it never showed an error when the event failed to load.**
+/// The original returned a spinner whenever `event` was null, and the catch only
+/// set `error` — which was rendered inside the card that the spinner's early
+/// return never reached. So a 404, a 403 or a dead backend produced an endless
+/// spinner and a message nobody could read. This port shows the error instead,
+/// which is what every other screen in the port does (see the event list's
+/// `ErrorDisplay`) and the only thing that can be done about a failure that is
+/// not going to fix itself.
 ///
-/// The second is that **the delete navigates away rather than refetching.**
-/// `EventDetails.tsx` calls `navigate('/events')` after a successful
-/// delete, and the screen it came from does not exist any more — so
-/// refetching would be fetching a record that is gone. This is the one case
-/// where *not* refetching is the point, and it is why the shared delete
-/// dialog leaves the consequence at the call site.
+/// The second is that **the delete navigated away rather than refetching.** The
+/// original navigated to `/events` after a successful delete, and the screen it
+/// came from did not exist any more — so refetching would be fetching a record
+/// that is gone. This is the one case where *not* refetching is the point, and
+/// it is why the shared delete dialog leaves the consequence at the call site.
 class EventDetailsScreen extends ConsumerStatefulWidget {
   const EventDetailsScreen({super.key, required this.eventId, this.backToDay});
 
@@ -81,7 +79,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
   ///
   /// Separate from [_loadError] because they are shown in different places:
   /// the load error replaces the body, and the action error sits under the
-  /// event's title, where `EventDetails.tsx` puts it.
+  /// event's title, where the original screen put it.
   ApiException? _actionError;
 
   /// The confirmation that an RSVP landed.
@@ -89,11 +87,10 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
 
   /// This user's own answer, or null when they have not answered.
   ///
-  /// **Kept separately from the event's RSVP list** because the React
-  /// original keeps it separately too (`EventDetails.tsx`), and because it
-  /// is set the moment a request succeeds — before the refetch that follows
-  /// it lands. The button states would otherwise lag behind the click by a
-  /// round trip.
+  /// **Kept separately from the event's RSVP list** because the original kept it
+  /// separately too, and because it is set the moment a request succeeds —
+  /// before the refetch that follows it lands. The button states would otherwise
+  /// lag behind the click by a round trip.
   String? _myRsvpStatus;
 
   /// A delete or an RSVP is in flight.
@@ -211,10 +208,9 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
 
   /// This user's own availability on [event], or null when they have none.
   ///
-  /// `EventDetails.tsx` finds it among the event's RSVPs by user id
-  /// rather than reading a denormalized field — the server sends no "your
-  /// answer" on the event — and `|| null` turns an empty availability into
-  /// "no answer".
+  /// The original found it among the event's RSVPs by user id rather than
+  /// reading a denormalized field — the server sends no "your answer" on the
+  /// event — and turned an empty availability into "no answer".
   String? _statusOf(EventResponse event) {
     final userId = ref.read(userContextProvider)?.user.userId;
     if (userId == null) return null;
@@ -228,15 +224,15 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
 
   /// Posts this user's availability.
   ///
-  /// `EventDetails.tsx`. The availability is a **free-form string** — the
-  /// server type is `String` with no validation (`RsvpRequest.kt`) — and the
-  /// three the app posts are named in [RsvpAvailability] plus `'no response'`,
-  /// which is the original's own literal for "clear my answer".
+  /// The availability is a **free-form string** — the server type is `String`
+  /// with no validation (`RsvpRequest.kt`) — and the values the app posts are
+  /// named in [RsvpAvailability] plus `'no response'`, which is the original's
+  /// literal for "clear my answer".
   ///
-  /// **The event is refetched afterwards,** which is what the original does
-  /// and the only way the roster repaints: the server answers `success("OK")`,
-  /// so nothing comes back to display, and the new availability has to come
-  /// from a fresh `GET /api/events/{id}`.
+  /// **The event is refetched afterwards,** which is what the original did and
+  /// the only way the roster repaints: the server answers `success("OK")`, so
+  /// nothing comes back to display, and the new availability has to come from a
+  /// fresh `GET /api/events/{id}`.
   Future<void> _rsvp(String availability) async {
     if (_submitting) return;
     setState(() {
@@ -266,9 +262,9 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
 
   /// Deletes the event and leaves.
   ///
-  /// `EventDetails.tsx`. The **sixth and last** of the React app's
-  /// `window.confirm` delete flows, and the only one whose consequence is a
-  /// navigation rather than a refetch — see the class comment.
+  /// The **sixth and last** of the original app's `window.confirm` delete flows,
+  /// and the only one whose consequence was a navigation rather than a refetch —
+  /// see the class comment.
   Future<void> _confirmDelete() async {
     final event = _event;
     if (event == null) return;
@@ -290,8 +286,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
       await ref.read(eventServiceProvider).deleteEvent(widget.eventId);
       if (!mounted) return;
       // **Away, not a refetch.** The record is gone; there is nothing left to
-      // fetch. `EventDetails.tsx` navigates to the events list, and so
-      // does this.
+      // fetch. The original navigated to the events list, and so does this.
       context.go(AppRoutes.events);
     } on ApiException catch (error) {
       if (!mounted) return;
@@ -413,9 +408,8 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
 
 /// The back button, and the edit and delete pair.
 ///
-/// `EventDetails.tsx`: a `d-flex justify-content-between` with the
-/// back button on the left and — for a manager — an edit and a delete button
-/// on the right.
+/// The original laid this out as a space-between row with the back button on the
+/// left and — for a manager — edit and delete buttons on the right.
 class _Header extends StatelessWidget {
   const _Header({
     required this.canManage,
@@ -514,8 +508,8 @@ class _EventCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _MetaRow(event: event, readerZone: readerZone),
-            // **The banners sit here,** where `EventDetails.tsx` puts
-            // them: under the title, above the description.
+            // **The banners sit here,** where the original put them: under the
+            // title, above the description.
             if (actionError != null) ...[
               const SizedBox(height: 16),
               ErrorDisplay.fromException(actionError!),
@@ -563,8 +557,7 @@ class _EventCard extends StatelessWidget {
 
 /// The date, the time, and the location.
 ///
-/// `EventDetails.tsx`: a `d-flex gap-3` of three spans, each with an
-/// icon in front of it.
+/// The original rendered these as a spaced row of icon-and-text items.
 class _MetaRow extends StatelessWidget {
   const _MetaRow({required this.event, required this.readerZone});
 
@@ -621,13 +614,13 @@ class _MetaItem extends StatelessWidget {
 
 /// The location, linking to Google Maps.
 ///
-/// `EventDetails.tsx` renders it as an `<a>` to
+/// The original rendered it as a link to
 /// `https://www.google.com/maps/search/?api=1&query={location}`.
 ///
-/// **The link opens in a new tab,** as the original's `target="_blank"` does.
-/// `url_launcher` is the one package this screen adds, and the reason is
-/// here: a location that cannot be opened is a location that cannot be found,
-/// and there is no way to open a URL from Flutter without one.
+/// **The link opens in a new tab,** as the original did with `target="_blank"`.
+/// `url_launcher` is the one package this screen adds, and the reason is here:
+/// a location that cannot be opened is a location that cannot be found, and
+/// there is no way to open a URL from Flutter without one.
 ///
 /// **The address wraps** rather than overflowing, which needs the width to be
 /// bounded — a `Wrap` hands its children unbounded width, so the constraint
@@ -708,8 +701,8 @@ class _SuccessBanner extends StatelessWidget {
 
 /// The customer the event is for.
 ///
-/// `EventDetails.tsx`: a `bg-light` box with a thick primary border
-/// down its left edge.
+/// The original rendered this as a light box with a thick primary border down
+/// its left edge.
 class _CustomerCard extends StatelessWidget {
   const _CustomerCard({required this.customer});
 
@@ -798,8 +791,9 @@ class _CustomerLine extends StatelessWidget {
 
 /// The inventory the event needs.
 ///
-/// `EventDetails.tsx`: a `row-cols-1 row-cols-md-2` grid of small
-/// cards, each a quantity badge beside the item's name.
+/// The original rendered this as a responsive grid (one column on small screens,
+/// two on wider ones) of small cards, each a quantity badge beside the item's
+/// name.
 class _InventoryGrid extends StatelessWidget {
   const _InventoryGrid({required this.items});
 
@@ -911,9 +905,8 @@ class _Sidebar extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // **`EventDetails.tsx`.** The panel fetches the events on this
-        // event's day, in this event's organization, and marks this event's
-        // placement with a ghost marker.
+        // The panel fetches the events on this event's day, in this event's
+        // organization, and marks this event's placement with a ghost marker.
         DayEventsPanel(
           date: event.dateIn(readerZone),
           organizationId: event.organization.organizationId.toString(),
@@ -1013,7 +1006,7 @@ class _AvailabilityCard extends StatelessWidget {
               ),
             if (status != null) ...[
               const SizedBox(height: 8),
-              // **"Clear my response"** — `EventDetails.tsx`. It posts
+              // **"Clear my response"** — as in the original screen. It posts
               // `'no response'`, which is **not** one of
               // [RsvpAvailability]'s values and is not a removal: the server
               // stores the string as the availability, so the user stops
@@ -1076,11 +1069,11 @@ class _RosterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // `EventDetails.tsx` splits the roster three ways. **A fourth
-    // possibility is not in the split:** a user who answered `'no response'`
-    // appears in none of the three lists, because the server stores that
-    // string as their availability. That is the original's behaviour and it
-    // is kept — see the note on the clear button.
+    // The original split the roster three ways. **A fourth possibility is not
+    // in the split:** a user who answered `'no response'` appears in none of the
+    // three lists, because the server stores that string as their availability.
+    // That is the original's behaviour and it is kept — see the note on the
+    // clear button.
     final invited = event.rsvps
         .where((rsvp) => rsvp.availability == RsvpAvailability.requested)
         .toList();
@@ -1145,9 +1138,9 @@ class _RosterCard extends StatelessWidget {
               members: confirmed,
               emptyMessage: 'No one confirmed yet.',
             ),
-            // **The declined list is for managers only** —
-            // `EventDetails.tsx`. A user who cannot manage events does
-            // not see who said no.
+            // **The declined list is for managers only.** The original hid it
+            // from users who could not manage events, so they do not see who
+            // said no.
             if (canManage && declined.isNotEmpty) ...[
               const SizedBox(height: 16),
               _RosterSection(
@@ -1250,10 +1243,9 @@ const double kTwoColumnContentWidth = 860;
 
 /// What the clear button posts.
 ///
-/// `'no response'`, verbatim from `EventDetails.tsx` — and the same
-/// literal the event list's clear button posts (`EventListPage.tsx`).
-/// **Not** `''`, and **not** a member of [RsvpAvailability]: the server
+/// `'no response'`, verbatim from the original event details and event list
+/// screens. **Not** `''`, and **not** a member of [RsvpAvailability]: the server
 /// stores it as a free-form string, so it is a fourth answer rather than the
-/// absence of one. owns the question of whether that column should
+/// absence of one. Task 10.17 owns the question of whether that column should
 /// hold a closed set.
 const String kRsvpCleared = 'no response';
