@@ -14,7 +14,7 @@ import 'package:teven_app/widgets/debounced_search_field.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The event list — task 7.5.
+/// The event list
 ///
 /// Driven through the real router and the real shell at a pinned width, so what
 /// is under test is the screen a user lands on.
@@ -163,7 +163,7 @@ void main() {
   /// The `GET /api/events` requests made so far.
   ///
   /// **Always read `.last`, never `.single`.** The router's `initialLocation` is
-  /// `/events` (`app_router.dart:142`), so booting the app renders the calendar
+  /// `/events` (`app_router.dart`), so booting the app renders the calendar
   /// and queries it *before* this navigates to `/events/list`. Both screens hit
   /// the same endpoint, so the list here is calendar-then-list and a `.single`
   /// fails on the count rather than on the parameters under test.
@@ -281,7 +281,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      // 7.20: renders the time in the reader's zone (`DateFormat.jm()`).
+      // 7.20: renders the time in the reader's zone (`DateFormat.jm`).
       // Intl may use a narrow no-break space before AM/PM.
       expect(
         find.descendant(
@@ -308,7 +308,7 @@ void main() {
         ),
       );
 
-      // `EventListPage.tsx:128` — `event.customer?.name || 'N/A'`. Not
+      // `EventListPage.tsx` — `event.customer?.name || 'N/A'`. Not
       // decoration: `customerId` is nullable on the DTO and the schema, so an
       // event with no customer is a real state rather than a broken row.
       expect(find.text('N/A'), findsOneWidget);
@@ -317,10 +317,7 @@ void main() {
     testWidgets('is no longer a placeholder', (tester) async {
       await openList(tester, eventAdapter());
 
-      expect(
-        find.text('Not ported yet — see FLUTTER-CONVERT.md.'),
-        findsNothing,
-      );
+      expect(find.text('Not ported yet.'), findsNothing);
       expect(find.byType(EventListScreen), findsOneWidget);
     });
   });
@@ -337,9 +334,9 @@ void main() {
       expect(request.queryParameters['offset'], 0);
       // `sortBy` defaults to `'date'` in the original even though the column it
       // would apply to is the title. **It does nothing** — `EventDao` never reads
-      // it (task 10.11) — and it is sent anyway, on the same terms as the three
+      // it — and it is sent anyway, on the same terms as the three
       // customer headers the server ignores: hiding a control the original shows
-      // is a worse divergence than leaving it inert. See task 4.11.
+      // is a worse divergence than leaving it inert. See
       expect(request.queryParameters['sortBy'], 'date');
       expect(request.queryParameters['sortOrder'], 'asc');
     });
@@ -351,7 +348,7 @@ void main() {
       await openList(tester, adapter);
 
       final request = getRequests(adapter).last;
-      // `EventListPage.tsx:36-44` passes `startDate` and leaves `endDate`
+      // `EventListPage.tsx` passes `startDate` and leaves `endDate`
       // undefined. A month *window*, as the calendar sends, would be a
       // different screen.
       expect(
@@ -366,7 +363,7 @@ void main() {
       await openList(tester, adapter);
       final before = getRequests(adapter).length;
 
-      // Task 5.9's `DateField`, not a text field: a `type="date"` input the user
+      // `DateField`, not a text field: a `type="date"` input the user
       // types into is a `TextFormField` they tap into a picker. Going through the
       // picker is also the only way to reach the integration at all, since the
       // value goes straight into the query and has to be a valid `yyyy-MM-dd`.
@@ -375,7 +372,7 @@ void main() {
 
       final requests = getRequests(adapter);
       expect(requests.length, before + 1);
-      // And it resets the page, which `EventListPage.tsx:210` does explicitly
+      // And it resets the page, which `EventListPage.tsx` does explicitly
       // with `setOffset(0)`. That is free here — a changed `ListQuery` is a new
       // provider, which starts at offset 0 — so this pins the outcome rather than
       // the mechanism.
@@ -440,7 +437,7 @@ void main() {
       await tester.pumpAndSettle();
       await settleRequests(tester);
 
-      // `handleSort` on a new column starts ascending, `EventListPage.tsx:94-102`.
+      // `handleSort` on a new column starts ascending, `EventListPage.tsx`.
       expect(getRequests(adapter).last.queryParameters['sortBy'], 'title');
       expect(getRequests(adapter).last.queryParameters['sortOrder'], 'asc');
     });
@@ -472,7 +469,7 @@ void main() {
       // sits *under* the transformer. Asserting on the string would fail on a
       // correct request for a reason that has nothing to do with availability.
       expect((post.data as RsvpRequest).availability, 'available');
-      // `handleRsvp` calls `fetchEvents()`. The server answers `success("OK")`,
+      // `handleRsvp` calls `fetchEvents`. The server answers `success("OK")`,
       // so the refetch is the only thing that repaints the button.
       expect(getRequests(adapter).length, before + 1);
     });
@@ -514,7 +511,7 @@ void main() {
       await tester.pump();
       await settleRequests(tester);
 
-      // `'no response'`, verbatim from `EventListPage.tsx:153` — **not** `''`
+      // `'no response'`, verbatim from `EventListPage.tsx` — **not** `''`
       // and **not** a member of [RsvpAvailability]. The server stores it as a
       // free-form string, so "improving" it here would change what lands in the
       // `rsvps.availability` column and every existing filter over it. Task
@@ -538,7 +535,7 @@ void main() {
     ) async {
       final today = formatLocalDate(DateTime.now().toUtc());
       // Two RSVPs, only one of them this user's — `userId: 1` in the harness's
-      // context. `EventListPage.tsx:131` finds the current user's among the
+      // context. `EventListPage.tsx` finds the current user's among the
       // event's; taking the first would show Bob's answer as yours.
       await openList(
         tester,
@@ -625,7 +622,7 @@ void main() {
       await tester.tap(find.byTooltip('Delete'));
       await tester.pumpAndSettle();
 
-      // The shared dialog — `EventListPage.tsx:64`, task 4.8's sixth and last
+      // The shared dialog — `EventListPage.tsx` sixth and last
       // call site. Named after the record, because that is what the other five
       // sites do and a generic "Are you sure?" is what made six of them worth
       // sharing.
@@ -661,7 +658,7 @@ void main() {
         ),
         isNotNull,
       );
-      // `fetchEvents()` in the original — which reset to page zero, because a
+      // `fetchEvents` in the original — which reset to page zero, because a
       // deleted row shifts every row after it up. A `reload` rather than an
       // invalidation, for the same reason: see `PagedListController.reload`.
       final requests = getRequests(adapter);

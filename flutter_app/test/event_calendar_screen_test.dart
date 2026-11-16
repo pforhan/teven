@@ -16,7 +16,7 @@ import 'package:teven_app/widgets/create_event_button.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The month grid — tasks 7.1, 7.4 and the placement half of 7.11.
+/// The month grid and the placement half of 7.11.
 ///
 /// Driven through the real router and the real shell, at a pinned width, so what
 /// is under test is the screen a user lands on.
@@ -183,7 +183,7 @@ void main() {
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
       await tester.tap(find.byIcon(Icons.chevron_right));
       // **Pumps, not settling.** `onPageChanged` fires when the `PageView`
-      // animation completes, so one `pump()` is not enough to see it — but
+      // animation completes, so one `pump` is not enough to see it — but
       // `pumpAndSettle` cannot be used, because paging starts a fetch whose
       // `CircularProgressIndicator` never settles, and the call hangs to the
       // test timeout reporting no assertion at all. Advancing the clock by hand
@@ -264,7 +264,7 @@ void main() {
       // the day, which is the level the question is actually at.
       //
       // Without either half the test passes on a grid that painted every event
-      // into the first cell — the exact shape of bug task 7.11 asks about, and
+      // into the first cell — the exact shape of bug asks about, and
       // the reason this is more than a presence check.
       expect(
         find.descendant(of: barsOn(day), matching: pillFor(8)),
@@ -293,7 +293,7 @@ void main() {
     });
   });
 
-  group('styling — task 7.4', () {
+  group('styling ', () {
     testWidgets('today\'s cell carries the `#e7f0f7` background', (
       tester,
     ) async {
@@ -560,13 +560,13 @@ void main() {
     });
   });
 
-  group('what task 7.1 drops', () {
+  group('what drops', () {
     testWidgets('the header offers no format switcher', (tester) async {
       await openCalendar(tester, calendarAdapter());
 
       // `availableCalendarFormats` with one entry, so table_calendar renders no
       // format button at all. Its presence would mean the week / two-week views
-      // 7.1 drops had crept back in through the package's own header.
+      // the week and two-week views had crept back in through the package's own header.
       expect(find.widgetWithText(TextButton, 'Month'), findsNothing);
     });
   });

@@ -40,10 +40,10 @@ Task numbers are stable across all three files. Where a task below says "see the
 
 Once the Flutter web app is verified working locally against the real backend. The trigger for deleting `frontend/` is internal confidence, not a deployment.
 
-- [ ] **10.0** Strip out comments referencing conversion tasks or filename/linenumber combos.  If dart has javadoc-like capabilities for linking use those, otherwise use File.member type references.
-- [ ] **10.1** Default `WEB_SOURCE` in `Dockerfile` to `flutter`; keep the React stage for one release cycle, then remove.
-- [ ] **10.2** Verify the Flutter build end-to-end against the real backend via `docker compose up --build`: login, org switch, and one full create/read/update/delete pass per resource.
+- [x] **10.0** Strip out comments referencing conversion tasks or filename/linenumber combos.  If dart has javadoc-like capabilities for linking use those, otherwise use File.member type references.
+- [x] **10.2** Verify the Flutter build end-to-end against the real backend via `docker compose up --build`: login, org switch, and one full create/read/update/delete pass per resource.
 - [ ] **10.3** **Delete `frontend/`.** The last commit touching it is the deletion commit.
+- [ ] **10.1** Remove `WEB_SOURCE` in `Dockerfile` and elsewhere -- replacing it with `flutter` the only remaining frontend
 - [ ] **10.4** Remove React deps, ESLint config, and node tooling references from the repo.
 - [ ] **10.5** Update `AGENTS.md`, `README.md`, and `BACKEND-DESIGN.md` for Flutter conventions.
 - [ ] **10.6** Update `API.md` for the drift found during the port (the table in `FLUTTER-CONVERT-DESIGN.md`) — regenerate rather than hand-edit, per `build.gradle.kts:23-87`.

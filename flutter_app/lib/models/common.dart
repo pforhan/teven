@@ -8,7 +8,7 @@ part 'common.g.dart';
 /// There is deliberately no page number, cursor, or total-page count: the
 /// server exposes none, so deriving one client-side would invent a contract
 /// the API does not honour. Mirrors `PaginatedResponse` in
-/// `backend/api/.../model/common/PaginatedResponse.kt:5`.
+/// `backend/api/.../model/common/PaginatedResponse.kt`.
 @Freezed(genericArgumentFactories: true)
 abstract class PaginatedResponse<T> with _$PaginatedResponse<T> {
   const factory PaginatedResponse({
@@ -30,7 +30,7 @@ abstract class PaginatedResponse<T> with _$PaginatedResponse<T> {
 /// return `204 No Content` with an empty body. It is used for the handful of
 /// endpoints that answer `success("OK")` / `success("...")`, whose `data` is a
 /// bare string rather than this object. Kept for parity with
-/// `frontend/src/types/common.ts:7`; task 1.10 decides per-endpoint what a
+/// `frontend/src/types/common.ts`; decides per-endpoint what a
 /// bare-string body actually decodes to.
 @freezed
 abstract class StatusResponse with _$StatusResponse {

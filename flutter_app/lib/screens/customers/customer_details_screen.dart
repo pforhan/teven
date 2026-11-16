@@ -10,16 +10,16 @@ import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/error_display.dart';
 
-/// One customer, in full — task 9.0's sweep.
+/// One customer, in full sweep.
 ///
 /// The read-only counterpart to [EditCustomerScreen], reached from the customer
 /// list's name links. Like the user details screen, the route had been declared
 /// as a bare helper with no route behind it, so the list's name link fell through
 /// the catch-all to `/events` — the customer could add and edit but never view,
-/// which is the shape task 9.0 fixed for users and this sweep repeats for the
+/// which is the shape fixed for users and this sweep repeats for the
 /// remaining CRUD screens.
 ///
-/// Task 10.20 deferred this screen pending the backend's missing
+/// deferred this screen pending the backend's missing
 /// `customerId` filter on `GET /api/events`; the field rendering below is the
 /// half that was always wanted — a page that renders the record beats a link to
 /// the calendar — and the customer's events ride along with the backend work.

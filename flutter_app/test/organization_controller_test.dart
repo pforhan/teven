@@ -9,7 +9,7 @@ import 'package:teven_app/providers/organization_controller.dart';
 import 'package:teven_app/providers/organization_list.dart';
 import 'package:teven_app/providers/service_providers.dart';
 
-/// Organization selection and its persistence — task 2.4.
+/// Organization selection and its persistence
 ///
 /// The real `SharedPreferences` plugin runs against an in-memory backing store
 /// here, which is what makes these tests worth writing: the persistence format
@@ -47,7 +47,7 @@ void main() {
 
   test('a stored selection is restored on boot', () async {
     // The React original seeds this during the first render
-    // (`OrganizationContext.tsx:11-15`); here it arrives a frame later, which
+    // (`OrganizationContext.tsx`); here it arrives a frame later, which
     // is why the provider is async. The restored value has to be a full
     // organization, not an id — the org switcher renders its name.
     build(
@@ -75,7 +75,7 @@ void main() {
   });
 
   test('clearing removes the key rather than storing null', () async {
-    // `OrganizationContext.tsx:22` calls `removeItem`; storing the string
+    // `OrganizationContext.tsx` calls `removeItem`; storing the string
     // "null" would leave a value that survives a reload and then fails to
     // parse.
     build();
@@ -89,7 +89,7 @@ void main() {
   });
 
   test('a corrupt stored value is ignored rather than fatal', () async {
-    // `OrganizationContext.tsx:12` calls a bare `JSON.parse` on whatever is in
+    // `OrganizationContext.tsx` calls a bare `JSON.parse` on whatever is in
     // storage, so a value written by an older build throws during the first
     // render and takes the app down. A lost org selection is recoverable; a
     // white screen is not.

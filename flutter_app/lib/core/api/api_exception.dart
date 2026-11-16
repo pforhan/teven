@@ -13,9 +13,9 @@ sealed class ApiException implements Exception {
   /// Extra server context, when present.
   ///
   /// **Careful — this can contain server internals.** On a 500, `Application.kt`
-  /// sets `details` to `cause.stackTraceToString()`
-  /// (`backend/app/.../Application.kt:69`). Do not render [details] in the UI
-  /// without a debug flag; task 9.8/9.9 decide that.
+  /// sets `details` to `cause.stackTraceToString`
+  /// (`backend/app/.../Application.kt`). Do not render [details] in the UI
+  /// without a debug flag; /9.9 decide that.
   final String? details;
 
   /// HTTP status, when the failure came from a response.
@@ -30,12 +30,12 @@ sealed class ApiException implements Exception {
 /// The caller is not authenticated — HTTP 401.
 ///
 /// Signals that the session is gone and the app should return to the login
-/// screen. Task 2.2 wires the single-flight redirect; this type is the signal
+/// screen. wires the single-flight redirect; this type is the signal
 /// it keys off.
 ///
 /// Note the server also returns 401 from `GET /api/users/context` when the
-/// token is missing or unparseable (`UserRoutes.kt:66`), and as a **bare
-/// string** from `AuthorizationPlugin.kt:24`, not as an envelope.
+/// token is missing or unparseable (`UserRoutes.kt`), and as a **bare
+/// string** from `AuthorizationPlugin.kt`, not as an envelope.
 class UnauthorizedException extends ApiException {
   const UnauthorizedException({
     String message = 'Unauthorized',

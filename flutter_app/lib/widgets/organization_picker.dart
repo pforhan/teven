@@ -11,7 +11,7 @@ import '../providers/organization_list.dart';
 /// `null` means dismissed without choosing — by Cancel, by the barrier, or by
 /// the back gesture.
 ///
-/// Task 3.7: a bottom sheet on mobile, a centred dialog above it. The original
+/// a bottom sheet on mobile, a centred dialog above it. The original
 /// used one modal at every size, which on a phone put a fixed-height list with
 /// a search box above it into the middle of a small screen. A sheet anchors the
 /// same content to the thumb and gets the full height; a dialog keeps the

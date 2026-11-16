@@ -28,15 +28,15 @@ class TimeZoneException implements Exception {
 /// - [offsetAt] is the DST-aware UTC offset in force at an instant.
 /// - [wallClockAt] reads an instant back into a zone's wall clock.
 /// - [instantAt] resolves a wall clock — a local date plus a local time of day —
-///   to the instant it denotes.
+/// to the instant it denotes.
 ///
 /// The database behind all of these is the **embedded** one
 /// (`package:timezone/data/latest.dart`, loaded by `initializeTimeZones`), not
-/// the browser variant, which fetches a `.tzf` at runtime; see task 7.17.
+/// the browser variant, which fetches a `.tzf` at runtime; see
 class TimeZoneService {
   TimeZoneService() {
     // The embedded database, loaded from the data package rather than fetched
-    // at runtime the way the browser variant does; see task 7.17. The service is
+    // at runtime the way the browser variant does; see The service is
     // the only reader, so loading here — rather than relying on a boot hook in
     // `main` that tests never reach — is what makes every zone-aware surface
     // answer with a database behind it.
@@ -46,7 +46,7 @@ class TimeZoneService {
   /// Every IANA zone id in the embedded database, sorted.
   ///
   /// The picker's roster. The server validates against the same database
-  /// (`ZoneId.getAvailableZoneIds()`), so a zone the client can list is a zone
+  /// (`ZoneId.getAvailableZoneIds`), so a zone the client can list is a zone
   /// the server will accept — the pairing the design doc settled on, verified
   /// rather than assumed when the phase lands.
   List<String> get locations {
@@ -86,15 +86,15 @@ class TimeZoneService {
   /// The resolution refuses the two wall clocks that carry no single answer:
   ///
   /// - **Does not exist.** `2026-03-29 02:30` in `Europe/Berlin` falls inside the
-  ///   spring-forward gap and is rejected with a [TimeZoneException]. The
-  ///   package's own constructor silently rolls such a clock forward, which is
-  ///   the behavior this method exists to avoid.
+  /// spring-forward gap and is rejected with a [TimeZoneException]. The
+  /// package's own constructor silently rolls such a clock forward, which is
+  /// the behavior this method exists to avoid.
   /// - **Happens twice.** `2026-10-25 02:30` in `Europe/Berlin` falls inside the
-  ///   fall-back overlap and is flagged, not resolved — the caller must say
-  ///   which occurrence it meant.
+  /// fall-back overlap and is flagged, not resolved — the caller must say
+  /// which occurrence it meant.
   ///
   /// Returns the instant as a UTC [DateTime]. The caller sends it on the wire as
-  /// an offset-bearing ISO 8601 string; see task 7.18.
+  /// an offset-bearing ISO 8601 string; see
   DateTime instantAt({
     required String zoneId,
     required DateTime localDate,

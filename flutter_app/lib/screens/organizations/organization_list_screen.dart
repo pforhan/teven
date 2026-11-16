@@ -18,11 +18,11 @@ import '../../widgets/paged_list_view.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
-/// The organization list — task 4.6.
+/// The organization list
 ///
 /// `OrganizationList.tsx` (134 lines). Search, sort, create and delete, over
 /// two columns. It is the smallest of the four React lists and the only one
-/// that is global rather than organization-scoped: `OrganizationList.tsx:16`
+/// that is global rather than organization-scoped: `OrganizationList.tsx`
 /// gates viewing on `VIEW_ORGANIZATIONS_GLOBAL`, so this screen is reachable
 /// only by a super-admin and every row is an organization the caller may not
 /// otherwise be scoped to.
@@ -32,7 +32,7 @@ import '../../widgets/responsive_list_view.dart';
 /// but scoping this one to the caller's selected organization would hide every
 /// org but one from the list meant to show all of them — and the super-admin
 /// selector draws from the same underlying table. The React original passes
-/// only `25, 0, search, sortBy, sortOrder` (`OrganizationList.tsx:26-31`), and
+/// only `25, 0, search, sortBy, sortOrder` (`OrganizationList.tsx`), and
 /// the same five parameters are all this sends.
 class OrganizationListScreen extends ConsumerStatefulWidget {
   const OrganizationListScreen({super.key});
@@ -57,7 +57,7 @@ class _OrganizationListScreenState
   /// provider.
   ApiException? _actionError;
 
-  /// `OrganizationList.tsx:67-75`: re-tapping the active column reverses it,
+  /// `OrganizationList.tsx`: re-tapping the active column reverses it,
   /// and a different column starts ascending.
   void _onSort(String key) {
     setState(() {
@@ -72,7 +72,7 @@ class _OrganizationListScreenState
     });
   }
 
-  /// The delete confirmation. `OrganizationList.tsx:51`.
+  /// The delete confirmation. `OrganizationList.tsx`.
   Future<void> _confirmDelete(OrganizationResponse organization) async {
     final confirmed = await confirmDestructiveAction(
       context,
@@ -88,7 +88,7 @@ class _OrganizationListScreenState
       await ref
           .read(organizationServiceProvider)
           .deleteOrganization(organization.organizationId);
-      // `fetchOrganizations()` in the original — a reload back to the first
+      // `fetchOrganizations` in the original — a reload back to the first
       // page. See `PagedListController.reload`.
       await ref.read(organizationPageProvider(_query!).notifier).reload();
       setState(() => _actionError = null);
@@ -108,7 +108,7 @@ class _OrganizationListScreenState
   /// here — the obvious way to make this screen match its three siblings — would
   /// hide every organization but one from the list whose entire job is to show
   /// all of them. See the class doc comment. The React original passes only
-  /// `25, 0, search, sortBy, sortOrder` (`OrganizationList.tsx:26-31`), and so
+  /// `25, 0, search, sortBy, sortOrder` (`OrganizationList.tsx`), and so
   /// does this.
   ListQuery _buildQuery() => ListQuery(
     search: _searchTerm.isEmpty ? null : _searchTerm,

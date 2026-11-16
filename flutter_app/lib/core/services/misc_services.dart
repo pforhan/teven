@@ -31,7 +31,7 @@ class InvitationService {
   ///
   /// Public. Throws `ApiRequestException` with the server's message for an
   /// invalid or expired token — `failure("Invalid or expired invitation
-  /// token")` at 404 (`InvitationRoutes.kt:41`) — which task 2.10 renders on
+  /// token")` at 404 (`InvitationRoutes.kt`) — which renders on
   /// the acceptance screen.
   Future<ValidateInvitationResponse> validateInvitation(String token) =>
       _client.get<ValidateInvitationResponse>(
@@ -47,11 +47,11 @@ class InvitationService {
   ///
   /// Throws `ApiRequestException` for every rejection the service reports —
   /// expired, already used, username taken, email taken. Each arrives as
-  /// `failure(response.message)` with 400 (`InvitationRoutes.kt:64`), so the
+  /// `failure(response.message)` with 400 (`InvitationRoutes.kt`), so the
   /// message is specific and worth showing verbatim.
   ///
-  /// The separate "already logged in" rejection (`InvitationRoutes.kt:49`)
-  /// has the same shape but distinct meaning; task 2.11 keys off that message.
+  /// The separate "already logged in" rejection (`InvitationRoutes.kt`)
+  /// has the same shape but distinct meaning; keys off that message.
   Future<AcceptInvitationResponse> acceptInvitation(
     AcceptInvitationRequest request,
   ) => _client.post<AcceptInvitationResponse>(
@@ -65,7 +65,7 @@ class InvitationService {
   ///
   /// Passing [organizationId] for anything other than the caller's own
   /// requires `MANAGE_INVITATIONS_GLOBAL`; otherwise the server answers 403
-  /// with a message (`InvitationRoutes.kt:77`).
+  /// with a message (`InvitationRoutes.kt`).
   Future<InvitationResponse> createInvitation(
     CreateInvitationRequest request,
   ) => _client.post<InvitationResponse>(
@@ -135,7 +135,7 @@ class ReportService {
 ///
 /// Replaces `RoleService` in `frontend/src/api/RoleService.ts`.
 ///
-/// `GET /api/roles` is deliberately **ungated** (`RoleRoutes.kt:65` has no
+/// `GET /api/roles` is deliberately **ungated** (`RoleRoutes.kt` has no
 /// `withPermission` wrapper), so any authenticated caller can list roles. Only
 /// create/update/delete require `MANAGE_ROLES_GLOBAL`.
 class RoleService {
@@ -156,7 +156,7 @@ class RoleService {
   );
 
   // No create/update/delete. The React `RoleService` only ever calls
-  // `getAllRoles`, and task 1.3 ported only `RoleResponse` — the create and
+  // `getAllRoles`, and ported only `RoleResponse` — the create and
   // update request DTOs (`CreateRoleRequest`, `UpdateRoleRequest`) exist
   // server-side but were never needed by the app. Adding role *management*
   // is new feature work, not a port, so it is out of scope here.

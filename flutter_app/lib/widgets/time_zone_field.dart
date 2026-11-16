@@ -16,14 +16,14 @@ String formatZoneOffset(Duration offset) {
   return '$sign${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
 }
 
-/// A time zone picker field, shared by the event forms (task 7.19), the
-/// organization screen (task 7.23) and the profile row (task 7.17).
+/// A time zone picker field, shared by the event forms the
+/// organization screen and the profile row
 ///
 /// **What it shows:** the zone it holds, with that zone's current offset — the
 /// "which clock am I reading this in" question, answered without a detour.
 ///
 /// **What it does:** tapping it opens a searchable picker — a bottom sheet on
-/// mobile, a dialog on tablet and desktop, per task 3.2's breakpoint split — and
+/// mobile, a dialog on tablet and desktop, per breakpoint split — and
 /// hands the chosen zone back through [onChanged].
 ///
 /// **The organization default:** when the field agrees with [defaultZone] — the

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 ///
 /// The React lists wrapped the name column in a react-router `<Link>` and put
 /// the row's action buttons in an absolutely-positioned box over it
-/// (`CustomerList.tsx:77-89`, and the same shape in `InventoryList` and
+/// (`CustomerList.tsx`, and the same shape in `InventoryList` and
 /// `OrganizationList`). That works in a table and not in a card, so
 /// [ResponsiveListView] moved the actions to their own column and this became
 /// the whole of what the name column still needs.
@@ -38,7 +38,7 @@ class RecordLinkButton extends StatelessWidget {
       // edge, so the names looked raggedly indented. Every other column is a
       // `Text`, which is left-aligned, which is why only this one looked wrong.
       //
-      // Found in a browser screenshot during task 4.4's verification pass;
+      // Found in a browser screenshot during verification pass;
       // `customer_list_screen_test.dart` did not and could not see it, because
       // the symptom is two names of different lengths side by side and the
       // fixtures were `"Acme"` and `""`.

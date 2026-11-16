@@ -32,7 +32,7 @@ import '../widgets/app_shell.dart';
 
 /// Every path in the app, in one place.
 ///
-/// A direct transcription of `App.tsx:38-68`. Constants rather than bare
+/// A direct transcription of `App.tsx`. Constants rather than bare
 /// strings because the router, the redirects, the login screen and the tests
 /// all need to name the same locations, and a typo in a redirect is a silent
 /// dead end rather than a compile error.
@@ -48,8 +48,8 @@ abstract final class AppRoutes {
 
   /// A concrete link to one day's view.
   ///
-  /// Task 7.11: the month grid had no day view, which is what kept a touch's
-  /// tap from doing anything — task 7.2 filed that gap and this is the route
+  /// the month grid had no day view, which is what kept a touch's
+  /// tap from doing anything filed that gap and this is the route
   /// that closes it. Like the create route's `?date=`, the day is a query
   /// parameter rather than a path segment, because a day is a plain calendar
   /// day with no zone attached and no identity to speak of.
@@ -59,8 +59,8 @@ abstract final class AppRoutes {
   /// A concrete link to one event's details page.
   ///
   /// **Unlike [customerDetails] and its siblings, this route exists.**
-  /// `App.tsx:44` declares `events/:eventId`, so the calendar's pills and the
-  /// list's title links both resolve. Task 7.6 built the screen at the other
+  /// `App.tsx` declares `events/:eventId`, so the calendar's pills and the
+  /// list's title links both resolve. built the screen at the other
   /// end of it.
   ///
   /// [backToDay], when provided as a `yyyy-MM-dd` date, records that the user
@@ -82,10 +82,10 @@ abstract final class AppRoutes {
 
   /// A concrete link to a customer's detail page.
   ///
-  /// **Task 9.0's sweep:** the route behind this shape did not exist, so the
+  /// ** sweep:** the route behind this shape did not exist, so the
   /// customer list's name links fell through the catch-all to `/events` — an
   /// organizer who could add or edit a customer could not view one. The screen
-  /// at the other end of it is [CustomerDetailsScreen]; task 10.20 had deferred
+  /// at the other end of it is [CustomerDetailsScreen]; had deferred
   /// the build pending the backend's missing customer-events filter, and this
   /// is the field-rendering half it sanctioned.
   static const String customerDetails = '/customers/:customerId';
@@ -99,7 +99,7 @@ abstract final class AppRoutes {
 
   /// A concrete link to an inventory item's detail page.
   ///
-  /// **Task 9.0's sweep:** the route behind this shape did not exist, so the
+  /// ** sweep:** the route behind this shape did not exist, so the
   /// inventory list's name links fell through the catch-all to `/events` — an
   /// organizer who could add or edit an item could not view one. The screen at
   /// the other end of it is [InventoryDetailsScreen].
@@ -117,7 +117,7 @@ abstract final class AppRoutes {
 
   /// A concrete link to an organization's detail page.
   ///
-  /// Task 7.23: the original detail route was dead; link to the edit screen.
+  /// the original detail route was dead; link to the edit screen.
   static String organizationDetails(int organizationId) =>
       organizationEditPath(organizationId);
 
@@ -151,12 +151,12 @@ abstract final class AppRoutes {
 
   /// Where a signed-in user lacking a permission is sent.
   ///
-  /// `ProtectedRoute.tsx:27`.
+  /// `ProtectedRoute.tsx`.
   static const String unauthorizedFallback = events;
 
-  /// Paths reachable without a session — task 2.8.
+  /// Paths reachable without a session
   ///
-  /// `App.tsx:40-41` mounts only `/login` when `userContext` is null.
+  /// `App.tsx` mounts only `/login` when `userContext` is null.
   /// `/register` sits outside that branch and is always mounted, because an
   /// invitee following an emailed link has no session.
   static const Set<String> public = {login, register};
@@ -178,7 +178,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.listen(authControllerProvider, (previous, next) {
     // Deferred to a microtask, and not by accident. Riverpod notifies a
     // provider's own listeners *before* recomputing the providers that depend
-    // on it, so calling `router.refresh()` synchronously here would re-run the
+    // on it, so calling `router.refresh` synchronously here would re-run the
     // redirects against the previous context — the redirect would see a
     // signed-out user moments after the sign-in landed, and `/login` would
     // simply stay put. By the next microtask the dependency graph has settled.
@@ -192,13 +192,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 /// The branch-and-guard redirect, reproducing two React mechanisms that
 /// collapse into one function here.
 ///
-/// `App.tsx:40-65` decides *which routes exist* from `userContext`;
+/// `App.tsx` decides *which routes exist* from `userContext`;
 /// `ProtectedRoute` decides *who may see them*. go_router keeps the whole table
 /// and filters it here, so the first becomes "send anyone signed out to
 /// `/login` for every path but the public two", and the second becomes the
 /// per-route [_requirePermission].
 String? _redirect(Ref ref, GoRouterState state) {
-  // `App.tsx:34-36` renders "Loading..." while the boot fetch is in flight and
+  // `App.tsx` renders "Loading..." while the boot fetch is in flight and
   // skips routing entirely. Redirecting inside that window would bounce a
   // signed-in user to `/login` before the token had even been read.
   if (ref.read(authControllerProvider).isLoading) {
@@ -211,7 +211,7 @@ String? _redirect(Ref ref, GoRouterState state) {
     return AppRoutes.public.contains(path) ? null : AppRoutes.login;
   }
 
-  // `/login` stops existing once signed in. The React catch-all (`App.tsx:67`)
+  // `/login` stops existing once signed in. The React catch-all (`App.tsx`)
   // sends it to `/`, whose index route redirects to `/events` — so `/events`
   // is the equivalent destination, and going there directly saves a hop.
   return path == AppRoutes.login ? AppRoutes.events : null;
@@ -219,7 +219,7 @@ String? _redirect(Ref ref, GoRouterState state) {
 
 /// The `ProtectedRoute` guard, as a per-route redirect.
 ///
-/// Order matters and matches `ProtectedRoute.tsx:17-26`: unauthenticated
+/// Order matters and matches `ProtectedRoute.tsx`: unauthenticated
 /// before unauthorized, so a signed-out visitor lands on `/login` instead of
 /// being bounced to `/events` and then bounced again.
 String? _requirePermission(Ref ref, List<Permission> required) {
@@ -233,11 +233,11 @@ String? _requirePermission(Ref ref, List<Permission> required) {
   }
 
   // The React original sends an unauthorized user to `/events`
-  // (`ProtectedRoute.tsx:27`) without checking whether they may see it. If
+  // (`ProtectedRoute.tsx`) without checking whether they may see it. If
   // they cannot — a role holding, say, only a global users permission — that
   // is a redirect to a route that denies them in turn, and go_router resolves
   // it as a loop rather than React Router's silent re-render. `/profile` is the
-  // one authenticated route with no permission requirement (`App.tsx:59`), so
+  // one authenticated route with no permission requirement (`App.tsx`), so
   // it is always somewhere the user can land.
   return gate.has(Permission.viewEventsOrganization)
       ? AppRoutes.unauthorizedFallback
@@ -267,9 +267,9 @@ GoRoute _guarded(
 /// precede `/events/:eventId`, or every "create" and "edit" link would render
 /// the details screen with `eventId` set to `"create"`.
 ///
-/// The authenticated branch is a [ShellRoute] — task 3.1, replacing
+/// The authenticated branch is a [ShellRoute] replacing
 /// `MainLayout`. `/login` and `/register` sit outside it for the same reason
-/// they sit outside the `MainLayout` element in `App.tsx:40-66`: the React
+/// they sit outside the `MainLayout` element in `App.tsx`: the React
 /// chrome assumes a session (it renders the user's organization and a Logout
 /// button), and an invitee following an emailed link has none.
 ///
@@ -283,7 +283,7 @@ List<RouteBase> _routes(Ref ref) => [
   ),
   GoRoute(
     path: AppRoutes.register,
-    // Reachable signed out — an invitee has no session (`App.tsx:66`).
+    // Reachable signed out — an invitee has no session (`App.tsx`).
     //
     // The token is read off the URI rather than passed through a prop by
     // something that already had it, because under the path strategy this *is*
@@ -301,7 +301,7 @@ List<RouteBase> _routes(Ref ref) => [
     routes: _shellRoutes(ref),
   ),
 
-  // Catch-all, replacing `<Route path="*">` (`App.tsx:67`).
+  // Catch-all, replacing `<Route path="*">` (`App.tsx`).
   //
   // Registered last so it cannot shadow a real path. The React original
   // redirects to `/` when signed in and `/login` when not; `/` itself
@@ -315,7 +315,7 @@ List<RouteBase> _routes(Ref ref) => [
   ),
 ];
 
-/// Everything under the shell: the authenticated branch of `App.tsx:43-64`.
+/// Everything under the shell: the authenticated branch of `App.tsx`.
 ///
 /// Nested one level down so the declaration order within it stays adjacent,
 /// which is what makes the static-before-dynamic ordering above reviewable at
@@ -323,7 +323,7 @@ List<RouteBase> _routes(Ref ref) => [
 List<RouteBase> _shellRoutes(Ref ref) => [
   GoRoute(
     path: '/',
-    // `App.tsx:41`: the index route redirects to `/events`.
+    // `App.tsx`: the index route redirects to `/events`.
     redirect: (context, state) => AppRoutes.events,
   ),
 
@@ -352,7 +352,7 @@ List<RouteBase> _shellRoutes(Ref ref) => [
     (state) =>
         EditEventScreen(eventId: int.parse(state.pathParameters['eventId']!)),
   ),
-  // `App.tsx:44`
+  // `App.tsx`
   _guarded(
     ref,
     AppRoutes.eventDetails,
@@ -442,8 +442,8 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   _guarded(ref, AppRoutes.users, [
     Permission.viewUsersOrganization,
   ], (_) => const UserListScreen()),
-  // `App.tsx:62` gates create on *either* scope, unlike every other create
-  // route. That asymmetry is deliberate here; task 5.12 flags the matching
+  // `App.tsx` gates create on *either* scope, unlike every other create
+  // route. That asymmetry is deliberate here; flags the matching
   // asymmetry on the edit route for a second look.
   _guarded(ref, AppRoutes.userCreate, [
     Permission.manageUsersGlobal,
@@ -470,6 +470,6 @@ List<RouteBase> _shellRoutes(Ref ref) => [
     Permission.viewReportsOrganization,
   ], (_) => const ReportListScreen()),
 
-  // `App.tsx:59` — the only authenticated route with no permission gate.
+  // `App.tsx` — the only authenticated route with no permission gate.
   _guarded(ref, AppRoutes.profile, const [], (_) => const ProfileScreen()),
 ];

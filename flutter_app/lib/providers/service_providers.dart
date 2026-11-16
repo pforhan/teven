@@ -32,7 +32,7 @@ final dioProvider = Provider<Dio?>((ref) => null);
 ///
 /// The one place a 401 is turned into navigation. Wiring
 /// [ApiClient.onUnauthorized] here, rather than in the client, keeps the client
-/// free of routing concerns and keeps the redirect single-flight (task 2.2).
+/// free of routing concerns and keeps the redirect single-flight
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient(
     ref.watch(tokenStoreProvider),
@@ -83,7 +83,7 @@ final roleServiceProvider = Provider<RoleService>(
 
 /// The IANA zone database wrapper the UI and the event forms read through.
 ///
-/// Task 7.17. The database itself is initialized once at boot from the embedded
+/// The database itself is initialized once at boot from the embedded
 /// data (`timezone/data/latest.dart`); this provider exists so tests can hand
 /// the service a real one rather than standing up a second database.
 final timeZoneServiceProvider = Provider<TimeZoneService>(
@@ -92,13 +92,13 @@ final timeZoneServiceProvider = Provider<TimeZoneService>(
 
 /// The device's IANA zone, or `null` when detection is unavailable.
 ///
-/// Task 7.17. Wrapped behind a provider — as [tokenStoreProvider] wraps the
+/// Wrapped behind a provider — as [tokenStoreProvider] wraps the
 /// token — because `flutter_timezone` is a platform plugin and cannot answer in
 /// a headless VM test; tests override this instead of the plugin.
 ///
 /// The value is an IANA id (`America/New_York`), not an abbreviation or an
-/// offset: the web implementation reads `Intl.DateTimeFormat().resolvedOptions()
-/// .timeZone`, which is the IANA id the browser resolved, and the native
+/// offset: the web implementation reads `Intl.DateTimeFormat.resolvedOptions
+///.timeZone`, which is the IANA id the browser resolved, and the native
 /// implementations use the native time zone database. Verified against the
 /// plugin's source rather than assumed — the web path is a different code path
 /// from the native one, and this app ships on the web.
@@ -115,7 +115,7 @@ final timeZoneDetectorProvider = FutureProvider<String?>((ref) async {
 
 /// Shared preferences, for the few values that outlive a session.
 ///
-/// Only the super-admin's selected organization is persisted today (task 2.4);
+/// Only the super-admin's selected organization is persisted today
 /// the auth token deliberately is not — see `TokenStore`.
 final sharedPreferencesProvider = FutureProvider<SharedPreferences>((
   ref,

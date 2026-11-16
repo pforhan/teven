@@ -15,8 +15,8 @@ import 'organization_picker.dart';
 
 /// The organization control in the chrome.
 ///
-/// Tasks 3.6 and 3.8 together, because they are two branches of one widget:
-/// `MainLayout.tsx:30-38` renders either a super-admin's switcher or a static
+/// together, because they are two branches of one widget:
+/// `MainLayout.tsx` renders either a super-admin's switcher or a static
 /// label, decided by whether the user holds `VIEW_USERS_GLOBAL`.
 ///
 /// **One divergence from the React original.** `OrganizationSelector.tsx` is a
@@ -38,7 +38,7 @@ class OrganizationSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // `MainLayout.tsx:30`. Derived from a permission, not from a role name.
+    // `MainLayout.tsx`. Derived from a permission, not from a role name.
     if (!ref.watch(isSuperAdminProvider)) {
       return _StaticOrganizationLabel(layoutSize: layoutSize);
     }
@@ -55,8 +55,8 @@ class OrganizationSelector extends ConsumerWidget {
 
 /// The non-super-admin branch: the user's organization name.
 ///
-/// `MainLayout.tsx:36` rendered a static label, because a non-super-admin cannot
-/// change their organization scope. Task 7.23 makes it a link to the
+/// `MainLayout.tsx` rendered a static label, because a non-super-admin cannot
+/// change their organization scope. makes it a link to the
 /// organization's edit screen for anyone holding `MANAGE_ORGANIZATION` (their
 /// own organization only; the backend enforces scope). It stays plain text
 /// otherwise.
@@ -174,12 +174,12 @@ class _CompactOrganizationButton extends ConsumerWidget {
 /// `DropdownButton` has three separate text paths which do not agree:
 ///
 /// - the closed state is wrapped in `DefaultTextStyle(style: style)`, so
-///   `style` alone fixes it;
+/// `style` alone fixes it;
 /// - the hint is `style.copyWith(color: theme.hintColor)` — **`hintColor` wins
-///   over `style`**, so the hint needs its own explicit `Text` style;
+/// over `style`**, so the hint needs its own explicit `Text` style;
 /// - menu items apply **no** `DefaultTextStyle` at all
-///   (`_DropdownMenuItemContainer` is a bare `Align`), so they inherit the
-///   ambient theme — the app's light-container ink.
+/// (`_DropdownMenuItemContainer` is a bare `Align`), so they inherit the
+/// ambient theme — the app's light-container ink.
 ///
 /// Left alone, all three render near-black on the `#212529` rail and the
 /// control is invisible except for the chevron. `dropdownColor` follows the
@@ -198,7 +198,7 @@ class _OrganizationDropdown extends ConsumerWidget {
       selected,
     );
 
-    // `OrganizationSelector.tsx:43-45` replaces the control outright with
+    // `OrganizationSelector.tsx` replaces the control outright with
     // `<div class="text-danger">Error: {message}</div>`. Reproduced, including
     // the prefix, but kept in place rather than swapped so the chrome keeps its
     // shape. The message is the server's, not a generic one.
@@ -242,7 +242,7 @@ class _OrganizationDropdown extends ConsumerWidget {
           ),
           icon: const Icon(Icons.expand_more, color: Colors.white),
           items: [
-            // `OrganizationSelector.tsx:52` — the empty option means "no
+            // `OrganizationSelector.tsx` — the empty option means "no
             // organization filter", not "no organization".
             const DropdownMenuItem<int?>(
               value: null,
@@ -259,7 +259,7 @@ class _OrganizationDropdown extends ConsumerWidget {
               ),
           ],
           onChanged: (organizationId) {
-            // `OrganizationSelector.tsx:31-41` resolves the id back to the full
+            // `OrganizationSelector.tsx` resolves the id back to the full
             // object — the context stores a whole `OrganizationResponse`, not
             // an id. Choosing the empty option passes null, which clears the
             // stored key.
@@ -285,13 +285,13 @@ class _OrganizationDropdown extends ConsumerWidget {
 /// background.
 bool _onDarkRail(LayoutSize size) => size != LayoutSize.mobile;
 
-/// `OrganizationSelector.tsx:52`.
+/// `OrganizationSelector.tsx`.
 const String allOrganizationsLabel = 'All Organizations';
 
 /// The organization with [id], or null for the "all" option and for an id that
 /// is not in the list.
 ///
-/// Null rather than a throw, matching `OrganizationSelector.tsx:38`, which
+/// Null rather than a throw, matching `OrganizationSelector.tsx`, which
 /// falls back to `organization || null` for an id it cannot resolve.
 OrganizationResponse? _byId(List<OrganizationResponse> organizations, int? id) {
   if (id == null) {

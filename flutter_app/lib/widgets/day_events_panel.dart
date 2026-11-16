@@ -509,7 +509,7 @@ class _EventRow extends StatelessWidget {
             children: [
               // The clock. **The Bootstrap Icons were never installed** and
               // the original's icon tags render as empty elements, so there
-              // is nothing to match — task 3.11 settles it: Material icons
+              // is nothing to match settles it: Material icons
               // throughout.
               Icon(
                 Icons.schedule,

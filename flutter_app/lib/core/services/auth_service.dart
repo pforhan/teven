@@ -23,7 +23,7 @@ class AuthService {
   ///
   /// Throws [UnauthorizedException] on bad credentials — the server answers
   /// `failure("Invalid username or password")` with 401
-  /// (`AuthRoutes.kt`). Task 2.9's login screen renders `message`.
+  /// (`AuthRoutes.kt`). login screen renders `message`.
   ///
   /// Persisting the token can itself throw when `window.isSecureContext` is
   /// false. That is deliberately **not** swallowed: reporting a successful
@@ -55,7 +55,7 @@ class AuthService {
   ///
   /// The gating source for the whole UI. Throws
   /// [UnauthorizedException] if the token is missing or expired, which is what
-  /// drives task 2.2's redirect.
+  /// drives redirect.
   Future<UserContextResponse> getUserContext() =>
       _client.get<UserContextResponse>(
         '/api/users/context',

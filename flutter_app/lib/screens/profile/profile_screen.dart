@@ -123,7 +123,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   /// The reader's time zone, with the detected zone and any override, and the
   /// picker that sets the override.
   ///
-  /// Task 7.17. The profile is where "see and override the detected timezone"
+  /// The profile is where "see and override the detected timezone"
   /// lives; the event forms and the organization screen get the same field
   /// through the shared [TimeZoneField].
   Widget _timeZoneRow() {

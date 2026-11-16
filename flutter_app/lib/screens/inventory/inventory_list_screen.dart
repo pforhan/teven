@@ -23,21 +23,21 @@ import '../../widgets/responsive_list_view.dart';
 ///
 /// `InventoryList.tsx` (144 lines). Search, sort by name or quantity, create,
 /// delete, and pagination. The React original fetched `25, 0` with no way past
-/// the first page; the page size is unchanged, and task 4.9 added a way to ask
+/// the first page; the page size is unchanged, and added a way to ask
 /// for the next one. See the customer screen for the fuller note.
 ///
 /// Two things here are not a transcription:
 ///
 /// - **The "Used in Events" column is capped.** `InventoryDao` embeds every
-///   event that has ever drawn on an item, unpaginated, on the list endpoint as
-///   well as on the single-item one. A popular item can have hundreds of rows
-///   of `ID: 12 (Qty: 4)` in one cell, which is a table row tall enough to
-///   swallow the rest of the screen. [maxEventsShown] bounds it and the
-///   remainder becomes a count.
+/// event that has ever drawn on an item, unpaginated, on the list endpoint as
+/// well as on the single-item one. A popular item can have hundreds of rows
+/// of `ID: 12 (Qty: 4)` in one cell, which is a table row tall enough to
+/// swallow the rest of the screen. [maxEventsShown] bounds it and the
+/// remainder becomes a count.
 /// - **The row actions sit in their own column** rather than absolutely
-///   positioned over the name, which is what `InventoryList.tsx:77-89` does.
-///   [ResponsiveListView] owns that decision; the customer screen made the same
-///   call in task 4.4.
+/// positioned over the name, which is what `InventoryList.tsx` does.
+/// [ResponsiveListView] owns that decision; the customer screen made the same
+/// call in
 class InventoryListScreen extends ConsumerStatefulWidget {
   const InventoryListScreen({super.key});
 
@@ -61,7 +61,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   ApiException? _actionError;
 
   void _onSort(String key) {
-    // `InventoryList.tsx:50-57`: re-tapping the active column reverses it, and
+    // `InventoryList.tsx`: re-tapping the active column reverses it, and
     // a different column starts ascending.
     setState(() {
       if (_sortBy == key) {
@@ -75,7 +75,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     });
   }
 
-  /// The delete confirmation. `InventoryList.tsx:60`.
+  /// The delete confirmation. `InventoryList.tsx`.
   Future<void> _confirmDelete(InventoryItemResponse item) async {
     final confirmed = await confirmDestructiveAction(
       context,
@@ -91,7 +91,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       await ref
           .read(inventoryServiceProvider)
           .deleteInventoryItem(item.inventoryId);
-      // `fetchInventoryItems()` in the original — a reload back to the first
+      // `fetchInventoryItems` in the original — a reload back to the first
       // page rather than `ref.invalidate`, which would rebuild every
       // accumulated page key. See `PagedListController.reload`.
       await ref.read(inventoryListProvider(_query!).notifier).reload();
@@ -131,7 +131,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       key: 'quantity',
       label: 'Quantity',
       sortable: true,
-      // `InventoryList.tsx:92` passes the raw number; it is a `Text` column, so
+      // `InventoryList.tsx` passes the raw number; it is a `Text` column, so
       // the original stringified it the same way.
       text: (item) => '${item.quantity}',
     ),
@@ -234,7 +234,7 @@ const int maxEventsShown = 3;
 
 /// The "Used in Events" cell.
 ///
-/// `InventoryList.tsx:97-103` rendered every entry, which the server has no
+/// `InventoryList.tsx` rendered every entry, which the server has no
 /// bound on — see [InventoryListScreen]. Shown as a bulleted list in a table
 /// cell and as a labelled block in a card, because the cell renders in both.
 class _UsedInEvents extends StatelessWidget {

@@ -40,7 +40,7 @@ class PlaceholderScreen extends StatelessWidget {
             Text(path, style: textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
-              'Not ported yet — see FLUTTER-CONVERT.md.',
+              'Not ported yet.',
               style: textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.outline,
               ),

@@ -8,7 +8,7 @@ import 'package:teven_app/providers/organization_controller.dart';
 import 'package:teven_app/providers/service_providers.dart';
 import 'package:teven_app/providers/time_zone_controller.dart';
 
-/// Task 7.17 — the reader's zone resolution, and the override that sits in
+/// — the reader's zone resolution, and the override that sits in
 /// front of it.
 ///
 /// The detector is overridden, exactly as `tokenStoreProvider` is overridden in

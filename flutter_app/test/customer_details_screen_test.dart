@@ -7,7 +7,7 @@ import 'package:teven_app/screens/customers/customer_details_screen.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The customer details screen — task 9.0's sweep.
+/// The customer details screen sweep.
 ///
 /// The read-only page the customer list's name links land on, and the edit
 /// affordance that leads onward to the edit screen.

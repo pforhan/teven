@@ -17,7 +17,7 @@ import 'package:flutter/foundation.dart';
 /// flutter build apk --dart-define=API_BASE_URL=https://example.com
 /// ```
 ///
-/// Native packaging is deferred to Phase 11 of FLUTTER-CONVERT.md; this class
+/// Native packaging is deferred; this class
 /// exists now so the web path is wired correctly from the start.
 class ApiConfig {
   const ApiConfig._();

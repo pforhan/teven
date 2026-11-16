@@ -25,7 +25,7 @@ import 'error_display.dart';
 /// which already marks a pending request in orange on the event's bar. The
 /// card is the action for that mark: without it, a user can see that something
 /// is waiting and have no way to answer it except by opening each event in
-/// turn. Task 7.10 owns the question of whether the route should be exposed
+/// turn. owns the question of whether the route should be exposed
 /// at all; this is the answer this port gives it.
 ///
 /// **The availability is a free-form string, not an enum.** The server type is
@@ -33,7 +33,7 @@ import 'error_display.dart';
 /// stored as-is. [RsvpAvailability.available] and
 /// [RsvpAvailability.unavailable] are `String` constants for exactly that
 /// reason — a Dart enum would be a closed set the server does not enforce.
-/// Task 10.17 owns the question of whether the column should hold a closed
+/// owns the question of whether the column should hold a closed
 /// set.
 class RsvpWidget extends ConsumerStatefulWidget {
   const RsvpWidget({super.key});
@@ -70,7 +70,7 @@ class _RsvpWidgetState extends ConsumerState<RsvpWidget> {
         .where((event) => !_answered.contains(event.eventId))
         .toList();
 
-    // `RsvpWidget.tsx:43` returns `null` when there is nothing to show, and
+    // `RsvpWidget.tsx` returns `null` when there is nothing to show, and
     // the card is not part of the page's furniture — it appears only when
     // there is something to answer.
     if (error == null && events.isEmpty) {
@@ -113,7 +113,7 @@ class _RsvpWidgetState extends ConsumerState<RsvpWidget> {
   /// Posts one availability and drops the row.
   ///
   /// **The row is dropped only on success.** React does the same
-  /// (`RsvpWidget.tsx:31` is inside the `try`), and it matters: a failed post
+  /// (`RsvpWidget.tsx` is inside the `try`), and it matters: a failed post
   /// means the request is still outstanding, and hiding it would hide the
   /// thing the user needs to retry.
   Future<void> _answer(EventResponse event, String availability) async {

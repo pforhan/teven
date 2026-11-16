@@ -5,7 +5,7 @@ import 'error_display.dart';
 
 /// The shell every Phase 5 form is built from.
 ///
-/// Task 5.1. All seven React forms are the same `card` / `card-body` /
+/// All seven React forms are the same `card` / `card-body` /
 /// `card-title` / `ErrorDisplay` / `<form>` / two buttons, differing only in
 /// their fields, their heading and their submit label — `CreateCustomerForm`,
 /// `EditCustomerForm`, `CreateInventoryForm`, `EditInventoryForm`,
@@ -16,15 +16,15 @@ import 'error_display.dart';
 ///
 /// The skeleton itself is cheap; the two decisions in it are not:
 ///
-/// - **It owns the [Form] and the key.** `validate()` is the whole reason the
-///   key exists, so a form that builds its own [Form] can forget to call it
-///   and submit unvalidated — which on the web means a request the React
-///   `required` attribute would have stopped.
+/// - **It owns the [Form] and the key.** `validate` is the whole reason the
+/// key exists, so a form that builds its own [Form] can forget to call it
+/// and submit unvalidated — which on the web means a request the React
+/// `required` attribute would have stopped.
 /// - **It owns the scroll view.** None of these forms is `col-lg-*` or
-///   multi-column, but all of them are taller than a phone once the keyboard
-///   is up, and a form whose submit button cannot be reached is a form that
-///   cannot be used. Task 5.11's "single-column scroll on mobile" is applied
-///   here once rather than in each of the ten screens.
+/// multi-column, but all of them are taller than a phone once the keyboard
+/// is up, and a form whose submit button cannot be reached is a form that
+/// cannot be used. "single-column scroll on mobile" is applied
+/// here once rather than in each of the ten screens.
 class FormCard extends StatelessWidget {
   const FormCard({
     super.key,
@@ -38,7 +38,7 @@ class FormCard extends StatelessWidget {
     this.submitting = false,
   });
 
-  /// The key the owning form calls `validate()` through.
+  /// The key the owning form calls `validate` through.
   final GlobalKey<FormState> formKey;
 
   /// The `card-title`. Each React form has its own, and two of them interpolate
@@ -66,7 +66,7 @@ class FormCard extends StatelessWidget {
   ///
   /// Typed as [ApiException] rather than `Object?` because that is what every
   /// Phase 5 form can actually hold: the React originals branch between
-  /// `ApiErrorWithDetails`, a bare `Error` and a fallback string, and task 1.9
+  /// `ApiErrorWithDetails`, a bare `Error` and a fallback string, and
   /// is what collapsed those three into one type.
   final ApiException? error;
 

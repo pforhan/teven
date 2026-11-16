@@ -15,7 +15,7 @@ import 'service_providers.dart';
 
 /// The signed-in user, or `null` when nobody is signed in.
 ///
-/// Replaces `AuthContext` (`AuthContext.tsx:29-59`) and, with it, `useAuth()`.
+/// Replaces `AuthContext` (`AuthContext.tsx`) and, with it, `useAuth`.
 /// The boot sequence is preserved: read the token, and only then ask the server
 /// who the user is. A token in hand proves nothing — it may be stale, revoked,
 /// or for a deleted account — so the context fetch is what decides.
@@ -41,7 +41,7 @@ class AuthController extends AsyncNotifier<UserContextResponse?> {
       return null;
     } on ApiException catch (error, stack) {
       // Anything else — the server is down, DNS failed — is logged and treated
-      // as "not signed in", exactly as `AuthContext.tsx:47` does. That means an
+      // as "not signed in", exactly as `AuthContext.tsx` does. That means an
       // outage sends the user to the login screen rather than showing an error,
       // which is worth knowing but is the behaviour we are porting, not
       // inventing.
@@ -54,7 +54,7 @@ class AuthController extends AsyncNotifier<UserContextResponse?> {
   /// Authenticates, then reloads the context.
   ///
   /// The React login screen calls `AuthService.login` and then
-  /// `refetchUserContext()` (`Auth.tsx:29-30`). Folding both into one method
+  /// `refetchUserContext` (`Auth.tsx`). Folding both into one method
   /// means a screen cannot get the second half wrong.
   Future<void> login({
     required String username,
@@ -74,7 +74,7 @@ class AuthController extends AsyncNotifier<UserContextResponse?> {
 
   /// Re-runs the boot sequence in place.
   ///
-  /// Deliberately **not** `ref.invalidateSelf()`, which would drop the provider
+  /// Deliberately **not** `ref.invalidateSelf`, which would drop the provider
   /// back into `loading`. The gate in `main.dart` would then replace the whole
   /// screen with "Loading..." — a full-page flash on every login and logout, on
   /// top of the redirect. Holding the previous state keeps the current screen
@@ -84,7 +84,7 @@ class AuthController extends AsyncNotifier<UserContextResponse?> {
     final next = await AsyncValue.guard(build);
     // Checked after the await, not before: `build` performs I/O, and the
     // provider can be invalidated while it is in flight — notably by a 401
-    // landing mid-refresh. Assigning then throws "Cannot use the Ref ... after
+    // landing mid-refresh. Assigning then throws "Cannot use the Ref... after
     // it has been disposed" and takes the caller down with it.
     if (!ref.mounted) {
       return;
@@ -101,14 +101,14 @@ class AuthController extends AsyncNotifier<UserContextResponse?> {
 
 /// The current user, or `null` when signed out or still booting.
 ///
-/// The convenience accessor replacing `useAuth().userContext`.
+/// The convenience accessor replacing `useAuth.userContext`.
 final userContextProvider = Provider<UserContextResponse?>(
   (ref) => ref.watch(authControllerProvider).value,
 );
 
 /// The permissions granted to the signed-in user, as raw wire strings.
 ///
-/// Replaces `usePermissions().permissions`, which defaulted to `[]` when
+/// Replaces `usePermissions.permissions`, which defaulted to `[]` when
 /// signed out. Same default, same reason: a screen must not have to distinguish
 /// "no permissions" from "nobody is signed in" just to render.
 final permissionsProvider = Provider<List<String>>(
@@ -117,7 +117,7 @@ final permissionsProvider = Provider<List<String>>(
 
 /// Permission tests bound to the current user.
 ///
-/// Replaces `usePermissions()` (`AuthContext.tsx:80-92`). Exists as a value
+/// Replaces `usePermissions` (`AuthContext.tsx`). Exists as a value
 /// rather than a bare function so the router's guard can `watch` it and be
 /// re-evaluated when the context changes, instead of reading a value that
 /// could go stale mid-navigation.
@@ -137,14 +137,14 @@ class PermissionGate {
 
   /// Whether the user holds [permission].
   ///
-  /// Matches `AuthContext.tsx:84`: a straight membership test against the
+  /// Matches `AuthContext.tsx`: a straight membership test against the
   /// context's permission list.
   bool has(Permission permission) => Permissions.has(granted, permission);
 
   /// Whether the user holds **any** of [required].
   ///
-  /// Matches `ProtectedRoute.tsx:22-25`, which treats an array as `.some()`.
-  /// `App.tsx:62` depends on it, gating user creation on either global or
+  /// Matches `ProtectedRoute.tsx`, which treats an array as `.some`.
+  /// `App.tsx` depends on it, gating user creation on either global or
   /// organization scope.
   bool hasAny(List<Permission> required) =>
       Permissions.hasAny(granted, required);
@@ -152,7 +152,7 @@ class PermissionGate {
 
 /// Whether a redirect due to a 401 is already under way.
 ///
-/// Replaces the module-level `isRedirecting` flag at `AuthContext.tsx:16`.
+/// Replaces the module-level `isRedirecting` flag at `AuthContext.tsx`.
 /// Riverpod state rather than a bare variable, so that a test can reset it and
 /// so that it is scoped to the container instead of the isolate.
 final unauthorizedRedirectProvider =

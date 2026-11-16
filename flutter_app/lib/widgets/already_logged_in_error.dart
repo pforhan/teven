@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 ///
 /// The link is a callback rather than a route reference. The React original
 /// hardcodes `href="/"`, which the router turns into `/events`
-/// (`App.tsx:41`); naming that destination here would make this widget depend
+/// (`App.tsx`); naming that destination here would make this widget depend
 /// on `app_router.dart`, which imports the screens that import this widget. The
 /// route builder passes the real destination in instead, and a test can assert
 /// on it without a router at all.

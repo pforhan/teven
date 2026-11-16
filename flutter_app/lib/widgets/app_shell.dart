@@ -40,7 +40,7 @@ class AppShell extends ConsumerWidget {
     // `LayoutBuilder` rather than a device or `MediaQuery` check, because on
     // web the meaningful event is a window resize and both of the others are
     // evaluated against the physical device rather than the space actually
-    // available. Task 3.2.
+    // available.
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = AppBreakpoints.of(constraints.maxWidth);
@@ -74,7 +74,7 @@ class _DrawerShell extends ConsumerWidget {
       appBar: AppBar(
         title: const _Brand(),
         // The brand is a link to `/` in the React original
-        // (`MainLayout.tsx:16`); in the drawer it has to stay a button, since
+        // (`MainLayout.tsx`); in the drawer it has to stay a button, since
         // `AppBar.title` is not a navigation target.
         leading: Builder(
           builder: (context) => IconButton(
@@ -168,9 +168,9 @@ class _RailShell extends ConsumerWidget {
 
 /// The brand.
 ///
-/// `MainLayout.tsx:16` renders the text "Teven" linking to `/`. Collapsed into
+/// `MainLayout.tsx` renders the text "Teven" linking to `/`. Collapsed into
 /// a 72px rail there is no room for the word, so a calendar glyph stands in.
-/// Task 3.11 is relevant here: the React app's icon set was `react-icons/fa`
+/// is relevant here: the React app's icon set was `react-icons/fa`
 /// plus `bi bi-*` tags that were never installed, so there is no existing glyph
 /// to match — and the navbar never carried a logo image, only this text.
 class _Brand extends StatelessWidget {
@@ -212,7 +212,7 @@ class _Brand extends StatelessWidget {
 
 /// The nav destinations the signed-in user may see.
 ///
-/// `MainLayout.tsx:22-27` — each `<li>` wrapped in its own permission test, so
+/// `MainLayout.tsx` — each `<li>` wrapped in its own permission test, so
 /// an item the user cannot reach is absent rather than disabled.
 List<NavDestination> _visibleDestinations(WidgetRef ref) {
   final gate = ref.watch(permissionGateProvider);
@@ -243,7 +243,7 @@ int? _selectedIndex(List<NavDestination> destinations, String path) {
 
 /// The rail's bottom group: organization, Profile, Logout.
 ///
-/// `MainLayout.tsx:29-41` — the second `<ul>`, which held the org selector, the
+/// `MainLayout.tsx` — the second `<ul>`, which held the org selector, the
 /// Profile link and the Logout button, as opposed to the first which held the
 /// gated navigation.
 class _RailTrailing extends ConsumerWidget {
@@ -268,7 +268,7 @@ class _RailTrailing extends ConsumerWidget {
           // `Expanded` fills the leftover height, but a `MainAxisSize.min`
           // column still hugs the *top* of it — which put Profile and Logout
           // directly under the destinations instead of at the foot of the
-          // rail, the way `MainLayout.tsx:29-41` pushes them to the end of the
+          // rail, the way `MainLayout.tsx` pushes them to the end of the
           // navbar. Invisible to a presence-only widget test; obvious the first
           // time the shell was rendered in a browser.
           mainAxisAlignment: MainAxisAlignment.end,
@@ -313,7 +313,7 @@ class _DrawerContents extends ConsumerWidget {
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) => goTo(destinations[index].route),
         children: [
-          // The brand, which `MainLayout.tsx:16` puts in the navbar rather than
+          // The brand, which `MainLayout.tsx` puts in the navbar rather than
           // the collapsed menu. In a drawer it is the one heading the panel
           // has, and it is the only place to say what the app is.
           const Padding(
@@ -358,10 +358,10 @@ class _DrawerContents extends ConsumerWidget {
   }
 }
 
-/// The Profile link. `MainLayout.tsx:39`.
+/// The Profile link. `MainLayout.tsx`.
 ///
 /// Ungated, because `/profile` is the one authenticated route with no
-/// permission requirement (`App.tsx:59`) — the router would redirect the user
+/// permission requirement (`App.tsx`) — the router would redirect the user
 /// straight back out.
 class _ProfileAction extends StatelessWidget {
   const _ProfileAction({required this.extended});
@@ -386,7 +386,7 @@ class _ProfileAction extends StatelessWidget {
   }
 }
 
-/// The Logout action. `MainLayout.tsx:40`.
+/// The Logout action. `MainLayout.tsx`.
 ///
 /// There is no navigation here. Logging out clears the context, and the
 /// router's redirect — which already sends any non-public path to `/login` once

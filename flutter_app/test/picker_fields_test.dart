@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:teven_app/widgets/picker_fields.dart';
 import 'package:teven_app/widgets/validators.dart';
 
-/// Task 5.9. Tests for the picker widgets that replace HTML input types.
+/// Tests for the picker widgets that replace HTML input types.
 ///
 /// The date and time pickers are Material dialogs, so the tests drive them
 /// through their real UI — tap the field, settle the dialog, tap "OK" —

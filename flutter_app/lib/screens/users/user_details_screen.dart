@@ -68,7 +68,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
-    // The edit route accepts either manage scope — task 5.12 recorded the
+    // The edit route accepts either manage scope recorded the
     // create/edit asymmetry (create ORs the two, edit gated on global alone)
     // and the port reproduced it rather than fixing it; the live report that an
     // organization-scoped Organizer's edit led back to `/events` confirmed the

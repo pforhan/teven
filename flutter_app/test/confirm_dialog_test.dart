@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:teven_app/core/theme/teven_theme.dart';
 import 'package:teven_app/widgets/confirm_dialog.dart';
 
-/// The shared delete confirmation — task 4.8, first of six call sites.
+/// The shared delete confirmation first of six call sites.
 ///
 /// The dialog is now this, so the behaviour worth pinning is the *answer*:
 /// what each way of dismissing it returns. The scrim and the back gesture are

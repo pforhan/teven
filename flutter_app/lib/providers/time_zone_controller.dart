@@ -6,13 +6,13 @@ import 'service_providers.dart';
 
 /// The reader's resolved time zone, with the pieces the UI shows.
 ///
-/// Task 7.17. The reader's zone is resolved in the order the design doc settled:
+/// The reader's zone is resolved in the order the design doc settled:
 ///
 /// 1. A **local override** the reader set — stored in `shared_preferences`, never
-///    sent to the server.
+/// sent to the server.
 /// 2. Otherwise the **device's** zone, detected.
 /// 3. Otherwise the **organization's** zone — the fallback when detection is
-///    unavailable.
+/// unavailable.
 /// 4. Otherwise **UTC**.
 ///
 /// The organization's zone is a fallback, not a default in the "silently coerce"
@@ -43,7 +43,7 @@ class TimeZoneResolution {
 
 /// Resolves the reader's time zone and holds the override.
 ///
-/// Task 7.17. Replaces nothing yet — the calendar, list, details, RSVP and form
+/// Replaces nothing yet — the calendar, list, details, RSVP and form
 /// surfaces read through here starting with the foundation.
 final timeZoneControllerProvider =
     AsyncNotifierProvider<TimeZoneController, TimeZoneResolution>(

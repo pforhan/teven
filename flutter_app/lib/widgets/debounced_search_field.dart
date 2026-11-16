@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 /// so each keystroke cancels and reissues a request — typing "Globex" fired
 /// seven searches and raced seven responses into the same `setCustomers`.
 /// Nothing debounced that, and nothing cancelled the superseded request either,
-/// so task 9.6 is where the cancellation side gets its own treatment.
+/// so is where the cancellation side gets its own treatment.
 ///
 /// 300ms is the conventional figure and is short enough to feel immediate while
 /// still collapsing a word into one request.

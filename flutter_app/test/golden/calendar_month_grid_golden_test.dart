@@ -8,7 +8,7 @@ import 'package:teven_app/routing/app_router.dart';
 import '../support/auth_harness.dart';
 import '../support/stub_adapter.dart';
 
-/// Golden coverage for the calendar month grid (task 12.5, calendar half).
+/// Golden coverage for the calendar month grid calendar half).
 ///
 /// Renders a fixed month (June 2025) with deterministic event placement so the
 /// grid layout and event bars can be compared visually. The month is chosen far

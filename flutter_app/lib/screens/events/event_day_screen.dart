@@ -12,12 +12,12 @@ import '../../routing/app_router.dart';
 import '../../widgets/create_event_button.dart';
 import '../../widgets/day_events_panel.dart';
 
-/// The day view — task 7.11, plus day-to-day navigation.
+/// The day view plus day-to-day navigation.
 ///
 /// The screen a selected day opens on. The month grid has no day view of its
-/// own — task 7.1 dropped the one the calendar this replaced had — and task 7.2
+/// own dropped the one the calendar this replaced had — and
 /// filed the gap: a touch's tap is inert because there was nowhere for it to go,
-/// and when that landed (task 7.11) it opens **here**.
+/// and when that landed it opens **here**.
 ///
 /// **It reuses [DayEventsPanel] rather than growing a second event list**, for
 /// the reason the unified form keeps a mirrored copy: a second copy

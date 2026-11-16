@@ -29,10 +29,10 @@ import 'responsive_list_view.dart';
 /// worth being honest about:
 ///
 /// - **It cannot reach pages at all if the rows fit on screen.** A short list
-///   has nothing to scroll, so nothing fires. This happens on a wide window with
-///   a tall viewport, and on any screen holding fewer rows than fit.
+/// has nothing to scroll, so nothing fires. This happens on a wide window with
+/// a tall viewport, and on any screen holding fewer rows than fit.
 /// - **It is invisible.** Nothing says a second page exists until it starts
-///   arriving.
+/// arriving.
 ///
 /// So the footer always shows a "Load more" button while more remains, and the
 /// scroll listener is an accelerant on top of it rather than the only way
@@ -111,7 +111,7 @@ class PagedListView<T> extends StatelessWidget {
   /// decoration. The enum was carrying a distinction that no longer existed. A
   /// browser check found why the bar had to go: it was inserted above the card,
   /// so it pushed the whole list down by its own height for the duration of
-  /// every search — a 2px version of the very flash task 4.14 exists to remove.
+  /// every search — a 2px version of the very flash exists to remove.
   /// **The progress indicator was moving the thing it was reporting on.**
   ///
   /// What survives is the part with a real justification: the footer is
@@ -227,7 +227,7 @@ class PagedScrollView extends StatelessWidget {
 /// usually landed by the time the user reaches the boundary. A larger value
 /// starts sooner and would prefetch pages the user may never scroll to — each
 /// one a request, and on the inventory list a request whose rows embed an
-/// unbounded event history (task 10.21).
+/// unbounded event history
 const double loadMoreThreshold = 100;
 
 /// The count, the progress, or the button.
@@ -235,16 +235,16 @@ const double loadMoreThreshold = 100;
 /// Which of the three is shown, and why only one at a time:
 ///
 /// - **Count** while there is more to come. `Showing 25 of 137` is the only
-///   part of this the user could not work out unaided, and it is also what makes
-///   a list that has not finished loading legible as such rather than looking
-///   like the whole thing.
+/// part of this the user could not work out unaided, and it is also what makes
+/// a list that has not finished loading legible as such rather than looking
+/// like the whole thing.
 /// - **A spinner** replaces it in place while the request is in flight, so the
-///   button does not sit there looking tappable and then do nothing when it is
-///   tapped. The count goes at the same moment; keeping it would mean the row
-///   changing width mid-request.
+/// button does not sit there looking tappable and then do nothing when it is
+/// tapped. The count goes at the same moment; keeping it would mean the row
+/// changing width mid-request.
 /// - **The button** otherwise, so the next page is reachable without scrolling
-///   and without knowing the list is scrollable. See the class doc for why this
-///   is not purely a fallback.
+/// and without knowing the list is scrollable. See the class doc for why this
+/// is not purely a fallback.
 class _Footer<T> extends StatelessWidget {
   const _Footer({
     required this.state,
@@ -337,22 +337,22 @@ class _Footer<T> extends StatelessWidget {
 }
 
 /// A list screen's rows, keeping the previous result on screen while a new query
-/// loads. Task 4.14.
+/// loads.
 ///
 /// **What the React original did, precisely, because "it kept the rows" is not
 /// the whole of it.** `TableView.tsx` has *no loading state at all* — it renders
-/// `data` unconditionally, and `CustomerList.tsx:34` sets state only inside the
+/// `data` unconditionally, and `CustomerList.tsx` sets state only inside the
 /// `try`, so a failed or in-flight fetch left `customers` untouched. Two
 /// consequences, and the port had both wrong before this:
 ///
 /// 1. **Rows stay put during a search.** The whole card used to be replaced by
-///    a spinner, so the heading, the column headers and every row blinked out
-///    and back on each debounced keystroke. That is the filed symptom.
+/// a spinner, so the heading, the column headers and every row blinked out
+/// and back on each debounced keystroke. That is the filed symptom.
 /// 2. **On failure the error appears *above* the stale rows, not instead of
-///    them.** `TableView.tsx:40` and `:42` are siblings inside the same card
-///    body, so React rendered the banner and the previous table together. The
-///    port replaced the list with the error, which is a divergence this task
-///    did not originally mention.
+/// them.** `TableView.tsx` and `:42` are siblings inside the same card
+/// body, so React rendered the banner and the previous table together. The
+/// port replaced the list with the error, which is a divergence this task
+/// did not originally mention.
 ///
 /// **How the retention works, and why it is a field rather than a provider.** A
 /// new search term is a different `ListQuery` key and therefore a *different*
@@ -361,7 +361,7 @@ class _Footer<T> extends StatelessWidget {
 /// [AsyncValue], and no amount of `skipLoadingOnRefresh` will conjure one. The
 /// previous list is therefore kept here, in this widget's state.
 ///
-/// The alternative was task 4.14's option 3, "retain the last value across
+/// The alternative was option 3, "retain the last value across
 /// family keys with Riverpod's keep-alive link pattern" — hold the old provider
 /// alive so its value survives. That works too and is arguably more
 /// "correct-looking", but it retains a *provider*, and keeping a whole live
@@ -454,7 +454,7 @@ class _PagedListSectionState<T> extends ConsumerState<PagedListSection<T>> {
     }
 
     // An error with something retained: the banner above the stale rows, which
-    // is what `TableView.tsx:40,42` renders. With nothing retained there is
+    // is what `TableView.tsx,42` renders. With nothing retained there is
     // nothing to sit under it.
     //
     // `value`/`error`/`isLoading` rather than `hasValue`/`hasError`: in
@@ -476,8 +476,8 @@ class _PagedListSectionState<T> extends ConsumerState<PagedListSection<T>> {
       );
     }
 
-    // Loading, with something retained: the rows stay and a bar says they are
-    // about to change. This is task 4.14's fix.
+    // Loading, with something retained: the rows stay in place while the
+    // replacement query is in flight.
     if (current.isLoading && retained != null) {
       return _list(retained, stale: true);
     }

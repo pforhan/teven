@@ -62,7 +62,7 @@ abstract class CreateInvitationRequest with _$CreateInvitationRequest {
 ///
 /// The invitee supplies their own credentials here. Roles come from the
 /// invitation, not this body — the server converts it server-side and forces
-/// `roles = emptyList()` (`AcceptInvitationRequest.kt`).
+/// `roles = emptyList` (`AcceptInvitationRequest.kt`).
 @freezed
 abstract class AcceptInvitationRequest with _$AcceptInvitationRequest {
   const factory AcceptInvitationRequest({
@@ -84,15 +84,15 @@ abstract class AcceptInvitationRequest with _$AcceptInvitationRequest {
 /// from the envelope's. The service returns `success = false` with a reason
 /// (`"Invitation has expired."`, `"Username already taken."`) and the route
 /// turns that into an **envelope-level** failure — `failure(response.message)`
-/// with HTTP 400 (`InvitationRoutes.kt:64`). So a `success: false` value is
+/// with HTTP 400 (`InvitationRoutes.kt`). So a `success: false` value is
 /// never seen by the client; only the message survives, as `ApiError.message`.
 ///
 /// [message] is therefore always present on a successful response too
 /// (`"Invitation accepted and user created."`).
 ///
-/// The logged-in-caller rejection is a separate path: `InvitationRoutes.kt:49`
+/// The logged-in-caller rejection is a separate path: `InvitationRoutes.kt`
 /// answers `failure("Cannot accept invitation while logged in.")` with 400
-/// **before** reaching the service. That is the case task 2.11's
+/// **before** reaching the service. That is the case
 /// `AlreadyLoggedInError` renders.
 @freezed
 abstract class AcceptInvitationResponse with _$AcceptInvitationResponse {

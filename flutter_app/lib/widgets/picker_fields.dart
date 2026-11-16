@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 /// A read-only text field that opens `showDatePicker` on tap.
 ///
-/// Task 5.9. Replaces `<input type="date">` — the React forms use it for
+/// Replaces `<input type="date">` — the React forms use it for
 /// date fields like a date of birth. The browser's native date picker is
 /// replaced by Flutter's own, and the field is read-only so the keyboard
 /// never opens for a value that must be a valid date.
@@ -36,7 +36,7 @@ class DateField extends StatelessWidget {
 
   /// Called with the newly picked date, or null when the picker is dismissed.
   ///
-  /// Added for task 7.5's start-date filter, which has to push the value up into
+  /// Added for start-date filter, which has to push the value up into
   /// screen state to build a query. The six Phase 6 form fields all own a
   /// controller and read it at submit time, so they did not need a callback and
   /// this was not part of the widget until a screen wanted to react to a change
@@ -143,8 +143,8 @@ class DateField extends StatelessWidget {
 
 /// A read-only text field that opens `showTimePicker` on tap.
 ///
-/// Task 5.9. Replaces `<input type="time">` — the React event forms use it
-/// for the event time (`CreateEventForm.tsx:272`, `EditEventForm.tsx:215`).
+/// Replaces `<input type="time">` — the React event forms use it
+/// for the event time (`CreateEventForm.tsx`, `EditEventForm.tsx`).
 /// No Phase 5 form has a time input; this is here so Phase 6 has one place
 /// for the convention.
 ///
@@ -207,9 +207,9 @@ class TimeField extends StatelessWidget {
 
 /// A text field that only accepts digits.
 ///
-/// Task 5.9. Replaces `<input type="number">` — the React forms use it for
-/// quantity fields (`CreateInventoryForm.tsx:110`,
-/// `EditInventoryForm.tsx:104`, `InventoryAssociationEditor.tsx:118`).
+/// Replaces `<input type="number">` — the React forms use it for
+/// quantity fields (`CreateInventoryForm.tsx`,
+/// `EditInventoryForm.tsx`, `InventoryAssociationEditor.tsx`).
 ///
 /// `FilteringTextInputFormatter.digitsOnly` strips non-digit characters as
 /// the user types, so the validator's `int.tryParse` check is a safety net

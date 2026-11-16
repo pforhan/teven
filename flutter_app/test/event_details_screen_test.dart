@@ -11,7 +11,7 @@ import 'package:teven_app/screens/events/event_details_screen.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The event details screen — task 7.6.
+/// The event details screen
 ///
 /// Driven through the real router and the real shell at a pinned width, so
 /// what is under test is the screen a user lands on.
@@ -221,7 +221,7 @@ void main() {
 
       expect(find.text('Fall Cleanup'), findsOneWidget);
       expect(find.text('2026-10-19'), findsOneWidget);
-      // 7.20: time renders in the reader's zone (`DateFormat.jm()`), with the
+      // 7.20: time renders in the reader's zone (`DateFormat.jm`), with the
       // event's own zone shown only when it differs. Match flexibly: intl may
       // use a narrow no-break space before AM/PM.
       expect(
@@ -298,7 +298,7 @@ void main() {
         ),
       );
 
-      // **The divergence from the React original.** `EventDetails.tsx:80`
+      // **The divergence from the React original.** `EventDetails.tsx`
       // returns a spinner whenever the event is null, and the error it
       // catches is rendered *inside* the card that the spinner replaces — so
       // a failed load spins forever and says nothing. The port shows the
@@ -336,7 +336,7 @@ void main() {
         detailsAdapter(permissions: const [viewEvents, manageEvents]),
       );
 
-      // `EventDetails.tsx:187-203`.
+      // `EventDetails.tsx`.
       expect(
         find.text("You don't have permission to RSVP to this event."),
         findsOneWidget,
@@ -361,7 +361,7 @@ void main() {
       await tester.tap(find.widgetWithText(OutlinedButton, 'Delete'));
       await tester.pumpAndSettle();
 
-      // **The shared dialog** — task 4.8's sixth and last `window.confirm`.
+      // **The shared dialog** sixth and last `window.confirm`.
       expect(find.text('Delete event'), findsOneWidget);
       expect(find.textContaining('Fall Cleanup'), findsWidgets);
 
@@ -387,7 +387,7 @@ void main() {
         ),
         isNotNull,
       );
-      // **Away, not a refetch.** `EventDetails.tsx:49` navigates to the events
+      // **Away, not a refetch.** `EventDetails.tsx` navigates to the events
       // list, and the record is gone — there is nothing to refetch. This is
       // the one delete in the app where *not* refetching is the point.
       expect(currentPath(container), AppRoutes.events);
@@ -474,7 +474,7 @@ void main() {
       final post = adapter.requests.firstWhere(
         (o) => o.method == 'POST' && o.path == '/api/events/42/rsvp',
       );
-      // `'no response'`, verbatim from `EventDetails.tsx:208`. **Not** `''`,
+      // `'no response'`, verbatim from `EventDetails.tsx`. **Not** `''`,
       // and **not** a member of `RsvpAvailability` — the server stores it as
       // a free-form string, so it is a fourth answer rather than the absence
       // of one.
@@ -582,7 +582,7 @@ void main() {
         ),
       );
 
-      // `EventDetails.tsx:256` — the gate is the manage permission, not the
+      // `EventDetails.tsx` — the gate is the manage permission, not the
       // size of the list.
       expect(find.text('DECLINED'), findsNothing);
       expect(find.text('Dan'), findsNothing);
@@ -641,7 +641,7 @@ void main() {
       final adapter = detailsAdapter();
       await openDetails(tester, adapter);
 
-      // `EventDetails.tsx:175-181` hands the panel the date, the
+      // `EventDetails.tsx` hands the panel the date, the
       // organization and this event's id to leave out.
       final query = otherEventsQuery(adapter);
       expect(query, isNotNull);

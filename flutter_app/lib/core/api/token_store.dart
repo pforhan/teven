@@ -4,11 +4,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Reads and writes the auth token.
 ///
 /// Replaces `localStorage`, which the React `AuthService` uses
-/// (`frontend/src/api/AuthService.ts:3`).
+/// (`frontend/src/api/AuthService.ts`).
 ///
 /// **Storage format is encrypted, not plaintext.** The web implementation
 /// namespaces keys as `publicKey.<key>` and stores AES-GCM ciphertext
-/// (`flutter_secure_storage_web-2.1.1/lib/flutter_secure_storage_web.dart:50`).
+/// (`flutter_secure_storage_web-2.1.1/lib/flutter_secure_storage_web.dart`).
 /// So this store does not share state with the React app's plaintext
 /// `localStorage` — irrelevant today, since the app has no users yet and there
 /// is nothing to migrate. Noted only so nobody later assumes an existing
@@ -17,12 +17,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// **TLS caveat — read failures degrade, write failures do not.** The web
 /// backend throws `UnsupportedError` when `window.isSecureContext` is false,
 /// and it checks on *every* operation rather than once at init
-/// (`flutter_secure_storage_web.dart:26`). So:
+/// (`flutter_secure_storage_web.dart`). So:
 ///
 /// - reads are caught below and return `null`, degrading to "logged out";
 /// - writes throw, and there is no safe place to swallow that — a login that
-///   reports success while failing to persist the token would strand the user
-///   on a session that dies at the next request.
+/// reports success while failing to persist the token would strand the user
+/// on a session that dies at the next request.
 ///
 /// The container is served over **plain HTTP** on port 2022
 /// (`docker-compose.yml:25`). `http://localhost` is a secure context, so all
@@ -30,7 +30,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// nor localhost, and **login breaks outright** — not quietly degrades. The fix
 /// is TLS termination in front of the container, or a `shared_preferences`
 /// fallback keyed off `isSecureContext`. Both are deployment concerns,
-/// deliberately out of scope for the port; see FLUTTER-CONVERT-DESIGN.md under
+/// deliberately out of scope for the port; see the design notes under
 /// "The one deployment consideration".
 ///
 /// Note the current React behaviour is weaker: a token in `localStorage` is

@@ -14,7 +14,7 @@ part 'customer.g.dart';
 /// from the React types in `frontend/src/types/customers.ts` but **are** on
 /// the wire. They are included here so the data is not silently dropped; the
 /// backend's geo service is currently dead code (see
-/// FLUTTER-CONVERT-DESIGN.md's discrepancy table), so these are normally null.
+/// the backend discrepancy notes), so these are normally null.
 @freezed
 abstract class CustomerResponse with _$CustomerResponse {
   const factory CustomerResponse({
@@ -67,7 +67,7 @@ abstract class UpdateCustomerRequest with _$UpdateCustomerRequest {
     /// explicit `null`.
     ///
     /// The distinction is invisible against this server and load-bearing
-    /// against the next one: `CustomerService.kt:93` reads
+    /// against the next one: `CustomerService.kt` reads
     /// `organizationId != null && organizationId != customer.organizationId`,
     /// so today an explicit `null` is accepted and the customer keeps its
     /// organization. A server that instead tested *presence* — which is how
@@ -81,7 +81,7 @@ abstract class UpdateCustomerRequest with _$UpdateCustomerRequest {
     /// its optional geo fields as null, which changes a payload several other
     /// tests assert on, and the create form's rule is a different one: the
     /// server *requires* an organization id from a global manager
-    /// (`CustomerService.kt:62`) and reads "absent" and "null" the same way.
+    /// (`CustomerService.kt`) and reads "absent" and "null" the same way.
     @JsonKey(includeIfNull: false) int? organizationId,
   }) = _UpdateCustomerRequest;
 

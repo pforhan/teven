@@ -23,7 +23,7 @@ import '../../widgets/error_display.dart';
 import '../../widgets/list_screen_header.dart';
 import '../../widgets/rsvp_widget.dart';
 
-/// The month grid — task 7.1.
+/// The month grid
 ///
 /// Rebuilt on `table_calendar`. **Four things are dropped, and they are the four
 /// the task names.** The week, work-week, day and agenda views, which the
@@ -194,7 +194,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
             // life of the app. It lives here because the calendar is where
             // the request is already visible: an event waiting on this user's
             // answer is drawn in orange on its bar, and this is the control
-            // that answers it. Task 7.10 owns the question of whether the
+            // that answers it. owns the question of whether the
             // route should be exposed at all.
             //
             // **It renders nothing at all** when there is nothing pending,
@@ -300,7 +300,7 @@ class _CalendarCard extends StatelessWidget {
     // than replaced by a spinner. The calendar this replaced did the same
     // thing: it held the previous events across the fetch and never cleared
     // them, so a month change showed the old month until the new one arrived.
-    // Replacing the grid outright would be a flash task 4.14 was filed to
+    // Replacing the grid outright would be a flash was filed to
     // remove, in a new place.
     return Card(
       elevation: 0,
@@ -374,7 +374,7 @@ class _CalendarGrid extends ConsumerWidget {
       // used — and the one setting carried over without deciding anything.
       startingDayOfWeek: StartingDayOfWeek.sunday,
       // Without this the header renders a format button offering the week and
-      // two-week views — exactly what task 7.1 drops.
+      // two-week views — exactly what drops.
       availableCalendarFormats: const {CalendarFormat.month: 'Month'},
       calendarFormat: CalendarFormat.month,
       // **No gestures, and the reason is that the calendar was taking over
@@ -419,7 +419,7 @@ class _CalendarGrid extends ConsumerWidget {
       // The weekday header's own rules, and the labels that go with them.
       daysOfWeekStyle: _daysOfWeekStyle,
       // `DayBuilder` cells rather than the package's own, and the reason is
-      // task 7.4: `#e7f0f7` is a *background* behind the whole cell, and
+      // `#e7f0f7` is a *background* behind the whole cell, and
       // `CalendarStyle` in table_calendar 3.3.0 offers only `todayDecoration` —
       // a small dot — with no full-cell highlight option. Writing the cell is
       // the only way to get a full-cell highlight at all. "Today" is the reader's
@@ -807,7 +807,7 @@ class _DayNumberButtonState extends State<_DayNumberButton> {
 /// whole table at once, which would draw a line through the middle of every
 /// label. The rules belong *between* the labels, so the row is rebuilt here.
 ///
-/// The labels themselves are the package's own — `DateFormat.E()` for the
+/// The labels themselves are the package's own — `DateFormat.E` for the
 /// text — in the app's theme colour rather than the package's hard-coded
 /// grey, because a row written by hand should not hard-code a colour the rest
 /// of the app has already chosen.

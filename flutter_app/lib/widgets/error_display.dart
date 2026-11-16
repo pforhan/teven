@@ -14,9 +14,9 @@ class ErrorDisplay extends StatelessWidget {
 
   /// Builds from an API exception, showing [ApiException.details] when present.
   ///
-  /// Note `Application.kt:55-75` puts `cause.stackTraceToString()` in
+  /// Note `Application.kt` puts `cause.stackTraceToString` in
   /// `details` on a 500, so server internals reach the client. The React app
-  /// shows them behind a toggle and so does this, deliberately — task 9.9
+  /// shows them behind a toggle and so does this, deliberately
   /// decides whether to suppress it.
   factory ErrorDisplay.fromException(ApiException error) =>
       ErrorDisplay(message: error.message, details: error.details);

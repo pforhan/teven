@@ -8,7 +8,7 @@ import 'package:teven_app/widgets/rsvp_widget.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The pending-RSVP card — task 7.6.
+/// The pending-RSVP card
 ///
 /// `RsvpWidget.tsx` was dead code in the React app: written in the same
 /// commit that added `GET /api/events/rsvps/requested`, and never imported by
@@ -100,7 +100,7 @@ void main() {
       expect(find.text('You have pending RSVP requests'), findsOneWidget);
       expect(find.text('Rooftop Garden Maintenance'), findsOneWidget);
       expect(find.text('Soil delivery'), findsOneWidget);
-      // 7.20: date and time render in the reader's zone (`DateFormat.jm()`).
+      // 7.20: date and time render in the reader's zone (`DateFormat.jm`).
       expect(
         find.byWidgetPredicate(
           (w) =>

@@ -15,7 +15,7 @@ import 'package:teven_app/widgets/responsive_list_view.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The inventory list — task 4.5, the truncated-events case from 4.13, and the
+/// The inventory list the truncated-events case from 4.13, and the
 /// inventory half of the delete confirmation in 4.8.
 ///
 /// Structured like `customer_list_screen_test.dart` on purpose: the two screens
@@ -127,7 +127,7 @@ void main() {
       expect(find.text('Chairs'), findsOneWidget);
       expect(find.text('Tables'), findsOneWidget);
       expect(find.text('Description 1'), findsOneWidget);
-      // `InventoryList.tsx:92` stringifies the number; it is a `Text` column.
+      // `InventoryList.tsx` stringifies the number; it is a `Text` column.
       expect(find.text('10'), findsOneWidget);
       expect(find.text('20'), findsOneWidget);
     });
@@ -135,10 +135,7 @@ void main() {
     testWidgets('is no longer a placeholder', (tester) async {
       await openInventory(tester, inventoryAdapter());
 
-      expect(
-        find.text('Not ported yet — see FLUTTER-CONVERT.md.'),
-        findsNothing,
-      );
+      expect(find.text('Not ported yet.'), findsNothing);
       // The rail's own nav item is also labelled "Inventory".
       expect(find.text('Inventory'), findsWidgets);
     });
@@ -214,7 +211,7 @@ void main() {
     );
   });
 
-  // Task 4.13 — the third case 4.12 was split off and held back, because it
+  // — the third case 4.12 was split off and held back, because it
   // needs this screen to exist.
   group('used in events', () {
     testWidgets('an item never used says so', (tester) async {
@@ -243,7 +240,7 @@ void main() {
       // `InventoryDao.getInventoryItems` builds every row through
       // `toInventoryItemResponse`, which selects *all* of `EventInventory` for
       // the item — so the `events` list is unpaginated on the list endpoint as
-      // well as on `GET /api/inventory/{id}`. `InventoryList.tsx:97-103`
+      // well as on `GET /api/inventory/{id}`. `InventoryList.tsx`
       // rendered all of them, and a heavily-used item makes a table row tall
       // enough to swallow the screen.
       await openInventory(
@@ -318,7 +315,7 @@ void main() {
 
         expect(find.text('Delete inventory item'), findsOneWidget);
         // `window.confirm` said "this inventory item"; the shared dialog from
-        // task 4.8 names it instead.
+        // names it instead.
         expect(find.textContaining('Chairs'), findsWidgets);
 
         await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
@@ -343,7 +340,7 @@ void main() {
         adapter.requests.where((o) => o.method == 'DELETE').map((o) => o.path),
         ['/api/inventory/1'],
       );
-      // `InventoryList.tsx:63` re-fetched after deleting.
+      // `InventoryList.tsx` re-fetched after deleting.
       expect(getRequests(adapter), hasLength(2));
     });
   });
@@ -364,7 +361,7 @@ void main() {
         'quantity',
       ]);
       // A different column starts ascending rather than inheriting the
-      // direction — `InventoryList.tsx:50-57`.
+      // direction — `InventoryList.tsx`.
       expect(getRequests(adapter).map((r) => r.queryParameters['sortOrder']), [
         'asc',
         'asc',

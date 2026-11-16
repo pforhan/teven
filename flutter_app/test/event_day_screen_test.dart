@@ -10,7 +10,7 @@ import 'package:teven_app/widgets/create_event_button.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The day view — task 7.11.
+/// The day view
 ///
 /// Driven through the real router and the real shell, like the calendar's own
 /// tests, so what is under test is the screen a selected day opens on: the panel
@@ -115,7 +115,7 @@ void main() {
       // already shows the day.
       expect(find.text('Other events on 2026-10-24'), findsNothing);
       expect(find.text('Fence Repair'), findsOneWidget);
-      // 7.20: panel rows render in the reader's zone (`DateFormat.jm()`).
+      // 7.20: panel rows render in the reader's zone (`DateFormat.jm`).
       expect(
         find.byWidgetPredicate(
           (w) =>

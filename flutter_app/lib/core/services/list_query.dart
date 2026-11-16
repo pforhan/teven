@@ -16,10 +16,10 @@ enum SortOrder {
 /// modelled once rather than as seven near-identical parameter lists.
 ///
 /// **Leaving [limit] null returns every row.** Each DAO does
-/// `limit?.let { query.limit(it) }` (`CustomerDao.kt:73`, `EventDao.kt:180`),
+/// `limit?.let { query.limit(it) }` (`CustomerDao.kt`, `EventDao.kt`),
 /// so omitting the parameter applies no cap at all. The `limit: 0` that comes
 /// back in the response is cosmetic and does *not* mean zero rows. This is the
-/// trap behind task 1.18.
+/// trap behind
 class ListQuery {
   const ListQuery({
     this.limit,
@@ -53,7 +53,7 @@ class ListQuery {
   /// Converts to dio's `queryParameters`, omitting nulls.
   ///
   /// Nulls are dropped rather than sent as empty strings because the server
-  /// parses with `toIntOrNull()` and would treat `""` as absent anyway — but
+  /// parses with `toIntOrNull` and would treat `""` as absent anyway — but
   /// omitting keeps the URL honest.
   Map<String, dynamic> toParams() => {
     if (limit != null) 'limit': limit,

@@ -13,7 +13,7 @@ import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
 /// Route branching, the permission guard, and the 401 redirect —
-/// tasks 2.5, 2.7, 2.8, 2.12.
+///
 ///
 /// A widget test, because go_router only evaluates redirects once the router is
 /// attached to a widget tree. Asserted on `routeInformationProvider` rather
@@ -26,7 +26,7 @@ void main() {
   const viewInventory = 'VIEW_INVENTORY_ORGANIZATION';
 
   group('signed out', () {
-    // `App.tsx:40-41`: only `/login` exists under this branch.
+    // `App.tsx`: only `/login` exists under this branch.
     testWidgets('every other path redirects to /login', (tester) async {
       final container = await pumpApp(tester, adapter: contextAdapter());
 
@@ -49,7 +49,7 @@ void main() {
 
       expect(await goTo(tester, container, AppRoutes.login), AppRoutes.login);
       // An invitee arrives here from an emailed link with no session, so this
-      // one has to survive the signed-out branch — `App.tsx:66` sits outside it.
+      // one has to survive the signed-out branch — `App.tsx` sits outside it.
       expect(
         await goTo(tester, container, AppRoutes.register),
         AppRoutes.register,
@@ -68,7 +68,7 @@ void main() {
 
   group('signed in', () {
     testWidgets('an unknown path falls through to /events', (tester) async {
-      // `App.tsx:67` sends the catch-all to `/`, whose index redirects on.
+      // `App.tsx` sends the catch-all to `/`, whose index redirects on.
       final container = await pumpApp(
         tester,
         token: 'token',
@@ -104,7 +104,7 @@ void main() {
     });
 
     testWidgets('the root redirects to /events', (tester) async {
-      // `App.tsx:41`.
+      // `App.tsx`.
       final container = await pumpApp(
         tester,
         token: 'token',
@@ -117,7 +117,7 @@ void main() {
     testWidgets('a user details path resolves to the user details screen', (
       tester,
     ) async {
-      // Task 9.0: the user list's name links build `/users/{id}`, and the
+      // the user list's name links build `/users/{id}`, and the
       // route behind that shape did not exist until now — the path fell through
       // the catch-all to `/events`. The route now exists, gated on the same
       // permission the user list itself is gated on.
@@ -134,7 +134,7 @@ void main() {
     testWidgets(
       'a customer details path resolves to the customer details screen',
       (tester) async {
-        // Task 9.0's sweep: the customer list's name links had no route behind
+        // sweep: the customer list's name links had no route behind
         // them, so they fell through the catch-all to `/events`.
         final container = await pumpApp(
           tester,
@@ -210,7 +210,7 @@ void main() {
     testWidgets('a missing permission sends the user to /events', (
       tester,
     ) async {
-      // `ProtectedRoute.tsx:27`.
+      // `ProtectedRoute.tsx`.
       final container = await pumpApp(
         tester,
         token: 'token',
@@ -224,8 +224,8 @@ void main() {
     });
 
     testWidgets('either scope suffices for /users/create', (tester) async {
-      // `App.tsx:62` passes an array and `ProtectedRoute.tsx:22-25` treats it
-      // as `.some()`. One case per scope: both halves matter, and the failure
+      // `App.tsx` passes an array and `ProtectedRoute.tsx` treats it
+      // as `.some`. One case per scope: both halves matter, and the failure
       // mode — an org admin locked out of user creation — reads like a missing
       // permission rather than a broken guard.
       for (final permission in const [
@@ -247,7 +247,7 @@ void main() {
     });
 
     testWidgets('either scope suffices for /users/edit', (tester) async {
-      // Task 5.12 recorded the asymmetry — the create route ORs the two manage
+      // recorded the asymmetry — the create route ORs the two manage
       // scopes, the edit route gated on the global alone — and the port
       // reproduced it rather than fixing it. The report that an organization-
       // scoped Organizer's edit led back to `/events` was the drift made
@@ -276,7 +276,7 @@ void main() {
     testWidgets('a user details path needs VIEW_USERS_ORGANIZATION', (
       tester,
     ) async {
-      // Task 9.0 gates the detail page with the same permission the user list
+      // gates the detail page with the same permission the user list
       // is gated on — the backend's `GET /api/users/{userId}` uses the same
       // scope, unlike the create route's manage gate.
       final container = await pumpApp(
@@ -289,7 +289,7 @@ void main() {
     });
 
     testWidgets('/profile needs no permission at all', (tester) async {
-      // `App.tsx:59` — the one authenticated route with no guard.
+      // `App.tsx` — the one authenticated route with no guard.
       final container = await pumpApp(
         tester,
         token: 'token',
@@ -359,7 +359,7 @@ void main() {
     testWidgets('the loading gate holds the screen during the boot fetch', (
       tester,
     ) async {
-      // `App.tsx:34-36`. The gate matters most for a deep link: the redirect
+      // `App.tsx`. The gate matters most for a deep link: the redirect
       // alone would let a public path such as `/register` through with no
       // context behind it, and would bounce a private one to `/login` before
       // the token had even been read.

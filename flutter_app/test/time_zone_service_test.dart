@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/data/latest.dart';
 import 'package:teven_app/core/services/time_zone_service.dart';
 
-/// Task 7.17 — the zone database and the wall-clock arithmetic built on it.
+/// — the zone database and the wall-clock arithmetic built on it.
 ///
 /// The `timezone` package's own arithmetic silently resolves the two wall clocks
 /// that carry no single answer — a gap rolls forward, an overlap picks one
@@ -13,7 +13,7 @@ void main() {
   final service = TimeZoneService();
 
   setUpAll(() {
-    // Task 7.17: the embedded database, not the browser variant.
+    // the embedded database, not the browser variant.
     initializeTimeZones();
   });
 

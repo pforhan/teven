@@ -15,21 +15,21 @@ import '../widgets/validators.dart';
 ///
 /// Replaces `AcceptInvitationPage.tsx` — 176 lines. Reachable at
 /// `/register?token=...`, outside the authenticated branch
-/// (`App.tsx:66`), because the invitee following an emailed link has no session.
+/// (`App.tsx`), because the invitee following an emailed link has no session.
 ///
 /// **The query parameter is the reason this route exists as a path.** An
-/// invitee opens `/register?token=abc123` in a browser. Task 0.9 established
-/// that `usePathUrlStrategy()` has to be configured before `GoRouter` is
+/// invitee opens `/register?token=abc123` in a browser. established
+/// that `usePathUrlStrategy` has to be configured before `GoRouter` is
 /// *constructed*, which is why the token arrives as a real query parameter here
 /// and not as a fragment.
 ///
 /// ## Where the two logged-in branches come from
 ///
-/// `AcceptInvitationPage.tsx:27-31` sets `alreadyLoggedIn` from an effect on
+/// `AcceptInvitationPage.tsx` sets `alreadyLoggedIn` from an effect on
 /// `userContext`, and `:78-79` sets it again when `acceptInvitation` rejects
 /// with `"Cannot accept invitation while logged in."`. Only the first is
 /// reproduced here, because the second cannot happen without the first:
-/// `InvitationRoutes.kt:46` rejects the caller on the strength of an
+/// `InvitationRoutes.kt` rejects the caller on the strength of an
 /// `AuthContext` principal, which only exists for a token that
 /// [userContextProvider] has already resolved. Deriving the flag from the
 /// context rather than storing it also means it cannot go stale.
@@ -85,12 +85,12 @@ class _AcceptInvitationScreenState
     super.initState();
     final token = widget.token;
     if (token == null || token.isEmpty) {
-      // `AcceptInvitationPage.tsx:46` — no token in the URL at all.
+      // `AcceptInvitationPage.tsx` — no token in the URL at all.
       _error = const ApiRequestException('Invitation token not found in URL.');
       return;
     }
 
-    // `AcceptInvitationPage.tsx:38-44`. Fire-and-forget on purpose: the screen
+    // `AcceptInvitationPage.tsx`. Fire-and-forget on purpose: the screen
     // has its own loading state, and the outcome lands in `_invitation` or
     // `_validationError`.
     setState(() => _validating = true);
@@ -119,7 +119,7 @@ class _AcceptInvitationScreenState
         });
       }
     } on ApiException catch (error) {
-      // The message is the server's own (`InvitationRoutes.kt:38`), so it is
+      // The message is the server's own (`InvitationRoutes.kt`), so it is
       // more specific than the React fallback and worth preferring.
       if (mounted) {
         setState(() {
@@ -134,7 +134,7 @@ class _AcceptInvitationScreenState
 
   /// Creates the account, then points the user at the login screen.
   ///
-  /// `AcceptInvitationPage.tsx:50-86`. The 3-second pause before navigating
+  /// `AcceptInvitationPage.tsx`. The 3-second pause before navigating
   /// (`setTimeout`, `:73`) exists so the success message is readable; it is
   /// reproduced rather than dropped, and the timer is cancelled on dispose so a
   /// navigation that unmounts this screen does not fire a callback against a
@@ -163,8 +163,8 @@ class _AcceptInvitationScreenState
             ),
           );
 
-      // `AcceptInvitationPage.tsx:71`. **The `else` here is unreachable.** A
-      // service-level rejection is converted by `InvitationRoutes.kt:60-62`
+      // `AcceptInvitationPage.tsx`. **The `else` here is unreachable.** A
+      // service-level rejection is converted by `InvitationRoutes.kt`
       // into an envelope-level failure, which `ApiClient` raises as an
       // `ApiRequestException`, so a `success: false` DTO never reaches the
       // client — see `AcceptInvitationResponse`. The branch is kept because the
@@ -201,7 +201,7 @@ class _AcceptInvitationScreenState
 
   @override
   Widget build(BuildContext context) {
-    // `AcceptInvitationPage.tsx:28` — a signed-in visitor gets the
+    // `AcceptInvitationPage.tsx` — a signed-in visitor gets the
     // already-logged-in screen and nothing else.
     final alreadyLoggedIn = ref.watch(userContextProvider) != null;
 
@@ -227,7 +227,7 @@ class _AcceptInvitationScreenState
                   ),
                   const SizedBox(height: 24),
                   // Rendered above the logged-in branch, matching
-                  // `AcceptInvitationPage.tsx:95-96` — a signed-in user who
+                  // `AcceptInvitationPage.tsx` — a signed-in user who
                   // followed a stale link sees both.
                   if (_validationError != null) ...[
                     ErrorDisplay(message: _validationError!),
@@ -261,7 +261,7 @@ class _AcceptInvitationScreenState
     );
   }
 
-  /// The four render states of `AcceptInvitationPage.tsx:103-165`.
+  /// The four render states of `AcceptInvitationPage.tsx`.
   ///
   /// **One deliberate departure from the React ternaries.** `:103-104` picks the
   /// loading box on `!invitationDetails && !validationError`, and neither is set
@@ -382,7 +382,7 @@ class _AcceptInvitationScreenState
     );
   }
 
-  /// Stands in for `required` (`AcceptInvitationPage.tsx:120`).
+  /// Stands in for `required` (`AcceptInvitationPage.tsx`).
   static String? _required(String? value) =>
       (value == null || value.isEmpty) ? 'This field is required' : null;
 }

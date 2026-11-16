@@ -11,7 +11,7 @@ import '../../widgets/form_card.dart';
 import '../../widgets/time_zone_field.dart';
 import '../../widgets/validators.dart';
 
-/// Create or edit an organization (task 7.23).
+/// Create or edit an organization
 ///
 /// One screen for both: a null [organizationId] starts empty and creates; a
 /// non-null id loads the organization and edits it. Create defaults the time

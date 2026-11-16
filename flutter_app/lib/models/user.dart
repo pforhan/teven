@@ -67,8 +67,8 @@ abstract class UpdateStaffDetails with _$UpdateStaffDetails {
 /// selected organization**.
 ///
 /// This is the gating source for the whole UI: every nav item and route guard
-/// reads `permissions` from here, not from the user's global roles. Task 2.3
-/// derives `hasPermission` from it, and task 2.4 refetches it when a
+/// reads `permissions` from here, not from the user's global roles.
+/// derives `hasPermission` from it, and refetches it when a
 /// super-admin switches organization — the same URL, different auth context.
 ///
 /// Mirrors `LoggedInContextResponse` in
@@ -131,7 +131,7 @@ abstract class CreateUserRequest with _$CreateUserRequest {
 /// [roles] and [organizationId] are silently **ignored** unless the caller is
 /// a super-admin (`CreateUserRequest.kt` says as much, and `UserService`
 /// enforces it) — sending them as a non-super-admin does not error, it just
-/// has no effect. That is a footgun worth knowing about before task 5.5.
+/// has no effect. That is a footgun worth knowing about before
 @freezed
 abstract class UpdateUserRequest with _$UpdateUserRequest {
   const factory UpdateUserRequest({

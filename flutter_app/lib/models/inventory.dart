@@ -11,7 +11,7 @@ part 'inventory.g.dart';
 /// `backend/api/.../model/inventory/InventoryItemResponse.kt`.
 ///
 /// [events] is **unpaginated** — the server embeds every event that has ever
-/// drawn on this item, with no `limit`/`offset`. Task 4.5 caps display
+/// drawn on this item, with no `limit`/`offset`. caps display
 /// client-side. The list can be long for a heavily-used item.
 @freezed
 abstract class InventoryItemResponse with _$InventoryItemResponse {

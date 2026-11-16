@@ -7,7 +7,7 @@ import 'package:teven_app/screens/inventory/inventory_details_screen.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The inventory details screen — task 9.0's sweep.
+/// The inventory details screen sweep.
 ///
 /// The read-only page the inventory list's name links land on, and the edit
 /// affordance that leads onward to the edit screen.

@@ -13,11 +13,11 @@ import 'organization_picker.dart';
 
 /// The "Create Event" button, and the organization it needs before it will work.
 ///
-/// **Built once rather than per screen, because task 7.3's two versions of this
+/// **Built once rather than per screen, because two versions of this
 /// control disagreed and only one of them was right.** The calendar button
-/// (`EventCalendar.tsx:254-268`) carried a `pendingNavigateUrl` and resumed the
+/// (`EventCalendar.tsx`) carried a `pendingNavigateUrl` and resumed the
 /// navigation after a selection; the list-page button
-/// (`EventListPage.tsx:169-181`) had none, so dismissing the picker did
+/// (`EventListPage.tsx`) had none, so dismissing the picker did
 /// nothing and a selection always went to a bare `/events/create` — losing the
 /// `?date=` a calendar click had supplied.
 ///
@@ -28,9 +28,9 @@ import 'organization_picker.dart';
 ///
 /// **Why the picker is asked for *before* navigating rather than after.** A
 /// `VIEW_USERS_GLOBAL` user with no organization selected lands on the create
-/// form's "Organization Required" card (`CreateEventForm.tsx:210-239`) and has
+/// form's "Organization Required" card (`CreateEventForm.tsx`) and has
 /// to tap through it. That card exists because the server refuses the create
-/// anyway — `EventService.kt:20-22` throws `"organizationId is required for
+/// anyway — `EventService.kt` throws `"organizationId is required for
 /// MANAGE_EVENTS_GLOBAL users"` — so the button is where the requirement gets
 /// *answered*, and answering it here is the difference between one tap and three.
 class CreateEventButton extends ConsumerWidget {
@@ -53,7 +53,7 @@ class CreateEventButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Null rather than a disabled button, matching `ListScreenHeader.action`
     // and the React screens, which render the button only when the permission
-    // is held. `EventCalendar.tsx:75` and `EventListPage.tsx:23` derive it
+    // is held. `EventCalendar.tsx` and `EventListPage.tsx` derive it
     // independently of each other and of the route guard, and the screen you
     // are on is reachable without it — `/events` needs only `VIEW_*`.
     if (!ref
@@ -83,7 +83,7 @@ class CreateEventButton extends ConsumerWidget {
     final gate = ref.read(permissionGateProvider);
     final organization = ref.read(selectedOrganizationProvider);
 
-    // Both conditions, not either. `EventCalendar.tsx:137` is
+    // Both conditions, not either. `EventCalendar.tsx` is
     // `hasPermission('VIEW_USERS_GLOBAL') && !selectedOrganization` — the
     // permission decides whether a selection is *possible* at all, since only a
     // global user gets the switcher. Without it the button would demand an
@@ -109,7 +109,7 @@ class CreateEventButton extends ConsumerWidget {
   /// [create], for a tapped calendar day cell.
   ///
   /// The day becomes `?date=yyyy-MM-dd`, which `CreateEventScreen` reads to
-  /// prefill its date field — the same query parameter `EventCalendar.tsx:136`
+  /// prefill its date field — the same query parameter `EventCalendar.tsx`
   /// built. Handed as a [DateTime] rather than a formatted string so the one
   /// place that knows the wire format is [eventCreateUrlForDay].
   static Future<void> createForDay(
@@ -121,7 +121,7 @@ class CreateEventButton extends ConsumerWidget {
 
 /// The create URL for one calendar day.
 ///
-/// `EventCalendar.tsx:136` builds `` `/events/create?date=${date}` `` from a
+/// `EventCalendar.tsx` builds `` `/events/create?date=${date}` `` from a
 /// tapped cell. A function rather than an inline string at the call sites
 /// because the query parameter is a contract with the create screen, and a
 /// format written in two places is one that will be fixed in one.

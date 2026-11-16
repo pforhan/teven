@@ -5,7 +5,7 @@ import 'package:teven_app/core/services/list_query.dart';
 import 'package:teven_app/core/theme/teven_theme.dart';
 import 'package:teven_app/widgets/responsive_list_view.dart';
 
-/// The shared list widget — tasks 4.1, 4.2, 4.3.
+/// The shared list widget
 ///
 /// Widths are pinned rather than exercised in a browser, as with the chrome
 /// tests: what is being established is that the layout branch follows the
@@ -82,7 +82,7 @@ void main() {
   }
 
   group('layout', () {
-    // Task 4.1.
+    //
     testWidgets('desktop is a table', (tester) async {
       await pumpList(tester, width: desktopWidth);
 
@@ -144,7 +144,7 @@ void main() {
   });
 
   group('row actions', () {
-    // Task 4.2. Hover is a pointer affordance; the reveal flag is passed
+    // Hover is a pointer affordance; the reveal flag is passed
     // explicitly because `kIsWeb` is false on the VM these tests run on.
     testWidgets('hidden until the row is hovered', (tester) async {
       await pumpList(tester, width: desktopWidth, revealActionsOnHover: true);
@@ -194,8 +194,7 @@ void main() {
       // as rows changing size.
       //
       // Every presence assertion in this group passed with the bug in place.
-      // This is task 3.12's lesson, where a positional check caught what "the
-      // widget exists" could not.
+      // A positional check catches what "the widget exists" could not.
       await pumpList(tester, width: desktopWidth, revealActionsOnHover: true);
 
       final before = tester.getRect(find.byType(Table));
@@ -291,8 +290,8 @@ void main() {
   });
 
   group('sorting', () {
-    // Task 4.11's client half: the widget reports the column, the screen
-    // decides. `TableView.tsx:49` did exactly this.
+    // client half: the widget reports the column, the screen
+    // decides. `TableView.tsx` did exactly this.
     testWidgets('a sortable header reports its key', (tester) async {
       final keys = <String>[];
       await pumpList(tester, width: desktopWidth, onSort: keys.add);

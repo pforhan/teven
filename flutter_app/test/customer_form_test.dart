@@ -14,7 +14,7 @@ import 'package:teven_app/widgets/validators.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The customer forms — task 5.2, and task 5.1's convention as exercised by
+/// The customer forms and convention as exercised by
 /// the first form written against it.
 ///
 /// 5.13 asks for "one representative form rather than all seven", and this is
@@ -23,9 +23,9 @@ import 'support/stub_adapter.dart';
 /// has a caller here.
 ///
 /// **The tests that matter are the three-way organization split, not the
-/// validators.** `CreateCustomerForm.tsx:76-83` resolves which organization a
+/// validators.** `CreateCustomerForm.tsx` resolves which organization a
 /// customer lands in through three mutually exclusive rules, and the server
-/// throws for a global manager who sends none (`CustomerService.kt:62`). That
+/// throws for a global manager who sends none (`CustomerService.kt`). That
 /// is behaviour no single assertion pins — it needs one case per rule, and the
 /// rules are only visible as *which of them produced the id*.
 void main() {
@@ -84,7 +84,7 @@ void main() {
   /// does not read it, but the service decodes one, so a stub answering a bare
   /// string would fail inside deserialization rather than on an assertion.
   /// `PUT` answers the bare string the server actually sends
-  /// (`CustomerService.updateCustomer`), which is the shape task 1.14 pinned.
+  /// (`CustomerService.updateCustomer`), which is the shape pinned.
   StubAdapter customerFormAdapter({
     List<String> permissions = const [viewCustomers, manageCustomers],
     StubResponse? createFailure,
@@ -196,7 +196,7 @@ void main() {
   /// helper. `findsNWidgets(4)` was the first version of the empty-form test
   /// and it pins almost nothing: a form that reported "required" on all four
   /// fields while attributing it to the wrong one — a copy-paste slip in a
-  /// validator index — satisfies it exactly. `CreateCustomerForm.tsx:92,96,99,102`
+  /// validator index — satisfies it exactly. `CreateCustomerForm.tsx,96,99,102`
   /// puts `required` on all four, so *which four* is the only question the
   /// count cannot answer.
   String? errorForField(WidgetTester tester, int index) {
@@ -257,7 +257,7 @@ void main() {
       final container = await openCreate(tester, adapter);
       await submit(tester);
 
-      // `required` on all four (`CreateCustomerForm.tsx:92,96,99,102`).
+      // `required` on all four (`CreateCustomerForm.tsx,96,99,102`).
       // Asserted **per field**, so a mis-attributed error fails here rather
       // than passing as a count.
       expect(
@@ -303,7 +303,7 @@ void main() {
       expect(errorForField(tester, 1), 'This field is required');
 
       // **The half of validation that is easy to get wrong.** A validator that
-      // only ever adds errors passes everything above; `FormState.validate()`
+      // only ever adds errors passes everything above; `FormState.validate`
       // recomputes from the current values, so the stale message has to go on
       // its own. Only a second submit can show that.
       await fillFields(tester, phone: '555-0100');
@@ -311,7 +311,7 @@ void main() {
 
       // **No per-field assertion here, and there cannot be one** — a successful
       // submit navigates to `/customers`, so the form is gone. The request is
-      // the proof: it only goes out if `FormState.validate()` returned true,
+      // the proof: it only goes out if `FormState.validate` returned true,
       // which it cannot do while the phone field is still reporting an error.
       expect(adapter.requests.where((o) => o.method == 'POST'), hasLength(1));
     });
@@ -342,7 +342,7 @@ void main() {
       await fillFields(tester);
       await submit(tester);
 
-      // `CreateCustomerForm.tsx:82` — the user's own organization, from the
+      // `CreateCustomerForm.tsx` — the user's own organization, from the
       // context. The harness's context user is in organization 1.
       expect(bodyOf(adapter, 'POST', '/api/customers')['organizationId'], 1);
     });
@@ -375,7 +375,7 @@ void main() {
       await openCreate(tester, adapter);
 
       expect(find.byType(OrganizationSelectField), findsOneWidget);
-      // `CreateCustomerForm.tsx:40-42` seeds the selection with `items[0]`.
+      // `CreateCustomerForm.tsx` seeds the selection with `items[0]`.
       expect(organizationRequests(adapter), hasLength(1));
 
       await fillFields(tester);
@@ -388,7 +388,7 @@ void main() {
     testWidgets('a selected organization beats the dropdown entirely', (
       tester,
     ) async {
-      // `CreateCustomerForm.tsx:77` — the chrome's selection is checked
+      // `CreateCustomerForm.tsx` — the chrome's selection is checked
       // *before* `canManageGlobal`, so a super-admin who narrowed the app to
       // one organization gets no dropdown and creates into that one even
       // though a global manager would otherwise be offered the full list.
@@ -453,7 +453,7 @@ void main() {
       expect(body['phone'], '555-0199');
       expect(body['address'], '2 Example Street');
       expect(body['notes'], 'Prefers mornings');
-      // `navigate('/customers')` (`CreateCustomerForm.tsx:92`).
+      // `navigate('/customers')` (`CreateCustomerForm.tsx`).
       expect(currentPath(container), AppRoutes.customers);
     });
 
@@ -496,7 +496,7 @@ void main() {
     testWidgets('the organization list failing blocks the submit', (
       tester,
     ) async {
-      // The reachable shape of `CreateCustomerForm.tsx:85-88`'s guard: a
+      // The reachable shape of `CreateCustomerForm.tsx`'s guard: a
       // super-admin with nothing selected, submitting before the list lands —
       // or after it failed. The validator catches it first and reports it on
       // the field, which is what the browser's own `required` did in the
@@ -552,8 +552,8 @@ void main() {
       tester,
     ) async {
       // **The most load-bearing assertion in this file.**
-      // `EditCustomerForm.tsx:64-67` sends `organizationId` only for a global
-      // manager, and `CustomerService.kt:89-93` *throws* when anyone else sends
+      // `EditCustomerForm.tsx` sends `organizationId` only for a global
+      // manager, and `CustomerService.kt` *throws* when anyone else sends
       // one. A port that always sent it would 500 on every edit by an
       // `Organizer`, which is the majority of the app's users.
       final adapter = customerFormAdapter();
@@ -646,7 +646,7 @@ void main() {
       tester,
     ) async {
       // **A deliberate divergence from the React original.**
-      // `EditCustomerForm.tsx:80` returns `Loading customer...` whenever
+      // `EditCustomerForm.tsx` returns `Loading customer...` whenever
       // `customer` is null, and `setError` never clears it — so a 404 leaves
       // the original spinning forever with no message anywhere on the screen.
       // The port shows the message instead. Reproducing an error that renders

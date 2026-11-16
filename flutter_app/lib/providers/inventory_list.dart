@@ -16,7 +16,7 @@ import 'service_providers.dart';
 /// `EventInventory` for that item — so the `events` list is unpaginated on the
 /// *list* endpoint too, not only on `GET /api/inventory/{id}`, and it is one
 /// extra query per row. The screen caps what it renders; the N+1 is server-side
-/// and recorded on task 4.5.
+/// and recorded on
 ///
 /// Pagination makes that per-page cost multiply. It is bounded by what the user
 /// actually scrolls through rather than by the table size — the default was

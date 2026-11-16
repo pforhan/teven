@@ -26,16 +26,16 @@ import '../../widgets/responsive_list_view.dart';
 /// pagination — the one thing here the React original does not have.
 ///
 /// **The paging is new rather than ported, and it is worth being clear which
-/// part of it is not.** `CustomerList.tsx:27` fetched `getAllCustomers(25, 0,
+/// part of it is not.** `CustomerList.tsx` fetched `getAllCustomers(25, 0,
 /// …)` and there is no control anywhere in the React app to reach row 26, so
-/// task 4.9 recorded "premise did not hold" and closed. The page *size* is
+/// recorded "premise did not hold" and closed. The page *size* is
 /// still 25 — [kListPageSize], shared by all four list screens — because that is
 /// what the original asked for. What is new is that there is now a way to ask
 /// for the next page, and that it is the same shape on every list screen rather
 /// than four private `static const _pageLimit` copies.
 ///
 /// The row actions are hover-revealed in the React original
-/// (`CustomerList.tsx:79`), which is unreachable on a phone. The shared
+/// (`CustomerList.tsx`), which is unreachable on a phone. The shared
 /// [ResponsiveListView] resolves that: hover on a pointer, always visible in a
 /// card.
 class CustomerListScreen extends ConsumerStatefulWidget {
@@ -68,7 +68,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   /// provider, so only the mutation's needs a field.
   ApiException? _actionError;
 
-  /// `CustomerList.tsx:50-56`: re-tapping the active column reverses it, and a
+  /// `CustomerList.tsx`: re-tapping the active column reverses it, and a
   /// different column starts ascending.
   void _onSort(String key) {
     setState(() {
@@ -83,7 +83,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     });
   }
 
-  /// The delete confirmation. `CustomerList.tsx:60`.
+  /// The delete confirmation. `CustomerList.tsx`.
   ///
   /// The dialog is shared — see [confirmDestructiveAction] — and what stays here
   /// is the part that is specific to this screen: the service call, the refetch,
@@ -103,7 +103,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       await ref
           .read(customerServiceProvider)
           .deleteCustomer(customer.customerId);
-      // `fetchCustomers()` in the original. [PagedListController.reload]
+      // `fetchCustomers` in the original. [PagedListController.reload]
       // rather than `ref.invalidate`, which would rebuild every accumulated
       // page key rather than resetting to the first — and the pages past the
       // deletion are stale anyway, see `reload`.
@@ -209,7 +209,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                   : null,
             ),
             const SizedBox(height: 16),
-            // The debounce from task 4.10 lives with the field, not here —
+            // The debounce from lives with the field, not here —
             // see `DebouncedSearchField` for why every list screen gets the
             // same one rather than its own copy of the timer.
             DebouncedSearchField(

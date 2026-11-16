@@ -6,7 +6,7 @@ import 'package:teven_app/core/api/api_exception.dart';
 
 import 'support/fake_api_server.dart';
 
-/// Response-shape handling for [ApiClient] — task 1.19.
+/// Response-shape handling for [ApiClient]
 ///
 /// The cases here exist because the server does not respond uniformly: error
 /// bodies carry `data: {}` rather than `null`, permission failures bypass the

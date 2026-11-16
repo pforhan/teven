@@ -10,9 +10,9 @@ import 'package:teven_app/routing/app_router.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The responsive chrome — tasks 3.1 through 3.11 and 3.13.
+/// The responsive chrome
 ///
-/// Sizes are pinned rather than exercised in a real browser. Task 3.12 stays as
+/// Sizes are pinned rather than exercised in a real browser. stays as
 /// the manual pass; what these tests establish is that the *branch* is chosen
 /// from the available width and that each branch renders the right controls,
 /// which is the part a browser check would not catch anyway.
@@ -46,7 +46,7 @@ void main() {
 
   /// An empty `GET /api/customers` page.
   ///
-  /// Answered because `/customers` is a real screen since task 4.4, and these
+  /// Answered because `/customers` is a real screen since and these
   /// tests navigate there to check the nav highlight and the drawer's close.
   /// Without it the harness answers 401, the client raises
   /// `UnauthorizedException`, and the single-flight redirect signs the test out
@@ -97,7 +97,7 @@ void main() {
       tester.widget<NavigationRail>(find.byType(NavigationRail));
 
   group('breakpoints', () {
-    // Task 3.2. The thresholds are this app's, so they are asserted directly
+    // The thresholds are this app's, so they are asserted directly
     // rather than only through the widget — a wrong number here would still
     // produce a passing widget test at every width.
     test('classify widths at and around each threshold', () {
@@ -115,7 +115,7 @@ void main() {
   });
 
   group('chrome per breakpoint', () {
-    // Task 3.3.
+    //
     testWidgets('mobile is an app bar and a drawer, with no rail', (
       tester,
     ) async {
@@ -148,7 +148,7 @@ void main() {
     testWidgets('a resize moves between layouts without a rebuild of the app', (
       tester,
     ) async {
-      // The reason task 3.2 says `LayoutBuilder`: the branch has to follow the
+      // The reason says `LayoutBuilder`: the branch has to follow the
       // window, not the device. A device check would stay on the rail after
       // the browser is narrowed.
       final container = await pumpAt(tester, desktopWidth);
@@ -164,7 +164,7 @@ void main() {
   });
 
   group('nav items are permission-gated', () {
-    // Task 3.4. `MainLayout.tsx:22-27` wraps each `<li>` in its own test, so
+    // `MainLayout.tsx` wraps each `<li>` in its own test, so
     // an item the user cannot reach is absent rather than disabled.
     testWidgets('only the granted items appear', (tester) async {
       await pumpAt(
@@ -198,7 +198,7 @@ void main() {
     });
 
     testWidgets('Users is shown for either scope', (tester) async {
-      // `MainLayout.tsx:27` is the one OR-gated item. One case per scope: the
+      // `MainLayout.tsx` is the one OR-gated item. One case per scope: the
       // failure mode of getting it wrong — a global admin who cannot reach the
       // Users screen they are the only people who can administer — is silent.
       for (final permission in const [viewUsersOrg, viewUsersGlobal]) {
@@ -283,7 +283,7 @@ void main() {
       // trailing slot an `Expanded`, but a `MainAxisSize.min` column inside it
       // still hugs the *top* — so Profile and Logout rendered directly beneath
       // the destinations instead of at the bottom, which is where
-      // `MainLayout.tsx:29-41` puts them. Every assertion above passed with the
+      // `MainLayout.tsx` puts them. Every assertion above passed with the
       // bug present; only a rendered screenshot showed it.
       await pumpAt(tester, tabletWidth, permissions: allNavPermissions);
 
@@ -305,7 +305,7 @@ void main() {
   });
 
   group('session controls', () {
-    // Task 3.9.
+    //
     testWidgets('Profile navigates', (tester) async {
       final container = await pumpAt(tester, tabletWidth);
 
@@ -332,19 +332,19 @@ void main() {
   });
 
   group('organization control', () {
-    // Tasks 3.5, 3.6 and 3.8.
+    //
     testWidgets('a non-super-admin sees a static organization name', (
       tester,
     ) async {
       await pumpAt(tester, desktopWidth, permissions: const [viewEvents]);
 
-      // `MainLayout.tsx:36` — the user's own organization from the context.
+      // `MainLayout.tsx` — the user's own organization from the context.
       expect(find.text('Acme'), findsOneWidget);
       expect(find.text('All Organizations'), findsNothing);
     });
 
     testWidgets('a super-admin gets the switcher', (tester) async {
-      // `VIEW_USERS_GLOBAL` is what derives `isSuperAdmin` (`MainLayout.tsx:10`).
+      // `VIEW_USERS_GLOBAL` is what derives `isSuperAdmin` (`MainLayout.tsx`).
       await pumpAt(tester, desktopWidth, permissions: const [viewUsersGlobal]);
 
       expect(find.text('All Organizations'), findsOneWidget);
@@ -413,7 +413,7 @@ void main() {
     testWidgets('the switcher remembers a selection across a reload', (
       tester,
     ) async {
-      // The persistence is task 2.4's, but the control is the only thing that
+      // The persistence is but the control is the only thing that
       // reads it — so without this the restored value would never be
       // observable and the store would look like dead code.
       const stored =

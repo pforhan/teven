@@ -12,10 +12,10 @@ import '../widgets/validators.dart';
 /// "forgot password", since neither exists in the React app.
 ///
 /// Deliberately narrower than the rest of the port in one respect: **it does
-/// not use [FormCard].** That widget was written afterwards, for task 5.1, and
+/// not use [FormCard].** That widget was written afterwards, for and
 /// it owns a `Scaffold` — so adopting it here would mean nesting one inside the
 /// other. The convention this screen does share is `Validators.required` in
-/// place of its own private copy, which task 5.1 removed.
+/// place of its own private copy, which removed.
 ///
 /// What the screen reproduces is the behaviour — see [_submit] — and the card
 /// sizing, fixed up for small viewports.
@@ -44,14 +44,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   /// Authenticates, then reloads the context.
   ///
-  /// `Auth.tsx:27-30` calls `AuthService.login` and then
-  /// `refetchUserContext()`; [AuthController.login] does both, and the router
+  /// `Auth.tsx` calls `AuthService.login` and then
+  /// `refetchUserContext`; [AuthController.login] does both, and the router
   /// reacts to the resulting context change by leaving `/login` on its own.
   /// Nothing here navigates — doing so would race the redirect that lands the
   /// user on `/events`.
   ///
   /// Every failure is funnelled into [_error] and shown through
-  /// [ErrorDisplay], matching `Auth.tsx:20-27`. The React version branches
+  /// [ErrorDisplay], matching `Auth.tsx`. The React version branches
   /// between `ApiErrorWithDetails`, a bare `Error`, and a fallback string; the
   /// exception hierarchy already collapses those three into one type.
   Future<void> _submit() async {

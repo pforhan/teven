@@ -14,7 +14,7 @@ import 'package:teven_app/widgets/responsive_list_view.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The customer list — task 4.4, plus the debounce from 4.10 and the
+/// The customer list plus the debounce from 4.10 and the
 /// customer's half of the delete confirmation in 4.8.
 ///
 /// Driven through the real router and the real shell at a pinned width, so
@@ -126,10 +126,7 @@ void main() {
     testWidgets('is no longer a placeholder', (tester) async {
       await openCustomers(tester, customerAdapter());
 
-      expect(
-        find.text('Not ported yet — see FLUTTER-CONVERT.md.'),
-        findsNothing,
-      );
+      expect(find.text('Not ported yet.'), findsNothing);
       // The rail's own nav item is also labelled "Customers".
       expect(find.text('Customers'), findsWidgets);
     });
@@ -318,7 +315,7 @@ void main() {
         adapter.requests.where((o) => o.method == 'DELETE').map((o) => o.path),
         ['/api/customers/1'],
       );
-      // `CustomerList.tsx:63` re-fetched after deleting.
+      // `CustomerList.tsx` re-fetched after deleting.
       expect(getRequests(adapter), hasLength(2));
     });
   });
@@ -354,10 +351,10 @@ void main() {
       final adapter = customerAdapter();
       await openCustomers(tester, adapter);
 
-      // `CustomerList.tsx:76` marks `name` sortable and the other three not.
+      // `CustomerList.tsx` marks `name` sortable and the other three not.
       // `CustomerDao` does honour `sortBy` for phone and address, so this is a
       // choice the React app made rather than a server limit — worth knowing
-      // before task 4.11 goes looking for sort controls that should be there.
+      // before goes looking for sort controls that should be there.
       await tester.tap(find.text('Notes'));
       await settleRequests(tester);
 

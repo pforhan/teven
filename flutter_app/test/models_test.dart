@@ -12,7 +12,7 @@ void main() {
     int mustNotDecode(Object? _) => fail('decode must not run on a failure');
 
     test('does not decode data on a failure envelope', () {
-      // The server's failure() sets data = Unit, which serialises to {}. A
+      // The server's failure sets data = Unit, which serialises to {}. A
       // generated fromJson would try to decode that {} into T and throw,
       // destroying the error message the caller needs.
       final response = ApiResponse.fromJson({
@@ -56,7 +56,7 @@ void main() {
   });
 
   group('Permissions — OR semantics', () {
-    // ProtectedRoute.tsx treats an array as .some(), and an empty array
+    // ProtectedRoute.tsx treats an array as.some, and an empty array
     // renders unconditionally. Both matter for the route guard.
     test('has finds a granted permission', () {
       expect(

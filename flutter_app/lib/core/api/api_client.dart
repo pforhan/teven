@@ -15,16 +15,16 @@ enum ResponseBody {
 
   /// Expect no body at all — a `204 No Content`.
   ///
-  /// Deletes answer this way (`CustomerRoutes.kt:72`, `InventoryRoutes.kt:71`,
-  /// `EventRoutes.kt:63`), so `data` is genuinely absent rather than null.
+  /// Deletes answer this way (`CustomerRoutes.kt`, `InventoryRoutes.kt`,
+  /// `EventRoutes.kt`), so `data` is genuinely absent rather than null.
   empty,
 
   /// The body is a bare JSON **string**, not an object.
   ///
-  /// `AuthorizationPlugin.kt:24,31` responds with a plain string such as
+  /// `AuthorizationPlugin.kt` responds with a plain string such as
   /// `"User does not have the required permission"`, bypassing the envelope
   /// entirely. Several `success(...)` calls do the same — `PUT /api/events/{id}`
-  /// returns `"Event with ID N updated"` (`EventRoutes.kt:71`).
+  /// returns `"Event with ID N updated"` (`EventRoutes.kt`).
   bareString,
 
   /// Do not inspect the body; pass it through as decoded JSON.
@@ -44,7 +44,7 @@ class ApiClient {
   /// constructor already configures dio correctly.
   ///
   /// The `BaseOptions` mirror the default constructor's on purpose. A bare
-  /// `Dio()` has no `transformer`, so request bodies would arrive at the
+  /// `Dio` has no `transformer`, so request bodies would arrive at the
   /// adapter as Dart objects rather than JSON — a stub that silently diverges
   /// from production is worse than no stub.
   @visibleForTesting
@@ -338,7 +338,7 @@ class ApiClient {
     // JSON *object* that is not an envelope means the request fell through to
     // the SPA handler and we were served index.html.
     //
-    // `apiClient.ts:44` sniffs content-type for the same reason. Here the
+    // `apiClient.ts` sniffs content-type for the same reason. Here the
     // check is structural, which is stronger: index.html decodes as a String,
     // so it would be misread as a bare-string body.
     if (decoded is Map || decoded is List) {
@@ -373,17 +373,17 @@ class ApiClient {
       return null;
     }
 
-    // Task 1.12: never treat a non-JSON 200 as success.
+    // never treat a non-JSON 200 as success.
     //
     // A request to an unmatched route with a verb other than
     // GET/POST/PUT/DELETE falls through to the SPA handler and comes back as
-    // `index.html` with HTTP 200 (`Routing.kt:56`). That is not valid JSON,
+    // `index.html` with HTTP 200 (`Routing.kt`). That is not valid JSON,
     // so without this check `jsonDecode` would throw, be swallowed by the
     // `catch` below, and the raw HTML would be handed back as if it were a
     // legitimate bare-string body — a silent success carrying a web page.
     //
     // Sniffing the content type catches it at the source. This mirrors
-    // `apiClient.ts:44`, which checks the header before calling `.json()`.
+    // `apiClient.ts`, which checks the header before calling `.json`.
     final contentType = response.headers.value(Headers.contentTypeHeader);
     if (contentType != null && !_isJson(contentType)) {
       return _NonJsonBody(data, contentType: contentType);
@@ -401,7 +401,7 @@ class ApiClient {
 
   /// The request reached the SPA handler instead of the API.
   ///
-  /// Covers both the HTTP-200 `index.html` case (task 1.12) and a non-JSON
+  /// Covers both the HTTP-200 `index.html` case and a non-JSON
   /// error page.
   ApiException _notAnEnvelope(_NonJsonBody body, int status) {
     if (status == 401) {

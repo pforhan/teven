@@ -1,6 +1,6 @@
 /// Field validators shared by the forms.
 ///
-/// Task 5.1. The React forms have no validation library — the only rule any of
+/// The React forms have no validation library — the only rule any of
 /// them has is the HTML `required` attribute, which the browser enforces and
 /// the React code never reads. Porting that means choosing where the rule
 /// lives, and the answer is [TextFormField.validator]: the check happens on
@@ -24,7 +24,7 @@ abstract final class Validators {
   /// `required` plus a non-whitespace check.
   ///
   /// **Not a behaviour change.** HTML `required` rejects a field holding only
-  /// spaces, and a bare `isEmpty` check would accept "   " and hand it to the
+  /// spaces, and a bare `isEmpty` check would accept " " and hand it to the
   /// server, which is the one case a validator exists to stop. Written as a
   /// separate method rather than folded into [required] because not every
   /// required field wants it — see the `notes` field, which is a free-text

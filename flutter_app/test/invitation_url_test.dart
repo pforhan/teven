@@ -3,7 +3,7 @@ import 'package:teven_app/routing/app_router.dart';
 import 'package:teven_app/screens/users/user_list_screen.dart'
     show invitationUrl;
 
-/// How the invite link is built — task 5.10, pinned by task 5.13.
+/// How the invite link is built pinned by
 ///
 /// **Plain Dart, not widget tests, and that is the whole reason this is a
 /// separate file.** `Uri.base` is not overridable, and under `flutter test` it
@@ -55,7 +55,7 @@ void main() {
     });
 
     test('the path, query and fragment of the base are all dropped', () {
-      // **The load-bearing case, and the one a naive `Uri.base.toString()` would
+      // **The load-bearing case, and the one a naive `Uri.base.toString` would
       // fail.** On web `Uri.base` is the whole document URL, so a user sitting
       // on `/users` would otherwise email a link to
       // `/users/register?token=…`. The SPA fallback would serve it, the router
@@ -92,7 +92,7 @@ void main() {
       // invitations.
       //
       // **`file:` with an empty authority is its own case**, and it is the one
-      // this function got wrong until task 5.13's test found it. `file:///…`
+      // this function got wrong until test found it. `file:///…`
       // *has* an authority — an empty one — so a `hasAuthority` guard produces
       // the origin `"file://"` and a link of `file:///register?token=…`, which
       // no browser opens. A `file:` URI is what `flutter test` runs against, so
@@ -145,7 +145,7 @@ void main() {
     });
 
     test('two links differ only by their token', () {
-      // Task 5.10's second requirement: "the link is not token-dependent on any
+      // second requirement: "the link is not token-dependent on any
       // in-app state". Two links minted from the same app differ by nothing but
       // the secret, so a link cannot be carrying an id, a route the inviter
       // happened to be on, or a signed-in user's organization.
@@ -163,7 +163,7 @@ void main() {
     });
 
     test('a uuid round-trips unencoded', () {
-      // `InvitationRoutes` mints `UUID.randomUUID()`, so the interpolated token
+      // `InvitationRoutes` mints `UUID.randomUUID`, so the interpolated token
       // needs no percent-encoding — and this is the test that says so, rather
       // than leaving it as an assumption in a comment.
       expect(

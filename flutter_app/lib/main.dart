@@ -29,7 +29,7 @@ class TevenApp extends ConsumerWidget {
 
 /// Holds the screen back while the boot context fetch is in flight.
 ///
-/// `App.tsx:34-36` short-circuits the whole route tree on `loading` and
+/// `App.tsx` short-circuits the whole route tree on `loading` and
 /// renders a plain "Loading...". The router's redirect has the same job for
 /// navigation (see `_redirect`), but a redirect alone only protects routes that
 /// redirect — a deep link that is public, such as `/register`, would render

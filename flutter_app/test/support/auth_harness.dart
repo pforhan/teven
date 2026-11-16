@@ -44,7 +44,7 @@ String userContextJson({List<String> permissions = const []}) => jsonEncode({
 ///
 /// `/api/organizations` is answered too, because the chrome asks for it as soon
 /// as a super-admin is signed in — the super-admin branch of the organization
-/// selector (`MainLayout.tsx:30`) builds the switcher, which fetches the list.
+/// selector (`MainLayout.tsx`) builds the switcher, which fetches the list.
 /// Without this the stub would return 401 for it, the client would raise a
 /// [teven_app.core.api.api_exception.UnauthorizedException], and the
 /// single-flight 401 redirect would sign the test out mid-assertion.
@@ -156,7 +156,7 @@ StubAdapter contextAdapter({
       options.path == '/api/events/rsvps/requested') {
     // **Answered, and the reason is the calendar.**
     //
-    // The calendar carries the pending-RSVP card (task 7.6), and the router
+    // The calendar carries the pending-RSVP card and the router
     // opens at `/events` — so *every* test that boots the app requests this
     // path, whether or not it means to. Left to fall through to the 401, that
     // raised `UnauthorizedException`, tripped the single-flight 401 redirect
@@ -173,7 +173,7 @@ StubAdapter contextAdapter({
   }
   if (options.method == 'GET' &&
       RegExp(r'^/api/events/\d+$').hasMatch(options.path)) {
-    // **The event details screen**, which is a real screen now (task 7.6)
+    // **The event details screen**, which is a real screen now
     // and fetches on arrival. Unanswered it 401s, and the single-flight
     // redirect signs the user out — so a test that only means to assert
     // *where* a navigation landed would find itself on `/login`.
@@ -295,16 +295,16 @@ ProviderContainer authTestContainer({
 /// Three details are load-bearing and easy to trip over again:
 ///
 /// - **The context is resolved inside `tester.runAsync`.** The stubbed
-///   transport still completes through dio's async machinery, which the fake
-///   clock a widget test runs under will not advance. Awaiting it in a plain
-///   `test()` hangs the run rather than failing it.
+/// transport still completes through dio's async machinery, which the fake
+/// clock a widget test runs under will not advance. Awaiting it in a plain
+/// `test` hangs the run rather than failing it.
 /// - **`TevenApp` is pumped, not a hand-built `MaterialApp.router`.** The
-///   redirects only run once the router is attached to a widget tree, so a
-///   container-only router would silently pass every assertion by never
-///   redirecting at all.
+/// redirects only run once the router is attached to a widget tree, so a
+/// container-only router would silently pass every assertion by never
+/// redirecting at all.
 /// - **[width] pins the surface.** It exists for the responsive tests; the
-///   default 800x600 is already the tablet layout, which is a fact worth
-///   remembering when a chrome assertion appears to depend on it.
+/// default 800x600 is already the tablet layout, which is a fact worth
+/// remembering when a chrome assertion appears to depend on it.
 Future<ProviderContainer> pumpApp(
   WidgetTester tester, {
   required StubAdapter adapter,
@@ -347,7 +347,7 @@ Future<ProviderContainer> pumpApp(
   // `settleRequests`, not a bare `pumpAndSettle`, and the difference is that
   // **the app's initial location is now a screen that fetches.**
   //
-  // The router opens at `/events` (`app_router.dart:142`), which since task 7.1
+  // The router opens at `/events` (`app_router.dart`), which since
   // is the calendar rather than a placeholder. It therefore starts a request
   // during `pumpWidget` and shows a `CircularProgressIndicator` until it lands —
   // and `pumpAndSettle` cannot settle an indeterminate animation. Every test
@@ -386,7 +386,7 @@ Future<ProviderContainer> pumpApp(
 /// The loop does both halves, and **both are needed**. A request started from
 /// inside a frame — a screen's own provider, rather than the boot fetch that
 /// [pumpApp] awaits — registers its zero-duration timers on the *fake* clock,
-/// so `pump()` with no duration never fires them and the request never leaves
+/// so `pump` with no duration never fires them and the request never leaves
 /// `AsyncLoading`. Advancing the clock inside `runAsync` lets the real async
 /// machinery drain.
 ///

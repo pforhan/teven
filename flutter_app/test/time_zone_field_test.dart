@@ -5,7 +5,7 @@ import 'package:timezone/data/latest.dart';
 import 'package:teven_app/core/services/time_zone_service.dart';
 import 'package:teven_app/widgets/time_zone_field.dart';
 
-/// Task 7.17 — the shared zone field the event forms, the organization screen
+/// — the shared zone field the event forms, the organization screen
 /// and the profile row all read through.
 ///
 /// These cases pin what the field owns: the zone it shows, with its current
@@ -14,7 +14,7 @@ void main() {
   final service = TimeZoneService();
 
   setUpAll(() {
-    // Task 7.17: the embedded database, not the browser variant.
+    // the embedded database, not the browser variant.
     initializeTimeZones();
   });
 

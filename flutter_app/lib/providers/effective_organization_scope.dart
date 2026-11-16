@@ -14,12 +14,12 @@ import 'organization_controller.dart';
 ///
 /// - A **superadmin** with a selected organization acts in that organization.
 /// - A **superadmin** with no selection acts in **all organizations** (the
-///   "All Organizations" picker state). For list/query screens this means an
-///   unscoped query; resource-specific flows that require a concrete
-///   organization (for example reports) must still treat this as "no org
-///   chosen" themselves.
+/// "All Organizations" picker state). For list/query screens this means an
+/// unscoped query; resource-specific flows that require a concrete
+/// organization (for example reports) must still treat this as "no org
+/// chosen" themselves.
 /// - A **non-superadmin** always acts in their own organization, regardless of
-///   any stored picker selection.
+/// any stored picker selection.
 ///
 /// "No picker selection stored" means all-organizations **only** for a
 /// superadmin. A non-superadmin with no stored selection is still scoped to

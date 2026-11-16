@@ -9,11 +9,11 @@ import 'service_providers.dart';
 
 /// Every organization, for the super-admin's switcher.
 ///
-/// Both callers in the React app — `OrganizationSelector.tsx:15` and
-/// `QuickOrganizationPickerModal.tsx:23` — fetch the same list with the same
+/// Both callers in the React app — `OrganizationSelector.tsx` and
+/// `QuickOrganizationPickerModal.tsx` — fetch the same list with the same
 /// hard-coded `1000` limit, so it is fetched once here rather than twice.
 ///
-/// The limit is explicit and load-bearing: task 10.15 records that omitting
+/// The limit is explicit and load-bearing: records that omitting
 /// `limit` applies **no cap at all** server-side, so an unparameterized request
 /// returns the whole table. `1000` is the React app's number, kept as-is.
 ///

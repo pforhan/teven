@@ -10,7 +10,7 @@ import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/error_display.dart';
 
-/// One inventory item, in full — task 9.0's sweep.
+/// One inventory item, in full sweep.
 ///
 /// The read-only counterpart to [EditInventoryScreen], reached from the
 /// inventory list's name links. Like the customer details screen, the route had

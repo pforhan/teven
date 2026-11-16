@@ -18,7 +18,7 @@ import 'package:teven_app/widgets/responsive_list_view.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The user list — task 4.7, the remaining two delete flows of 4.8, and the
+/// The user list the remaining two delete flows of 4.8, and the
 /// sort verification of 4.11.
 ///
 /// The screen is the only one in the app that renders two tables in one route,
@@ -36,11 +36,11 @@ void main() {
   /// The permissions the *form* needs, which are not the ones its button needs.
   ///
   /// **Two different sets gate one control, and the React original has the same
-  /// split.** `UserList.tsx:206` puts the "Create Invitation" button under
+  /// split.** `UserList.tsx` puts the "Create Invitation" button under
   /// `MANAGE_USERS_GLOBAL || MANAGE_USERS_ORGANIZATION`; `CreateInvitationForm`
   /// re-checks `MANAGE_INVITATIONS_*` on itself and renders a refusal
   /// otherwise. Reproduced rather than reconciled — it is the server that
-  /// enforces the second set (`InvitationRoutes.kt:77`), so the form's check is
+  /// enforces the second set (`InvitationRoutes.kt`), so the form's check is
   /// the load-bearing one and the button's is merely a wider door onto a
   /// message. Pinned by "the button and the form gate on different permissions"
   /// below.
@@ -96,7 +96,7 @@ void main() {
       'expiresAt': expiresAt,
       'createdAt': '2026-10-01T00:00:00',
       // Absent rather than empty when there is no note, because
-      // `UserList.tsx:168` distinguishes the two: `note || 'N/A'`.
+      // `UserList.tsx` distinguishes the two: `note || 'N/A'`.
       'note': ?note,
     },
   ]);
@@ -104,7 +104,7 @@ void main() {
   /// A backend for the users table and, optionally, the invitations one.
   ///
   /// **`/api/invitations` is always answered**, defaulting to an empty list.
-  /// A manager's screen fetches it on arrival (`UserList.tsx:53-55`), and an
+  /// A manager's screen fetches it on arrival (`UserList.tsx`), and an
   /// unanswered path falls through to the harness's 401 — which signs the test
   /// out through the real 401 redirect and lands everything on `/login`. That
   /// is not a harness quirk to work around; it is the app behaving correctly
@@ -259,7 +259,7 @@ void main() {
       expect(find.text('alan'), findsOneWidget);
       expect(find.text('grace@example.com'), findsOneWidget);
       expect(find.text('Display 1'), findsOneWidget);
-      // `UserList.tsx:139` — `user.roles.join(', ')`. Two matches, not one:
+      // `UserList.tsx` — `user.roles.join(', ')`. Two matches, not one:
       // every fixture user has the role "Admin" and so does the signed-in
       // user the harness describes, which the chrome names.
       expect(find.text('Admin'), findsWidgets);
@@ -268,10 +268,7 @@ void main() {
     testWidgets('is no longer a placeholder', (tester) async {
       await openUsers(tester, userAdapter());
 
-      expect(
-        find.text('Not ported yet — see FLUTTER-CONVERT.md.'),
-        findsNothing,
-      );
+      expect(find.text('Not ported yet.'), findsNothing);
     });
 
     testWidgets('queries with the original limit, sort and offset', (
@@ -280,7 +277,7 @@ void main() {
       final adapter = userAdapter();
       await openUsers(tester, adapter);
 
-      // `UserList.tsx:33-40` — `getAllUsers(25, 0, search, 'username', 'asc', org)`.
+      // `UserList.tsx` — `getAllUsers(25, 0, search, 'username', 'asc', org)`.
       final request = userRequests(adapter).single;
       expect(request.queryParameters['limit'], 25);
       expect(request.queryParameters['offset'], 0);
@@ -394,7 +391,7 @@ void main() {
     testWidgets('MANAGE_USERS_GLOBAL alone is enough to manage', (
       tester,
     ) async {
-      // `UserList.tsx:25` ORs the two scopes. The organization screen's
+      // `UserList.tsx` ORs the two scopes. The organization screen's
       // equivalent is single-scope, so a copy of it would have gated this on
       // `MANAGE_USERS_ORGANIZATION` and locked out every super-admin.
       await openUsers(
@@ -410,7 +407,7 @@ void main() {
     testWidgets('the organization column needs VIEW_USERS_GLOBAL', (
       tester,
     ) async {
-      // `UserList.tsx:142-152` pushes the column only for a global viewer. An
+      // `UserList.tsx` pushes the column only for a global viewer. An
       // organization-scoped admin's users are all in one organization by
       // construction, so the column would be the same value on every row —
       // which is why it is the *global* permission that adds it, not the
@@ -441,7 +438,7 @@ void main() {
     });
   });
 
-  group('sorting — task 4.11', () {
+  group('sorting ', () {
     testWidgets('a second tap on the username column reverses it', (
       tester,
     ) async {
@@ -466,7 +463,7 @@ void main() {
       await tester.tap(find.text('Email'));
       await settleRequests(tester);
 
-      // `UserList.tsx:110-117` — a different column resets the direction.
+      // `UserList.tsx` — a different column resets the direction.
       expect(
         userRequests(adapter).map(
           (r) => (r.queryParameters['sortBy'], r.queryParameters['sortOrder']),
@@ -517,7 +514,7 @@ void main() {
       // Two tables in one route — the only screen in the app that does this.
       expect(find.byType(Table), findsNWidgets(2));
       expect(find.text('Volunteer'), findsOneWidget);
-      // `UserList.tsx:168` — a note is shown when present, 'N/A' when not.
+      // `UserList.tsx` — a note is shown when present, 'N/A' when not.
       expect(find.text('For the new season'), findsOneWidget);
       expect(find.text('Copy Link'), findsOneWidget);
       // `expiresAt` rendered as a date, not as the raw timestamp.
@@ -534,7 +531,7 @@ void main() {
       final adapter = userAdapter(invitations: invitation());
       await openUsers(tester, adapter);
 
-      // `UserList.tsx:73-75` — the fetch rides the same effect that loads the
+      // `UserList.tsx` — the fetch rides the same effect that loads the
       // users, and is skipped entirely for a caller who cannot manage them.
       expect(invitationRequests(adapter), hasLength(1));
       expect(find.text('Unused Invitations'), findsOneWidget);
@@ -547,7 +544,7 @@ void main() {
       );
       await openUsers(tester, adapter);
 
-      // `UserList.tsx:54` — `if (!canManageUsers) return;`. Fetching anyway
+      // `UserList.tsx` — `if (!canManageUsers) return;`. Fetching anyway
       // would be a guaranteed 403 and a guaranteed red herring in the log.
       // Split into its own case rather than sharing one with the manager
       // above: booting the app twice in a single test leaves the first
@@ -589,7 +586,7 @@ void main() {
         userAdapter(invitations: invitation(token: 'tok-42')),
       );
 
-      // Task 5.10. `UserList.tsx:157,179` writes `window.location.origin`
+      // `UserList.tsx,179` writes `window.location.origin`
       // twice, once for the copy and once for the displayed text; one
       // `invitationUrl` means the two cannot disagree.
       //
@@ -638,7 +635,7 @@ void main() {
         ),
       );
 
-      // `UserList.tsx:157` builds one link per row from that row's token. A
+      // `UserList.tsx` builds one link per row from that row's token. A
       // single shared `invitationUrl(...)` value reused across rows would give
       // both invitees the same link, and the first one to accept it would
       // consume it.
@@ -677,7 +674,7 @@ void main() {
       expect(clipboard, [invitationUrl('abc123')]);
       expect(find.text('Copied!'), findsOneWidget);
 
-      // `UserList.tsx:160` resets the label after 2000ms. Pumping past it
+      // `UserList.tsx` resets the label after 2000ms. Pumping past it
       // rather than disposing the screen is the point: a timer left pending
       // fires into a disposed state, which is why `_copiedTimer` is cancelled.
       await tester.pump(const Duration(seconds: 3));
@@ -704,7 +701,7 @@ void main() {
 
     /// Opens the inline form and lets it load its roles.
     ///
-    /// `UserList.tsx:206` toggles the form in place and there is no route for
+    /// `UserList.tsx` toggles the form in place and there is no route for
     /// it, so it is reached the only way a user reaches it. `settleRequests`
     /// rather than `pumpAndSettle`, because `_load` issues `GET /api/roles` from
     /// `initState` and the screen renders a `CircularProgressIndicator` until
@@ -737,7 +734,7 @@ void main() {
       expect(find.widgetWithText(ChoiceChip, 'Organizer'), findsOneWidget);
       expect(find.widgetWithText(ChoiceChip, 'Staff'), findsOneWidget);
       expect(find.widgetWithText(ChoiceChip, 'SuperAdmin'), findsOneWidget);
-      // No role is selected on arrival — `CreateInvitationForm.tsx:40` seeds
+      // No role is selected on arrival — `CreateInvitationForm.tsx` seeds
       // `_selectedRoleId` with null and requires a click.
       expect(
         tester
@@ -756,7 +753,7 @@ void main() {
       await tester.tap(find.text('Create Invitation').last);
       await settleRequests(tester);
 
-      // `CreateInvitationForm.tsx:47` — the guard, not a field validator. Note
+      // `CreateInvitationForm.tsx` — the guard, not a field validator. Note
       // that this is not a `Validators` case: the roles are `ChoiceChip`s, not a
       // form field, so there is nothing for the form convention to attach a
       // message to. It is the one submission guard in Phase 5 that a
@@ -781,13 +778,13 @@ void main() {
       // Role 2 of the harness's list, so this distinguishes "the picked role"
       // from "the first role".
       expect(bodies.single['roleId'], 2);
-      // `CreateInvitationForm.tsx:59` reads the signed-in user's organization
+      // `CreateInvitationForm.tsx` reads the signed-in user's organization
       // from the context rather than sending the dropdown's value, because a
       // non-global manager is never shown the dropdown. The harness's context
       // user is in organization 1.
       expect(bodies.single['organizationId'], 1);
       // The note is optional and blank, so it goes as an explicit null —
-      // `CreateInvitationForm.tsx:71` sends `note || null`, and the port sends
+      // `CreateInvitationForm.tsx` sends `note || null`, and the port sends
       // the same thing. Asserting on `containsKey` would be the wrong claim
       // here: `json_serializable` includes nulls by default, and the React
       // request had the key too.
@@ -802,12 +799,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Note (Optional)'),
-        '  Contract reviewer  ',
+        ' Contract reviewer ',
       );
       await tester.tap(find.text('Create Invitation').last);
       await settleRequests(tester);
 
-      // Trimmed, because `CreateInvitationForm.tsx:71` trims before sending.
+      // Trimmed, because `CreateInvitationForm.tsx` trims before sending.
       expect(createBodies(adapter).single['note'], 'Contract reviewer');
     });
 
@@ -818,7 +815,7 @@ void main() {
       // interesting part is *where the link appears*.
       //
       // `CreateInvitationForm` builds the link and hands it to
-      // `onInvitationCreated`, and `UserList.tsx:210` responds by closing the
+      // `onInvitationCreated`, and `UserList.tsx` responds by closing the
       // form — so the link is never displayed by the form itself. It appears
       // in the invitations table above, which is refetched and now holds the
       // new invitation. A manager mints, the form closes, and the link is
@@ -876,7 +873,7 @@ void main() {
       await tester.tap(find.text('Create Invitation').last);
       await settleRequests(tester);
 
-      // `UserList.tsx:210` calls `onInvitationCreated` and clears the form, so
+      // `UserList.tsx` calls `onInvitationCreated` and clears the form, so
       // the manager is returned to the list rather than left looking at a link
       // they have to dismiss themselves.
       expect(find.text('Select Role:'), findsNothing);
@@ -892,7 +889,7 @@ void main() {
       await tester.tap(find.widgetWithText(ChoiceChip, 'SuperAdmin'));
       await tester.pumpAndSettle();
 
-      // `CreateInvitationForm.tsx:52-56`. The assertion that matters is the
+      // `CreateInvitationForm.tsx`. The assertion that matters is the
       // disabled button: the warning is *also* stated in `_handleCreate`, but
       // that copy is unreachable through the UI because the button cannot be
       // pressed. Asserting both messages would pin the second one as live,
@@ -945,7 +942,7 @@ void main() {
       tester,
     ) async {
       // A user manager with no invitation permission gets the button and a
-      // refusal, which is what `UserList.tsx:206` does today. Pinned because
+      // refusal, which is what `UserList.tsx` does today. Pinned because
       // it is the kind of thing a future "tighten the button's gate" change
       // would silently alter, and because a reader would otherwise assume the
       // two gates were the same set and be wrong.
@@ -966,7 +963,7 @@ void main() {
     testWidgets(
       'a failure to load the roles is reported, not spun on forever',
       (tester) async {
-        // `CreateInvitationForm.tsx:44-48` renders `Loading...` for as long as
+        // `CreateInvitationForm.tsx` renders `Loading...` for as long as
         // the fetch is outstanding and shows `error` beneath it, so a fetch
         // that never answers leaves a spinner with no way forward. This is the
         // reachable version: the request fails.
@@ -1028,7 +1025,7 @@ void main() {
         adapter.requests.where((o) => o.method == 'DELETE').map((o) => o.path),
         ['/api/invitations/7'],
       );
-      // `UserList.tsx:104` refetched the *invitations*, not the users — the two
+      // `UserList.tsx` refetched the *invitations*, not the users — the two
       // are independent fetches and deleting a row from one does not change
       // the other. A screen that invalidated both would be hiding a second
       // request behind an unnecessary one.
@@ -1071,7 +1068,7 @@ void main() {
         await tester.tap(find.widgetWithText(TextButton, 'Delete'));
         await settleRequests(tester);
 
-        // The request is made, exactly as `UserList.tsx:81` made it.
+        // The request is made, exactly as `UserList.tsx` made it.
         expect(
           adapter.requests
               .where((o) => o.method == 'DELETE')
@@ -1081,7 +1078,7 @@ void main() {
         // And it 404s, because `UserRoutes.kt` defines no `delete` route. The
         // React original caught that failure and put it in the shared `error`
         // state the table rendered; the ported screen shows it in the action
-        // banner. **This test is the reproduction of task 10.12** — when the
+        // banner. **This test is the reproduction of ** — when the
         // endpoint lands it will fail here, which is the intended signal.
         expect(find.textContaining('API endpoint not found'), findsOneWidget);
         // The list is untouched, because nothing was deleted.
@@ -1103,9 +1100,9 @@ void main() {
       expect(find.text('grace'), findsOneWidget);
       expect(find.text('Volunteer'), findsOneWidget);
       // Actions are always visible in a card — there is no hover to reveal
-      // them on a touch device (task 4.2). Two delete buttons, because both
+      // them on a touch device Two delete buttons, because both
       // tables card-ify and each has one; only the users' row has an edit,
-      // since `UserList.tsx:186` gives invitations a delete and nothing else.
+      // since `UserList.tsx` gives invitations a delete and nothing else.
       expect(find.byIcon(Icons.edit), findsOneWidget);
       expect(find.byIcon(Icons.delete), findsNWidgets(2));
     });

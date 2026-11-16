@@ -16,7 +16,7 @@ part 'event.g.dart';
 /// **Payload weight.** The server does no compression of this nesting —
 /// `ktor-server-compression` is not installed — and there is no way to ask
 /// for a summary variant. One event with a large RSVP list is a large JSON
-/// object. Task 1.18 sets a default `limit` of 10 for that reason.
+/// object. sets a default `limit` of 10 for that reason.
 ///
 /// **Time.** [startsAt] is the instant (offset-bearing ISO 8601) and [timezone]
 /// is the IANA zone the event was scheduled in; the event's wall clock is the
@@ -129,7 +129,7 @@ abstract final class RsvpAvailability {
 /// How an event asks for staff.
 ///
 /// This is the **only** staffing mechanism. The staff endpoints documented in
-/// `API.md:343-351` do not exist server-side — see FLUTTER-CONVERT-DESIGN.md's
+/// `API.md` do not exist server-side — see the backend discrepancy notes and
 /// discrepancy table.
 ///
 /// [specificStaffIds] and [openInvitation] are the two mutually-exclusive
@@ -179,7 +179,7 @@ const StaffInviteDetails _noStaffInvites = StaffInviteDetails();
 ///
 /// [organizationId] is nullable here but **required** on
 /// [CreateEventRequest], and that asymmetry is the server's rather than an
-/// accident. `EventService.kt:20-22` throws `"organizationId is required for
+/// accident. `EventService.kt` throws `"organizationId is required for
 /// MANAGE_EVENTS_GLOBAL users"` on create; on update it treats a missing id as
 /// "leave it alone" and throws only when a **non-null, differing** id arrives
 /// from someone without `MANAGE_EVENTS_GLOBAL`.
@@ -194,7 +194,7 @@ const StaffInviteDetails _noStaffInvites = StaffInviteDetails();
 /// neither**. [startsAt] carries the zone's offset at the event's date.
 ///
 /// Note `PUT /api/events/{id}` answers with `data: "Event with ID N updated"`
-/// — a **bare string, not an [EventResponse]** (`EventRoutes.kt:71`). Task
+/// — a **bare string, not an [EventResponse]** (`EventRoutes.kt`). Task
 /// 6.9 handles that.
 @freezed
 abstract class UpdateEventRequest with _$UpdateEventRequest {

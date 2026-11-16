@@ -11,7 +11,7 @@ import 'package:teven_app/routing/app_router.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// Task 2.10 — `AcceptInvitationPage`, driven through the real router.
+/// — `AcceptInvitationPage`, driven through the real router.
 ///
 /// The screen is deliberately *not* pumped directly. Its whole reason for
 /// existing is that the token arrives in the URL (`/register?token=...`), so a
@@ -56,7 +56,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('as a Admin'), findsOneWidget);
-      // The two `<p>`s of `AcceptInvitationPage.tsx:108-109` are one text node
+      // The two `<p>`s of `AcceptInvitationPage.tsx` are one text node
       // separated by a newline, so this matches the second sentence alone.
       expect(
         find.textContaining('Please create your account below.'),
@@ -146,11 +146,11 @@ void main() {
         findsOneWidget,
       );
       // The form is replaced by the success box, per the React ternary at
-      // `AcceptInvitationPage.tsx:105`.
+      // `AcceptInvitationPage.tsx`.
       expect(find.widgetWithText(TextFormField, 'Username'), findsNothing);
       expect(currentPath(container), AppRoutes.register);
 
-      // `setTimeout(..., 3000)` at `AcceptInvitationPage.tsx:73`.
+      // `setTimeout(..., 3000)` at `AcceptInvitationPage.tsx`.
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
 
@@ -334,7 +334,7 @@ void main() {
 
       await _tapHereLink(tester);
       // **Settle in the same order as everywhere else.** `/events` is the month
-      // grid since task 7.1, so navigating here starts a fetch and puts a
+      // grid since so navigating here starts a fetch and puts a
       // `CircularProgressIndicator` on screen — and `pumpAndSettle` cannot settle
       // an indeterminate animation. Draining first (below) then settling is the
       // rule; this test simply settles on its own and so hangs.
@@ -387,7 +387,7 @@ void main() {
     testWidgets('a stale link shows the validation error as well', (
       tester,
     ) async {
-      // `AcceptInvitationPage.tsx:95-96` renders the validation error *outside*
+      // `AcceptInvitationPage.tsx` renders the validation error *outside*
       // the logged-in branch, so both appear at once. Reproducing only one of
       // the two would make the screen lose information the original shows.
       await _pumpRegister(
@@ -473,7 +473,7 @@ Future<void> _tapHereLink(WidgetTester tester) async {
 /// The offset of the link within the sentence.
 ///
 /// The sum of the preceding siblings' plain text. `TextSpan.start` is not
-/// public, and `toPlainText().indexOf` would break the moment the same word
+/// public, and `toPlainText.indexOf` would break the moment the same word
 /// appeared twice.
 int _linkStart(WidgetTester tester) {
   var start = 0;
@@ -592,7 +592,7 @@ StubAdapter invitationAdapter({
         status: acceptStatus,
       );
     case '/api/events':
-      // The router's `initialLocation` is `/events` (`app_router.dart:142`), so
+      // The router's `initialLocation` is `/events` (`app_router.dart`), so
       // booting the app renders the calendar once before this navigates to
       // `/register` — and the calendar fetches. Unanswered it would 401, and
       // the single-flight redirect would sign the user out before the test
@@ -603,7 +603,7 @@ StubAdapter invitationAdapter({
       );
     case '/api/events/rsvps/requested':
       // **The same trap a second time, one path further.** The calendar
-      // carries the pending-RSVP card (task 7.6), and it asks for this on
+      // carries the pending-RSVP card and it asks for this on
       // arrival — so the boot that renders the calendar asks for it too.
       // Unanswered it 401s, and the redirect signs the user out mid-assertion:
       // the "signed in" tests below all fail with the app on `/login`.

@@ -12,19 +12,19 @@ import '../models/common.dart';
 /// list screen that is wrong in three separate ways, and only the first is
 /// obvious:
 ///
-/// - **It fights task 4.14.** A retry takes the list back through
-///   [AsyncLoading], so a single failed search would render the error banner,
-///   then the rows, then the banner again as each attempt landed. The flash the
-///   user complained about would come back through the error path instead of the
-///   loading one.
+/// - **It fights ** A retry takes the list back through
+/// [AsyncLoading], so a single failed search would render the error banner,
+/// then the rows, then the banner again as each attempt landed. The flash the
+/// user complained about would come back through the error path instead of the
+/// loading one.
 /// - **It cannot help with the failures that actually occur.** A 401 means the
-///   session is gone and `ApiClient`'s unauthorized redirect has already fired;
-///   a 403 means the caller lacks the permission and will keep lacking it; a
-///   validation error will keep failing. None of those are transient, and
-///   retrying each of them twice more is three wasted requests per failure.
+/// session is gone and `ApiClient`'s unauthorized redirect has already fired;
+/// a 403 means the caller lacks the permission and will keep lacking it; a
+/// validation error will keep failing. None of those are transient, and
+/// retrying each of them twice more is three wasted requests per failure.
 /// - **It hides its own work.** An automatic retry that succeeds replaces the
-///   error with rows and says nothing, so the screen briefly claims a result the
-///   user never asked for and cannot explain.
+/// error with rows and says nothing, so the screen briefly claims a result the
+/// user never asked for and cannot explain.
 ///
 /// What replaces it is the affordance the UI already has: a failed *further
 /// page* shows "Try again" in the footer, and a failed *query* shows the
@@ -46,10 +46,10 @@ Duration? noRetry(int retryCount, Object error) => null;
 
 /// How many rows a list screen asks for per request.
 ///
-/// The React original's number — `getAllCustomers(25, 0, ...)` and the same
+/// The React original's number — `getAllCustomers(25, 0,...)` and the same
 /// `25, 0` in all three sibling screens. The page **size** is unchanged from
 /// the original; what is new is a way to ask for the next one, which is what
-/// task 4.9 added.
+/// added.
 ///
 /// Kept as a shared constant rather than the four `static const _pageLimit`
 /// copies the screens each declared. Four copies of the same number is four
@@ -79,7 +79,7 @@ class PagedListState<T> {
   ///
   /// Clamped to at least [items.length] when it is built — see
   /// [PagedListController._stateFor]. `total` is counted before `limit` is
-  /// applied (task 10.15), so it is the whole matching table rather than the
+  /// applied so it is the whole matching table rather than the
   /// page, which is what makes "is there more" answerable at all.
   final int total;
 
@@ -178,11 +178,11 @@ abstract class PagedListController<T> extends AsyncNotifier<PagedListState<T>> {
   /// without refetching, and refetching everything is the whole list. Starting
   /// from page 0 discards them and costs one request.
   ///
-  /// This is also what the React original did — `CustomerList.tsx:63` calls
-  /// `fetchCustomers()`, which refetched its single fixed page.
+  /// This is also what the React original did — `CustomerList.tsx` calls
+  /// `fetchCustomers`, which refetched its single fixed page.
   ///
   /// Rows stay on screen while this is in flight. Dropping them would flash the
-  /// list for the same reason task 4.14 was filed, and there is nothing here
+  /// list for the same reason was filed, and there is nothing here
   /// that makes the old rows *more* wrong than they were a moment ago.
   Future<void> reload() async {
     final current = state.value;

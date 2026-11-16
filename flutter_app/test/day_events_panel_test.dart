@@ -10,7 +10,7 @@ import 'package:teven_app/widgets/day_events_panel.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// The "events on this day" panel — task 7.7.
+/// The "events on this day" panel
 ///
 /// Driven on a page of its own rather than through the event details screen,
 /// because the panel's contract is its three inputs — a day, an organization
@@ -255,7 +255,7 @@ void main() {
 
       // **Material icons, because the Bootstrap Icons were never installed.**
       // `<i className="bi bi-clock">` renders as an empty tag in the React
-      // app, so there is nothing to match — task 3.11 settles it: Material
+      // app, so there is nothing to match settles it: Material
       // icons throughout.
       expect(find.byIcon(Icons.schedule), findsOneWidget);
       expect(find.byIcon(Icons.place), findsOneWidget);

@@ -7,7 +7,7 @@ import '../core/theme/teven_theme.dart';
 
 /// One column of a [ResponsiveListView].
 ///
-/// `TableView.tsx:5-10`, minus the `'actions'` magic key — actions are a
+/// `TableView.tsx`, minus the `'actions'` magic key — actions are a
 /// separate widget here because they are not a column of data and putting them
 /// in the list is what let them drift per call site.
 class ListColumn<T> {
@@ -61,7 +61,7 @@ class ListColumn<T> {
   /// Whether the header is a sort control.
   ///
   /// `sortBy` on the screen is compared against [key]; the widget only reports
-  /// the click. `CustomerList.tsx:50-56` owns the toggle.
+  /// the click. `CustomerList.tsx` owns the toggle.
   final bool sortable;
 
   /// The cell for [item].
@@ -89,7 +89,7 @@ class ListRowAction {
 
   /// The tooltip **and** the accessible name.
   ///
-  /// Task 4.3: `Tooltip` supplies both — it is not decoration here. It shows on
+  /// `Tooltip` supplies both — it is not decoration here. It shows on
   /// hover, and it is what a screen reader announces for an icon-only button,
   /// which would otherwise be unlabelled since the React `OverlayTrigger` only
   /// ever showed a pointer tooltip.
@@ -97,7 +97,7 @@ class ListRowAction {
 
   final VoidCallback onPressed;
 
-  /// Paints the button in the error colour. `CustomerList.tsx:82-86` used
+  /// Paints the button in the error colour. `CustomerList.tsx` used
   /// `btn-light` for both; the delete is styled separately here because a
   /// destructive control that looks identical to the edit beside it is the
   /// kind of thing a phone user mis-taps.
@@ -158,7 +158,7 @@ class ResponsiveListView<T> extends StatefulWidget {
   final SortOrder? sortOrder;
 
   /// Called with a column [key] when a sortable header is tapped. The screen
-  /// decides what that means, exactly as `CustomerList.tsx:50` does.
+  /// decides what that means, exactly as `CustomerList.tsx` does.
   final ValueChanged<String>? onSort;
 
   final String emptyMessage;
@@ -258,7 +258,7 @@ class _ResponsiveListViewState<T> extends State<ResponsiveListView<T>> {
           padding: const EdgeInsets.only(left: 4),
           child: IconButton(
             icon: Icon(action.icon),
-            // Task 4.3 — hover tooltip and accessible name in one widget.
+            // — hover tooltip and accessible name in one widget.
             tooltip: action.label,
             color: action.isDestructive
                 ? Theme.of(context).colorScheme.error
@@ -324,9 +324,9 @@ class _TableLayout<T> extends StatelessWidget {
 
   /// The sort control in a header cell.
   ///
-  /// `TableView.tsx:54-64`: label, then an arrow for the active column and a
+  /// `TableView.tsx`: label, then an arrow for the active column and a
   /// faint one for the rest. The arrow here is Material's rather than
-  /// `FaSortUp`/`FaSortDown` — task 3.11, no attempt at glyph parity.
+  /// `FaSortUp`/`FaSortDown` no attempt at glyph parity.
   Widget _headerCell(BuildContext context, ListColumn<T> column) {
     final widget = state.widget;
     final active = widget.sortBy == column.key;

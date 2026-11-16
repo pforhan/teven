@@ -27,13 +27,13 @@ import '../../widgets/picker_fields.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
 
-/// The event list — task 7.5.
+/// The event list
 ///
 /// `EventListPage.tsx` (240 lines). Search, a start-date floor with a "Today"
 /// button, six columns, inline RSVP, edit and delete.
 ///
 /// **The RSVP column is the reason this screen is more than another
-/// [ResponsiveListView].** `EventListPage.tsx:130-161` renders three buttons per
+/// [ResponsiveListView].** `EventListPage.tsx` renders three buttons per
 /// row that post an availability and refetch — a per-row *mutation*, in a table
 /// cell, on a screen whose other cells are text. `ListColumn.render` takes a
 /// `BuildContext`, which is all that is needed for it; see [_RsvpButton] for why
@@ -42,7 +42,7 @@ import '../../widgets/responsive_list_view.dart';
 /// **What this screen drops from the original, and why.** The React page had its
 /// own Previous/Next pair and a "Showing X - Y of Z" line. It is built on
 /// [PagedScrollView] instead, which is the same pagination the other four list
-/// screens gained in task 4.9 — infinite scroll with a "Load more" button as the
+/// screens gained in — infinite scroll with a "Load more" button as the
 /// floor. Two pages of a bespoke pager would be a second pagination
 /// implementation in the app, and `4.8`'s rule for the delete dialog applies here
 /// too: shared means one implementation, not one per screen.
@@ -89,7 +89,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
   /// `error` for both and rendered it through `TableView`.
   ApiException? _actionError;
 
-  /// `EventListPage.tsx:94-102`: re-tapping the active column reverses it, a
+  /// `EventListPage.tsx`: re-tapping the active column reverses it, a
   /// different column starts ascending.
   void _onSort(String key) {
     setState(() {
@@ -112,7 +112,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     // Organizations" sees every organization, a superadmin with a selection
     // sees that one, and everyone else sees their own.
     organizationId: organizationId,
-    // **A floor, not a range.** `EventListPage.tsx:36-44` passes `startDate` and
+    // **A floor, not a range.** `EventListPage.tsx` passes `startDate` and
     // leaves `endDate` undefined, so the original shows upcoming events only.
     // The date is interpreted in the reader's zone, so "today" means the same
     // day the reader is looking at.
@@ -120,7 +120,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     timezone: readerZone,
   );
 
-  /// `EventListPage.tsx:62-76`.
+  /// `EventListPage.tsx`.
   ///
   /// The dialog is shared — see [confirmDestructiveAction] — and what stays here
   /// is this screen's own consequence: the service call, and a **reload from the
@@ -145,17 +145,17 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     }
   }
 
-  /// `EventListPage.tsx:78-92`.
+  /// `EventListPage.tsx`.
   ///
   /// Posts the availability and reloads. The server answers `success("OK")`, so
   /// nothing comes back to display and a refetch is the only way to repaint the
   /// three buttons' selected state — which is what the original's
-  /// `fetchEvents()` did.
+  /// `fetchEvents` did.
   ///
   /// `'no response'` is the literal the original posts for its clear button
   /// (`:153`), and it is **not** one of [RsvpAvailability]'s named values.
   /// Reproduced verbatim: inventing `''` or `'none'` would change what lands in
-  /// the `rsvps.availability` column, and task 10.17 owns the question of
+  /// the `rsvps.availability` column, and owns the question of
   /// whether that column should hold a closed set at all.
   Future<void> _rsvp(EventResponse event, String availability) async {
     try {
@@ -177,7 +177,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
       key: 'title',
       label: 'Title',
       sortable: true,
-      // `EventListPage.tsx:112` gates the hover actions on the row being hovered,
+      // `EventListPage.tsx` gates the hover actions on the row being hovered,
       // which `ResponsiveListView` already does for `actions` — the actions live
       // in their own column here rather than absolutely positioned over the
       // title, for the same reason as the customer screen.
@@ -201,14 +201,14 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
       key: 'description',
       label: 'Description',
       // Free text written by whoever made the event, and the other end of the
-      // width problem task 4.7 documented on the user list. Two shares, not one.
+      // width problem documented on the user list. Two shares, not one.
       flex: 2,
       text: (event) => event.description ?? '',
     ),
     ListColumn<EventResponse>(
       key: 'customer',
       label: 'Customer',
-      // `EventListPage.tsx:128` — `event.customer?.name || 'N/A'`. The fallback is
+      // `EventListPage.tsx` — `event.customer?.name || 'N/A'`. The fallback is
       // the original's, and it is not decoration: `customerId` is nullable on
       // both the DTO and the schema, so an event with no customer is a real state.
       text: (event) => event.customer?.name ?? 'N/A',
@@ -217,7 +217,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
       key: 'rsvp',
       label: 'RSVP',
       // Not sortable, matching the original: only `title` and `date` carry
-      // `sortable: true` at `EventListPage.tsx:105,125`.
+      // `sortable: true` at `EventListPage.tsx,125`.
       render: (context, event) => _RsvpCell(
         event: event,
         currentUserId: currentUserId,
@@ -331,7 +331,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
 /// side above 700px and stacked below it, which is a [Wrap] for the same reason
 /// [ListScreenHeader] is one.
 ///
-/// `DateField` from task 5.9 rather than a raw text field, so the date is picked
+/// `DateField` from rather than a raw text field, so the date is picked
 /// rather than typed and the value is always a valid `yyyy-MM-dd` — which
 /// matters here because it goes straight into the query. **No `lastDate`
 /// override**: the field's own default already reaches into the future,
@@ -363,14 +363,14 @@ class _Filters extends StatelessWidget {
         // original**, and the original has the same gap: `EventListPage.tsx`
         // links nowhere, and the only way back to the calendar is the nav
         // rail's "Events" item — which is a drawer on a phone. The calendar
-        // page links *out* to this list (`EventCalendar.tsx:253`, "View All
+        // page links *out* to this list (`EventCalendar.tsx`, "View All
         // Events"), so the two screens are siblings in one direction only, and
         // a user who arrived here has to know to go back rather than being
         // offered it.
         //
         // It sits **beside the search box** because that is where the
         // calendar's own "View All Events" button sits
-        // (`EventCalendar.tsx:244-252` — the 250px input, then the link, then
+        // (`EventCalendar.tsx` — the 250px input, then the link, then
         // Create). The two pages now read as mirror images, and the button is a
         // *view switch* rather than a filter control — which is why the date
         // fields moved to their own row instead of sharing this one.
@@ -394,7 +394,7 @@ class _Filters extends StatelessWidget {
         // **Row two: the start-date floor.**
         //
         // Its own row because it is a *filter*, and it used to share a row
-        // with the search box in the React original (`EventListPage.tsx:190-215`
+        // with the search box in the React original (`EventListPage.tsx`
         // — two `col-md-4` columns). Separating the two kinds of control is
         // what lets the view switch live where the search box is.
         Wrap(
@@ -424,7 +424,7 @@ class _Filters extends StatelessWidget {
 
 /// The three RSVP buttons, and which of them is currently selected.
 ///
-/// `EventListPage.tsx:130-161`. The selected button is filled (`btn-success` /
+/// `EventListPage.tsx`. The selected button is filled (`btn-success` /
 /// `btn-danger`) and the others are neutral (`btn-light`); that is the entire
 /// "what is my current answer" display, and it is reproduced rather than
 /// improved, because the server has no notion of "cleared" that the client could
@@ -443,7 +443,7 @@ class _RsvpCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // `EventListPage.tsx:131` finds *this* user's RSVP among the event's, rather
+    // `EventListPage.tsx` finds *this* user's RSVP among the event's, rather
     // than reading a field the server denormalizes. Null when the user has not
     // answered, which is also the state where all three buttons are neutral.
     final mine = currentUserId == null
@@ -483,12 +483,12 @@ class _RsvpCell extends StatelessWidget {
 
 /// What the clear button posts.
 ///
-/// `'no response'`, verbatim from `EventListPage.tsx:153`. **Not** `''`, not
+/// `'no response'`, verbatim from `EventListPage.tsx`. **Not** `''`, not
 /// `'none'`, and not a member of [RsvpAvailability] — the server stores it as a
 /// free-form string (`RsvpRequest.availability` has no validation) and the
 /// original's own "what did I answer" test is an equality check against
 /// `'available'` or `'unavailable'`, so any other value reads as unanswered.
-/// Task 10.17 decides whether that column should hold a closed set.
+/// decides whether that column should hold a closed set.
 const String kRsvpCleared = 'no response';
 
 /// One RSVP button.
@@ -501,7 +501,7 @@ const String kRsvpCleared = 'no response';
 /// off — so a screen cannot ask which layout it is in from the window, and the
 /// `context.layoutSize` this file could read is the window and would disagree.
 /// [kRsvpButtonSize] is therefore one compromise chosen to fit three across a
-/// table cell and still meet the 44pt touch-target floor in a card (task 9.4).
+/// table cell and still meet the 44pt touch-target floor in a card
 const double kRsvpButtonSize = 44;
 
 class _RsvpButton extends StatelessWidget {

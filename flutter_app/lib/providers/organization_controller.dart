@@ -19,7 +19,7 @@ final organizationControllerProvider =
     );
 
 class OrganizationController extends AsyncNotifier<OrganizationResponse?> {
-  /// Mirrors `OrganizationContext.tsx:11-15`: restore from storage on boot,
+  /// Mirrors `OrganizationContext.tsx`: restore from storage on boot,
   /// seeded synchronously in React and asynchronously here.
   ///
   /// `localStorage` is a synchronous store, so React could initialize during
@@ -36,7 +36,7 @@ class OrganizationController extends AsyncNotifier<OrganizationResponse?> {
   /// Sets the selected organization and persists it.
   ///
   /// Persistence is awaited before the state is published, matching
-  /// `OrganizationContext.tsx:18-24`, where `setItem` runs synchronously inside
+  /// `OrganizationContext.tsx`, where `setItem` runs synchronously inside
   /// the setter. Publishing first and writing second would let a fast reload
   /// land between the two and read the old value back.
   ///
@@ -57,7 +57,7 @@ class OrganizationController extends AsyncNotifier<OrganizationResponse?> {
   /// Parses a stored value, tolerating anything unreadable.
   ///
   /// The original calls a bare `JSON.parse` on whatever is in
-  /// `localStorage` (`OrganizationContext.tsx:12`), so a value written by an
+  /// `localStorage` (`OrganizationContext.tsx`), so a value written by an
   /// older build — or edited by hand — throws during the first render and
   /// takes the whole app down. A stale selection is recoverable; a white
   /// screen is not.
@@ -84,7 +84,7 @@ class OrganizationController extends AsyncNotifier<OrganizationResponse?> {
 }
 
 /// The selected organization, or `null`. The convenience accessor replacing
-/// `useOrganization()`.
+/// `useOrganization`.
 final selectedOrganizationProvider = Provider<OrganizationResponse?>(
   (ref) => ref.watch(organizationControllerProvider).value,
 );

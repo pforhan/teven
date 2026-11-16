@@ -14,7 +14,7 @@ import 'package:teven_app/models/user.dart';
 
 import 'support/stub_adapter.dart';
 
-/// Request-level behaviour for the service layer — task 1.20.
+/// Request-level behaviour for the service layer
 ///
 /// These assert on the *request*: that each method reaches the documented path
 /// with the documented query parameters, and that the response *shapes* are
@@ -144,7 +144,7 @@ void main() {
     });
   });
 
-  group('task 1.18 — event queries are capped by default', () {
+  group(' — event queries are capped by default', () {
     test('getAllEvents sends limit=10 when unspecified', () async {
       await EventService(client).getAllEvents();
       expect(lastPath(), '/api/events');
@@ -173,7 +173,7 @@ void main() {
     });
   });
 
-  group('task 1.16 — sort parameters', () {
+  group(' — sort parameters', () {
     test('sortBy is forwarded even though the server ignores it', () async {
       await EventService(client).getAllEvents(const ListQuery(sortBy: 'title'));
       expect(adapter.lastQuery['sortBy'], 'title');

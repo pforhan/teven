@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 
 /// The three layout sizes the chrome is built for.
 ///
-/// Task 3.2. Not a device check: the app is web-first and the same browser is
+/// Not a device check: the app is web-first and the same browser is
 /// resized rather than swapped, so the branch has to follow available width.
 /// [AppBreakpoints.of] takes a width for exactly that reason — it is a pure
 /// function of a number, which is what makes it testable without a browser.

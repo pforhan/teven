@@ -11,14 +11,14 @@ import 'package:teven_app/widgets/responsive_list_view.dart';
 import 'support/auth_harness.dart';
 import 'support/stub_adapter.dart';
 
-/// Task 4.14 — the list must not flash to a spinner on every search.
+/// — the list must not flash to a spinner on every search.
 ///
 /// **Every test that observes the behaviour asserts on a single frame taken
 /// while a request is in flight**, because that is the only moment the
 /// behaviour exists. That dictates the shape of these tests: none of them may
 /// call `pumpAndSettle` while that frame is current, because the thing on screen
 /// — a `LinearProgressIndicator` — animates indefinitely and settling would run
-/// forever. They `pump()` a fixed duration and look, then **drain afterwards**.
+/// forever. They `pump` a fixed duration and look, then **drain afterwards**.
 ///
 /// The drain is teardown hygiene, not part of the assertion, and it is not
 /// optional: dio leaves a zero-duration timer pending until a request completes,
@@ -144,7 +144,7 @@ void main() {
 
       await searchWithoutSettling(tester, 'Al');
 
-      // **The whole of task 4.14.** Before the fix the card — heading, column
+      // **The whole of ** Before the fix the card — heading, column
       // headers and every row — was replaced by a centred spinner, so the list
       // blinked out and back on each debounced keystroke.
       expect(find.text('Beta'), findsOneWidget);

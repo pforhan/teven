@@ -53,7 +53,7 @@ class UserService {
 
   /// Deletes a user. **This endpoint does not exist.**
   ///
-  /// The React app calls `DELETE /api/users/{id}` and `UserList.tsx:81` surfaces
+  /// The React app calls `DELETE /api/users/{id}` and `UserList.tsx` surfaces
   /// it as a working delete button, but `UserRoutes.kt` defines no `delete`
   /// route — the request falls through to the `/api` catch-all and 404s with a
   /// JSON envelope. The button has therefore never worked.
@@ -61,11 +61,11 @@ class UserService {
   /// **Reproduced rather than fixed or dropped**, on the same terms as the dead
   /// detail links (`AppRoutes.customerDetails`): the port is faithful through
   /// Phase 8, and a 404 that the screen surfaces as an error is a more honest
-  /// reproduction than a button quietly missing. `UserList.tsx:81` caught the
+  /// reproduction than a button quietly missing. `UserList.tsx` caught the
   /// failure and put it in the shared `error` state; the ported screen does the
   /// same through its action-error banner.
   ///
-  /// Task 10.12 owns the fix, and its decision is made — **hard delete**, with
+  /// owns the fix, and its decision is made — **hard delete**, with
   /// the four dependent tables cascaded and `Invitations.usedByUserId` nulled
   /// rather than cascaded. Until then this call always fails.
   Future<void> deleteUser(int userId) => _client.delete('/api/users/$userId');
@@ -147,8 +147,8 @@ class CustomerService {
       );
 
   /// Answers `success("Customer with ID N updated")` — a bare string, not a
-  /// [CustomerResponse]. Hence the `String` return. Task 10.10 would change
-  /// this to a DTO; task 6.9 notes the event equivalent.
+  /// [CustomerResponse]. Hence the `String` return. would change
+  /// this to a DTO; notes the event equivalent.
   Future<String> updateCustomer(
     int customerId,
     UpdateCustomerRequest request,
@@ -181,7 +181,7 @@ class InventoryService {
   /// A single item, including **every** event that has used it.
   ///
   /// The `events` list is unpaginated — the server embeds all of them, with no
-  /// way to page or filter. Task 4.5 caps display client-side.
+  /// way to page or filter. caps display client-side.
   Future<InventoryItemResponse> getInventoryItem(int inventoryId) =>
       _client.get<InventoryItemResponse>(
         '/api/inventory/$inventoryId',

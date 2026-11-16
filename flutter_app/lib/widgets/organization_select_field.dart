@@ -6,7 +6,7 @@ import '../providers/organization_list.dart';
 
 /// The organization `<select>` the customer and user forms share.
 ///
-/// `CreateCustomerForm.tsx:104-119` and `CreateUserForm.tsx` render the same
+/// `CreateCustomerForm.tsx` and `CreateUserForm.tsx` render the same
 /// control — a `form-select` over `getAllOrganizations(1000).items`, holding an
 /// `organizationId` — and differ only in what they do with it. React wrote
 /// each one out again; this is the one widget both use.
@@ -45,7 +45,7 @@ class OrganizationSelectField extends ConsumerWidget {
 
   /// Derives the value to *display* when the caller has not chosen one.
   ///
-  /// Exists because `CreateCustomerForm.tsx:40-42` and `CreateUserForm.tsx:42`
+  /// Exists because `CreateCustomerForm.tsx` and `CreateUserForm.tsx`
   /// both seed their `<select>` with `items[0]`, and the rule has to be the
   /// same one the submit handler applies — otherwise the control shows one
   /// organization while the request names another, and nothing on screen

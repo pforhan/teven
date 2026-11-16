@@ -6,7 +6,7 @@ part 'api_response.g.dart';
 /// Error payload carried inside a failed [ApiResponse].
 ///
 /// Mirrors `ApiError` in
-/// `backend/api/.../model/common/ApiResponse.kt:19`.
+/// `backend/api/.../model/common/ApiResponse.kt`.
 @freezed
 abstract class ApiError with _$ApiError {
   const factory ApiError({required String message, String? details}) =
@@ -19,8 +19,8 @@ abstract class ApiError with _$ApiError {
 /// The server's response envelope, with `data` typed.
 ///
 /// Every Teven endpoint answers with `{success, data, error}`
-/// (`backend/api/.../model/common/ApiResponse.kt:8`). [data] is nullable
-/// because the server's `failure()` helper does **not** omit it — it sets
+/// (`backend/api/.../model/common/ApiResponse.kt`). [data] is nullable
+/// because the server's `failure` helper does **not** omit it — it sets
 /// `data = Unit`, which serialises to `{}`. So a failed response carries a
 /// non-null `data` that is `{}`, not `null`. Callers must therefore never
 /// read `data` without first checking [success] / [error].
@@ -29,7 +29,7 @@ abstract class ApiError with _$ApiError {
 /// deserialization, precisely so that this is safe: `decode` is invoked
 /// **only** when `success` is true. A generated `fromJson` would try to decode
 /// `{}` into `T` on every failure and throw, destroying the very error
-/// message the caller needs. Task 1.10 leans on this when mapping a response
+/// message the caller needs. leans on this when mapping a response
 /// to `List<EventResponse>` and friends.
 @freezed
 abstract class ApiResponse<T> with _$ApiResponse<T> {
