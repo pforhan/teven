@@ -65,8 +65,16 @@ abstract final class AppRoutes {
   /// `App.tsx:44` declares `events/:eventId`, so the calendar's pills and the
   /// list's title links both resolve. Task 7.6 built the screen at the other
   /// end of it.
-  static String eventDetailsPath(int eventId) =>
-      eventDetails.replaceFirst(':eventId', '$eventId');
+  ///
+  /// [backToDay], when provided as a `yyyy-MM-dd` date, records that the user
+  /// reached this event from that day's view. The details screen's back control
+  /// then returns to the day view (and preserves this context when moving between
+  /// other events on the same day) instead of returning to the calendar.
+  static String eventDetailsPath(int eventId, {String? backToDay}) {
+    final path = eventDetails.replaceFirst(':eventId', '$eventId');
+    if (backToDay == null || backToDay.isEmpty) return path;
+    return '$path?fromDay=$backToDay';
+  }
 
   static String eventEditPath(int eventId) =>
       eventEdit.replaceFirst(':eventId', '$eventId');
@@ -359,6 +367,7 @@ List<RouteBase> _shellRoutes(Ref ref) => [
       // and inventory edit routes: the screen then asks for `/api/events/-1`,
       // which 404s, which lands on the error branch.
       eventId: int.tryParse(state.pathParameters['eventId'] ?? '') ?? -1,
+      backToDay: state.uri.queryParameters['fromDay'],
     ),
   ),
 

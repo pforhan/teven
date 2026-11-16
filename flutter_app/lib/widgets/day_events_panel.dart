@@ -57,6 +57,7 @@ class DayEventsPanel extends ConsumerStatefulWidget {
     this.marker,
     this.interactive = true,
     this.organizationName,
+    this.eventDetailsBackToDay,
   });
 
   /// The day, as `YYYY-MM-DD`.
@@ -100,6 +101,10 @@ class DayEventsPanel extends ConsumerStatefulWidget {
   /// Used on view-event to clarify which organization's events are listed when
   /// a superadmin may be comparing against all-org views.
   final String? organizationName;
+
+  /// When set, event rows open details with a day-back context so the details
+  /// screen can return to that day view (and preserve it across same-day shuffles).
+  final String? eventDetailsBackToDay;
 
   @override
   ConsumerState<DayEventsPanel> createState() => _DayEventsPanelState();
@@ -307,7 +312,10 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
                   showOrganization: showOrganization,
                   onTap: widget.interactive
                       ? () => context.go(
-                          AppRoutes.eventDetailsPath(event.eventId),
+                          AppRoutes.eventDetailsPath(
+                            event.eventId,
+                            backToDay: widget.eventDetailsBackToDay,
+                          ),
                         )
                       : null,
                 ),

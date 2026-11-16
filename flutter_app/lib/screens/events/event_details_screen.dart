@@ -45,9 +45,13 @@ import '../../widgets/day_events_panel.dart';
 /// where *not* refetching is the point, and it is why the shared delete
 /// dialog (task 4.8) leaves the consequence at the call site.
 class EventDetailsScreen extends ConsumerStatefulWidget {
-  const EventDetailsScreen({super.key, required this.eventId});
+  const EventDetailsScreen({super.key, required this.eventId, this.backToDay});
 
   final int eventId;
+
+  /// When set to a `yyyy-MM-dd` date, the back control returns to that day view
+  /// and intra-day navigation preserves this context.
+  final String? backToDay;
 
   @override
   ConsumerState<EventDetailsScreen> createState() => _EventDetailsScreenState();
@@ -317,6 +321,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
             _Header(
               canManage: canManage,
               submitting: _submitting,
+              backToDay: widget.backToDay,
               onEdit: () => context.go(AppRoutes.eventEditPath(widget.eventId)),
               onDelete: () => unawaited(_confirmDelete()),
             ),
@@ -351,6 +356,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
                         canManage: canManage,
                         myRsvpStatus: _myRsvpStatus,
                         submitting: _submitting,
+                        backToDay: widget.backToDay,
                         onRsvp: (availability) =>
                             unawaited(_rsvp(availability)),
                       );
@@ -414,53 +420,64 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.canManage,
     required this.submitting,
+    required this.backToDay,
     required this.onEdit,
     required this.onDelete,
   });
 
   final bool canManage;
   final bool submitting;
+  final String? backToDay;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-    alignment: WrapAlignment.spaceBetween,
-    crossAxisAlignment: WrapCrossAlignment.center,
-    spacing: 8,
-    runSpacing: 8,
-    children: [
-      OutlinedButton.icon(
-        onPressed: () => context.go(AppRoutes.events),
-        icon: const Icon(Icons.arrow_back),
-        label: const Text('Back to Events'),
-      ),
-      // **The buttons are absent, not disabled,** for a user who may not
-      // manage events. The React original renders the group only when the
-      // permission is held.
-      if (canManage)
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.primary,
-              ),
-              onPressed: submitting ? null : onEdit,
-              child: const Text('Edit'),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
-              ),
-              onPressed: submitting ? null : onDelete,
-              child: const Text('Delete'),
-            ),
-          ],
+  Widget build(BuildContext context) {
+    final backToDay = this.backToDay;
+    final backPath = (backToDay != null && backToDay.isNotEmpty)
+        ? '${AppRoutes.eventDay}?date=$backToDay'
+        : AppRoutes.events;
+    final backLabel = (backToDay != null && backToDay.isNotEmpty)
+        ? 'Back to Day'
+        : 'Back to Events';
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => context.go(backPath),
+          icon: const Icon(Icons.arrow_back),
+          label: Text(backLabel),
         ),
-    ],
-  );
+        // **The buttons are absent, not disabled,** for a user who may not
+        // manage events. The React original renders the group only when the
+        // permission is held.
+        if (canManage)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                ),
+                onPressed: submitting ? null : onEdit,
+                child: const Text('Edit'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: submitting ? null : onDelete,
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
 }
 
 /// The main card: the event itself.
@@ -870,6 +887,7 @@ class _Sidebar extends ConsumerWidget {
     required this.canManage,
     required this.myRsvpStatus,
     required this.submitting,
+    required this.backToDay,
     required this.onRsvp,
   });
 
@@ -879,6 +897,7 @@ class _Sidebar extends ConsumerWidget {
   final bool canManage;
   final String? myRsvpStatus;
   final bool submitting;
+  final String? backToDay;
   final ValueChanged<String> onRsvp;
 
   @override
@@ -907,6 +926,7 @@ class _Sidebar extends ConsumerWidget {
             instant: event.instant,
             label: 'This event',
           ),
+          eventDetailsBackToDay: backToDay,
         ),
         const SizedBox(height: 16),
         _AvailabilityCard(
