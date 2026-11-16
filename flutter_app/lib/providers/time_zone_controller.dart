@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'auth_controller.dart';
-import 'organization_controller.dart';
+import 'effective_organization_scope.dart';
 import 'service_providers.dart';
 
 /// The reader's resolved time zone, with the pieces the UI shows.
@@ -72,7 +72,7 @@ class TimeZoneController extends AsyncNotifier<TimeZoneResolution> {
     final override = prefs.getString(storageKey);
     final detected = await ref.read(timeZoneDetectorProvider.future);
     final organizationZone =
-        ref.read(selectedOrganizationProvider)?.timezone ??
+        ref.read(effectiveOrganizationProvider)?.timezone ??
         ref.read(userContextProvider)?.user.organization.timezone;
     return TimeZoneResolution(
       detectedZone: detected,

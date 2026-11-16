@@ -6,11 +6,10 @@ import '../../core/api/api_exception.dart';
 
 import '../../core/services/list_query.dart';
 import '../../models/customer.dart';
-import '../../models/organization.dart';
 import '../../models/permissions.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/customer_list.dart';
-import '../../providers/organization_controller.dart';
+import '../../providers/effective_organization_scope.dart';
 import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/confirm_dialog.dart';
@@ -161,22 +160,23 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   /// Called from `build` rather than being cached as a getter, because it reads
   /// `selectedOrganizationProvider` — a `ref.watch` inside a getter would be a
   /// dependency registered outside the build that is supposed to own it.
-  ListQuery _buildQuery(OrganizationResponse? organization) => ListQuery(
+  ListQuery _buildQuery(int? organizationId) => ListQuery(
     search: _searchTerm.isEmpty ? null : _searchTerm,
     sortBy: _sortBy,
     sortOrder: _sortOrder,
-    // `CustomerList.tsx:32` — only ever non-null for a super-admin, since that
-    // is the only case in which a selection exists to scope by.
-    organizationId: organization?.organizationId,
+    // Scoped by the effective organization: a superadmin in "All
+    // Organizations" sees every organization, a superadmin with a selection
+    // sees that one, and everyone else sees their own.
+    organizationId: organizationId,
   );
 
   @override
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
     final canManage = gate.has(Permission.manageCustomersOrganization);
-    final organization = ref.watch(selectedOrganizationProvider);
+    final organizationId = ref.watch(queryOrganizationIdProvider);
 
-    final query = _buildQuery(organization);
+    final query = _buildQuery(organizationId);
     // Assigning during build rather than in an event handler: the search field's
     // debounce and the sort toggle both go through `setState`, and this is the
     // only place that sees the organization selection change without a

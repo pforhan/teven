@@ -12,10 +12,9 @@ import '../../core/services/list_query.dart';
 import '../../core/theme/teven_theme.dart';
 import '../../core/util/local_date.dart';
 import '../../models/event.dart';
-import '../../models/organization.dart';
 import '../../providers/auth_controller.dart';
+import '../../providers/effective_organization_scope.dart';
 import '../../providers/event_list.dart';
-import '../../providers/organization_controller.dart';
 import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/create_event_button.dart';
@@ -86,10 +85,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
   /// accordingly.
   ///
   /// `limit` is [kCalendarEventLimit] and `offset` is absent.
-  ListQuery _buildQuery(
-    OrganizationResponse? organization,
-    String readerZone,
-  ) => ListQuery(
+  ListQuery _buildQuery(int? organizationId, String readerZone) => ListQuery(
     limit: kCalendarEventLimit,
     startDate: formatLocalDate(
       DateTime(_focusedMonth.year, _focusedMonth.month),
@@ -99,7 +95,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
     endDate: formatLocalDate(
       DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0),
     ),
-    organizationId: organization?.organizationId,
+    organizationId: organizationId,
     search: _searchTerm.isEmpty ? null : _searchTerm,
     timezone: readerZone,
   );
@@ -160,7 +156,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final organization = ref.watch(selectedOrganizationProvider);
+    final organizationId = ref.watch(queryOrganizationIdProvider);
     final tz = ref.watch(timeZoneControllerProvider);
     final readerZone = tz.value?.effectiveZone ?? 'UTC';
 
@@ -176,7 +172,7 @@ class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
     }
 
     final events = ref.watch(
-      calendarEventsProvider(_buildQuery(organization, readerZone)),
+      calendarEventsProvider(_buildQuery(organizationId, readerZone)),
     );
 
     return Scaffold(

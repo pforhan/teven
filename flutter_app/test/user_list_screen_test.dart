@@ -292,13 +292,15 @@ void main() {
     testWidgets('scopes to the selected organization when there is one', (
       tester,
     ) async {
-      final adapter = userAdapter();
+      final adapter = userAdapter(
+        permissions: const [viewUsers, viewUsersGlobal, manageUsers],
+      );
       await openUsers(
         tester,
         adapter,
         prefs: {
           'selectedOrganization': jsonEncode({
-            'organizationId': 7,
+            'organizationId': 2,
             'name': 'Globex',
             'contactInformation': '',
             'timezone': 'UTC',
@@ -306,9 +308,9 @@ void main() {
         },
       );
 
-      // `UserList.tsx:39`, the same line the customer and inventory screens
-      // have. Unlike the organization screen, this one *is* scoped.
-      expect(userRequests(adapter).last.queryParameters['organizationId'], 7);
+      // A superadmin's selected organization scopes the list; unlike the
+      // organization screen, this one *is* scoped.
+      expect(userRequests(adapter).last.queryParameters['organizationId'], 2);
     });
 
     testWidgets(

@@ -10,11 +10,10 @@ import '../../core/services/list_query.dart';
 import '../../core/theme/teven_theme.dart';
 import '../../core/util/local_date.dart';
 import '../../models/event.dart';
-import '../../models/organization.dart';
 import '../../models/permissions.dart';
 import '../../providers/auth_controller.dart';
+import '../../providers/effective_organization_scope.dart';
 import '../../providers/event_list.dart';
-import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
@@ -105,16 +104,14 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     });
   }
 
-  ListQuery _buildQuery(
-    OrganizationResponse? organization,
-    String readerZone,
-  ) => ListQuery(
+  ListQuery _buildQuery(int? organizationId, String readerZone) => ListQuery(
     search: _searchTerm.isEmpty ? null : _searchTerm,
     sortBy: _sortBy,
     sortOrder: _sortOrder,
-    // `EventListPage.tsx:39` — scoped to the selected organization, unlike the
-    // organization screen, which is the one list that is not.
-    organizationId: organization?.organizationId,
+    // Scoped by the effective organization: a superadmin in "All
+    // Organizations" sees every organization, a superadmin with a selection
+    // sees that one, and everyone else sees their own.
+    organizationId: organizationId,
     // **A floor, not a range.** `EventListPage.tsx:36-44` passes `startDate` and
     // leaves `endDate` undefined, so the original shows upcoming events only.
     // The date is interpreted in the reader's zone, so "today" means the same
@@ -234,7 +231,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     final gate = ref.watch(permissionGateProvider);
     final canManage = gate.has(Permission.manageEventsOrganization);
     final currentUserId = ref.watch(userContextProvider)?.user.userId;
-    final organization = ref.watch(selectedOrganizationProvider);
+    final organizationId = ref.watch(queryOrganizationIdProvider);
     final tz = ref.watch(timeZoneControllerProvider);
     final readerZone = tz.value?.effectiveZone ?? 'UTC';
 
@@ -251,7 +248,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
       });
     }
 
-    final query = _buildQuery(organization, readerZone);
+    final query = _buildQuery(organizationId, readerZone);
     _query = query;
     final actionError = _actionError;
 

@@ -9,11 +9,10 @@ import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
 import '../../core/util/local_date.dart';
 import '../../models/invitation.dart';
-import '../../models/organization.dart';
 import '../../models/permissions.dart';
 import '../../models/user.dart';
 import '../../providers/auth_controller.dart';
-import '../../providers/organization_controller.dart';
+import '../../providers/effective_organization_scope.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/time_zone_controller.dart';
 import '../../providers/user_list.dart';
@@ -304,13 +303,14 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   /// **`limit` and `offset` are deliberately absent** — they belong to
   /// `PagedListController`, which applies the page size and advances the offset
   /// itself. See the customer screen for why.
-  ListQuery _buildQuery(OrganizationResponse? organization) => ListQuery(
+  ListQuery _buildQuery(int? organizationId) => ListQuery(
     search: _searchTerm.isEmpty ? null : _searchTerm,
     sortBy: _sortBy,
     sortOrder: _sortOrder,
-    // `UserList.tsx:39` — only ever non-null for a super-admin, since that is
-    // the only case in which a selection exists to scope by.
-    organizationId: organization?.organizationId,
+    // Scoped by the effective organization: a superadmin in "All
+    // Organizations" sees every organization, a superadmin with a selection
+    // sees that one, and everyone else sees their own.
+    organizationId: organizationId,
   );
 
   /// The invitation columns. `UserList.tsx:166-195`.
@@ -356,7 +356,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
       Permission.manageUsersOrganization,
     ]);
     final canViewGlobal = gate.has(Permission.viewUsersGlobal);
-    final organization = ref.watch(selectedOrganizationProvider);
+    final organizationId = ref.watch(queryOrganizationIdProvider);
 
     // `UserList.tsx:53-55` fetches invitations only for a manager, and
     // `UserList.tsx:223` renders the table only when there is something in it.
@@ -368,7 +368,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             <InvitationResponse>[],
           );
 
-    final query = _buildQuery(organization);
+    final query = _buildQuery(organizationId);
     _query = query;
     final actionError = _actionError;
 

@@ -5,11 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
 import '../../models/inventory.dart';
-import '../../models/organization.dart';
 import '../../models/permissions.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/inventory_list.dart';
-import '../../providers/organization_controller.dart';
+import '../../providers/effective_organization_scope.dart';
 import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/confirm_dialog.dart';
@@ -107,13 +106,14 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   /// **`limit` and `offset` are deliberately absent** — they belong to
   /// `PagedListController`, which applies the page size and advances the offset
   /// itself. See the customer screen for why.
-  ListQuery _buildQuery(OrganizationResponse? organization) => ListQuery(
+  ListQuery _buildQuery(int? organizationId) => ListQuery(
     search: _searchTerm.isEmpty ? null : _searchTerm,
     sortBy: _sortBy,
     sortOrder: _sortOrder,
-    // `InventoryList.tsx:32` — only ever non-null for a super-admin, since that
-    // is the only case in which a selection exists to scope by.
-    organizationId: organization?.organizationId,
+    // Scoped by the effective organization: a superadmin in "All
+    // Organizations" sees every organization, a superadmin with a selection
+    // sees that one, and everyone else sees their own.
+    organizationId: organizationId,
   );
 
   List<ListColumn<InventoryItemResponse>> _columns() => [
@@ -151,9 +151,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
     final canManage = gate.has(Permission.manageInventoryOrganization);
-    final organization = ref.watch(selectedOrganizationProvider);
+    final organizationId = ref.watch(queryOrganizationIdProvider);
 
-    final query = _buildQuery(organization);
+    final query = _buildQuery(organizationId);
     _query = query;
     final actionError = _actionError;
 

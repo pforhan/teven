@@ -155,22 +155,28 @@ void main() {
       expect(request.queryParameters['sortBy'], 'name');
       expect(request.queryParameters['sortOrder'], 'asc');
       expect(request.queryParameters.containsKey('search'), isFalse);
-      // `InventoryList.tsx:26-33` passes `selectedOrganization?.organizationId`,
-      // which is null for anyone but a super-admin. Asserting the parameter is
-      // absent rather than null: `ListQuery.toParams` drops nulls.
-      expect(request.queryParameters.containsKey('organizationId'), isFalse);
+      // A non-superadmin acts in their own organization, so the effective
+      // scope sends that organization id rather than leaving the query
+      // unscoped. The signed-in user in this harness belongs to org 1.
+      expect(request.queryParameters['organizationId'], 1);
     });
 
     testWidgets('scopes to the selected organization when there is one', (
       tester,
     ) async {
-      final adapter = inventoryAdapter();
+      final adapter = inventoryAdapter(
+        permissions: const [
+          viewInventory,
+          manageInventory,
+          'VIEW_USERS_GLOBAL',
+        ],
+      );
       await openInventory(
         tester,
         adapter,
         prefs: {
           'selectedOrganization': jsonEncode({
-            'organizationId': 7,
+            'organizationId': 2,
             'name': 'Globex',
             'contactInformation': '',
             'timezone': 'UTC',
@@ -178,7 +184,7 @@ void main() {
         },
       );
 
-      expect(getRequests(adapter).last.queryParameters['organizationId'], 7);
+      expect(getRequests(adapter).last.queryParameters['organizationId'], 2);
     });
 
     testWidgets(

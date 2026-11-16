@@ -7,7 +7,7 @@ import 'package:intl/intl.dart' show DateFormat;
 
 import '../../models/permissions.dart';
 import '../../providers/auth_controller.dart';
-import '../../providers/organization_controller.dart';
+import '../../providers/effective_organization_scope.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/create_event_button.dart';
 import '../../widgets/day_events_panel.dart';
@@ -41,14 +41,9 @@ class EventDayScreen extends ConsumerStatefulWidget {
 class _EventDayScreenState extends ConsumerState<EventDayScreen> {
   @override
   Widget build(BuildContext context) {
-    final isSuperAdmin = ref
-        .watch(permissionGateProvider)
-        .has(Permission.viewUsersGlobal);
-    final selectedOrganization = ref.watch(selectedOrganizationProvider);
-    final userOrganization = ref.watch(userContextProvider)?.user.organization;
-    final String? organizationId = isSuperAdmin
-        ? selectedOrganization?.organizationId.toString()
-        : userOrganization?.organizationId.toString();
+    final String? organizationId = ref
+        .watch(queryOrganizationIdProvider)
+        ?.toString();
 
     // The day is a wire date (`YYYY-MM-DD`); the previous and next gestures
     // move a single calendar day in the reader's local date, which is the only

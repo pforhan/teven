@@ -152,14 +152,20 @@ void main() {
     testWidgets('scopes to the selected organization when there is one', (
       tester,
     ) async {
-      final adapter = customerAdapter();
+      final adapter = customerAdapter(
+        permissions: const [
+          viewCustomers,
+          manageCustomers,
+          'VIEW_USERS_GLOBAL',
+        ],
+      );
       // The value `OrganizationController` persists under `selectedOrganization`.
       await openCustomers(
         tester,
         adapter,
         prefs: {
           'selectedOrganization': jsonEncode({
-            'organizationId': 7,
+            'organizationId': 2,
             'name': 'Globex',
             'contactInformation': '',
             'timezone': 'UTC',
@@ -167,7 +173,7 @@ void main() {
         },
       );
 
-      expect(getRequests(adapter).last.queryParameters['organizationId'], 7);
+      expect(getRequests(adapter).last.queryParameters['organizationId'], 2);
     });
 
     testWidgets(
