@@ -1,0 +1,333 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/api/api_exception.dart';
+import '../../models/organization.dart';
+import '../../models/permissions.dart';
+import '../../models/role.dart';
+import '../../models/user.dart';
+import '../../providers/auth_controller.dart';
+import '../../providers/organization_controller.dart';
+import '../../providers/service_providers.dart';
+import '../../routing/app_router.dart';
+import '../../widgets/form_card.dart';
+import '../../widgets/organization_select_field.dart';
+import '../../widgets/validators.dart';
+
+/// Unified create/edit user form.
+///
+/// Create and edit share role selection and organization handling but differ in
+/// fields and lifecycle: create includes username/password and loads roles;
+/// edit loads an existing user and roles, preselects roles/organization, and
+/// omits create-only fields. Differences are expressed as mode branches while
+/// keeping resource-specific rules explicit.
+class UserFormScreen extends ConsumerStatefulWidget {
+  const UserFormScreen({super.key, this.userId});
+
+  /// Null for create, non-null for edit.
+  final int? userId;
+
+  @override
+  ConsumerState<UserFormScreen> createState() => _UserFormScreenState();
+}
+
+class _UserFormScreenState extends ConsumerState<UserFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _displayNameController = TextEditingController();
+
+  List<RoleResponse> _roles = [];
+  final Set<String> _selectedRoles = {};
+
+  UserResponse? _item;
+  OrganizationResponse? _selectedOrganization;
+
+  bool _loading = true;
+  bool _submitting = false;
+  ApiException? _error;
+
+  bool get _isCreate => widget.userId == null;
+  bool get _isEdit => widget.userId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _emailController.dispose();
+    _displayNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      if (_isCreate) {
+        final roles = await ref.read(roleServiceProvider).getAllRoles();
+        if (!mounted) return;
+        setState(() {
+          _roles = roles;
+          _loading = false;
+        });
+      } else {
+        final results = await Future.wait([
+          ref.read(userServiceProvider).getUser(widget.userId!),
+          ref.read(roleServiceProvider).getAllRoles(),
+        ]);
+        final user = results[0] as UserResponse;
+        final roles = results[1] as List<RoleResponse>;
+        if (!mounted) return;
+        setState(() {
+          _item = user;
+          _emailController.text = user.email;
+          _displayNameController.text = user.displayName;
+          _selectedRoles
+            ..clear()
+            ..addAll(user.roles);
+          _roles = roles;
+          _selectedOrganization = user.organization;
+          _loading = false;
+        });
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = const ApiRequestException('An unknown error occurred');
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+
+    try {
+      if (_isCreate) {
+        final selectedOrg = ref.read(selectedOrganizationProvider);
+        final canManageGlobal = ref
+            .read(permissionGateProvider)
+            .has(Permission.manageUsersGlobal);
+        final userContext = ref.read(userContextProvider);
+
+        int? organizationId;
+        if (selectedOrg != null) {
+          organizationId = selectedOrg.organizationId;
+        } else if (canManageGlobal) {
+          organizationId = _selectedOrganization?.organizationId;
+        } else {
+          organizationId = userContext?.user.organization.organizationId;
+        }
+
+        if (organizationId == null) {
+          setState(
+            () => _error = const ApiRequestException(
+              'Organization must be selected.',
+            ),
+          );
+          _submitting = false;
+          return;
+        }
+
+        final request = CreateUserRequest(
+          username: _usernameController.text.trim(),
+          password: _passwordController.text,
+          email: _emailController.text.trim(),
+          displayName: _displayNameController.text.trim(),
+          roles: _selectedRoles.toList(),
+          organizationId: organizationId,
+        );
+        await ref.read(userServiceProvider).createUser(request);
+      } else {
+        final canManageGlobal = ref
+            .read(permissionGateProvider)
+            .has(Permission.manageUsersGlobal);
+
+        int? organizationIdToUse;
+        if (canManageGlobal) {
+          organizationIdToUse = _selectedOrganization?.organizationId;
+        }
+
+        final request = UpdateUserRequest(
+          email: _emailController.text.trim(),
+          displayName: _displayNameController.text.trim(),
+          roles: _selectedRoles.toList(),
+          organizationId: organizationIdToUse,
+        );
+        await ref.read(userServiceProvider).updateUser(widget.userId!, request);
+      }
+
+      if (mounted) context.go(AppRoutes.users);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error = const ApiRequestException('An unknown error occurred'),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Widget _rolesField() => Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      for (final role in _roles)
+        FilterChip(
+          label: Text(role.roleName),
+          selected: _selectedRoles.contains(role.roleName),
+          onSelected: (selected) {
+            setState(() {
+              if (selected) {
+                _selectedRoles.add(role.roleName);
+              } else {
+                _selectedRoles.remove(role.roleName);
+              }
+            });
+          },
+        ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_isEdit) {
+      if (_item == null) {
+        return Scaffold(
+          body: Center(
+            child: _error != null
+                ? Text(_error!.message)
+                : const CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      final canManageGlobal = ref
+          .watch(permissionGateProvider)
+          .has(Permission.manageUsersGlobal);
+
+      return FormCard(
+        formKey: _formKey,
+        title: 'Edit User: ${_item!.displayName}',
+        submitLabel: 'Update User',
+        submitting: _submitting,
+        error: _error,
+        onSubmit: _submit,
+        onCancel: () => context.go(AppRoutes.users),
+        fields: [
+          TextFormField(
+            controller: _emailController,
+            decoration: const InputDecoration(labelText: 'Email'),
+            keyboardType: TextInputType.emailAddress,
+            validator: Validators.email,
+          ),
+          TextFormField(
+            controller: _displayNameController,
+            decoration: const InputDecoration(labelText: 'Display Name'),
+            validator: Validators.requiredText,
+          ),
+          _rolesField(),
+          if (canManageGlobal)
+            OrganizationSelectField(
+              value: _selectedOrganization,
+              onChanged: (org) => setState(() => _selectedOrganization = org),
+            ),
+        ],
+      );
+    }
+
+    final selectedOrg = ref.watch(selectedOrganizationProvider);
+    final canManageGlobal = ref
+        .watch(permissionGateProvider)
+        .has(Permission.manageUsersGlobal);
+
+    return FormCard(
+      formKey: _formKey,
+      title: 'Create New User',
+      submitLabel: 'Create User',
+      submitting: _submitting,
+      error: _error,
+      onSubmit: _submit,
+      onCancel: () => context.go(AppRoutes.users),
+      fields: [
+        TextFormField(
+          controller: _usernameController,
+          decoration: const InputDecoration(labelText: 'Username'),
+          validator: Validators.requiredText,
+        ),
+        TextFormField(
+          controller: _passwordController,
+          decoration: const InputDecoration(labelText: 'Password'),
+          obscureText: true,
+          validator: Validators.requiredText,
+        ),
+        TextFormField(
+          controller: _emailController,
+          decoration: const InputDecoration(labelText: 'Email'),
+          keyboardType: TextInputType.emailAddress,
+          validator: Validators.email,
+        ),
+        TextFormField(
+          controller: _displayNameController,
+          decoration: const InputDecoration(labelText: 'Display Name'),
+          validator: Validators.requiredText,
+        ),
+        _rolesField(),
+        if (selectedOrg == null && canManageGlobal)
+          OrganizationSelectField(
+            value: _selectedOrganization,
+            resolve: (loaded, chosen) {
+              if (chosen == null && loaded.isNotEmpty) {
+                return loaded[0];
+              }
+              return chosen;
+            },
+            onChanged: (org) => setState(() => _selectedOrganization = org),
+            validator: Validators.requiredSelection,
+          ),
+      ],
+    );
+  }
+}
+
+/// Create wrapper for router.
+class CreateUserScreen extends StatelessWidget {
+  const CreateUserScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const UserFormScreen();
+}
+
+/// Edit wrapper for router.
+class EditUserScreen extends StatelessWidget {
+  const EditUserScreen({super.key, required this.userId});
+
+  final int userId;
+
+  @override
+  Widget build(BuildContext context) => UserFormScreen(userId: userId);
+}

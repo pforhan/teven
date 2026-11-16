@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:teven_app/routing/app_router.dart';
-import 'package:teven_app/screens/customers/edit_customer_screen.dart';
+import 'package:teven_app/screens/customers/customer_form_screen.dart';
 import 'package:teven_app/widgets/form_card.dart';
 import 'package:teven_app/widgets/organization_select_field.dart';
 import 'package:teven_app/widgets/validators.dart';
