@@ -21,8 +21,7 @@ a step the script exists to enforce, or is wrong on its own.
 
 | Task | Use | Instead of |
 |---|---|---|
-| Start the stack (Flutter) | `./teven up` | `WEB_SOURCE=flutter docker compose up --build -d` |
-| Start the stack (React) | `./teven up-react` | `WEB_SOURCE=react docker compose up --build -d` |
+| Start the stack | `./teven up` | `docker compose up --build -d` (skips the Flutter prebuild) |
 | Analyze + format-check + test (Flutter) | `./teven verify` | `flutter analyze && dart format --output=none --set-exit-if-changed . && flutter test` |
 | Backend unit tests | `./teven verify-backend` | `./gradlew test` |
 | Whole-repo gate | `./teven verify-all` | `./teven verify-backend && ./teven verify` |
@@ -34,11 +33,11 @@ a step the script exists to enforce, or is wrong on its own.
 
 Three of those are not stylistic preferences, and each has cost someone a run:
 
-- **`./teven up` over `docker compose up --build`.** With `WEB_SOURCE=flutter`
-  the Dockerfile copies a **prebuilt** bundle from `flutter_app/build/web`; it
-  does not compile it in the container. Calling Docker directly and forgetting
-  the prebuild produces a successful build that packages a **stale** bundle, with
-  nothing in the output to say so. `./teven up` cannot be run that way.
+- **`./teven up` over `docker compose up --build`.** The Docker image copies a
+  **prebuilt** Flutter bundle from `flutter_app/build/web`; it does not compile
+  it in the container. Calling Docker directly and forgetting the prebuild
+  produces a successful build that packages a **stale** bundle, with nothing in
+  the output to say so. `./teven up` cannot be run that way.
 - **`./teven dev` over `flutter run -d chrome`.** The bare form does not reach
   the backend. The app uses relative URLs on web, which resolve against whatever
   origin served the page — so against the Flutter dev server, `/api` 404s. It also

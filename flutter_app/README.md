@@ -69,16 +69,12 @@ then packages it, so the prebuild step can't be forgotten:
 ```bash
 ./teven up          # build Flutter, then start the stack
 ./teven up -f       # same, but stream logs in the foreground
-./teven up-react    # start with the React frontend (builds inside Docker)
 ```
 
 The build fails loudly if the prebuilt bundle is missing, rather than silently
 producing an image that serves nothing. The trade-off is the reverse hazard: the
 image can contain a **stale** bundle if you skip the rebuild after changing code.
 `./teven up` prevents that by always rebuilding first.
-
-`WEB_SOURCE` defaults to `react`, which builds the React app in `../frontend`
-inside Docker and needs no prebuild step.
 
 ## Flutter version
 

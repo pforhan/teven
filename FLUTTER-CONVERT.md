@@ -42,9 +42,9 @@ Once the Flutter web app is verified working locally against the real backend. T
 
 - [x] **10.0** Strip out comments referencing conversion tasks or filename/linenumber combos.  If dart has javadoc-like capabilities for linking use those, otherwise use File.member type references.
 - [x] **10.2** Verify the Flutter build end-to-end against the real backend via `docker compose up --build`: login, org switch, and one full create/read/update/delete pass per resource.
-- [ ] **10.3** **Delete `frontend/`.** The last commit touching it is the deletion commit.
-- [ ] **10.1** Remove `WEB_SOURCE` in `Dockerfile` and elsewhere -- replacing it with `flutter` the only remaining frontend
-- [ ] **10.4** Remove React deps, ESLint config, and node tooling references from the repo.
+- [x] **10.3** **Delete `frontend/`.** The last commit touching it is the deletion commit.
+- [x] **10.1** Remove/inline `WEB_SOURCE` in `Dockerfile` and elsewhere -- replacing it with `flutter` the only remaining frontend.  No longer needs indirection.
+- [x] **10.4** Remove React deps, ESLint config, and node tooling references from the repo.
 - [ ] **10.5** Update `AGENTS.md`, `README.md`, and `BACKEND-DESIGN.md` for Flutter conventions.
 - [ ] **10.6** Update `API.md` for the drift found during the port (the table in `FLUTTER-CONVERT-DESIGN.md`) — regenerate rather than hand-edit, per `build.gradle.kts:23-87`.
 - [ ] **10.7** Remove dead `backend/service/geo/` code if the Flutter app does client-side geocoding, or wire up `GeoRoutes` if it does.

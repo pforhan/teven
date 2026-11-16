@@ -107,15 +107,13 @@ Commands:
                      Same, but stream logs in the foreground instead.
   up -o | --open     Same, but wait for the backend to answer, then open the
                      app in the default browser.
-  up-react           Start the stack with the React frontend. No prebuild
-                     needed: React builds inside Docker. Takes -f and -o too.
   build              Build the Flutter web bundle only, no Docker.
   dev                Run the Flutter app against a local backend
                      (flutter run -d chrome).
   verify             Analyze, format-check, and test the Flutter app.
   verify-backend     Run the backend unit tests across every Gradle module.
   verify-all         Run both: backend tests, then the Flutter verify.
-  clean              Remove built web bundles (Flutter and React).
+  clean              Remove the built Flutter web bundle.
   down               Stop the containers.
   down -v | --volumes
                      Stop containers and delete volumes (drops the DB).
@@ -126,23 +124,17 @@ Commands:
 Options:
   -f, --foreground   Stream logs instead of detaching (for `up`).
   -o, --open         Open the app in the default browser once the backend
-                     answers (for `up` and `up-react`). Ignored with -f,
-                     which never returns to the prompt to do it.
+                     answers (for `up`). Ignored with -f, which never returns
+                     to the prompt to do it.
   -v, --volumes      Also delete volumes (for `down`).
   -n, --dry-run      Print the commands that would run, without running them.
   -h, --help         Show this help.
-
-Environment:
-  WEB_SOURCE         Which frontend to package: react | flutter.
-                     `up` forces flutter; `up-react` forces react.
-                     (Default: flutter.)
 
 Examples:
   ./teven up                    # build Flutter, then start in background
   ./teven up -f                 # build Flutter, then stream logs
   ./teven up --open             # start, wait, then open the browser
   ./teven up --dry-run          # show what would run
-  ./teven up-react              # start with the React frontend
   ./teven verify                # analyze + format check + test (Flutter)
   ./teven verify-backend        # backend unit tests
   ./teven verify-all            # backend tests, then Flutter verify
@@ -177,7 +169,6 @@ main() {
 
   case "$command" in
     up) cmd_up "$foreground" "$dry_run" "$open_app" ;;
-    up-react) cmd_up_react "$foreground" "$dry_run" "$open_app" ;;
     build) cmd_build "$dry_run" ;;
     dev) cmd_dev "$dry_run" ;;
     verify) cmd_verify "$dry_run" ;;
@@ -196,13 +187,13 @@ main() {
   esac
 }
 
-# Build the Flutter web bundle. This must run before any `flutter` compose
-# build, because the Dockerfile copies flutter_app/build/web rather than
-# building it (FLUTTER-CONVERT.md task 0.12: Flutter publishes no linux/arm64
-# SDK, so building in Docker means amd64 emulation).
+# Build the Flutter web bundle. This must run before the Docker image build,
+# because the Dockerfile copies flutter_app/build/web rather than building it
+# (Flutter publishes no linux/arm64 SDK, so building in Docker means amd64
+# emulation).
 cmd_build() {
   local dry_run="$1"
-  need flutter "Install the Flutter SDK, or use ./teven up-react." || return 1
+  need flutter "Install the Flutter SDK first." || return 1
   printf '==> Building Flutter web bundle\n'
   if [ "$dry_run" -eq 1 ]; then
     (cd "$FLUTTER_DIR" && show flutter "${FLUTTER_BUILD_ARGS[@]}")
@@ -245,27 +236,13 @@ maybe_open() {
 cmd_up() {
   local foreground="$1" dry_run="$2" open_app="$3"
   cmd_build "$dry_run" || return 1
-  printf '==> Starting the stack (frontend: flutter)\n'
+  printf '==> Starting the stack\n'
   local -a compose=(docker compose up --build)
   [ "$foreground" -eq 1 ] || compose+=(-d)
   if [ "$dry_run" -eq 1 ]; then
     show "${compose[@]}"
   else
-    WEB_SOURCE=flutter "${compose[@]}"
-  fi
-  maybe_open "$open_app" "$foreground" "$dry_run"
-}
-
-cmd_up_react() {
-  local foreground="$1" dry_run="$2" open_app="$3"
-  printf '==> Starting the stack (frontend: react)\n'
-  printf '    React builds inside Docker; no prebuild step needed.\n'
-  local -a compose=(docker compose up --build)
-  [ "$foreground" -eq 1 ] || compose+=(-d)
-  if [ "$dry_run" -eq 1 ]; then
-    show "${compose[@]}"
-  else
-    WEB_SOURCE=react "${compose[@]}"
+    "${compose[@]}"
   fi
   maybe_open "$open_app" "$foreground" "$dry_run"
 }
@@ -345,14 +322,12 @@ cmd_verify_all() {
 
 cmd_clean() {
   local dry_run="$1"
-  printf '==> Removing built web bundles\n'
-  local target
-  for target in "${FLUTTER_DIR}/build/web" "${ROOT}/frontend/dist"; do
-    if [ -e "$target" ]; then
-      printf '  - %s\n' "${target#"${ROOT}"/}"
-      [ "$dry_run" -eq 1 ] || rm -rf "$target"
-    fi
-  done
+  printf '==> Removing the built Flutter web bundle\n'
+  local target="${FLUTTER_DIR}/build/web"
+  if [ -e "$target" ]; then
+    printf '  - %s\n' "${target#"${ROOT}"/}"
+    [ "$dry_run" -eq 1 ] || rm -rf "$target"
+  fi
 }
 
 cmd_down() {

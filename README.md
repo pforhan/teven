@@ -56,20 +56,12 @@ The project is configured to run out-of-the-box using default environment variab
     ```
 
     This builds the Flutter web bundle, then builds and starts the services in
-    detached mode (equivalent to `docker compose up --build -d`, with the
-    Flutter prebuild step included). Run `./teven help` for all commands.
+    detached mode. Run `./teven help` for all commands.
 
-    To use the React frontend instead — it builds inside Docker and needs no
-    prebuild step:
-
-    ```bash
-    ./teven up-react
-    ```
-
-    The raw `docker compose up --build -d` still works, and defaults to the
-    React frontend. Prefer `./teven up`: with `WEB_SOURCE=flutter` the Dockerfile
-    copies a **prebuilt** bundle, so calling Docker directly can silently package
-    a stale build.
+    Prefer `./teven up` over `docker compose up --build` directly: the Docker
+    image copies a **prebuilt** Flutter bundle, so calling Docker without the
+    prebuild step can silently package a stale build. `./teven up` always
+    rebuilds the bundle first.
 
 3.  Once the services are up and running, the backend API will be accessible at `http://localhost:2022` (or your custom port if you set one).
 
@@ -110,16 +102,12 @@ When this variable is set, the application will be populated with a set of test 
 
 ## **Frontend**
 
-The frontend is in the middle of a rewrite. Two implementations currently exist in this repository:
+The frontend is the Flutter app in `flutter_app/` (Dart, Riverpod, go_router),
+served by the backend. The conversion from the original React SPA is tracked in
+[FLUTTER-CONVERT.md](FLUTTER-CONVERT.md); see its task checklist and progress log
+for what is ported and what remains.
 
-| Location | Stack | Status |
-|---|---|---|
-| `frontend/` | React 19, Vite, TypeScript, Bootstrap | **Live.** Served by the backend, unmodified |
-| `flutter_app/` | Flutter (Dart), Riverpod, go_router | In progress — auth, the responsive shell, and the customer, inventory, and organization lists are ported |
-
-The React app remains the production frontend until the conversion reaches cutover. It is not to be modified or removed during the conversion; see the ground rules in [FLUTTER-CONVERT.md](FLUTTER-CONVERT.md).
-
-### Developing the Flutter app
+### Developing the app
 
 From the repo root:
 
