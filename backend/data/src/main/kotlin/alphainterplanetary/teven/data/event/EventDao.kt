@@ -211,8 +211,8 @@ class EventDao {
     updateEventRequest: alphainterplanetary.teven.api.model.event.UpdateEventRequest,
     startsAt: Instant,
     timezone: String,
-  ): Boolean = dbQuery {
-    Events.update({ Events.id eq eventId }) {
+  ): EventResponse? = dbQuery {
+    val updated = Events.update({ Events.id eq eventId }) {
       it[Events.startsAt] = OffsetDateTime.ofInstant(startsAt, ZoneOffset.UTC)
       it[Events.timezone] = timezone
       updateEventRequest.title?.let { title -> it[Events.title] = title }
@@ -220,7 +220,9 @@ class EventDao {
       updateEventRequest.location?.let { location -> it[Events.location] = location }
       updateEventRequest.latitude?.let { latitude -> it[Events.latitude] = latitude }
       updateEventRequest.longitude?.let { longitude -> it[Events.longitude] = longitude }
-      updateEventRequest.formattedAddress?.let { formattedAddress -> it[Events.formattedAddress] = formattedAddress }
+      updateEventRequest.formattedAddress?.let { formattedAddress ->
+        it[Events.formattedAddress] = formattedAddress
+      }
       updateEventRequest.description?.let { description -> it[Events.description] = description }
       updateEventRequest.customerId?.let { customerId -> it[Events.customerId] = customerId }
       updateEventRequest.organizationId?.let { organizationId ->
@@ -244,7 +246,10 @@ class EventDao {
 
         staffInvites.specificStaffIds?.let { specificStaffIds ->
           for (userId in specificStaffIds) {
-            val existingRsvp = Rsvps.selectAll().where { (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }.singleOrNull()
+            val existingRsvp =
+              Rsvps.selectAll()
+                .where { (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }
+                .singleOrNull()
             if (existingRsvp != null) {
               Rsvps.update({ (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }) {
                 it[Rsvps.availability] = "requested"
@@ -264,18 +269,20 @@ class EventDao {
         staffInvites.numberOfStaffNeeded.let { numberOfStaffNeeded ->
           it[Events.numberOfStaffNeeded] = numberOfStaffNeeded
         }
-    }
+      }
     } > 0
+    if (!updated) return@dbQuery null
+    getEventByIdBare(eventId)
   }
 
   suspend fun deleteEvent(eventId: Int): Boolean = dbQuery {
     Events.deleteWhere { Events.id eq eventId } > 0
   }
 
-  suspend fun rsvpToEvent(eventId: Int, userId: Int, availability: String): Boolean = dbQuery {
+  suspend fun rsvpToEvent(eventId: Int, userId: Int, availability: String): EventResponse? = dbQuery {
     val existingRsvp =
       Rsvps.selectAll().where { (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }.singleOrNull()
-    if (existingRsvp != null) {
+    val changed = if (existingRsvp != null) {
       // User already RSVP'd, update their availability
       Rsvps.update({ (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }) {
         it[Rsvps.availability] = availability
@@ -288,6 +295,8 @@ class EventDao {
         it[Rsvps.availability] = availability
       }.resultedValues?.isNotEmpty() ?: false
     }
+    if (!changed) return@dbQuery null
+    getEventByIdBare(eventId)
   }
 
   suspend fun getEventsForInventoryItem(inventoryItemId: Int): List<EventResponse> = dbQuery {

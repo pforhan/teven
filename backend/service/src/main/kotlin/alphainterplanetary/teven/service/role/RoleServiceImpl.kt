@@ -25,7 +25,7 @@ class RoleServiceImpl(
     return roleDao.getRoleByName(roleName)
   }
 
-  override suspend fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): Boolean {
+  override suspend fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): RoleResponse? {
     return roleDao.updateRole(roleId, updateRoleRequest)
   }
 

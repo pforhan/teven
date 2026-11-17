@@ -54,7 +54,11 @@ class OrganizationService(
   suspend fun getOrganizationZone(organizationId: Int): String? =
     organizationDao.getOrganizationById(organizationId)?.timezone
 
-  suspend fun updateOrganization(organizationId: Int, request: UpdateOrganizationRequest, callerId: Int): Boolean {
+  suspend fun updateOrganization(
+    organizationId: Int,
+    request: UpdateOrganizationRequest,
+    callerId: Int,
+  ): OrganizationResponse? {
     if (!canAccess(callerId, organizationId, Permission.MANAGE_ORGANIZATIONS_GLOBAL, Permission.MANAGE_ORGANIZATION)) {
       throw AuthorizationException(
         code = HttpStatusCode.Forbidden,

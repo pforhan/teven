@@ -1,6 +1,5 @@
 package alphainterplanetary.teven.app.inventory
 
-import alphainterplanetary.teven.api.model.common.MessageResponse
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.inventory.CreateInventoryItemRequest
@@ -48,11 +47,13 @@ fun Route.inventoryRoutes() {
           return@put
         }
         val updateInventoryItemRequest = call.receive<UpdateInventoryItemRequest>()
-        if (inventoryService.updateInventoryItem(authContext, inventoryId, updateInventoryItemRequest)) {
-          call.respond(
-            HttpStatusCode.OK,
-            success(MessageResponse("Inventory item with ID $inventoryId updated")),
-          )
+        val updatedInventoryItem = inventoryService.updateInventoryItem(
+          authContext = authContext,
+          inventoryId = inventoryId,
+          updateInventoryItemRequest = updateInventoryItemRequest,
+        )
+        if (updatedInventoryItem != null) {
+          call.respond(HttpStatusCode.OK, success(updatedInventoryItem))
         } else {
           call.respond(
             HttpStatusCode.NotFound,
@@ -128,8 +129,13 @@ fun Route.inventoryRoutes() {
           return@post
         }
         val trackInventoryUsageRequest = call.receive<TrackInventoryUsageRequest>()
-        if (inventoryService.trackInventoryUsage(authContext, inventoryId, trackInventoryUsageRequest)) {
-          call.respond(HttpStatusCode.OK, success(MessageResponse("OK")))
+        val updatedInventoryItem = inventoryService.trackInventoryUsage(
+          authContext = authContext,
+          inventoryId = inventoryId,
+          trackInventoryUsageRequest = trackInventoryUsageRequest,
+        )
+        if (updatedInventoryItem != null) {
+          call.respond(HttpStatusCode.OK, success(updatedInventoryItem))
         } else {
           call.respond(
             HttpStatusCode.InternalServerError,

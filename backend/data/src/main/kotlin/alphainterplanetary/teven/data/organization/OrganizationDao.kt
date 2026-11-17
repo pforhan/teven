@@ -83,16 +83,24 @@ class OrganizationDao {
       .singleOrNull()
   }
 
-  suspend fun updateOrganization(organizationId: Int, request: UpdateOrganizationRequest): Boolean =
-    dbQuery {
-      Organizations.update({ Organizations.id eq organizationId }) {
-        request.name?.let { name -> it[Organizations.name] = name }
-        request.contactInformation?.let { contactInformation ->
-          it[Organizations.contactInformation] = contactInformation
-        }
-        request.timezone?.let { timezone -> it[Organizations.timezone] = timezone }
-      } > 0
-    }
+  suspend fun updateOrganization(
+    organizationId: Int,
+    request: UpdateOrganizationRequest,
+  ): OrganizationResponse? = dbQuery {
+    val updated = Organizations.update({ Organizations.id eq organizationId }) {
+      request.name?.let { name -> it[Organizations.name] = name }
+      request.contactInformation?.let { contactInformation ->
+        it[Organizations.contactInformation] = contactInformation
+      }
+      request.timezone?.let { timezone -> it[Organizations.timezone] = timezone }
+    } > 0
+    if (!updated) return@dbQuery null
+
+    Organizations.selectAll()
+      .where { Organizations.id eq organizationId }
+      .map { toOrganizationResponse(it) }
+      .singleOrNull()
+  }
 
   suspend fun deleteOrganization(organizationId: Int): Boolean = dbQuery {
     Organizations.deleteWhere { Organizations.id eq organizationId } > 0

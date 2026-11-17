@@ -77,10 +77,10 @@ class InventoryService(private val inventoryDao: InventoryDao) {
     authContext: AuthContext,
     inventoryId: Int,
     updateInventoryItemRequest: UpdateInventoryItemRequest,
-  ): Boolean {
+  ): InventoryItemResponse? {
     // Check if the inventory item belongs to the user's organization or if the user has MANAGE_INVENTORY_GLOBAL
     val inventoryItem = inventoryDao.getInventoryItemById(inventoryId)
-      ?: return false // Inventory item not found
+      ?: return null // Inventory item not found
 
     if (!authContext.hasPermission(Permission.MANAGE_INVENTORY_GLOBAL) && inventoryItem.organization.organizationId != authContext.organizationId) {
       throw IllegalAccessException("User not authorized to update inventory items outside their organization")
@@ -113,7 +113,7 @@ class InventoryService(private val inventoryDao: InventoryDao) {
     authContext: AuthContext,
     inventoryId: Int,
     trackInventoryUsageRequest: TrackInventoryUsageRequest,
-  ): Boolean {
+  ): InventoryItemResponse? {
     val inventoryItem = inventoryDao.getInventoryItemById(inventoryId)
       ?: throw IllegalArgumentException("Inventory item not found")
 

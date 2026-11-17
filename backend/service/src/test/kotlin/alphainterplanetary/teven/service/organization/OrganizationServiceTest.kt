@@ -89,7 +89,12 @@ class OrganizationServiceTest {
   @Test
   fun `update organization applies the submitted time zone`() = runBlocking {
     coEvery { userService.getUserContext(any()) } returns callerContext(listOf(Permission.MANAGE_ORGANIZATIONS_GLOBAL))
-    coEvery { organizationDao.updateOrganization(any(), any()) } returns true
+    coEvery { organizationDao.updateOrganization(any(), any()) } returns OrganizationResponse(
+      organizationId = 1,
+      name = "New Org",
+      contactInformation = "contact@example.com",
+      timezone = "Europe/Berlin",
+    )
 
     val result = organizationService.updateOrganization(
       organizationId = 1,
@@ -101,7 +106,7 @@ class OrganizationServiceTest {
       callerId = 10,
     )
 
-    assertTrue(result)
+    assertEquals("Europe/Berlin", result?.timezone)
     coVerify {
       organizationDao.updateOrganization(
         1,
@@ -117,7 +122,6 @@ class OrganizationServiceTest {
   @Test
   fun `update organization rejects an unknown time zone`() = runBlocking {
     coEvery { userService.getUserContext(any()) } returns callerContext(listOf(Permission.MANAGE_ORGANIZATIONS_GLOBAL))
-    coEvery { organizationDao.updateOrganization(any(), any()) } throws BadRequestException("Unknown time zone: Mars/Olympus")
 
     val exception = runCatching {
       organizationService.updateOrganization(
@@ -138,7 +142,12 @@ class OrganizationServiceTest {
   @Test
   fun `update organization allows an organization manager to update their own organization`() = runBlocking {
     coEvery { userService.getUserContext(any()) } returns callerContext(listOf(Permission.MANAGE_ORGANIZATION))
-    coEvery { organizationDao.updateOrganization(any(), any()) } returns true
+    coEvery { organizationDao.updateOrganization(any(), any()) } returns OrganizationResponse(
+      organizationId = 1,
+      name = "New Org",
+      contactInformation = "contact@example.com",
+      timezone = "Europe/Berlin",
+    )
 
     val result = organizationService.updateOrganization(
       organizationId = 1,
@@ -150,7 +159,7 @@ class OrganizationServiceTest {
       callerId = 10,
     )
 
-    assertTrue(result)
+    assertEquals(1, result?.organizationId)
   }
 
   @Test

@@ -57,14 +57,20 @@ class RoleDao {
       .singleOrNull()
   }
 
-  suspend fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): Boolean = dbQuery {
-    Roles.update({ Roles.id eq roleId }) {
+  suspend fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): RoleResponse? = dbQuery {
+    val updated = Roles.update({ Roles.id eq roleId }) {
       updateRoleRequest.roleName?.let { roleName -> it[Roles.roleName] = roleName }
       updateRoleRequest.permissions?.let { permissions ->
         it[Roles.permissions] =
           permissions.joinToString(",") { permission -> Permission.valueOf(permission).name }
       }
     } > 0
+    if (!updated) return@dbQuery null
+
+    Roles.selectAll()
+      .where { Roles.id eq roleId }
+      .mapNotNull { toRoleResponse(it) }
+      .singleOrNull()
   }
 
   suspend fun deleteRole(roleId: Int): Boolean = dbQuery {

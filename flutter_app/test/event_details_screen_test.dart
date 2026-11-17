@@ -156,7 +156,9 @@ void main() {
       }
       if (options.method == 'POST' && options.path.endsWith('/rsvp')) {
         return rsvpFailure ??
-            const StubResponse.json('{"success":true,"data":"OK"}');
+            StubResponse.json(
+              jsonEncode({'success': true, 'data': event ?? eventJson()}),
+            );
       }
       if (options.method == 'DELETE') {
         return deleteFailure ?? const StubResponse.noContent();

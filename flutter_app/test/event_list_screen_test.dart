@@ -133,11 +133,20 @@ void main() {
           }),
         );
       }
-      // Every mutation on this screen — RSVP and delete — goes to
-      // `/api/events/{id}/…`, and the server answers a bare-string `success`.
+      // Mutations on this screen — RSVP (returns updated event) and delete
+      // (204, handled by the caller's override when needed).
       if (options.path.startsWith('/api/events/')) {
         return forMutations?.call(options) ??
-            const StubResponse.json('{"success":true,"data":"OK"}');
+            StubResponse.json(
+              jsonEncode({
+                'success': true,
+                'data': eventJson(
+                  id: 16,
+                  title: 'Site visit',
+                  date: '2026-10-18',
+                ),
+              }),
+            );
       }
       return null;
     },

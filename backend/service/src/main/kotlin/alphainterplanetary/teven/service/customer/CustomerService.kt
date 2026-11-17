@@ -76,10 +76,10 @@ class CustomerService(private val customerDao: CustomerDao) {
     authContext: AuthContext,
     customerId: Int,
     updateCustomerRequest: UpdateCustomerRequest,
-  ): Boolean {
+  ): CustomerResponse? {
     // Check if the customer belongs to the user's organization or if the user has MANAGE_CUSTOMERS_GLOBAL
     val customer = customerDao.getCustomerById(customerId)
-      ?: return false // Customer not found
+      ?: return null // Customer not found
 
     if (!authContext.hasPermission(Permission.MANAGE_CUSTOMERS_GLOBAL) && customer.organization.organizationId != authContext.organizationId) {
       throw IllegalAccessException("User not authorized to update customers outside their organization")

@@ -233,7 +233,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/invitations/{invitationId}`: Deletes an unused invitation.
     * Authentication: Required.
     * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 ---
 
@@ -366,7 +366,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/events/{eventId}`: Delete an event.
     * Authentication: Required.
     * Permissions: `MANAGE_EVENTS_ORGANIZATION`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 * `POST /api/events/{eventId}/staff/{userId}`: Assign staff to an event.
     * Authentication: Required.
@@ -388,8 +388,23 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         ```
     * Response:
         ```kotlin
-        data class StatusResponse(
-          val status: String
+        data class EventResponse(
+          val eventId: Int, 
+          val title: String, 
+          val startsAt: String, 
+          val timezone: String, 
+          val durationMinutes: Int, 
+          val location: String?, 
+          val latitude: Double?, 
+          val longitude: Double?, 
+          val formattedAddress: String?, 
+          val description: String?, 
+          val inventoryItems: List<EventInventoryItem>, 
+          val customer: CustomerResponse?, 
+          val rsvps: List<RsvpStatus>, 
+          val organization: OrganizationResponse, 
+          val openInvitation: Boolean = false, 
+          val numberOfStaffNeeded: Int = 0
         )
         ```
 
@@ -488,7 +503,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/customers/{customerId}`: Delete a customer.
     * Authentication: Required.
     * Permissions: `MANAGE_CUSTOMERS_ORGANIZATION`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 ---
 
@@ -568,7 +583,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/inventory/{inventoryId}`: Delete an inventory item.
     * Authentication: Required.
     * Permissions: `MANAGE_INVENTORY_ORGANIZATION`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 * `POST /api/inventory/{inventoryId}/usage`: Track inventory item usage.
     * Authentication: Required.
@@ -582,8 +597,13 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         ```
     * Response:
         ```kotlin
-        data class StatusResponse(
-          val status: String
+        data class InventoryItemResponse(
+          val inventoryId: Int, 
+          val name: String, 
+          val description: String, 
+          val quantity: Int, 
+          val events: List<EventSummaryResponse>, 
+          val organization: OrganizationResponse
         )
         ```
 
@@ -672,7 +692,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/roles/{roleId}`: Delete a role.
     * Authentication: Required.
     * Permissions: `MANAGE_ROLES_GLOBAL`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 * `POST /api/users/{userId}/roles`: Assign a role to a user.
     * Authentication: Required.
@@ -681,15 +701,32 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         <!-- DATA_MODEL_AssignRoleRequest -->
     * Response:
         ```kotlin
-        data class StatusResponse(
-          val status: String
+        data class UserResponse(
+          val userId: Int, 
+          val username: String, 
+          val email: String, 
+          val displayName: String, 
+          val roles: List<String>, 
+          val staffDetails: StaffDetails?, 
+          val organization: OrganizationResponse
         )
         ```
 
 * `DELETE /api/users/{userId}/roles/{roleId}`: Remove a role from a user.
     * Authentication: Required.
     * Permissions: `ASSIGN_ROLES_ORGANIZATION` or `ASSIGN_ROLES_GLOBAL`
-    * Response: `StatusResponse`
+    * Response:
+        ```kotlin
+        data class UserResponse(
+          val userId: Int, 
+          val username: String, 
+          val email: String, 
+          val displayName: String, 
+          val roles: List<String>, 
+          val staffDetails: StaffDetails?, 
+          val organization: OrganizationResponse
+        )
+        ```
 
 ---
 
@@ -760,7 +797,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/organizations/{organizationId}`: Delete an organization.
     * Authentication: Required.
     * Permissions: `MANAGE_ORGANIZATIONS_GLOBAL`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 ---
 
@@ -937,6 +974,10 @@ data class LoginRequest(
 data class LoginResponse(
   val token: String, 
   val user: UserResponse
+)
+
+data class MessageResponse(
+  val message: String
 )
 
 data class OrganizationResponse(

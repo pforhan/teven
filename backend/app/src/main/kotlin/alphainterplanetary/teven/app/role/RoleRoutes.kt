@@ -1,6 +1,5 @@
 package alphainterplanetary.teven.app.role
 
-import alphainterplanetary.teven.api.model.common.MessageResponse
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.role.CreateRoleRequest
@@ -8,6 +7,7 @@ import alphainterplanetary.teven.api.model.role.UpdateRoleRequest
 import alphainterplanetary.teven.auth.withPermission
 import alphainterplanetary.teven.core.security.Permission.MANAGE_ROLES_GLOBAL
 import alphainterplanetary.teven.core.service.RoleService
+import alphainterplanetary.teven.core.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.request.receive
@@ -22,6 +22,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.roleRoutes() {
   val roleService by inject<RoleService>()
+  val userService by inject<UserService>()
 
   route("/api/roles") {
     withPermission(MANAGE_ROLES_GLOBAL) {
@@ -38,11 +39,9 @@ fun Route.roleRoutes() {
           return@put
         }
         val updateRoleRequest = call.receive<UpdateRoleRequest>()
-        if (roleService.updateRole(roleId, updateRoleRequest)) {
-          call.respond(
-            HttpStatusCode.OK,
-            success(MessageResponse("Role with ID $roleId updated")),
-          )
+        val updatedRole = roleService.updateRole(roleId, updateRoleRequest)
+        if (updatedRole != null) {
+          call.respond(HttpStatusCode.OK, success(updatedRole))
         } else {
           call.respond(
             HttpStatusCode.NotFound,
@@ -95,7 +94,12 @@ fun Route.roleRoutes() {
           return@post
         }
         if (roleService.assignRoleToUser(userId, roleId)) {
-          call.respond(HttpStatusCode.OK, success(MessageResponse("OK")))
+          val updatedUser = userService.getUserById(userId)
+          if (updatedUser != null) {
+            call.respond(HttpStatusCode.OK, success(updatedUser))
+          } else {
+            call.respond(HttpStatusCode.NotFound, failure("User not found"))
+          }
         } else {
           call.respond(
             HttpStatusCode.InternalServerError,
@@ -112,7 +116,12 @@ fun Route.roleRoutes() {
           return@delete
         }
         if (roleService.removeRoleFromUser(userId, roleId)) {
-          call.respond(HttpStatusCode.OK, success(MessageResponse("OK")))
+          val updatedUser = userService.getUserById(userId)
+          if (updatedUser != null) {
+            call.respond(HttpStatusCode.OK, success(updatedUser))
+          } else {
+            call.respond(HttpStatusCode.NotFound, failure("User not found"))
+          }
         } else {
           call.respond(
             HttpStatusCode.InternalServerError,

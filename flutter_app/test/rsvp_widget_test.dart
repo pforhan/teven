@@ -67,7 +67,9 @@ void main() {
       }
       if (options.method == 'POST' && options.path.endsWith('/rsvp')) {
         return rsvpFailure ??
-            const StubResponse.json('{"success":true,"data":"OK"}');
+            StubResponse.json(
+              jsonEncode({'success': true, 'data': eventJson(id: 0)}),
+            );
       }
       return null;
     },

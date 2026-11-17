@@ -80,11 +80,8 @@ void main() {
 
   /// A backend for the customer forms.
   ///
-  /// `POST /api/customers` answers a real `CustomerResponse` — the React client
-  /// does not read it, but the service decodes one, so a stub answering a bare
-  /// string would fail inside deserialization rather than on an assertion.
-  /// `PUT` answers the bare string the server actually sends
-  /// (`CustomerService.updateCustomer`), which is the shape pinned.
+  /// `POST /api/customers` and `PUT /api/customers/{id}` both answer a
+  /// `CustomerResponse`.
   StubAdapter customerFormAdapter({
     List<String> permissions = const [viewCustomers, manageCustomers],
     StubResponse? createFailure,
@@ -98,8 +95,7 @@ void main() {
       }
       if (options.method == 'PUT' &&
           options.path.startsWith('/api/customers/')) {
-        return updateFailure ??
-            const StubResponse.json('"Customer with ID 1 updated"');
+        return updateFailure ?? customerBody();
       }
       if (options.method == 'GET' && options.path == '/api/customers') {
         return emptyCustomerPage();
@@ -624,7 +620,10 @@ void main() {
           }
           if (options.method == 'PUT' &&
               options.path.startsWith('/api/customers/')) {
-            return const StubResponse.json('"Customer with ID 1 updated"');
+            return customerBody(
+              organizationId: 9,
+              organizationName: 'Missing Inc',
+            );
           }
           return null;
         },

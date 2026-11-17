@@ -304,7 +304,7 @@ class EventServiceTest {
   @Test
   fun `update event sends a new instant and zone together`() = runBlocking {
     coEvery { eventDao.getEventById(1) } returns eventResponse()
-    coEvery { eventDao.updateEvent(any(), any(), any(), any()) } returns true
+    coEvery { eventDao.updateEvent(any(), any(), any(), any()) } returns eventResponse()
 
     val updated =
         eventService.updateEvent(
@@ -317,7 +317,7 @@ class EventServiceTest {
               ),
         )
 
-    assertEquals(true, updated)
+    assertEquals(1, updated?.eventId)
     coVerify { eventDao.updateEvent(1, any(), Instant.parse("2026-03-04T10:00:00Z"), "America/New_York") }
   }
 

@@ -75,12 +75,9 @@ class InvitationService {
         InvitationResponse.fromJson(json! as Map<String, dynamic>),
   );
 
-  /// Answers a message payload in the standard envelope.
-  Future<String> deleteInvitation(int invitationId) =>
-      _client.deleteAndDecode<String>(
-        '/api/invitations/$invitationId',
-        decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
-      );
+  /// Answers `204 No Content`.
+  Future<void> deleteInvitation(int invitationId) =>
+      _client.delete('/api/invitations/$invitationId');
 }
 
 /// Staff-hours and inventory-usage reports.

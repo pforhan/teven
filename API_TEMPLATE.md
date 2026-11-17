@@ -119,7 +119,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/invitations/{invitationId}`: Deletes an unused invitation.
     * Authentication: Required.
     * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 ---
 
@@ -163,7 +163,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/events/{eventId}`: Delete an event.
     * Authentication: Required.
     * Permissions: `MANAGE_EVENTS_ORGANIZATION`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 * `POST /api/events/{eventId}/staff/{userId}`: Assign staff to an event.
     * Authentication: Required.
@@ -180,7 +180,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Request:
         <!-- DATA_MODEL_RsvpRequest -->
     * Response:
-        <!-- DATA_MODEL_StatusResponse -->
+        <!-- DATA_MODEL_EventResponse -->
 
 ---
 
@@ -219,7 +219,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/customers/{customerId}`: Delete a customer.
     * Authentication: Required.
     * Permissions: `MANAGE_CUSTOMERS_ORGANIZATION`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 ---
 
@@ -258,7 +258,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/inventory/{inventoryId}`: Delete an inventory item.
     * Authentication: Required.
     * Permissions: `MANAGE_INVENTORY_ORGANIZATION`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 * `POST /api/inventory/{inventoryId}/usage`: Track inventory item usage.
     * Authentication: Required.
@@ -266,7 +266,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Request:
         <!-- DATA_MODEL_TrackInventoryUsageRequest -->
     * Response:
-        <!-- DATA_MODEL_StatusResponse -->
+        <!-- DATA_MODEL_InventoryItemResponse -->
 
 ---
 
@@ -318,7 +318,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/roles/{roleId}`: Delete a role.
     * Authentication: Required.
     * Permissions: `MANAGE_ROLES_GLOBAL`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 * `POST /api/users/{userId}/roles`: Assign a role to a user.
     * Authentication: Required.
@@ -326,12 +326,13 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Request:
         <!-- DATA_MODEL_AssignRoleRequest -->
     * Response:
-        <!-- DATA_MODEL_StatusResponse -->
+        <!-- DATA_MODEL_UserResponse -->
 
 * `DELETE /api/users/{userId}/roles/{roleId}`: Remove a role from a user.
     * Authentication: Required.
     * Permissions: `ASSIGN_ROLES_ORGANIZATION` or `ASSIGN_ROLES_GLOBAL`
-    * Response: `StatusResponse`
+    * Response:
+        <!-- DATA_MODEL_UserResponse -->
 
 ---
 
@@ -369,7 +370,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `DELETE /api/organizations/{organizationId}`: Delete an organization.
     * Authentication: Required.
     * Permissions: `MANAGE_ORGANIZATIONS_GLOBAL`
-    * Response: `StatusResponse`
+    * Response: `204 No Content`
 
 ---
 

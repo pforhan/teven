@@ -9,7 +9,7 @@ interface RoleService {
   suspend fun getAllRoles(): List<RoleResponse>
   suspend fun getRoleById(roleId: Int): RoleResponse?
   suspend fun getRoleByName(roleName: String): RoleResponse?
-  suspend fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): Boolean
+  suspend fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): RoleResponse?
   suspend fun deleteRole(roleId: Int): Boolean
   suspend fun assignRoleToUser(userId: Int, roleId: Int): Boolean
   suspend fun removeRoleFromUser(userId: Int, roleId: Int): Boolean

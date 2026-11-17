@@ -146,14 +146,14 @@ class CustomerService {
             CustomerResponse.fromJson(json! as Map<String, dynamic>),
       );
 
-  /// Answers a message payload in the standard envelope.
-  Future<String> updateCustomer(
+  /// Returns the updated customer.
+  Future<CustomerResponse> updateCustomer(
     int customerId,
     UpdateCustomerRequest request,
-  ) => _client.put<String>(
+  ) => _client.put<CustomerResponse>(
     '/api/customers/$customerId',
     request: request,
-    decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
+    decode: (json) => CustomerResponse.fromJson(json! as Map<String, dynamic>),
   );
 
   /// Answers `204 NoContent`.
@@ -195,28 +195,29 @@ class InventoryService {
         InventoryItemResponse.fromJson(json! as Map<String, dynamic>),
   );
 
-  /// Answers a message payload in the standard envelope.
-  Future<String> updateInventoryItem(
+  /// Returns the updated inventory item.
+  Future<InventoryItemResponse> updateInventoryItem(
     int inventoryId,
     UpdateInventoryItemRequest request,
-  ) => _client.put<String>(
+  ) => _client.put<InventoryItemResponse>(
     '/api/inventory/$inventoryId',
     request: request,
-    decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
+    decode: (json) =>
+        InventoryItemResponse.fromJson(json! as Map<String, dynamic>),
   );
 
   /// Answers `204 NoContent`.
   Future<void> deleteInventoryItem(int inventoryId) =>
       _client.delete('/api/inventory/$inventoryId');
 
-  /// Records usage against an event. Answers a message payload in the
-  /// standard envelope.
-  Future<String> trackInventoryUsage(
+  /// Records usage against an event and returns the updated inventory item.
+  Future<InventoryItemResponse> trackInventoryUsage(
     int inventoryId,
     TrackInventoryUsageRequest request,
-  ) => _client.post<String>(
+  ) => _client.post<InventoryItemResponse>(
     '/api/inventory/$inventoryId/usage',
     request: request,
-    decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
+    decode: (json) =>
+        InventoryItemResponse.fromJson(json! as Map<String, dynamic>),
   );
 }

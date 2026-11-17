@@ -143,8 +143,8 @@ class InventoryDao(private val clock: Clock) {
   suspend fun updateInventoryItem(
     inventoryId: Int,
     updateInventoryItemRequest: UpdateInventoryItemRequest,
-  ): Boolean = dbQuery {
-    InventoryItems.update({ InventoryItems.id eq inventoryId }) {
+  ): InventoryItemResponse? = dbQuery {
+    val updated = InventoryItems.update({ InventoryItems.id eq inventoryId }) {
       updateInventoryItemRequest.name?.let { name -> it[InventoryItems.name] = name }
       updateInventoryItemRequest.description?.let { description ->
         it[InventoryItems.description] = description
@@ -152,8 +152,16 @@ class InventoryDao(private val clock: Clock) {
       updateInventoryItemRequest.quantity?.let { quantity ->
         it[InventoryItems.quantity] = quantity
       }
-      updateInventoryItemRequest.organizationId?.let { organizationId -> it[InventoryItems.organizationId] = organizationId }
+      updateInventoryItemRequest.organizationId?.let { organizationId ->
+        it[InventoryItems.organizationId] = organizationId
+      }
     } > 0
+    if (!updated) return@dbQuery null
+
+    InventoryItems.selectAll()
+      .where { InventoryItems.id eq inventoryId }
+      .mapNotNull { toInventoryItemResponse(it) }
+      .singleOrNull()
   }
 
   suspend fun deleteInventoryItem(inventoryId: Int): Boolean = dbQuery {
@@ -163,7 +171,7 @@ class InventoryDao(private val clock: Clock) {
   suspend fun trackInventoryUsage(
     inventoryId: Int,
     trackInventoryUsageRequest: TrackInventoryUsageRequest,
-  ): Boolean = dbQuery {
+  ): InventoryItemResponse? = dbQuery {
     // 7.24: usage_date is the event's date in the event's own zone (not the
     // server's wall clock). The event carries its zone; a PK lookup is enough.
     val event =
@@ -179,7 +187,11 @@ class InventoryDao(private val clock: Clock) {
       it[InventoryUsage.quantityUsed] = trackInventoryUsageRequest.quantity
       it[InventoryUsage.usageDate] = usageDate
     }
-    true
+
+    InventoryItems.selectAll()
+      .where { InventoryItems.id eq inventoryId }
+      .mapNotNull { toInventoryItemResponse(it) }
+      .singleOrNull()
   }
 
   suspend fun getInventoryItemsForEvent(eventId: Int): List<InventoryItemResponse> = dbQuery {

@@ -64,26 +64,24 @@ class EventService {
         decode: (json) => EventResponse.fromJson(json! as Map<String, dynamic>),
       );
 
-  /// Updates an event.
-  ///
-  /// Answers a message payload in the standard envelope.
-  Future<String> updateEvent(int eventId, UpdateEventRequest request) =>
-      _client.put<String>(
+  /// Updates an event and returns the saved event.
+  Future<EventResponse> updateEvent(int eventId, UpdateEventRequest request) =>
+      _client.put<EventResponse>(
         '/api/events/$eventId',
         request: request,
-        decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
+        decode: (json) => EventResponse.fromJson(json! as Map<String, dynamic>),
       );
 
   /// Answers `204 NoContent`.
   Future<void> deleteEvent(int eventId) =>
       _client.delete('/api/events/$eventId');
 
-  /// Posts this user's RSVP. Answers a message payload in the standard envelope.
-  Future<String> rsvpToEvent(int eventId, RsvpRequest request) =>
-      _client.post<String>(
+  /// Posts this user's RSVP and returns the updated event.
+  Future<EventResponse> rsvpToEvent(int eventId, RsvpRequest request) =>
+      _client.post<EventResponse>(
         '/api/events/$eventId/rsvp',
         request: request,
-        decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
+        decode: (json) => EventResponse.fromJson(json! as Map<String, dynamic>),
       );
 
   /// Events awaiting this user's RSVP.

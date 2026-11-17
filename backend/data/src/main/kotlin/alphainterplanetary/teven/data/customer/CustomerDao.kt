@@ -138,17 +138,27 @@ class CustomerDao {
   suspend fun updateCustomer(
     customerId: Int,
     updateCustomerRequest: UpdateCustomerRequest,
-  ): Boolean = dbQuery {
-    Customers.update({ Customers.id eq customerId }) {
+  ): CustomerResponse? = dbQuery {
+    val updated = Customers.update({ Customers.id eq customerId }) {
       updateCustomerRequest.name?.let { name -> it[Customers.name] = name }
       updateCustomerRequest.phone?.let { phone -> it[Customers.phone] = phone }
       updateCustomerRequest.address?.let { address -> it[Customers.address] = address }
       updateCustomerRequest.latitude?.let { latitude -> it[Customers.latitude] = latitude }
       updateCustomerRequest.longitude?.let { longitude -> it[Customers.longitude] = longitude }
-      updateCustomerRequest.formattedAddress?.let { formattedAddress -> it[Customers.formattedAddress] = formattedAddress }
+      updateCustomerRequest.formattedAddress?.let { formattedAddress ->
+        it[Customers.formattedAddress] = formattedAddress
+      }
       updateCustomerRequest.notes?.let { notes -> it[Customers.notes] = notes }
-      updateCustomerRequest.organizationId?.let { organizationId -> it[Customers.organizationId] = organizationId }
+      updateCustomerRequest.organizationId?.let { organizationId ->
+        it[Customers.organizationId] = organizationId
+      }
     } > 0
+    if (!updated) return@dbQuery null
+
+    Customers.selectAll()
+      .where { Customers.id eq customerId }
+      .mapNotNull { toCustomerResponse(it) }
+      .singleOrNull()
   }
 
   suspend fun deleteCustomer(customerId: Int): Boolean = dbQuery {

@@ -1,6 +1,5 @@
 package alphainterplanetary.teven.app.organization
 
-import alphainterplanetary.teven.api.model.common.MessageResponse
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
@@ -41,11 +40,13 @@ fun Route.organizationRoutes() {
         }
         val updateOrganizationRequest = call.receive<UpdateOrganizationRequest>()
         val authContext = requireAuthContext()
-        if (organizationService.updateOrganization(organizationId, updateOrganizationRequest, authContext.userId)) {
-          call.respond(
-            HttpStatusCode.OK,
-            success(MessageResponse("Organization with ID $organizationId updated"))
-          )
+        val updatedOrganization = organizationService.updateOrganization(
+          organizationId = organizationId,
+          request = updateOrganizationRequest,
+          callerId = authContext.userId,
+        )
+        if (updatedOrganization != null) {
+          call.respond(HttpStatusCode.OK, success(updatedOrganization))
         } else {
           call.respond(
             HttpStatusCode.NotFound,

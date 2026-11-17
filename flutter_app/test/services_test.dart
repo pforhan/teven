@@ -187,20 +187,16 @@ void main() {
   });
 
   group('response shapes', () {
-    test('updateCustomer returns the string, not a model', () async {
-      expect(
-        await CustomerService(client)
-            .updateCustomer(1, const UpdateCustomerRequest()),
-        'Customer with ID 1 updated',
-      );
+    test('updateCustomer returns the saved customer', () async {
+      final updated = await CustomerService(client)
+          .updateCustomer(1, const UpdateCustomerRequest());
+      expect(updated.customerId, 1);
     });
 
-    test('updateEvent returns the string, not an EventResponse', () async {
-      expect(
-        await EventService(client)
-            .updateEvent(1, const UpdateEventRequest(organizationId: 1)),
-        'Event with ID 1 updated',
-      );
+    test('updateEvent returns the saved event', () async {
+      final updated = await EventService(client)
+          .updateEvent(1, const UpdateEventRequest(organizationId: 1));
+      expect(updated.eventId, 1);
     });
 
     test('a 204 delete completes with no payload', () async {
@@ -218,22 +214,6 @@ void main() {
   });
 }
 
-/// The resource name a bare-string acknowledgement refers to.
-String _resourceOf(String path) {
-  for (final name in [
-    'customer',
-    'event',
-    'inventory',
-    'organization',
-    'role',
-  ]) {
-    if (path.contains(name)) {
-      return name[0].toUpperCase() + name.substring(1);
-    }
-  }
-  return 'Resource';
-}
-
 /// A response matching what each endpoint's return type expects.
 ///
 /// Bodies are built by string interpolation so the shared id/organization
@@ -246,14 +226,49 @@ StubResponse _responseFor(RequestOptions options) {
   const ids = '"customerId":1,"name":"Acme","userId":1,"username":"a"';
 
   if (path.contains('/usage')) {
-    return const StubResponse.json('{"success":true,"data":"OK"}');
-  }
-  // Every PUT answers a bare-string acknowledgement naming the resource.
-  if (options.method == 'PUT') {
     // ignore: prefer_const_constructors
     return StubResponse.json(
-      '{"success":true,"data":"${_resourceOf(path)} with ID 1 updated"}',
+      '{"success":true,"data":{"inventoryId":1,"name":"Chairs",$org}}',
     );
+  }
+  if (path.startsWith('/api/events') &&
+      path.endsWith('/rsvp') &&
+      options.method == 'POST') {
+    // ignore: prefer_const_constructors
+    return StubResponse.json(
+      '{"success":true,"data":{"eventId":1,"title":"Gala",'
+      '"date":"2026-03-04","time":"09:30:00",'
+      '"startsAt":"2026-03-04T09:30:00Z","timezone":"UTC",$org}}',
+    );
+  }
+  // PUT updates return the saved resource.
+  if (options.method == 'PUT') {
+    if (path.startsWith('/api/events')) {
+      // ignore: prefer_const_constructors
+      return StubResponse.json(
+        '{"success":true,"data":{"eventId":1,"title":"Gala",'
+        '"date":"2026-03-04","time":"09:30:00",'
+        '"startsAt":"2026-03-04T09:30:00Z","timezone":"UTC",$org}}',
+      );
+    }
+    if (path.startsWith('/api/inventory')) {
+      // ignore: prefer_const_constructors
+      return StubResponse.json(
+        '{"success":true,"data":{"inventoryId":1,"name":"Chairs",$org}}',
+      );
+    }
+    if (path.startsWith('/api/organizations')) {
+      return const StubResponse.json(
+        '{"success":true,"data":{"organizationId":1,"name":"O","contactInformation":"","timezone":"UTC"}}',
+      );
+    }
+    if (path.startsWith('/api/roles')) {
+      return const StubResponse.json(
+        '{"success":true,"data":{"roleId":1,"roleName":"Staff","permissions":[]}}',
+      );
+    }
+    // ignore: prefer_const_constructors
+    return StubResponse.json('{"success":true,"data":{$ids,$org}}');
   }
   if (path.startsWith('/api/events') && options.method == 'GET') {
     if (path.endsWith('/rsvps/requested')) {

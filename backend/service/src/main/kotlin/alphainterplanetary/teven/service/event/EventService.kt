@@ -89,9 +89,9 @@ class EventService(
     authContext: AuthContext,
     eventId: Int,
     updateEventRequest: UpdateEventRequest,
-  ): Boolean {
+  ): EventResponse? {
     val event = eventDao.getEventById(eventId)
-      ?: return false // Event not found
+      ?: return null // Event not found
 
     if (!authContext.hasPermission(Permission.MANAGE_EVENTS_GLOBAL) && event.organization.organizationId != authContext.organizationId) {
       throw IllegalAccessException("User not authorized to update events outside their organization")
@@ -141,7 +141,7 @@ class EventService(
     eventId: Int,
     userId: Int,
     availability: String,
-  ): Boolean {
+  ): EventResponse? {
     val event = eventDao.getEventById(eventId)
       ?: throw IllegalArgumentException("Event not found")
 
