@@ -288,6 +288,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Permissions: `VIEW_EVENTS_ORGANIZATION`
     * Query Parameters:
         * See [Common Search, Sort, and Pagination Parameters](#common-search-sort-and-pagination-parameters)
+        * `sortBy` (optional, string): Field to sort by. Supported values are `startsAt` (start time) and `title`. Defaults to start time.
+        * `sortOrder` (optional, string, `asc` or `desc`): Sort order for `sortBy`. Defaults to `asc` (earliest first when sorting by start time).
         * `startDate` (optional, string, `YYYY-MM-DD`): Start of the date window, as a local calendar date.
         * `endDate` (optional, string, `YYYY-MM-DD`): End of the date window, as a local calendar date.
         * `timezone` (optional, string, IANA zone id): The time zone `startDate` and `endDate` are interpreted in. The server converts the window into an instant range (upper bound exclusive). When absent, the caller's organization time zone is used, falling back to UTC when there is no organization scope.

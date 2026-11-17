@@ -165,6 +165,7 @@ class EventDao {
     search: String?,
     limit: Int?,
     offset: Long?,
+    sortBy: String?,
     sortOrder: String?,
   ): PaginatedResponse<EventResponse> = dbQuery {
     val conditions = mutableListOf<Op<Boolean>>()
@@ -183,7 +184,10 @@ class EventDao {
     val total = query.count()
 
     val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
-    query.orderBy(Events.startsAt, sort)
+    when (sortBy) {
+      "title" -> query.orderBy(Events.title, sort)
+      else -> query.orderBy(Events.startsAt, sort)
+    }
 
     offset?.let { query.offset(it) }
     limit?.let { query.limit(it) }

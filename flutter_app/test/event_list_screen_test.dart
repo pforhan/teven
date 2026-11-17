@@ -341,12 +341,8 @@ void main() {
       final request = getRequests(adapter).last;
       expect(request.queryParameters['limit'], 25);
       expect(request.queryParameters['offset'], 0);
-      // `sortBy` defaults to `'date'` in the original even though the column it
-      // would apply to is the title. **It does nothing** — `EventDao` never reads
-      // it — and it is sent anyway, on the same terms as the three
-      // customer headers the server ignores: hiding a control the original shows
-      // is a worse divergence than leaving it inert. See
-      expect(request.queryParameters['sortBy'], 'date');
+      // `sortBy` defaults to `startsAt` (the Date column) and is sent to the server.
+      expect(request.queryParameters['sortBy'], 'startsAt');
       expect(request.queryParameters['sortOrder'], 'asc');
     });
 

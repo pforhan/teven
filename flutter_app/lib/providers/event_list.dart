@@ -39,8 +39,8 @@ const int kCalendarEventLimit = 1000;
 /// [EventService.defaultLimit] being 10 rather than the [kListPageSize] the
 /// other lists share, and the reason to treat the page size here as a
 /// starting point rather than a verified one.
-/// - **The one sortable header this screen shows does nothing.** `sortBy` is
-/// accepted by `EventRoutes.kt` and never read by `EventDao`
+/// - **`sortBy` and `sortOrder` are forwarded to the server.** The event list
+/// endpoint supports sorting by start time (`startsAt`) and `title`.
 /// `sortOrder` *does* work and defaults to `asc`. The sort
 /// control is reproduced anyway, on the same terms as the three customer
 /// headers the server ignores — see which decided that hiding a

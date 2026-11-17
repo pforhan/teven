@@ -86,6 +86,7 @@ fun Route.eventRoutes() {
         val search = call.request.queryParameters["search"]
         val limit = call.request.queryParameters["limit"]?.toIntOrNull()
         val offset = call.request.queryParameters["offset"]?.toLongOrNull()
+        val sortBy = call.request.queryParameters["sortBy"]
         val sortOrder = call.request.queryParameters["sortOrder"] ?: "asc"
         val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
 
@@ -96,6 +97,7 @@ fun Route.eventRoutes() {
           search = search,
           limit = limit,
           offset = offset,
+          sortBy = sortBy,
           sortOrder = sortOrder,
           organizationId = organizationId,
           timezone = timezone,

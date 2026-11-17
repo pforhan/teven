@@ -71,9 +71,9 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
 
   String _searchTerm = '';
 
-  /// `sortBy` defaults to `'date'` in the original even though the column it is
-  /// applied to is the title — see [_buildQuery].
-  String _sortBy = 'date';
+  /// `sortBy` defaults to `startsAt` (the Date column) — the server supports
+  /// sorting by start time and title.
+  String _sortBy = 'startsAt';
   SortOrder _sortOrder = SortOrder.asc;
 
   /// The query built during the last build, kept so "load more" and "reload
@@ -185,7 +185,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
       ),
     ),
     ListColumn<EventResponse>(
-      key: 'date',
+      key: 'startsAt',
       label: 'Date',
       sortable: true,
       text: (event) => event.dateIn(readerZone),

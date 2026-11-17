@@ -149,7 +149,7 @@ class EventServiceTest {
 
   @Test
   fun `get events converts a local date range into an instant range in the requested zone`() = runBlocking {
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     val result =
@@ -160,6 +160,7 @@ class EventServiceTest {
           search = null,
           limit = null,
           offset = null,
+          sortBy = null,
           sortOrder = "asc",
           organizationId = null,
           timezone = "Europe/Berlin",
@@ -174,6 +175,7 @@ class EventServiceTest {
         null,
         null,
         null,
+        null,
         "asc",
       )
     }
@@ -181,7 +183,7 @@ class EventServiceTest {
 
   @Test
   fun `get events converts a Pacific Auckland date range so the month boundaries include the local day`() = runBlocking {
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     eventService.getEvents(
@@ -191,6 +193,7 @@ class EventServiceTest {
       search = null,
       limit = null,
       offset = null,
+      sortBy = null,
       sortOrder = "asc",
       organizationId = null,
       timezone = "Pacific/Auckland",
@@ -204,6 +207,7 @@ class EventServiceTest {
         null,
         null,
         null,
+        null,
         "asc",
       )
     }
@@ -211,7 +215,7 @@ class EventServiceTest {
 
   @Test
   fun `get events covers a 25-hour fall-back day with an exclusive end`() = runBlocking {
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     eventService.getEvents(
@@ -221,6 +225,7 @@ class EventServiceTest {
       search = null,
       limit = null,
       offset = null,
+      sortBy = null,
       sortOrder = "asc",
       organizationId = null,
       timezone = "America/New_York",
@@ -234,6 +239,7 @@ class EventServiceTest {
         null,
         null,
         null,
+        null,
         "asc",
       )
     }
@@ -242,7 +248,7 @@ class EventServiceTest {
   @Test
   fun `get events uses the caller organization zone when timezone is absent`() = runBlocking {
     coEvery { organizationService.getOrganizationZone(1) } returns "Europe/Berlin"
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     eventService.getEvents(
@@ -252,6 +258,7 @@ class EventServiceTest {
       search = null,
       limit = null,
       offset = null,
+      sortBy = null,
       sortOrder = "asc",
       organizationId = null,
       timezone = null,
@@ -265,6 +272,7 @@ class EventServiceTest {
         null,
         null,
         null,
+        null,
         "asc",
       )
     }
@@ -273,7 +281,7 @@ class EventServiceTest {
   @Test
   fun `get events falls back to utc when timezone is absent and no organization zone applies`() = runBlocking {
     coEvery { organizationService.getOrganizationZone(1) } returns null
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     eventService.getEvents(
@@ -283,6 +291,7 @@ class EventServiceTest {
       search = null,
       limit = null,
       offset = null,
+      sortBy = null,
       sortOrder = "asc",
       organizationId = null,
       timezone = null,
@@ -293,6 +302,7 @@ class EventServiceTest {
         1,
         Instant.parse("2026-03-04T00:00:00Z"),
         Instant.parse("2026-03-06T00:00:00Z"),
+        null,
         null,
         null,
         null,

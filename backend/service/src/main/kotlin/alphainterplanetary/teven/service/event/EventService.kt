@@ -49,6 +49,7 @@ class EventService(
     search: String?,
     limit: Int?,
     offset: Long?,
+    sortBy: String?,
     sortOrder: String?,
     organizationId: Int?,
     timezone: String?,
@@ -71,6 +72,7 @@ class EventService(
       search = search,
       limit = limit,
       offset = offset,
+      sortBy = sortBy,
       sortOrder = sortOrder,
     )
   }

@@ -147,7 +147,14 @@ StubAdapter eventFormAdapter({
     }
     if (options.method == 'PUT' && options.path.startsWith('/api/events/')) {
       return updateFailure ??
-          const StubResponse.json('"Event with ID 7 updated"');
+          eventBody(
+            date: eventDate,
+            time: eventTime,
+            timezone: eventTimezone,
+            startsAt: eventStartsAt,
+            durationMinutes: durationMinutes,
+            location: location,
+          );
     }
     if (options.method == 'GET' && options.path.startsWith('/api/events/')) {
       return loadFailure ??

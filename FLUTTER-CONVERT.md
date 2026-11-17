@@ -99,11 +99,11 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   Verify after: every `success()` response carries a typed payload, and `grep -rn 'success("' backend/app` returns nothing.
 
-- [ ] **10.11** **Implement `sortBy` on `GET /api/events`, or delete the parameter.** Confirmed dead: `EventRoutes.kt` never reads `sortBy` (zero occurrences) and neither does `EventDao`. Every other list DAO honours it — `CustomerDao` switches on `"name"` and falls back to id — so events are the outlier. `API.md` documents it as working.
+- [x] **10.11** **Implement `sortBy` on `GET /api/events`, or delete the parameter.** Confirmed dead: `EventRoutes.kt` never reads `sortBy` (zero occurrences) and neither does `EventDao`. Every other list DAO honours it — `CustomerDao` switches on `"name"` and falls back to id — so events are the outlier. `API.md` documents it as working.
 
   `sortOrder` **does** work and defaults to `asc`, which is the more surprising half: callers expecting "newest first" get the earliest event unless they pass `sortOrder=desc`. Worth fixing alongside, or at minimum correcting in `API.md`.
 
-  Task 4.11 tells the UI to verify sort controls; this is the task that makes that verification pass.
+  Task 4.11 tells the UI to verify sort controls; this is the task that makes that verification pass. Implemented `sortBy` for events (`title`, `date`/`startsAt`, defaulting to start time) through route/service/DAO, updated `EventServiceTest`, and clarified events query params in `API_TEMPLATE.md` and Flutter client comments.
 
 - [ ] **10.12** **Implement hard `DELETE /api/users/{id}`, deleting dependent rows explicitly.** **Decision made: hard delete, not soft.** The button exists in the React UI (`UserList.tsx:81`) and has never worked.
 

@@ -32,15 +32,9 @@ class EventService {
   /// and a null one becomes the default. The date range, search, organization,
   /// and sort order pass straight through.
   ///
-  /// **`sortBy` does nothing.** `EventRoutes.kt` accepts a `sortBy` parameter
-  /// but `EventDao` never reads it — it always orders by date. Passing it is
-  /// accepted and ignored, so do not rely on it; the UI must sort client-side
-  /// if it needs to. This is a known server-side discrepancy.
-  ///
-  /// `sortOrder` **does** work, and defaults to `asc` server-side when
-  /// omitted (`EventRoutes.kt`) — so the first event returned is the
-  /// earliest, not the most recent. Callers wanting recent-first must pass
-  /// [SortOrder.desc] explicitly.
+  /// `sortBy` supports `startsAt` and `title`; other values fall back to start
+  /// time. `sortOrder` defaults to `asc` server-side when omitted, so the first
+  /// event returned is the earliest unless [SortOrder.desc] is passed.
   Future<PaginatedResponse<EventResponse>> getAllEvents([
     ListQuery query = const ListQuery(),
   ]) => _client.get<PaginatedResponse<EventResponse>>(
