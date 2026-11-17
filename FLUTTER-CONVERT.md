@@ -47,7 +47,7 @@ Once the Flutter web app is verified working locally against the real backend. T
 - [x] **10.4** Remove React deps, ESLint config, and node tooling references from the repo.
 - [x] **10.5** Update `AGENTS.md`, `README.md`, and `BACKEND-DESIGN.md` for Flutter conventions.
 - [x] **10.6** Update `API.md` for the drift found during the port (the table in `FLUTTER-CONVERT-DESIGN.md`) — regenerate rather than hand-edit, per `build.gradle.kts:23-87`.
-- [ ] **10.7** Remove dead `backend/service/geo/` code if the Flutter app does client-side geocoding, or wire up `GeoRoutes` if it does.
+- [x] **10.7** Remove dead `backend/service/geo/` code if the Flutter app does client-side geocoding, or wire up `GeoRoutes` if it does. Deleted the unused backend geo service/provider/mock, DI wiring, and `GeoLocation` model; Flutter has no client-side geocoding and launches maps from address text via `url_launcher`.
 - [x] **10.8** **Strip dangling `frontend/` references from `flutter_app/lib/`.** 10.3 deletes the directory these comments point at, leaving paths like ``frontend/src/api/apiClient.ts`` that resolve to nothing — a comment that looks like a citation a reader could follow but cannot. 10.4 covers React *dependencies* and node tooling; it does not reach prose in doc comments.
 
    Most of the current occurrences explain *why* something is shaped the way it is, and that reasoning is the durable value. Reword to keep the explanation and drop the path, file, or source type, e.g. rather than "Replaces `apiClient` in `frontend/src/api/apiClient.ts`", say "Replaces a hand-rolled `apiClient`, which wrapped `fetch`".

@@ -1,6 +1,5 @@
 package alphainterplanetary.teven.api.model.customer
 
-import alphainterplanetary.teven.api.model.common.GeoLocation
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import kotlinx.serialization.Serializable
 

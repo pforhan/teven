@@ -12,9 +12,9 @@ part 'customer.g.dart';
 ///
 /// The geo fields (`latitude`, `longitude`, `formattedAddress`) were absent
 /// from the original frontend types but **are** on the wire. They are included
-/// here so the data is not silently dropped; the backend's geo service is
-/// currently dead code (see the backend discrepancy notes), so these are
-/// normally null.
+/// here so the data is not silently dropped; the backend does not currently
+/// populate them, so these are normally null. (No geocoding is wired up; map
+/// links use the address text.)
 @freezed
 abstract class CustomerResponse with _$CustomerResponse {
   const factory CustomerResponse({
