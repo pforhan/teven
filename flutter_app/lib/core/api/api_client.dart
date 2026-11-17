@@ -21,10 +21,8 @@ enum ResponseBody {
 
   /// The body is a bare JSON **string**, not an object.
   ///
-  /// `AuthorizationPlugin.kt` responds with a plain string such as
-  /// `"User does not have the required permission"`, bypassing the envelope
-  /// entirely. Several `success(...)` calls do the same — `PUT /api/events/{id}`
-  /// returns `"Event with ID N updated"` (`EventRoutes.kt`).
+  /// Several `success(...)` calls return a bare JSON string rather than an
+  /// object payload. Task 10.10 removes those cases in favor of a typed DTO.
   bareString,
 
   /// Do not inspect the body; pass it through as decoded JSON.
@@ -276,13 +274,9 @@ class ApiClient {
       }
     }
 
-    // Bare string from AuthorizationPlugin.kt, or unparseable.
-    if (decoded is String) {
-      if (status == 401) {
-        return UnauthorizedException(message: decoded, statusCode: status);
-      }
-      return ApiRequestException(decoded, statusCode: status);
-    }
+    // A bare string body on an error is not a recognized API error shape;
+    // fall through to a generic message. Envelope errors carry their message
+    // in `error.message` and are handled above.
 
     final message = status == 401
         ? 'Session expired. Please log in again.'
@@ -429,8 +423,7 @@ class ApiClient {
 /// bare-string API response.
 ///
 /// The important case is `index.html` served with HTTP 200 for an unmatched
-/// route (see [_tryDecode]). Without the tag it would be indistinguishable
-/// from the bare strings that `AuthorizationPlugin.kt` genuinely returns.
+/// route (see [_tryDecode]).
 class _NonJsonBody {
   const _NonJsonBody(this.text, {this.contentType});
 
