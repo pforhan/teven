@@ -113,6 +113,7 @@ Commands:
   verify             Analyze, format-check, and test the Flutter app.
   verify-backend     Run the backend unit tests across every Gradle module.
   verify-all         Run both: backend tests, then the Flutter verify.
+  check              Check source for conversion task references in comments.
   clean              Remove the built Flutter web bundle.
   down               Stop the containers.
   down -v | --volumes
@@ -174,6 +175,7 @@ main() {
     verify) cmd_verify "$dry_run" ;;
     verify-backend) cmd_verify_backend "$dry_run" ;;
     verify-all) cmd_verify_all "$dry_run" ;;
+    check) cmd_check_task_refs "$dry_run" ;;
     clean) cmd_clean "$dry_run" ;;
     down) cmd_down "$volumes" "$dry_run" ;;
     status) cmd_simple status "$dry_run" ;;
@@ -309,6 +311,26 @@ cmd_verify_backend() {
     show ./gradlew test
   else
     (cd "$ROOT" && ./gradlew test)
+  fi
+}
+
+# Guardrail: conversion task IDs (e.g. "task 10.9") belong in the
+# FLUTTER-CONVERT* docs, not in source comments. Catches regressions of the
+# "no task references in code comments" cleanup.
+cmd_check_task_refs() {
+  local dry_run="$1"
+  printf '==> Checking for task references in source comments\n'
+  if [ "$dry_run" -eq 1 ]; then
+    show "rg -n --glob '!FLUTTER-CONVERT*' 'task [0-9]+\\.[0-9]+' flutter_app/lib flutter_app/test backend"
+    return 0
+  fi
+  local matches
+  matches="$(rg -n --glob '!FLUTTER-CONVERT*' --glob '!*.md' \
+    -e 'task [0-9]+\.[0-9]+' -e 'Task [0-9]+\.[0-9]+' \
+    flutter_app/lib flutter_app/test backend 2>/dev/null || true)"
+  if [ -n "$matches" ]; then
+    printf 'teven: task references found in source; move them to FLUTTER-CONVERT docs:\n%s\n' "$matches" >&2
+    return 1
   fi
 }
 
