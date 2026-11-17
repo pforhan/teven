@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.auth
 
+import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.core.security.AuthContext
 
@@ -21,14 +22,14 @@ val AuthorizationPlugin = createRouteScopedPlugin(
       val callerId = principal?.userId
 
       if (callerId == null) {
-        call.respond(HttpStatusCode.Unauthorized, "User ID not found in token")
+        call.respond(HttpStatusCode.Unauthorized, failure("User ID not found in token"))
         return@onCall
       }
 
       val userPermissions = permissionService.getPermissions(callerId)
 
       if (!userPermissions.hasPermission(permission)) {
-        call.respond(HttpStatusCode.Forbidden, "User does not have the required permission")
+        call.respond(HttpStatusCode.Forbidden, failure("User does not have the required permission"))
         return@onCall
       }
     }
