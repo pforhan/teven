@@ -22,12 +22,15 @@ interface UserService {
     offset: Long? = null,
     sortBy: String? = null,
     sortOrder: String? = null,
+    status: String? = null,
   ): PaginatedResponse<UserResponse>
   suspend fun getAllUsers(authContext: AuthContext, organizationId: Int? = null): List<UserResponse>
-  suspend fun getUserById(userId: Int): UserResponse?
+  suspend fun getUserById(userId: Int, authContext: AuthContext? = null): UserResponse?
   suspend fun getUserContext(userId: Int): LoggedInContextResponse
   suspend fun areInSameOrganization(userId1: Int?, userId2: Int?): Boolean
   suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest, authContext: AuthContext): UserResponse?
+  suspend fun deactivateUser(userId: Int, authContext: AuthContext): Boolean
+  suspend fun restoreUser(userId: Int, authContext: AuthContext): UserResponse?
   suspend fun getUserByUsername(username: String): UserResponse?
   suspend fun getUserByEmail(email: String): UserResponse?
 }

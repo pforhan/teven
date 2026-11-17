@@ -3945,3 +3945,27 @@ the "Other events" panel. Request-body assertions use the recorded requests via
 - **Roles (10.32):** seeded/system, name-coupled, and referenced by assignments/invitations — treat definitions as authorization policy managed in code/seed (no runtime create/update/delete of definitions via API; this repo has no migration framework, so changes are versioned seed/init/data changes), while **role assignment/removal remains API-driven**. Custom tenant-defined roles are a separate, explicit feature, not the current shape.
 
 **Files changed:** `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-17 — 10.12: soft-delete (deactivate) users, with super-admin visibility and restore
+
+**Implemented task 10.12.** Users are now deactivated (soft-deleted) instead of hard-deleted so history (RSVPs, staff hours, roles/org membership, invitation attribution) is retained and super-admins can inspect/restore deactivated accounts.
+
+**Backend.** Added nullable `deleted_at` (`timestamp with time zone`) to `Users` and threaded it through `core.user.User`, `api.model.user.UserResponse` (`deletedAt` string), DAO mapping, and service responses. `SchemaUtils.create` is create-if-missing (no migrations), so an existing database must be dropped/recreated to pick up the column.
+
+Default reads exclude deactivated users via a shared active predicate/status filter in `UserDao` (`getUsers` supports `ACTIVE|DEACTIVATED|ALL` with consistent `total`, plus include-deactivated lookups where needed). Management list/detail/get-by-username/email default to active-only; `GET /api/users` accepts `status=active|deactivated|all` for `VIEW_USERS_GLOBAL` callers only. `updateUser` and normal lookups do not mutate/return deactivated users except the explicit admin paths.
+
+Auth/session revocation: login rejects deactivated users (username lookup is active-only) and `getUserContext` / JWT principal resolution fail for deactivated-or-missing users so existing sessions cannot continue (auth validation treats the failure as unauthorized rather than erroring).
+
+Service/routes: `DELETE /api/users/{id}` deactivates (idempotent, `204`), `POST /api/users/{id}/restore` restores (super-admin/global-manage gated) and returns the restored user; both enforce server-side guard rails (no self-deactivation, org-scoping consistent with manage/update, and a last-active-super-admin backstop on deactivation). Restore is restricted to global management; deactivated accounts are immutable except restore.
+
+Historical joins left intact: event RSVP/report reads that resolve users by id directly continue to work because the user row remains (no cascaded deletes; existing `RESTRICT` FKs unchanged).
+
+**Uniqueness decision (explicit).** `username`/`email` unique indexes remain global, so a deactivated account **reserves** its username/email (blocking reuse/re-invite with the same values) but restore is straightforward and history/display values stay intact. (Alternative considered but not implemented: freeing values for active-only uniqueness would require DDL/index changes and a careful display/restore story under this repo's no-migration setup.)
+
+**Flutter.** `UserResponse` gained `deletedAt`; `ListQuery`/user service support `status` and restore (`POST /api/users/{id}/restore`). The user list (super-admin/global view) adds an Active/Deactivated/All filter, shows status, changes delete to **Deactivate** for active users, and offers **Restore** for deactivated users (global-manage). Non-global viewers continue to see active users only. User-list tests updated for the new contract (deactivate succeeds and reloads; no longer expects the old 404).
+
+**Verified:** `./teven verify-backend`, `./teven verify`.
+
+**Files changed (primary):** `backend/data/src/main/kotlin/.../data/user/Users.kt`, `UserDao.kt`, `backend/core/src/main/kotlin/.../core/user/User.kt`, `core/service/UserService.kt`, `backend/api/src/main/kotlin/.../api/model/user/UserResponse.kt`, `backend/service/src/main/kotlin/.../service/user/UserServiceImpl.kt`, `backend/app/src/main/kotlin/.../app/user/UserRoutes.kt`, `backend/auth/src/main/kotlin/.../auth/ApplicationAuth.kt`, `backend/service/src/test/kotlin/.../service/user/UserServiceImplTest.kt`, `flutter_app/lib/models/user.dart`, `core/services/list_query.dart`, `core/services/crud_services.dart`, `screens/users/user_list_screen.dart`, `flutter_app/test/user_list_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

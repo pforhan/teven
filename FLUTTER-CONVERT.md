@@ -105,7 +105,7 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   Task 4.11 tells the UI to verify sort controls; this is the task that makes that verification pass. Implemented `sortBy` for events (`title`, `date`/`startsAt`, defaulting to start time) through route/service/DAO, updated `EventServiceTest`, and clarified events query params in `API_TEMPLATE.md` and Flutter client comments.
 
-- [ ] **10.12** **Soft-delete (deactivate) users, with super-admin visibility and restore.** **Decision revised: soft delete, not hard delete.** The button exists in the React UI (`UserList.tsx:81`) and has never worked. The goal is to let super-admins see deactivated users and restore them, without losing the history attached to a user account.
+- [x] **10.12** **Soft-delete (deactivate) users, with super-admin visibility and restore.** **Decision revised: soft delete, not hard delete.** The button exists in the React UI (`UserList.tsx:81`) and has never worked. The goal is to let super-admins see deactivated users and restore them, without losing the history attached to a user account.
 
   **The load-bearing invariant (the reason 10.12 originally leaned hard-delete): a deactivated user must not be able to authenticate or act.** Soft delete is acceptable only if "deleted" is enforced everywhere an identity is treated as active:
   - `loginUser` / `UserDao.getUserByUsername` (and any email lookup used for auth) must reject deactivated users (same outcome as invalid credentials / not found).
@@ -417,6 +417,17 @@ Please ensure that class is marked as '@Serializable' and that the serialization
   **Custom roles are out of scope of the current shape.** The existing model is effectively global and name-coupled; if tenant-defined custom roles become a real requirement, treat that as an explicit feature (data model + scoping + UI + safety rules), not an extension of the current definition-CRUD endpoints.
 
   Verify after: role definitions cannot be created/changed/deleted at runtime through the API, seeded/system roles remain intact, and role assignment/removal still works as intended.
+
+- [ ] **10.33** **Let authorized managers adjust other aspects of users in their organization.** Task 10.12 added deactivation (soft delete) and restore, but some account-management actions are still missing, overly restricted, or not exposed for org-scoped managers. Expand user management so people with the right permissions can maintain user accounts within their scope, while preserving 10.12’s guard rails (no self-deactivation, last-active-super-admin protection, deactivated accounts not able to authenticate/act, and org scoping).
+
+  **Scope to decide/implement (as permitted by role):**
+  - **Profile and identity edits:** allow updating fields that are not currently mutable where appropriate (notably `username`; also review `email`, `displayName`, and password reset/change flows). `UpdateUserRequest`/`UserDao.updateUser` today only apply `email`/`displayName`; adding username or credential changes requires explicit validation, uniqueness/conflict handling (including the 10.12 decision that deactivated users reserve `username`/`email`), and clear rules for active vs deactivated accounts.
+  - **Org-scoped administration:** confirm which actions `MANAGE_USERS_ORGANIZATION` (within the same organization) may perform vs those reserved for `MANAGE_USERS_GLOBAL` — e.g. edit profile fields, role changes (subject to existing `CAN_ASSIGN_*` checks), and deactivation. 10.12 currently allows org-scoped deactivation but restricts **restore** to global management; decide whether org-scoped managers should be able to restore users in their own organization (and, if so, update route/service gating and the Flutter UI), while keeping cross-org/global protections intact.
+  - **Deactivate/restore lifecycle:** ensure deactivate and restore are available in the API and UI wherever the permission model allows, with idempotent behavior and the same safety checks (cannot restore into a uniqueness/last-admin conflict, cannot edit a deactivated account except restore/reactivation).
+
+  **UI/API:** expose the supported edits and lifecycle actions in the user management/edit flows for authorized callers, return clear errors on conflicts (duplicate username/email, forbidden, last super-admin, etc.), and keep non-authorized callers scoped to active users/read-only behavior as today.
+
+  Verify after: an authorized org manager can adjust the intended user attributes for users in their organization (and cannot affect users outside scope), deactivate/restore behaves per the decided permission model with 10.12’s invariants preserved, and `./teven verify-backend` and `./teven verify` pass.
 
 ---
 

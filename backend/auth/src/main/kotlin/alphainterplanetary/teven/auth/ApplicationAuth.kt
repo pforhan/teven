@@ -2,6 +2,7 @@ package alphainterplanetary.teven.auth
 
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.core.security.AuthContext
+import alphainterplanetary.teven.core.security.AuthorizationException
 import alphainterplanetary.teven.core.security.JwtConfig
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.core.service.UserService
@@ -33,12 +34,18 @@ class ApplicationAuth(
             if (credential.payload.audience.contains(jwtConfig.audience)) {
               val userId = credential.payload.getClaim("userId").asInt()
               if (userId != null) {
-                val context = userService.getUserContext(userId)
-                AuthContext(
-                  userId = context.user.userId,
-                  organizationId = context.user.organization.organizationId,
-                  permissions = context.permissions.map { Permission.valueOf(it) }.toSet()
-                )
+                try {
+                  val context = userService.getUserContext(userId)
+                  AuthContext(
+                    userId = context.user.userId,
+                    organizationId = context.user.organization.organizationId,
+                    permissions = context.permissions.map { Permission.valueOf(it) }.toSet()
+                  )
+                } catch (_: AuthorizationException) {
+                  null
+                } catch (_: NoSuchElementException) {
+                  null
+                }
               } else {
                 null
               }

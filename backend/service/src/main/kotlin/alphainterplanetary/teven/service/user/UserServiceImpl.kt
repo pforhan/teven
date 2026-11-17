@@ -16,7 +16,9 @@ import alphainterplanetary.teven.core.service.UserService
 import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.core.user.User
 import alphainterplanetary.teven.data.user.UserDao
+import alphainterplanetary.teven.data.user.UserStatusFilter
 import io.ktor.http.HttpStatusCode
+import java.time.format.DateTimeFormatter
 
 class UserServiceImpl(
   private val userDao: UserDao,
@@ -32,6 +34,7 @@ class UserServiceImpl(
       displayName = user.displayName,
       roles = roles.map { it.roleName },
       organization = organization,
+      deletedAt = user.deletedAt?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
     )
   }
 
@@ -98,12 +101,19 @@ class UserServiceImpl(
     offset: Long?,
     sortBy: String?,
     sortOrder: String?,
+    status: String?,
   ): PaginatedResponse<UserResponse> {
-    val isSuperAdmin = authContext.hasPermission(Permission.VIEW_USERS_GLOBAL)
-    val orgIdToUse = if (isSuperAdmin) {
-      organizationId
+    val canViewGlobal = authContext.hasPermission(Permission.VIEW_USERS_GLOBAL)
+    val orgIdToUse = if (canViewGlobal) organizationId else authContext.organizationId
+
+    val statusFilter = if (canViewGlobal) {
+      when (status?.lowercase()) {
+        "deactivated", "deleted", "inactive" -> UserStatusFilter.DEACTIVATED
+        "all" -> UserStatusFilter.ALL
+        else -> UserStatusFilter.ACTIVE
+      }
     } else {
-      authContext.organizationId
+      UserStatusFilter.ACTIVE
     }
 
     val usersPaginated = userDao.getUsers(
@@ -112,7 +122,8 @@ class UserServiceImpl(
       limit = limit,
       offset = offset,
       sortBy = sortBy,
-      sortOrder = sortOrder
+      sortOrder = sortOrder,
+      status = statusFilter,
     )
 
     return PaginatedResponse(
@@ -124,13 +135,8 @@ class UserServiceImpl(
   }
 
   override suspend fun getAllUsers(authContext: AuthContext, organizationId: Int?): List<UserResponse> {
-    val isSuperAdmin = authContext.hasPermission(Permission.VIEW_USERS_GLOBAL)
-
-    val orgIdToUse = if (isSuperAdmin) {
-      organizationId
-    } else {
-      authContext.organizationId
-    }
+    val canViewGlobal = authContext.hasPermission(Permission.VIEW_USERS_GLOBAL)
+    val orgIdToUse = if (canViewGlobal) organizationId else authContext.organizationId
 
     val users = if (orgIdToUse != null) {
       userDao.getUsersByOrganization(orgIdToUse)
@@ -140,8 +146,21 @@ class UserServiceImpl(
     return users.map { toUserResponse(it) }
   }
 
-  override suspend fun getUserById(userId: Int): UserResponse? =
-    toUserResponse(userDao.getUserById(userId))
+  override suspend fun getUserById(userId: Int, authContext: AuthContext?): UserResponse? {
+    val canViewDeactivated = authContext?.hasPermission(Permission.VIEW_USERS_GLOBAL) == true
+    val user = userDao.findUserById(userId, includeDeactivated = canViewDeactivated) ?: return null
+    if (user.deletedAt != null) {
+      if (authContext == null) return null
+      if (!canViewDeactivated) return null
+      val sameOrg = authContext.organizationId == userDao.getOrganizationForUser(userId).organizationId
+      if (!sameOrg) return null
+    } else if (authContext != null && !canViewDeactivated) {
+      // org-scoped viewers must only see users in their org
+      val sameOrg = userDao.areInSameOrganization(authContext.userId, userId)
+      if (!sameOrg) return null
+    }
+    return toUserResponse(user)
+  }
 
   override suspend fun getUserByUsername(username: String): UserResponse? =
     userDao.getUserByUsername(username)?.let { toUserResponse(it) }
@@ -154,6 +173,13 @@ class UserServiceImpl(
     updateUserRequest: UpdateUserRequest,
     authContext: AuthContext
   ): UserResponse? {
+    val target = userDao.findUserById(userId, includeDeactivated = true) ?: return null
+    if (target.deletedAt != null) return null
+    val canManageGlobal = authContext.hasPermission(Permission.MANAGE_USERS_GLOBAL)
+    if (!canManageGlobal) {
+      val sameOrg = userDao.areInSameOrganization(authContext.userId, userId)
+      if (!sameOrg) throw AuthorizationException(HttpStatusCode.Forbidden, "Not authorized to update this user.")
+    }
     val user = userDao.updateUser(userId, updateUserRequest)
     val requestedRoles = updateUserRequest.roles
     if (requestedRoles != null) {
@@ -174,6 +200,43 @@ class UserServiceImpl(
     return user?.let { toUserResponse(it) }
   }
 
+  override suspend fun deactivateUser(userId: Int, authContext: AuthContext): Boolean {
+    if (authContext.userId == userId) {
+      throw AuthorizationException(HttpStatusCode.Forbidden, "Users cannot deactivate themselves.")
+    }
+    val target = userDao.findUserById(userId, includeDeactivated = true) ?: return false
+    val canManageGlobal = authContext.hasPermission(Permission.MANAGE_USERS_GLOBAL)
+    if (!canManageGlobal) {
+      val sameOrg = userDao.areInSameOrganization(authContext.userId, userId)
+      if (!sameOrg) throw AuthorizationException(HttpStatusCode.Forbidden, "Not authorized to deactivate this user.")
+    }
+    if (target.deletedAt != null) return true
+    val targetRoles = roleService.getRolesForUser(userId).map { it.roleName }
+    if (Constants.ROLE_SUPERADMIN in targetRoles) {
+      // prevent deactivating last super-admin
+      val allUsers = userDao.getAllUsers(includeDeactivated = true)
+      val activeSuperAdmins = allUsers.count { u ->
+        u.deletedAt == null && roleService.getRolesForUser(u.userId).any { it.roleName == Constants.ROLE_SUPERADMIN }
+      }
+      if (activeSuperAdmins <= 1) {
+        throw AuthorizationException(HttpStatusCode.Forbidden, "Cannot deactivate the last super-admin.")
+      }
+    }
+    return userDao.deactivateUser(userId)
+  }
+
+  override suspend fun restoreUser(userId: Int, authContext: AuthContext): UserResponse? {
+    val canManageGlobal = authContext.hasPermission(Permission.MANAGE_USERS_GLOBAL)
+    if (!canManageGlobal) {
+      throw AuthorizationException(HttpStatusCode.Forbidden, "Not authorized to restore users.")
+    }
+    val target = userDao.findUserById(userId, includeDeactivated = true) ?: return null
+    if (target.deletedAt == null) return toUserResponse(target)
+    userDao.restoreUser(userId)
+    val restored = userDao.findUserById(userId, includeDeactivated = false) ?: return null
+    return toUserResponse(restored)
+  }
+
   override suspend fun areInSameOrganization(userId1: Int?, userId2: Int?): Boolean {
     if (userId1 == null || userId2 == null) {
       return false
@@ -181,9 +244,12 @@ class UserServiceImpl(
     return userDao.areInSameOrganization(userId1, userId2)
   }
 
-  override suspend fun getUserContext(userId: Int): LoggedInContextResponse =
-    LoggedInContextResponse(
-      user = toUserResponse(userDao.getUserById(userId)),
+  override suspend fun getUserContext(userId: Int): LoggedInContextResponse {
+    val user = userDao.findUserById(userId, includeDeactivated = false)
+      ?: throw AuthorizationException(HttpStatusCode.Unauthorized, "User is deactivated or not found.")
+    return LoggedInContextResponse(
+      user = toUserResponse(user),
       permissions = roleService.getRolesForUser(userId).flatMap { it.permissions }.distinct()
     )
+  }
 }

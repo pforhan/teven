@@ -51,24 +51,15 @@ class UserService {
         decode: (json) => UserResponse.fromJson(json! as Map<String, dynamic>),
       );
 
-  /// Deletes a user. **This endpoint does not exist.**
+  /// Deactivates (soft-deletes) a user.
   ///
-  /// The original app called `DELETE /api/users/{id}` and surfaced it as a
-  /// working delete button, but `UserRoutes.kt` defines no `delete` route — the
-  /// request falls through to the `/api` catch-all and 404s with a JSON
-  /// envelope. The button has therefore never worked.
-  ///
-  /// **Reproduced rather than fixed or dropped**, on the same terms as the dead
-  /// detail links (`AppRoutes.customerDetails`): the port is faithful through
-  /// Phase 8, and a 404 that the screen surfaces as an error is a more honest
-  /// reproduction than a button quietly missing. The original screen caught the
-  /// failure and put it in the shared error state; the ported screen does the
-  /// same through its action-error banner.
-  ///
-  /// A hard-delete fix is planned, with the four dependent tables cascaded and
-  /// `Invitations.usedByUserId` nulled rather than cascaded. Until then this
-  /// call always fails.
+  /// The server returns `204 No Content` on success.
   Future<void> deleteUser(int userId) => _client.delete('/api/users/$userId');
+
+  Future<UserResponse> restoreUser(int userId) => _client.post<UserResponse>(
+    '/api/users/$userId/restore',
+    decode: (json) => UserResponse.fromJson(json! as Map<String, dynamic>),
+  );
 }
 
 /// Organizations. Global-only endpoints — gated on

@@ -229,17 +229,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// The delete button of the **users** table.
-  ///
-  /// Both tables have one, so `find.byIcon(Icons.delete)` alone cannot say
-  /// which was tapped. Scoped by the list widget's **type argument**, which is
-  /// what actually distinguishes them — an earlier version scoped by
-  /// `find.ancestor(of: find.text('grace'), matching: find.byType(TableRow))`
-  /// and matched nothing, because the rows a `Table` builds are its own
-  /// entries rather than `TableRow` widgets in the tree.
-  Finder userRowDelete() => find.descendant(
+  /// The deactivate button of the **users** table.
+  Finder userRowDeactivate() => find.descendant(
     of: find.byType(ResponsiveListView<UserResponse>),
-    matching: find.byIcon(Icons.delete),
+    matching: find.byIcon(Icons.person_off),
   );
 
   /// The delete button of the **invitations** table, for the same reason.
@@ -383,7 +376,7 @@ void main() {
       expect(find.text('Create User'), findsNothing);
 
       await hoverRow(tester, 'grace');
-      expect(userRowDelete(), findsNothing);
+      expect(userRowDeactivate(), findsNothing);
       // The data is still there — the gate is on the actions, not the screen.
       expect(find.text('grace'), findsOneWidget);
     });
@@ -391,9 +384,6 @@ void main() {
     testWidgets('MANAGE_USERS_GLOBAL alone is enough to manage', (
       tester,
     ) async {
-      // the original user list screen ORs the two scopes. The organization screen's
-      // equivalent is single-scope, so a copy of it would have gated this on
-      // `MANAGE_USERS_ORGANIZATION` and locked out every super-admin.
       await openUsers(
         tester,
         userAdapter(permissions: const [viewUsers, 'MANAGE_USERS_GLOBAL']),
@@ -401,7 +391,7 @@ void main() {
 
       expect(find.text('Create User'), findsOneWidget);
       await hoverRow(tester, 'grace');
-      expect(userRowDelete(), findsWidgets);
+      expect(userRowDeactivate(), findsWidgets);
     });
 
     testWidgets('the organization column needs VIEW_USERS_GLOBAL', (
@@ -1034,7 +1024,7 @@ void main() {
     });
   });
 
-  group('delete a user', () {
+  group('deactivate a user', () {
     testWidgets(
       'asks first, naming the record, and cancelling changes nothing',
       (tester) async {
@@ -1042,11 +1032,10 @@ void main() {
         await openUsers(tester, adapter);
         await hoverRow(tester, 'grace');
 
-        await tester.tap(userRowDelete().first);
+        await tester.tap(userRowDeactivate().first);
         await tester.pumpAndSettle();
 
-        expect(find.text('Delete user'), findsOneWidget);
-        // `window.confirm` did not say which user; this does.
+        expect(find.text('Deactivate user'), findsOneWidget);
         expect(find.textContaining('grace'), findsWidgets);
 
         await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
@@ -1056,36 +1045,43 @@ void main() {
       },
     );
 
-    testWidgets(
-      'it calls an endpoint that does not exist, and shows the failure',
-      (tester) async {
-        final adapter = userAdapter();
-        await openUsers(tester, adapter);
-        await hoverRow(tester, 'grace');
+    testWidgets('confirming deactivates the user and reloads the list', (
+      tester,
+    ) async {
+      // After deactivation the list is reloaded; return one fewer user.
+      var usersCalls = 0;
+      final adapter = contextAdapter(
+        permissions: const [viewUsers, manageUsers],
+        forOtherRoutes: (options) {
+          if (options.path == '/api/users' && options.method == 'GET') {
+            usersCalls++;
+            return usersPage(usersCalls == 1 ? ['grace', 'alan'] : ['alan']);
+          }
+          if (options.path == '/api/invitations' && options.method == 'GET') {
+            return invitationsList(const []);
+          }
+          if (options.method == 'DELETE' && options.path == '/api/users/1') {
+            return const StubResponse.noContent();
+          }
+          return null;
+        },
+      );
+      await openUsers(tester, adapter);
+      await hoverRow(tester, 'grace');
 
-        await tester.tap(userRowDelete().first);
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(TextButton, 'Delete'));
-        await settleRequests(tester);
+      await tester.tap(userRowDeactivate().first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Deactivate'));
+      await settleRequests(tester);
 
-        // The request is made, exactly as the original user list screen made it.
-        expect(
-          adapter.requests
-              .where((o) => o.method == 'DELETE')
-              .map((o) => o.path),
-          ['/api/users/1'],
-        );
-        // And it 404s, because `UserRoutes.kt` defines no `delete` route. The
-        // React original caught that failure and put it in the shared `error`
-        // state the table rendered; the ported screen shows it in the action
-        // banner. **This test is the reproduction of ** — when the
-        // endpoint lands it will fail here, which is the intended signal.
-        expect(find.textContaining('API endpoint not found'), findsOneWidget);
-        // The list is untouched, because nothing was deleted.
-        expect(userRequests(adapter), hasLength(1));
-      },
-      skip: kIsWeb,
-    );
+      expect(
+        adapter.requests.where((o) => o.method == 'DELETE').map((o) => o.path),
+        ['/api/users/1'],
+      );
+      expect(userRequests(adapter), hasLength(2));
+      expect(find.text('grace'), findsNothing);
+      expect(find.text('alan'), findsOneWidget);
+    }, skip: kIsWeb);
   });
 
   group('cards at mobile', () {
@@ -1100,11 +1096,11 @@ void main() {
       expect(find.text('grace'), findsOneWidget);
       expect(find.text('Volunteer'), findsOneWidget);
       // Actions are always visible in a card — there is no hover to reveal
-      // them on a touch device Two delete buttons, because both
-      // tables card-ify and each has one; only the users' row has an edit,
-      // since the original user list screen gives invitations a delete and nothing else.
+      // them on a touch device. Active user gets edit + deactivate; invitation
+      // gets delete.
       expect(find.byIcon(Icons.edit), findsOneWidget);
-      expect(find.byIcon(Icons.delete), findsNWidgets(2));
+      expect(find.byIcon(Icons.person_off), findsOneWidget);
+      expect(find.byIcon(Icons.delete), findsOneWidget);
     });
   });
 }

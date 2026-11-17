@@ -112,6 +112,7 @@ class UserServiceImplTest {
     val user = User(userId, "test", "test@test.com", "Test", "")
     val superAdminRole = RoleResponse(roleId = 2, roleName = Constants.ROLE_SUPERADMIN, permissions = emptyList())
 
+    coEvery { userDao.findUserById(userId, includeDeactivated = true) } returns user
     coEvery { userDao.updateUser(userId, updateUserRequest) } returns user
     coEvery { roleService.getRolesForUser(userId) } returns emptyList()
     coEvery { roleService.getRoleByName(Constants.ROLE_SUPERADMIN) } returns superAdminRole
@@ -137,7 +138,7 @@ class UserServiceImplTest {
       User(2, "user2", "email2", "display2", "pass2")
     )
 
-    coEvery { userDao.getAllUsers() } returns users
+    coEvery { userDao.getAllUsers(any()) } returns users
     coEvery { roleService.getRolesForUser(any()) } returns emptyList()
     coEvery { userDao.getOrganizationForUser(any()) } returns OrganizationResponse(organizationId = 1, name = "Test Org", contactInformation = "contact", timezone = "UTC")
 
@@ -146,7 +147,7 @@ class UserServiceImplTest {
 
     // Assert
     assert(result.size == 2)
-    coVerify { userDao.getAllUsers() }
+    coVerify { userDao.getAllUsers(false) }
   }
 
   @Test
@@ -159,7 +160,7 @@ class UserServiceImplTest {
     )
     val users = listOf(User(1, "user1", "email1", "display1", "pass1"))
 
-    coEvery { userDao.getUsersByOrganization(1) } returns users
+    coEvery { userDao.getUsersByOrganization(1, any()) } returns users
     coEvery { roleService.getRolesForUser(any()) } returns emptyList()
     coEvery { userDao.getOrganizationForUser(any()) } returns OrganizationResponse(organizationId = 1, name = "Test Org", contactInformation = "contact", timezone = "UTC")
 
@@ -168,6 +169,6 @@ class UserServiceImplTest {
 
     // Assert
     assert(result.size == 1)
-    coVerify { userDao.getUsersByOrganization(1) }
+    coVerify { userDao.getUsersByOrganization(1, false) }
   }
 }

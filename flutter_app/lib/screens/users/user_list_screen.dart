@@ -74,24 +74,20 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   String _sortBy = 'username';
   SortOrder _sortOrder = SortOrder.asc;
 
+  /// Super-admin-only filter: `active`, `deactivated`, or `all`.
+  String _statusFilter = 'active';
+
   /// The invitation whose link was last copied, or null. Mirrors the original
   /// screen's copied-invitation state.
   int? _copiedInvitationId;
 
   Timer? _copiedTimer;
 
-  /// An error from a mutation — either delete. The fetches' errors live in
-  /// their own providers. See the same split on the customer screen.
+  /// An error from a mutation (deactivate/restore/invitation delete).
   ApiException? _actionError;
 
-  /// The query built during the last build, kept so the user-delete handler can
-  /// reach the same provider the screen is watching. See the customer screen
-  /// for why rebuilding it in the handler would be a second copy of the scoping
-  /// rules.
-  ///
-  /// **Only the user delete uses this.** The invitation delete refetches the
-  /// invitations instead, which are a separate provider and a separate
-  /// collection — see `_confirmDeleteInvitation`.
+  /// The query built during the last build, kept so mutation handlers can
+  /// reload the same provider the screen is watching.
   ListQuery? _query;
 
   @override
@@ -117,28 +113,32 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     });
   }
 
-  /// The user delete.
-  ///
-  /// **This request 404s** — see [UserService.deleteUser]. The original behaved
-  /// identically: the button was there, the call went nowhere, and the caught
-  /// error went into the shared error state the table rendered. That is what the
-  /// action-error banner below is. A hard-delete fix is planned.
-  Future<void> _confirmDeleteUser(UserResponse user) async {
+  /// Deactivates (soft-deletes) a user.
+  Future<void> _confirmDeactivateUser(UserResponse user) async {
     final confirmed = await confirmDestructiveAction(
       context,
-      title: 'Delete user',
+      title: 'Deactivate user',
       message:
-          'Are you sure you want to delete ${user.username}? This cannot be '
-          'undone.',
+          'Are you sure you want to deactivate ${user.username}? They will no '
+          'longer be able to log in, but their history will be retained and a '
+          'super-admin can restore them.',
+      confirmLabel: 'Deactivate',
     );
 
     if (!confirmed || !mounted) return;
 
     try {
       await ref.read(userServiceProvider).deleteUser(user.userId);
-      // `fetchUsers` in the original — a reload back to the first page. See
-      // `PagedListController.reload` for why an invalidation would be wrong once
-      // there is more than one page.
+      await ref.read(userPageProvider(_query!).notifier).reload();
+      setState(() => _actionError = null);
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _actionError = error);
+    }
+  }
+
+  Future<void> _restoreUser(UserResponse user) async {
+    try {
+      await ref.read(userServiceProvider).restoreUser(user.userId);
       await ref.read(userPageProvider(_query!).notifier).reload();
       setState(() => _actionError = null);
     } on ApiException catch (error) {
@@ -234,57 +234,60 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   /// judgement, and the test only pins the symptom they were chosen to fix** —
   /// that a real email and a real organization name fit on one line — not the
   /// exact ratios. Narrowing the browser is the only way to revisit them.
-  List<ListColumn<UserResponse>> _userColumns({required bool canViewGlobal}) =>
-      [
-        ListColumn<UserResponse>(
-          key: 'username',
-          label: 'Username',
-          sortable: true,
-          flex: 2,
-          render: (context, user) => RecordLinkButton(
-            label: user.username,
-            onPressed: () => context.go(AppRoutes.userDetailsPath(user.userId)),
+  List<ListColumn<UserResponse>> _userColumns({
+    required bool canViewGlobal,
+    required bool showStatus,
+  }) => [
+    ListColumn<UserResponse>(
+      key: 'username',
+      label: 'Username',
+      sortable: true,
+      flex: 2,
+      render: (context, user) => RecordLinkButton(
+        label: user.username,
+        onPressed: () => context.go(AppRoutes.userDetailsPath(user.userId)),
+      ),
+    ),
+    ListColumn<UserResponse>(
+      key: 'displayName',
+      label: 'Display Name',
+      sortable: true,
+      flex: 2,
+      text: (user) => user.displayName,
+    ),
+    ListColumn<UserResponse>(
+      key: 'email',
+      label: 'Email',
+      sortable: true,
+      flex: 3,
+      text: (user) => user.email,
+    ),
+    ListColumn<UserResponse>(
+      key: 'roles',
+      label: 'Roles',
+      flex: 1,
+      text: (user) => user.roles.join(', '),
+    ),
+    if (showStatus)
+      ListColumn<UserResponse>(
+        key: 'status',
+        label: 'Status',
+        flex: 1,
+        text: (user) => user.deletedAt == null ? 'Active' : 'Deactivated',
+      ),
+    if (canViewGlobal)
+      ListColumn<UserResponse>(
+        key: 'organization',
+        label: 'Organization',
+        flex: 4,
+        render: (context, user) => RecordLinkButton(
+          label: user.organization.name,
+          onPressed: () => context.go(
+            AppRoutes.organizationDetails(user.organization.organizationId),
           ),
         ),
-        ListColumn<UserResponse>(
-          key: 'displayName',
-          label: 'Display Name',
-          sortable: true,
-          flex: 2,
-          text: (user) => user.displayName,
-        ),
-        ListColumn<UserResponse>(
-          key: 'email',
-          label: 'Email',
-          sortable: true,
-          flex: 3,
-          text: (user) => user.email,
-        ),
-        // The original screen joined the roles as a comma-separated list. Not
-        // sortable: roles live in a join table and `UserDao` has no case for
-        // them. Narrowest column, because a role name is one word.
-        ListColumn<UserResponse>(
-          key: 'roles',
-          label: 'Roles',
-          flex: 1,
-          text: (user) => user.roles.join(', '),
-        ),
-        // Appended only for a global viewer, as in the original screen. Widest,
-        // because this is the one column holding a free-text name written by
-        // whoever created the organization.
-        if (canViewGlobal)
-          ListColumn<UserResponse>(
-            key: 'organization',
-            label: 'Organization',
-            flex: 4,
-            render: (context, user) => RecordLinkButton(
-              label: user.organization.name,
-              onPressed: () => context.go(
-                AppRoutes.organizationDetails(user.organization.organizationId),
-              ),
-            ),
-          ),
-      ];
+      ),
+  ];
 
   /// The invitation columns.
   ///
@@ -293,19 +296,17 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   /// a hand-rolled "Actions" column holding a labelled delete button; the action
   /// list here replaces it, which is what the other three screens did.
   /// Builds the provider key from this screen's own state.
-  ///
-  /// **`limit` and `offset` are deliberately absent** — they belong to
-  /// `PagedListController`, which applies the page size and advances the offset
-  /// itself. See the customer screen for why.
-  ListQuery _buildQuery(int? organizationId) => ListQuery(
-    search: _searchTerm.isEmpty ? null : _searchTerm,
-    sortBy: _sortBy,
-    sortOrder: _sortOrder,
-    // Scoped by the effective organization: a superadmin in "All
-    // Organizations" sees every organization, a superadmin with a selection
-    // sees that one, and everyone else sees their own.
-    organizationId: organizationId,
-  );
+  ListQuery _buildQuery(int? organizationId, {required bool canViewGlobal}) =>
+      ListQuery(
+        search: _searchTerm.isEmpty ? null : _searchTerm,
+        sortBy: _sortBy,
+        sortOrder: _sortOrder,
+        // Scoped by the effective organization: a superadmin in "All
+        // Organizations" sees every organization, a superadmin with a selection
+        // sees that one, and everyone else sees their own.
+        organizationId: organizationId,
+        status: canViewGlobal ? _statusFilter : null,
+      );
 
   /// The invitation columns.
   List<ListColumn<InvitationResponse>> _invitationColumns(String readerZone) =>
@@ -348,6 +349,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
       Permission.manageUsersGlobal,
       Permission.manageUsersOrganization,
     ]);
+    final canManageGlobal = gate.has(Permission.manageUsersGlobal);
     final canViewGlobal = gate.has(Permission.viewUsersGlobal);
     final organizationId = ref.watch(queryOrganizationIdProvider);
 
@@ -361,7 +363,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             <InvitationResponse>[],
           );
 
-    final query = _buildQuery(organizationId);
+    final query = _buildQuery(organizationId, canViewGlobal: canViewGlobal);
     _query = query;
     final actionError = _actionError;
 
@@ -454,6 +456,23 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             ],
             Text('Users', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
+            if (canViewGlobal) ...[
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'active', label: Text('Active')),
+                  ButtonSegment(
+                    value: 'deactivated',
+                    label: Text('Deactivated'),
+                  ),
+                  ButtonSegment(value: 'all', label: Text('All')),
+                ],
+                selected: {_statusFilter},
+                onSelectionChanged: (selection) {
+                  setState(() => _statusFilter = selection.first);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
             // The debounce from shared with every other list screen
             // — see `DebouncedSearchField` for why.
             DebouncedSearchField(
@@ -469,31 +488,42 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
               provider: userPageProvider(query),
               loadMore: () =>
                   ref.read(userPageProvider(query).notifier).loadMore(),
-              columns: _userColumns(canViewGlobal: canViewGlobal),
+              columns: _userColumns(
+                canViewGlobal: canViewGlobal,
+                showStatus: canViewGlobal,
+              ),
               idOf: (user) => user.userId,
               emptyMessage: 'No users found.',
-              // Only reaches the footer, to word its count. Same test as the one
-              // `_buildQuery` uses to decide whether to send `search` at all, so
-              // the label cannot claim a filter the request did not apply.
               filtered: _searchTerm.isNotEmpty,
               sortBy: _sortBy,
               sortOrder: _sortOrder,
               onSort: _onSort,
               actions: canManage
-                  ? (context, user) => [
-                      ListRowAction(
-                        icon: Icons.edit,
-                        label: 'Edit',
-                        onPressed: () =>
-                            context.go(AppRoutes.userEditPath(user.userId)),
-                      ),
-                      ListRowAction(
-                        icon: Icons.delete,
-                        label: 'Delete',
-                        isDestructive: true,
-                        onPressed: () => _confirmDeleteUser(user),
-                      ),
-                    ]
+                  ? (context, user) {
+                      final isDeactivated = user.deletedAt != null;
+                      return [
+                        if (!isDeactivated)
+                          ListRowAction(
+                            icon: Icons.edit,
+                            label: 'Edit',
+                            onPressed: () =>
+                                context.go(AppRoutes.userEditPath(user.userId)),
+                          ),
+                        if (!isDeactivated)
+                          ListRowAction(
+                            icon: Icons.person_off,
+                            label: 'Deactivate',
+                            isDestructive: true,
+                            onPressed: () => _confirmDeactivateUser(user),
+                          ),
+                        if (isDeactivated && canManageGlobal)
+                          ListRowAction(
+                            icon: Icons.restore,
+                            label: 'Restore',
+                            onPressed: () => _restoreUser(user),
+                          ),
+                      ];
+                    }
                   : null,
             ),
           ],

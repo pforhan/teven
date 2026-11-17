@@ -13,4 +13,5 @@ data class UserResponse(
   val roles: List<String>,
   val staffDetails: StaffDetails? = null,
   val organization: OrganizationResponse,
+  val deletedAt: String? = null,
 )

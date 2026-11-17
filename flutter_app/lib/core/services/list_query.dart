@@ -31,6 +31,7 @@ class ListQuery {
     this.startDate,
     this.endDate,
     this.timezone,
+    this.status,
   });
 
   final int? limit;
@@ -50,6 +51,9 @@ class ListQuery {
   /// "the 3rd" means the same day the reader is looking at.
   final String? timezone;
 
+  /// Resource-specific status filter (e.g. user list `active|deactivated|all`).
+  final String? status;
+
   /// Converts to dio's `queryParameters`, omitting nulls.
   ///
   /// Nulls are dropped rather than sent as empty strings because the server
@@ -65,6 +69,7 @@ class ListQuery {
     if (startDate != null && startDate!.isNotEmpty) 'startDate': startDate,
     if (endDate != null && endDate!.isNotEmpty) 'endDate': endDate,
     if (timezone != null && timezone!.isNotEmpty) 'timezone': timezone,
+    if (status != null && status!.isNotEmpty) 'status': status,
   };
 
   ListQuery copyWith({
@@ -77,6 +82,7 @@ class ListQuery {
     String? startDate,
     String? endDate,
     String? timezone,
+    String? status,
   }) => ListQuery(
     limit: limit ?? this.limit,
     offset: offset ?? this.offset,
@@ -87,6 +93,7 @@ class ListQuery {
     startDate: startDate ?? this.startDate,
     endDate: endDate ?? this.endDate,
     timezone: timezone ?? this.timezone,
+    status: status ?? this.status,
   );
 
   /// Value equality, so a [ListQuery] can key a provider family.
@@ -109,7 +116,8 @@ class ListQuery {
           organizationId == other.organizationId &&
           startDate == other.startDate &&
           endDate == other.endDate &&
-          timezone == other.timezone;
+          timezone == other.timezone &&
+          status == other.status;
 
   @override
   int get hashCode => Object.hash(
@@ -122,11 +130,12 @@ class ListQuery {
     startDate,
     endDate,
     timezone,
+    status,
   );
 
   @override
   String toString() =>
       'ListQuery(limit: $limit, offset: $offset, search: $search, '
       'sortBy: $sortBy, sortOrder: $sortOrder, organizationId: $organizationId, '
-      'timezone: $timezone)';
+      'timezone: $timezone, status: $status)';
 }

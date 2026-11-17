@@ -14,14 +14,25 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import java.time.OffsetDateTime
+
+enum class UserStatusFilter {
+  ACTIVE,
+  DEACTIVATED,
+  ALL,
+}
 
 class UserDao {
+  private fun activeCondition(): Op<Boolean> = Users.deletedAt.isNull()
+
   private fun toUser(row: ResultRow): User {
     return User(
       userId = row[Users.id].value,
@@ -29,6 +40,7 @@ class UserDao {
       email = row[Users.email],
       displayName = row[Users.displayName],
       passwordHash = row[Users.passwordHash],
+      deletedAt = row[Users.deletedAt],
     )
   }
 
@@ -74,8 +86,14 @@ class UserDao {
     offset: Long?,
     sortBy: String?,
     sortOrder: String?,
+    status: UserStatusFilter = UserStatusFilter.ACTIVE,
   ): PaginatedResponse<User> = dbQuery {
     val conditions = mutableListOf<Op<Boolean>>()
+    when (status) {
+      UserStatusFilter.ACTIVE -> conditions.add(activeCondition())
+      UserStatusFilter.DEACTIVATED -> conditions.add(Users.deletedAt.isNotNull())
+      UserStatusFilter.ALL -> {}
+    }
     if (organizationId != null) {
       val userIdsInOrg = UserOrganizations.selectAll()
         .where { UserOrganizations.organizationId eq organizationId }
@@ -116,39 +134,93 @@ class UserDao {
     )
   }
 
-  suspend fun getAllUsers(): List<User> = dbQuery {
-    Users.selectAll().map { toUser(it) }
+  suspend fun getAllUsers(includeDeactivated: Boolean = false): List<User> = dbQuery {
+    val query = if (includeDeactivated) Users.selectAll() else Users.selectAll().where { activeCondition() }
+    query.map { toUser(it) }
   }
 
-  suspend fun getUserById(userId: Int): User = dbQuery {
+  suspend fun getUsersByOrganization(organizationId: Int, includeDeactivated: Boolean = false): List<User> = dbQuery {
+    val userIds = UserOrganizations.selectAll()
+      .where { UserOrganizations.organizationId eq organizationId }
+      .map { it[UserOrganizations.userId] }
+    val condition = if (includeDeactivated) {
+      Users.id inList userIds
+    } else {
+      (Users.id inList userIds) and activeCondition()
+    }
     Users.selectAll()
-      .where { Users.id eq userId }
+      .where { condition }
+      .map { toUser(it) }
+  }
+
+  suspend fun deactivateUser(userId: Int): Boolean = dbQuery {
+    Users.update({ (Users.id eq userId) and Users.deletedAt.isNull() }) {
+      it[deletedAt] = OffsetDateTime.now()
+    } > 0
+  }
+
+  suspend fun restoreUser(userId: Int): Boolean = dbQuery {
+    Users.update({ (Users.id eq userId) and Users.deletedAt.isNotNull() }) {
+      it[deletedAt] = null
+    } > 0
+  }
+
+  suspend fun getUserById(userId: Int, includeDeactivated: Boolean = false): User = dbQuery {
+    val condition = if (includeDeactivated) {
+      Users.id eq userId
+    } else {
+      (Users.id eq userId) and activeCondition()
+    }
+    Users.selectAll()
+      .where { condition }
       .mapNotNull { toUser(it) }
       .single()
   }
 
-  suspend fun getUserByUsername(username: String): User? = dbQuery {
+  suspend fun findUserById(userId: Int, includeDeactivated: Boolean = false): User? = dbQuery {
+    val condition = if (includeDeactivated) {
+      Users.id eq userId
+    } else {
+      (Users.id eq userId) and activeCondition()
+    }
     Users.selectAll()
-      .where { Users.username eq username }
+      .where { condition }
       .mapNotNull { toUser(it) }
       .singleOrNull()
   }
 
-  suspend fun getUserByEmail(email: String): User? = dbQuery {
+  suspend fun getUserByUsername(username: String, includeDeactivated: Boolean = false): User? = dbQuery {
+    val condition = if (includeDeactivated) {
+      Users.username eq username
+    } else {
+      (Users.username eq username) and activeCondition()
+    }
     Users.selectAll()
-      .where { Users.email eq email }
+      .where { condition }
+      .mapNotNull { toUser(it) }
+      .singleOrNull()
+  }
+
+  suspend fun getUserByEmail(email: String, includeDeactivated: Boolean = false): User? = dbQuery {
+    val condition = if (includeDeactivated) {
+      Users.email eq email
+    } else {
+      (Users.email eq email) and activeCondition()
+    }
+    Users.selectAll()
+      .where { condition }
       .mapNotNull { toUser(it) }
       .singleOrNull()
   }
 
   suspend fun updateUser(userId: Int, updateUserRequest: UpdateUserRequest): User? =
     dbQuery {
-      val updatedRows = Users.update({ Users.id eq userId }) {
+      val updatedRows = Users.update({ (Users.id eq userId) and Users.deletedAt.isNull() }) {
         updateUserRequest.email?.let { email -> it[Users.email] = email }
         updateUserRequest.displayName?.let { displayName -> it[Users.displayName] = displayName }
       }
       if (updatedRows > 0) {
-        getUserById(userId)
+        findUserById(userId, includeDeactivated = false)
       } else {
         null
       }
@@ -179,14 +251,5 @@ class UserDao {
           timezone = it[Organizations.timezone],
         )
       }
-  }
-
-  suspend fun getUsersByOrganization(organizationId: Int): List<User> = dbQuery {
-    val userIds = UserOrganizations.selectAll()
-      .where { UserOrganizations.organizationId eq organizationId }
-      .map { it[UserOrganizations.userId] }
-    Users.selectAll()
-      .where { Users.id inList userIds }
-      .map { toUser(it) }
   }
 }

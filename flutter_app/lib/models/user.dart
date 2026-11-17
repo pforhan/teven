@@ -22,6 +22,7 @@ abstract class UserResponse with _$UserResponse {
     @Default(<String>[]) List<String> roles,
     StaffDetails? staffDetails,
     required OrganizationResponse organization,
+    String? deletedAt,
   }) = _UserResponse;
 
   factory UserResponse.fromJson(Map<String, dynamic> json) =>

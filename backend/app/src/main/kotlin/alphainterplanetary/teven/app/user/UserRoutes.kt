@@ -14,6 +14,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
@@ -42,6 +43,7 @@ fun Route.userRoutes() {
         val offset = call.request.queryParameters["offset"]?.toLongOrNull()
         val sortBy = call.request.queryParameters["sortBy"]
         val sortOrder = call.request.queryParameters["sortOrder"]
+        val status = call.request.queryParameters["status"]
 
         val users = userService.getUsers(
           authContext = principal,
@@ -50,7 +52,8 @@ fun Route.userRoutes() {
           limit = limit,
           offset = offset,
           sortBy = sortBy,
-          sortOrder = sortOrder
+          sortOrder = sortOrder,
+          status = status,
         )
         call.respond(HttpStatusCode.OK, success(users))
       }
@@ -70,8 +73,10 @@ fun Route.userRoutes() {
 
     withPermission(VIEW_USERS_ORGANIZATION) {
       get("/{userId}") {
-        val userId = call.parameters["userId"]?.toIntOrNull() ?: return@get
-        val user = userService.getUserById(userId)
+        val userId = call.parameters["userId"]?.toIntOrNull()
+          ?: return@get call.respond(HttpStatusCode.BadRequest, failure("Invalid user id"))
+        val authContext = requireAuthContext()
+        val user = userService.getUserById(userId, authContext)
         if (user != null) {
           call.respond(HttpStatusCode.OK, success(user))
         } else {
@@ -82,12 +87,39 @@ fun Route.userRoutes() {
 
     withPermission(MANAGE_USERS_ORGANIZATION) {
       put("/{userId}") {
-        val userId = call.parameters["userId"]?.toIntOrNull() ?: return@put
+        val userId = call.parameters["userId"]?.toIntOrNull()
+          ?: return@put call.respond(HttpStatusCode.BadRequest, failure("Invalid user id"))
         val updateUserRequest = call.receive<UpdateUserRequest>()
         val authContext = requireAuthContext()
         val updatedUser = userService.updateUser(userId, updateUserRequest, authContext)
         if (updatedUser != null) {
           call.respond(HttpStatusCode.OK, success(updatedUser))
+        } else {
+          call.respond(HttpStatusCode.NotFound, failure("User not found"))
+        }
+      }
+
+      delete("/{userId}") {
+        val userId = call.parameters["userId"]?.toIntOrNull()
+          ?: return@delete call.respond(HttpStatusCode.BadRequest, failure("Invalid user id"))
+        val authContext = requireAuthContext()
+        val deactivated = userService.deactivateUser(userId, authContext)
+        if (deactivated) {
+          call.respond(HttpStatusCode.NoContent)
+        } else {
+          call.respond(HttpStatusCode.NotFound, failure("User not found"))
+        }
+      }
+    }
+
+    withPermission(alphainterplanetary.teven.core.security.Permission.MANAGE_USERS_GLOBAL) {
+      post("/{userId}/restore") {
+        val userId = call.parameters["userId"]?.toIntOrNull()
+          ?: return@post call.respond(HttpStatusCode.BadRequest, failure("Invalid user id"))
+        val authContext = requireAuthContext()
+        val restored = userService.restoreUser(userId, authContext)
+        if (restored != null) {
+          call.respond(HttpStatusCode.OK, success(restored))
         } else {
           call.respond(HttpStatusCode.NotFound, failure("User not found"))
         }
