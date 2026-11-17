@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.app.organization
 
+import alphainterplanetary.teven.api.model.common.MessageResponse
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
@@ -43,7 +44,7 @@ fun Route.organizationRoutes() {
         if (organizationService.updateOrganization(organizationId, updateOrganizationRequest, authContext.userId)) {
           call.respond(
             HttpStatusCode.OK,
-            success("Organization with ID $organizationId updated")
+            success(MessageResponse("Organization with ID $organizationId updated"))
           )
         } else {
           call.respond(

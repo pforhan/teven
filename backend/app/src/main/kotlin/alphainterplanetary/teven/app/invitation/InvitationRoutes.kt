@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.app.invitation
 
+import alphainterplanetary.teven.api.model.common.MessageResponse
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.invitation.AcceptInvitationRequest
@@ -121,7 +122,7 @@ fun Route.invitationRoutes() {
       val result = invitationService.deleteInvitation(invitationId, authContext)
 
       when (result) {
-        SUCCESS -> call.respond(success("Created invitation"))
+        SUCCESS -> call.respond(success(MessageResponse("Created invitation")))
         NOT_FOUND -> call.respond(
           HttpStatusCode.NotFound,
           failure("Invitation not found")

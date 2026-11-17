@@ -23,21 +23,3 @@ abstract class PaginatedResponse<T> with _$PaginatedResponse<T> {
     T Function(Object? json) decodeItem,
   ) => _$PaginatedResponseFromJson(json, decodeItem);
 }
-
-/// A simple `{status, message}` acknowledgement.
-///
-/// Note the server does not actually use this shape for deletes — those
-/// return `204 No Content` with an empty body. It is used for the handful of
-/// endpoints that answer `success("OK")` / `success("...")`, whose `data` is a
-/// bare string rather than this object. Kept for parity with the original
-/// frontend types; each endpoint decides what a bare-string body decodes to.
-@freezed
-abstract class StatusResponse with _$StatusResponse {
-  const factory StatusResponse({
-    required String status,
-    required String message,
-  }) = _StatusResponse;
-
-  factory StatusResponse.fromJson(Map<String, dynamic> json) =>
-      _$StatusResponseFromJson(json);
-}

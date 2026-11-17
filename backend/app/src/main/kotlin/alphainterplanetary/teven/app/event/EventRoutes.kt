@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.app.event
 
+import alphainterplanetary.teven.api.model.common.MessageResponse
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.event.CreateEventRequest
@@ -48,7 +49,10 @@ fun Route.eventRoutes() {
         }
         val updateEventRequest = call.receive<UpdateEventRequest>()
         if (eventService.updateEvent(authContext, eventId, updateEventRequest)) {
-          call.respond(HttpStatusCode.OK, success("Event with ID $eventId updated"))
+          call.respond(
+            HttpStatusCode.OK,
+            success(MessageResponse("Event with ID $eventId updated")),
+          )
         } else {
           call.respond(
             HttpStatusCode.NotFound,
@@ -138,7 +142,7 @@ fun Route.eventRoutes() {
       val userId = authContext.userId // RSVPing for self
 
       if (eventService.rsvpToEvent(authContext, eventId, userId, rsvpRequest.availability)) {
-        call.respond(HttpStatusCode.OK, success("OK"))
+        call.respond(HttpStatusCode.OK, success(MessageResponse("OK")))
       } else {
         call.respond(HttpStatusCode.InternalServerError, failure("Failed to RSVP"))
       }

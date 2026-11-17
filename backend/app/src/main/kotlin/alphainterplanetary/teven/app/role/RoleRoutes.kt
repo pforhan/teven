@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.app.role
 
+import alphainterplanetary.teven.api.model.common.MessageResponse
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.role.CreateRoleRequest
@@ -38,7 +39,10 @@ fun Route.roleRoutes() {
         }
         val updateRoleRequest = call.receive<UpdateRoleRequest>()
         if (roleService.updateRole(roleId, updateRoleRequest)) {
-          call.respond(HttpStatusCode.OK, success("Role with ID $roleId updated"))
+          call.respond(
+            HttpStatusCode.OK,
+            success(MessageResponse("Role with ID $roleId updated")),
+          )
         } else {
           call.respond(
             HttpStatusCode.NotFound,
@@ -91,7 +95,7 @@ fun Route.roleRoutes() {
           return@post
         }
         if (roleService.assignRoleToUser(userId, roleId)) {
-          call.respond(HttpStatusCode.OK, success("OK"))
+          call.respond(HttpStatusCode.OK, success(MessageResponse("OK")))
         } else {
           call.respond(
             HttpStatusCode.InternalServerError,
@@ -108,7 +112,7 @@ fun Route.roleRoutes() {
           return@delete
         }
         if (roleService.removeRoleFromUser(userId, roleId)) {
-          call.respond(HttpStatusCode.OK, success("OK"))
+          call.respond(HttpStatusCode.OK, success(MessageResponse("OK")))
         } else {
           call.respond(
             HttpStatusCode.InternalServerError,

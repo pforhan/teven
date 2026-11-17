@@ -75,11 +75,11 @@ class InvitationService {
         InvitationResponse.fromJson(json! as Map<String, dynamic>),
   );
 
-  /// Answers `success("Created invitation")` — a bare string.
+  /// Answers a message payload in the standard envelope.
   Future<String> deleteInvitation(int invitationId) =>
-      _client.deleteWithBody<String>(
+      _client.deleteAndDecode<String>(
         '/api/invitations/$invitationId',
-        decode: (json) => json! as String,
+        decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
       );
 }
 

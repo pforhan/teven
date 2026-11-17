@@ -66,30 +66,24 @@ class EventService {
 
   /// Updates an event.
   ///
-  /// Answers `success("Event with ID N updated")` — a **bare string, not an
-  /// `EventResponse`**. The React `EventService.updateEvent` claims
-  /// `Promise<EventResponse>` and hands callers an object they never receive;
-  /// the `String` return here is what the server actually does. Changing it
-  /// server-side would require updating this to return a DTO.
+  /// Answers a message payload in the standard envelope.
   Future<String> updateEvent(int eventId, UpdateEventRequest request) =>
       _client.put<String>(
         '/api/events/$eventId',
         request: request,
-        body: ResponseBody.bareString,
-        decode: (json) => json! as String,
+        decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
       );
 
   /// Answers `204 NoContent`.
   Future<void> deleteEvent(int eventId) =>
       _client.delete('/api/events/$eventId');
 
-  /// Posts this user's RSVP. Answers `success("OK")`.
+  /// Posts this user's RSVP. Answers a message payload in the standard envelope.
   Future<String> rsvpToEvent(int eventId, RsvpRequest request) =>
       _client.post<String>(
         '/api/events/$eventId/rsvp',
         request: request,
-        body: ResponseBody.bareString,
-        decode: (json) => json! as String,
+        decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
       );
 
   /// Events awaiting this user's RSVP.

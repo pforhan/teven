@@ -19,12 +19,6 @@ enum ResponseBody {
   /// `EventRoutes.kt`), so `data` is genuinely absent rather than null.
   empty,
 
-  /// The body is a bare JSON **string**, not an object.
-  ///
-  /// Several `success(...)` calls return a bare JSON string rather than an
-  /// object payload. Task 10.10 removes those cases in favor of a typed DTO.
-  bareString,
-
   /// Do not inspect the body; pass it through as decoded JSON.
   raw,
 }
@@ -157,25 +151,22 @@ class ApiClient {
   /// DELETEs [path].
   ///
   /// Returns `null` on success, since a delete answers `204` with no body.
-  /// Use [deleteWithBody] for the rare endpoint that returns a payload.
   Future<void> delete(String path, {CancelToken? cancelToken}) async {
     await _send(path, method: 'DELETE', cancelToken: cancelToken);
   }
 
-  /// DELETEs [path] and decodes a response body.
+  /// DELETEs [path] and decodes an envelope response body.
   ///
-  /// `DELETE /api/inventory/{id}/usage` and similar return `success("OK")`
-  /// rather than `204`.
-  Future<T> deleteWithBody<T>(
+  /// Use this when a delete answers `200` with a payload rather than `204`.
+  Future<T> deleteAndDecode<T>(
     String path, {
     required T Function(Object? json) decode,
-    ResponseBody body = ResponseBody.bareString,
     CancelToken? cancelToken,
   }) async {
     final response = await _send(
       path,
       method: 'DELETE',
-      body: body,
+      body: ResponseBody.envelope,
       cancelToken: cancelToken,
     );
     return _unwrap<T>(response, decode);

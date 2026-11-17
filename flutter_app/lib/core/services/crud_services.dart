@@ -146,17 +146,14 @@ class CustomerService {
             CustomerResponse.fromJson(json! as Map<String, dynamic>),
       );
 
-  /// Answers `success("Customer with ID N updated")` — a bare string, not a
-  /// [CustomerResponse]. Hence the `String` return. would change
-  /// this to a DTO; notes the event equivalent.
+  /// Answers a message payload in the standard envelope.
   Future<String> updateCustomer(
     int customerId,
     UpdateCustomerRequest request,
   ) => _client.put<String>(
     '/api/customers/$customerId',
     request: request,
-    body: ResponseBody.bareString,
-    decode: (json) => json! as String,
+    decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
   );
 
   /// Answers `204 NoContent`.
@@ -198,29 +195,28 @@ class InventoryService {
         InventoryItemResponse.fromJson(json! as Map<String, dynamic>),
   );
 
-  /// Answers a bare-string acknowledgement.
+  /// Answers a message payload in the standard envelope.
   Future<String> updateInventoryItem(
     int inventoryId,
     UpdateInventoryItemRequest request,
   ) => _client.put<String>(
     '/api/inventory/$inventoryId',
     request: request,
-    body: ResponseBody.bareString,
-    decode: (json) => json! as String,
+    decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
   );
 
   /// Answers `204 NoContent`.
   Future<void> deleteInventoryItem(int inventoryId) =>
       _client.delete('/api/inventory/$inventoryId');
 
-  /// Records usage against an event. Answers `success("OK")`.
+  /// Records usage against an event. Answers a message payload in the
+  /// standard envelope.
   Future<String> trackInventoryUsage(
     int inventoryId,
     TrackInventoryUsageRequest request,
   ) => _client.post<String>(
     '/api/inventory/$inventoryId/usage',
     request: request,
-    body: ResponseBody.bareString,
-    decode: (json) => json! as String,
+    decode: (json) => (json! as Map<String, dynamic>)['message'] as String,
   );
 }

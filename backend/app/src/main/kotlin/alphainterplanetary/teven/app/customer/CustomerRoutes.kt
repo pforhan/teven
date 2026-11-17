@@ -1,5 +1,6 @@
 package alphainterplanetary.teven.app.customer
 
+import alphainterplanetary.teven.api.model.common.MessageResponse
 import alphainterplanetary.teven.api.model.common.failure
 import alphainterplanetary.teven.api.model.common.success
 import alphainterplanetary.teven.api.model.customer.CreateCustomerRequest
@@ -49,7 +50,10 @@ fun Route.customerRoutes() {
         }
         val updateCustomerRequest = call.receive<UpdateCustomerRequest>()
         if (customerService.updateCustomer(authContext, customerId, updateCustomerRequest)) {
-          call.respond(HttpStatusCode.OK, success("Customer with ID $customerId updated"))
+          call.respond(
+            HttpStatusCode.OK,
+            success(MessageResponse("Customer with ID $customerId updated")),
+          )
         } else {
           call.respond(
             HttpStatusCode.NotFound,
