@@ -285,6 +285,7 @@ cmd_dev() {
 cmd_verify() {
   local dry_run="$1"
   need flutter "Install the Flutter SDK first." || return 1
+  cmd_check_task_refs "$dry_run" || return 1
   printf '==> Verifying the Flutter app\n'
   if [ "$dry_run" -eq 1 ]; then
     (cd "$FLUTTER_DIR" && show flutter analyze && show dart format --output=none --set-exit-if-changed . && show flutter test)
@@ -321,17 +322,26 @@ cmd_check_task_refs() {
   local dry_run="$1"
   printf '==> Checking for task references in source comments\n'
   if [ "$dry_run" -eq 1 ]; then
-    show "rg -n --glob '!FLUTTER-CONVERT*' 'task [0-9]+\\.[0-9]+' flutter_app/lib flutter_app/test backend"
+    show "rg -n --glob '!FLUTTER-CONVERT*' --glob '!*.md' -e 'task [0-9]+\\.[0-9]+' -e 'Task [0-9]+\\.[0-9]+' flutter_app/lib flutter_app/test backend"
+    printf '    (dry run: no source scan performed)\n'
     return 0
   fi
-  local matches
+  local matches count
   matches="$(rg -n --glob '!FLUTTER-CONVERT*' --glob '!*.md' \
     -e 'task [0-9]+\.[0-9]+' -e 'Task [0-9]+\.[0-9]+' \
     flutter_app/lib flutter_app/test backend 2>/dev/null || true)"
   if [ -n "$matches" ]; then
-    printf 'teven: task references found in source; move them to FLUTTER-CONVERT docs:\n%s\n' "$matches" >&2
+    count="$(printf '%s\n' "$matches" | wc -l | tr -d ' ')"
+    if [ "$count" -eq 1 ]; then
+      printf '    1 task reference found in source comments.\n'
+    else
+      printf '    %s task references found in source comments.\n' "$count"
+    fi
+    printf '%s\n' "$matches" >&2
+    printf '    Move these references into FLUTTER-CONVERT docs and keep the reasoning in code comments.\n' >&2
     return 1
   fi
+  printf '    No task references in source comments.\n'
 }
 
 # Whole-repo gate: backend first, because a Kotlin compile failure surfaces
