@@ -14,9 +14,8 @@ import 'service_providers.dart';
 /// **The original widget was never mounted.** The RSVP widget was added in
 /// `f13ae83` — the same commit that added the route — and was never imported by
 /// anything since. It was dead code, and the route behind it had been reachable
-/// but unused for the whole life of the app. Task 7.11 ports it and gives it
-/// somewhere to live; task 7.12 owns the question of whether the route should be
-/// exposed at all.
+/// but unused for the whole life of the app. This port gives it a place to
+/// live; whether the route should be exposed at all remains an open question.
 ///
 /// **`retry: noRetry`,** for the reason the list providers set it: a 403 is
 /// not transient, so Riverpod's automatic retry would spend three requests

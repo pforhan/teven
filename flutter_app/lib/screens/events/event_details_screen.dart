@@ -1246,6 +1246,6 @@ const double kTwoColumnContentWidth = 860;
 /// `'no response'`, verbatim from the original event details and event list
 /// screens. **Not** `''`, and **not** a member of [RsvpAvailability]: the server
 /// stores it as a free-form string, so it is a fourth answer rather than the
-/// absence of one. Task 10.17 owns the question of whether that column should
-/// hold a closed set.
+/// absence of one. Whether that column should hold a closed set remains an open
+/// question.
 const String kRsvpCleared = 'no response';

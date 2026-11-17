@@ -25,15 +25,15 @@ import 'error_display.dart';
 /// which already marks a pending request in orange on the event's bar. The card
 /// is the action for that mark: without it, a user can see that something is
 /// waiting and have no way to answer it except by opening each event in turn.
-/// Task 7.12 owns the question of whether the route should be exposed at all;
-/// this is the answer this port gives it.
+/// Whether this should live behind a route at all is an open question; this is
+/// the answer this port gives it.
 ///
 /// **The availability is a free-form string, not an enum.** The server type is
 /// `String` with no validation (`RsvpRequest.kt`), so anything posted is stored
 /// as-is. [RsvpAvailability.available] and [RsvpAvailability.unavailable] are
 /// `String` constants for exactly that reason — a Dart enum would be a closed
-/// set the server does not enforce. Task 10.17 owns the question of whether the
-/// column should hold a closed set.
+/// set the server does not enforce. Whether the column should hold a closed set
+/// remains an open question.
 class RsvpWidget extends ConsumerStatefulWidget {
   const RsvpWidget({super.key});
 

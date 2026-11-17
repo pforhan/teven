@@ -27,10 +27,10 @@ import '../../widgets/responsive_list_view.dart';
 ///
 /// **The paging is new rather than ported, and it is worth being clear which
 /// part of it is not.** The original screen fetched the first 25 rows and there
-/// was no control anywhere in the original app to reach row 26, so task 4.2
-/// recorded "premise did not hold" and closed. The page *size* is still 25 —
-/// [kListPageSize], shared by all four list screens — because that is what the
-/// original asked for. What is new is that there is now a way to ask for the
+/// was no control anywhere in the original app to reach row 26. The page *size*
+/// is still 25 — [kListPageSize], shared by all list screens — because that is
+/// what the original asked for. What is new is that there is now a way to ask
+/// for the
 /// next page, and that it is the same shape on every list screen.
 ///
 /// The row actions were hover-revealed in the original, which is unreachable on

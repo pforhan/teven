@@ -28,8 +28,8 @@ object PasswordHasher {
    * a truncated one — and `AuthServiceImpl` used to call it directly. The
    * exception escaped to `Application.kt`'s catch-all and the caller got a
    * **500 carrying `cause.stackTraceToString()`** instead of a 401, which is
-   * both the wrong answer and the stack-trace leak of task 9.9 arriving through
-   * a second door.
+   * both the wrong answer and a stack-trace leak arriving through a second
+   * door.
    *
    * The seed data made this reachable: `TestDataProvider` wrote the literal
    * string `"password"` into `users.password`, so every seeded account

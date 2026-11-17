@@ -23,7 +23,7 @@ import '../../widgets/responsive_list_view.dart';
 ///
 /// Search, sort by name or quantity, create, delete, and pagination. The
 /// original screen fetched the first 25 rows with no way past the first page;
-/// the page size is unchanged, and task 4.3 added a way to ask for the next one.
+/// the page size is unchanged, and there is now a way to ask for the next one.
 /// See the customer screen for the fuller note.
 ///
 /// Two things here are not a transcription:
@@ -36,8 +36,7 @@ import '../../widgets/responsive_list_view.dart';
 /// remainder becomes a count.
 /// - **The row actions sit in their own column** rather than absolutely
 /// positioned over the name, which is what the original list did.
-/// [ResponsiveListView] owns that decision; the customer screen made the same
-/// call in task 4.4.
+/// [ResponsiveListView] owns that decision, as the customer screen does.
 class InventoryListScreen extends ConsumerStatefulWidget {
   const InventoryListScreen({super.key});
 

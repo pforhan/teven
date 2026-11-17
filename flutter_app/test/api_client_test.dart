@@ -89,7 +89,7 @@ void main() {
     });
   });
 
-  group('bare-string bodies', () {
+  group('bare-string error bodies', () {
     setUp(
       () => respondWith(
         const FakeResponse.json(
@@ -99,18 +99,23 @@ void main() {
       ),
     );
 
-    test('403 surfaces the server text, not a generic message', () async {
-      await expectLater(
-        getRaw('/api/thing'),
-        throwsA(
-          isA<ApiRequestException>().having(
-            (e) => e.message,
-            'message',
-            'User does not have the required permission',
+    test(
+      'a non-envelope 403 is rejected as an unrecognized error response',
+      () async {
+        await expectLater(
+          getRaw('/api/thing'),
+          throwsA(
+            isA<ApiRequestException>()
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'API request failed with status 403',
+                )
+                .having((e) => e.statusCode, 'statusCode', 403),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   });
 
   group('401', () {

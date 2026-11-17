@@ -16,8 +16,8 @@ class ErrorDisplay extends StatelessWidget {
   ///
   /// Note `Application.kt` puts `cause.stackTraceToString` in `details` on a
   /// 500, so server internals reach the client. The original app showed them
-  /// behind a toggle and so does this; task 12.7 decides whether to suppress
-  /// them.
+  /// behind a toggle and so does this; suppressing them is still an open
+  /// question.
   factory ErrorDisplay.fromException(ApiException error) =>
       ErrorDisplay(message: error.message, details: error.details);
 

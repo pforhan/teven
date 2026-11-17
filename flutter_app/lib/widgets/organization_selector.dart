@@ -56,9 +56,10 @@ class OrganizationSelector extends ConsumerWidget {
 /// The non-super-admin branch: the user's organization name.
 ///
 /// The original layout rendered a static label, because a non-super-admin cannot
-/// change their organization scope. Task 11.5 makes it a link to the
-/// organization's edit screen for anyone holding `MANAGE_ORGANIZATION` (their own
-/// organization only; the backend enforces scope). It stays plain text otherwise.
+/// change their organization scope. It stays plain text for now; making it a
+/// link to the organization's edit screen for anyone holding
+/// `MANAGE_ORGANIZATION` (their own organization only; the backend enforces
+/// scope) is a possible future improvement. It stays plain text otherwise.
 class _StaticOrganizationLabel extends ConsumerWidget {
   const _StaticOrganizationLabel({required this.layoutSize});
 

@@ -60,8 +60,8 @@ abstract final class AppRoutes {
   ///
   /// **Unlike [customerDetails] and its siblings, this route exists.** The
   /// original router declared `events/:eventId`, so the calendar's pills and the
-  /// list's title links both resolved. Task 7.6 built the screen at the other
-  /// end of it.
+  /// list's title links both resolved; this port provides the screen at the
+  /// other end of it.
   ///
   /// [backToDay], when provided as a `yyyy-MM-dd` date, records that the user
   /// reached this event from that day's view. The details screen's back control
@@ -441,8 +441,8 @@ List<RouteBase> _shellRoutes(Ref ref) => [
     Permission.viewUsersOrganization,
   ], (_) => const UserListScreen()),
   // The original router gated create on *either* scope, unlike every other
-  // create route. That asymmetry is deliberate here; task 10.16 flags the
-  // matching asymmetry on the edit route for a second look.
+  // create route. That asymmetry is deliberate here and the matching asymmetry
+  // on the edit route remains worth a second look.
   _guarded(ref, AppRoutes.userCreate, [
     Permission.manageUsersGlobal,
     Permission.manageUsersOrganization,

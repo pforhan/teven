@@ -65,9 +65,9 @@ class UserService {
   /// failure and put it in the shared error state; the ported screen does the
   /// same through its action-error banner.
   ///
-  /// Task 10.12 owns the fix, and its decision is made — **hard delete**, with
-  /// the four dependent tables cascaded and `Invitations.usedByUserId` nulled
-  /// rather than cascaded. Until then this call always fails.
+  /// A hard-delete fix is planned, with the four dependent tables cascaded and
+  /// `Invitations.usedByUserId` nulled rather than cascaded. Until then this
+  /// call always fails.
   Future<void> deleteUser(int userId) => _client.delete('/api/users/$userId');
 }
 

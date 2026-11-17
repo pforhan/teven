@@ -36,13 +36,12 @@ import '../../widgets/responsive_list_view.dart';
 /// Four things here are worth knowing before reading the code:
 ///
 /// - **The two deletes do different things, and only one of them works.** The
-/// original user delete called an endpoint that does not exist (task 10.12); the
-/// invitation delete is real. Both go through the shared
-/// [confirmDestructiveAction], and both refetch rather than navigate away — the
-/// *consequence* of a delete stays at the call site, which is the whole reason
-/// the dialog is shared. These are task 4.8's fifth and sixth wired flows; the
-/// last two arrived with Phase 7 (the event list and event details), so all six
-/// are now wired.
+/// original user delete called an endpoint that does not exist; the invitation
+/// delete is real. Both go through the shared [confirmDestructiveAction], and
+/// both refetch rather than navigate away — the *consequence* of a delete stays
+/// at the call site, which is the whole reason the dialog is shared. These are
+/// the fifth and sixth wired destructive flows; the last two arrived with the
+/// event list and event details, so all six are now wired.
 /// - **The organization column is conditional.** The original screen added it
 /// only for a caller holding `VIEW_USERS_GLOBAL`. An organization-scoped admin
 /// sees users in their own organization already, so the column would be four
@@ -52,9 +51,8 @@ import '../../widgets/responsive_list_view.dart';
 /// invitation form with no dedicated route, so this screen renders it in place
 /// as well.
 /// - **The invite link is built from `Uri.base`,** not from
-/// `window.location.origin` as the original did. Task 5.10 asked for that;
-/// doing it here rather than waiting means the link this screen hands a user is
-/// correct on every platform from the start.
+/// `window.location.origin` as the original did. Doing it here means the link
+/// this screen hands a user is correct on every platform from the start.
 class UserListScreen extends ConsumerStatefulWidget {
   const UserListScreen({super.key});
 
@@ -121,10 +119,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
 
   /// The user delete.
   ///
-  /// **This request 404s** — see [UserService.deleteUser] and task 10.12. The
-  /// original behaved identically: the button was there, the call went nowhere,
-  /// and the caught error went into the shared error state the table rendered.
-  /// That is what the action-error banner below is.
+  /// **This request 404s** — see [UserService.deleteUser]. The original behaved
+  /// identically: the button was there, the call went nowhere, and the caught
+  /// error went into the shared error state the table rendered. That is what the
+  /// action-error banner below is. A hard-delete fix is planned.
   Future<void> _confirmDeleteUser(UserResponse user) async {
     final confirmed = await confirmDestructiveAction(
       context,
@@ -150,9 +148,9 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
 
   /// The invitation delete.
   ///
-  /// Refetches the invitations rather than the users, for the reason task 4.8
-  /// kept the consequence at the call site: this deletes a different collection
-  /// from the one the row sits in, and the two lists are independent fetches.
+  /// Refetches the invitations rather than the users: this deletes a different
+  /// collection from the one the row sits in, and the two lists are independent
+  /// fetches, so the consequence stays at the call site.
   Future<void> _confirmDeleteInvitation(InvitationResponse invitation) async {
     final confirmed = await confirmDestructiveAction(
       context,
@@ -585,9 +583,8 @@ class _InvitationLinkCell extends StatelessWidget {
 /// The link an invitee opens: the app's own origin plus `/register?token=`.
 ///
 /// The original screen built this twice from `window.location.origin`. One
-/// function so the copy button and the displayed text cannot disagree — which is
-/// the same defect class as the bare-string responses in task 10.9: two values
-/// that are supposed to be one.
+/// function so the copy button and the displayed text cannot disagree — two
+/// values that are supposed to be one.
 ///
 /// `Uri.base` rather than `window.location.origin` it is the
 /// document's address on web and the running app's elsewhere, so the same

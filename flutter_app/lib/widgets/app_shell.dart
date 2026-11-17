@@ -11,9 +11,9 @@ import 'organization_selector.dart';
 
 /// The chrome every authenticated screen sits inside.
 ///
-/// Replaces the original layout's `<nav>` plus main container. Task 3.1: a
-/// `go_router` `ShellRoute` wrapping the authenticated branch, so the routes
-/// under it declare only their own path and permissions.
+/// Replaces the original layout's `<nav>` plus main container: a `go_router`
+/// `ShellRoute` wrapping the authenticated branch, so the routes under it
+/// declare only their own path and permissions.
 ///
 /// The React original is desktop-only: `navbar-expand-lg` collapses the whole
 /// bar behind a hamburger below Bootstrap's 992px breakpoint, and there is no
@@ -169,9 +169,9 @@ class _RailShell extends ConsumerWidget {
 ///
 /// The original layout rendered the text "Teven" linking to `/`. Collapsed into
 /// a 72px rail there is no room for the word, so a calendar glyph stands in.
-/// Task 3.2 is relevant here: the original app's icon set was never fully
-/// installed, so there is no existing glyph to match — and the navbar never
-/// carried a logo image, only this text.
+/// The original app's icon set was never fully installed, so there is no
+/// existing glyph to match — and the navbar never carried a logo image, only
+/// this text.
 class _Brand extends StatelessWidget {
   const _Brand({this.color, this.compact = false});
 

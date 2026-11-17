@@ -41,11 +41,10 @@ import '../../widgets/responsive_list_view.dart';
 ///
 /// **What this screen drops from the original, and why.** The original page had
 /// its own Previous/Next pair and a "Showing X - Y of Z" line. It is built on
-/// [PagedScrollView] instead, which is the same pagination the other four list
-/// screens gained in task 4.3 — infinite scroll with a "Load more" button as the
-/// floor. Two pages of a bespoke pager would be a second pagination
-/// implementation in the app, and task 4.8's rule for the delete dialog applies
-/// here too: shared means one implementation, not one per screen.
+/// [PagedScrollView] instead, which is the same pagination the other list
+/// screens use — infinite scroll with a "Load more" button as the floor. Two
+/// pages of a bespoke pager would be a second pagination implementation in the
+/// app, and the shared delete dialog is one implementation, not one per screen.
 class EventListScreen extends ConsumerStatefulWidget {
   const EventListScreen({super.key});
 
@@ -154,8 +153,8 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
   /// `'no response'` is the literal the original posted for its clear button,
   /// and it is **not** one of [RsvpAvailability]'s named values. Reproduced
   /// verbatim: inventing `''` or `'none'` would change what lands in the
-  /// `rsvps.availability` column, and task 10.17 owns the question of whether
-  /// that column should hold a closed set at all.
+  /// `rsvps.availability` column, and whether that column should hold a closed
+  /// set at all remains an open question.
   Future<void> _rsvp(EventResponse event, String availability) async {
     try {
       await ref
@@ -481,8 +480,8 @@ class _RsvpCell extends StatelessWidget {
 /// not a member of [RsvpAvailability] — the server stores it as a free-form
 /// string (`RsvpRequest.availability` has no validation) and the original's own
 /// "what did I answer" test was an equality check against `'available'` or
-/// `'unavailable'`, so any other value read as unanswered. Task 10.17 decides
-/// whether that column should hold a closed set.
+/// `'unavailable'`, so any other value read as unanswered. Whether that column
+/// should hold a closed set remains an open question.
 const String kRsvpCleared = 'no response';
 
 /// One RSVP button.

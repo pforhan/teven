@@ -93,9 +93,9 @@ class OrganizationService(
   /**
    * Whether the caller may act on [organizationId]: they hold the global
    * permission, or they hold the organization-scoped one and the organization is
-   * theirs. Task 7.16 gave the organization-scoped permission to the Organizer
-   * as its own door — today, setting their organization's home time zone — so the
-   * scoping lives here rather than in a route-level permission alone.
+   * theirs. The organization-scoped permission is its own door — today, setting
+   * their organization's home time zone — so the scoping lives here rather than
+   * in a route-level permission alone.
    */
   private suspend fun canAccess(
     callerId: Int,
@@ -115,8 +115,8 @@ class OrganizationService(
 
   /**
    * An organization has a home time zone, and an event is read in the zone it
-   * was scheduled in. The zone travels with the organization now (task 7.15);
-   * it is required on create and update, and the server owns the validation.
+   * was scheduled in. The zone travels with the organization; it is required on
+   * create and update, and the server owns the validation.
    */
   private fun resolveTimezone(timezone: String): String {
     if (!ZoneId.getAvailableZoneIds().contains(timezone)) {

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * [PasswordHasher] — task 10.18.
+ * [PasswordHasher].
  *
  * The malformed-hash cases are the ones worth having. `BCrypt.checkpw` throws
  * `IllegalArgumentException` on a stored value it cannot parse, and
@@ -45,7 +45,7 @@ class PasswordHasherTest {
   }
 
   /**
-   * The regression test for task 10.18.
+   * Regression test for the seeded plaintext-password case.
    *
    * `TestDataProvider` wrote the literal string `"password"` into
    * `users.password`. That is what jBCrypt rejects with "Invalid salt version",
