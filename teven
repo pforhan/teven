@@ -323,7 +323,6 @@ cmd_check_task_refs() {
   printf '==> Checking for task references in source comments\n'
   if [ "$dry_run" -eq 1 ]; then
     show "rg -n --glob '!FLUTTER-CONVERT*' --glob '!*.md' -e 'task [0-9]+\\.[0-9]+' -e 'Task [0-9]+\\.[0-9]+' flutter_app/lib flutter_app/test backend"
-    printf '    (dry run: no source scan performed)\n'
     return 0
   fi
   local matches count
