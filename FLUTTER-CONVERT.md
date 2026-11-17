@@ -105,55 +105,38 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   Task 4.11 tells the UI to verify sort controls; this is the task that makes that verification pass. Implemented `sortBy` for events (`title`, `date`/`startsAt`, defaulting to start time) through route/service/DAO, updated `EventServiceTest`, and clarified events query params in `API_TEMPLATE.md` and Flutter client comments.
 
-- [ ] **10.12** **Implement hard `DELETE /api/users/{id}`, deleting dependent rows explicitly.** **Decision made: hard delete, not soft.** The button exists in the React UI (`UserList.tsx:81`) and has never worked.
+- [ ] **10.12** **Soft-delete (deactivate) users, with super-admin visibility and restore.** **Decision revised: soft delete, not hard delete.** The button exists in the React UI (`UserList.tsx:81`) and has never worked. The goal is to let super-admins see deactivated users and restore them, without losing the history attached to a user account.
 
-  **The database will not cascade on its own.** Verified against the running dev database rather than inferred from the Kotlin — all five FKs onto `users(id)` are **`ON DELETE RESTRICT`**:
+  **The load-bearing invariant (the reason 10.12 originally leaned hard-delete): a deactivated user must not be able to authenticate or act.** Soft delete is acceptable only if "deleted" is enforced everywhere an identity is treated as active:
+  - `loginUser` / `UserDao.getUserByUsername` (and any email lookup used for auth) must reject deactivated users (same outcome as invalid credentials / not found).
+  - Existing sessions must not keep working: `GET /api/users/context`, `getUserById`/auth resolution, and any path that loads the principal must treat a deactivated user as unauthorized/disabled. Centralize an "active user" predicate so login, context, and default reads agree.
+  - Keep the 10.12 guard rails: reject **self-deactivation** server-side, prevent deactivating (and consider restoring into) the **last** super-admin, and enforce org scoping (mirror the permission model on `PUT /api/users/{id}`). See the permission-model note below on `MANAGE_USERS_GLOBAL` vs `MANAGE_USERS_ORGANIZATION`.
 
-  | Table | Column | Actual `delete_rule` |
-  |---|---|---|
-  | `rsvps` | `user_id` | RESTRICT |
-  | `staffhours` | `user_id` | RESTRICT |
-  | `userroles` | `user_id` | RESTRICT |
-  | `userorganizations` | `user_id` | RESTRICT |
-  | `invitations` | `used_by_user_id` (nullable) | RESTRICT |
+  **Schema.** Add `deletedAt` (nullable `timestamp with time zone`) to `Users` (`backend/data/.../user/Users.kt`), and thread it through `core.user.User` / `api.model.user.UserResponse` / `UserDao.toUser` / `UserServiceImpl.toUserResponse` as needed so the client can distinguish active vs deactivated users. `SchemaUtils.create` is create-if-missing and never alters existing tables, so this requires dropping and recreating the dev database (no migration tooling); confirm nothing of value lives there.
 
-  So `DELETE FROM users` fails with an FK violation if any dependent row exists. **There are five, not one** — an earlier draft of this task claimed `StaffDetails` would cascade; that table is not in `DatabaseFactory.kt`'s `SchemaUtils.create` list, so it **does not exist** in the database (confirmed: `\dt` returns 13 tables, no `staffdetails`) and is never queried anywhere. The one table that declared `CASCADE` is a phantom.
+  **Do not cascade-delete user dependents.** The point of soft delete is to keep the user row and its history: `rsvps`, `staffhours`, `userroles`, `userorganizations`, and `invitations.used_by_user_id` can remain pointing at the user. (Verified against the running dev DB, the five FKs onto `users(id)` are `ON DELETE RESTRICT`; under soft delete no `DELETE FROM users` is issued, so leave them `RESTRICT` rather than adding `CASCADE`. `Invitations.usedByUserId` stays intact — unlike the hard-delete plan, there is no need to null it, because the account row survives for audit/history.) Treat the FK `onDelete` cascades from the earlier hard-delete draft as unnecessary here; `StaffDetails`’ declared `CASCADE` is on a table not currently in `SchemaUtils.create`/the DB (see 10.13) and is a separate issue.
 
-  **The dev database can be regenerated, so add `ReferenceOption.CASCADE` to the five FKs** in `Rsvps.kt`, `StaffHours.kt`, `UserRoles.kt`, `UserOrganizations.kt`, and `Invitations.kt`. Then the DAO needs no manual ordering and the schema documents its own intent.
+  **Reads and visibility.** Default user-management reads must exclude deactivated users, while preserving historical references elsewhere:
+  - `UserDao.getUsers`, `getAllUsers`, `getUsersByOrganization`, and management/detail lookups should exclude deactivated rows by default and keep `total` consistent with the filter (same pattern 10.19 requires for customers). Put the filter in one helper so a new read path cannot forget it.
+  - Super-admins need to list and inspect deactivated users: add an explicit query/filter (e.g. `status=active|deactivated|all` or `includeDeleted`) on the list endpoint, gated appropriately.
+  - **Do not globally erase historical joins.** Event rosters/RSVPs, staff-hours reports, invitation attribution, etc. may still need to resolve a deactivated user’s display/name for history; decide per path whether "exclude from management lists" vs "unresolvable" is correct, rather than filtering deactivated users out of every join.
+  - Decide what `GET /api/users/{id}` returns for a deactivated user and whether edits/reactivation are allowed (a deactivated account should be immutable except restore/reactivation).
 
-  **One exception:** `Invitations.usedByUserId` should stay `RESTRICT`/nullable and be **nulled explicitly, not cascaded** — the invitation is audit-relevant and should outlive the user who accepted it. So: cascade the four genuinely-dependent tables, null the invitation.
+  **Uniqueness (`username`, `email`).** Both are unique indexes today. A soft-deleted row would block reuse and can complicate re-invites/restores. Decide explicitly: reserve the values, clear/munge them on deactivation, or enforce uniqueness only for active users (e.g. a partial unique index where `deleted_at IS NULL`, if supported cleanly in the Exposed/DDL story). Whichever is chosen, restore must not violate it.
 
-  **Schema regeneration:** `DatabaseFactory` uses `SchemaUtils.create`, which is **create-if-missing and never alters existing tables** — it will not add a CASCADE to an already-created FK. Since the schema comes entirely from Exposed (no `.sql` files, no Flyway/Liquibase), recreating the dev database is the correct and supported path: drop and recreate, then let `init()` rebuild. Confirm nothing of value lives in the dev database before doing so.
+  **Routes / API.** `UserRoutes` currently has no delete. Add `DELETE /api/users/{id}` to **deactivate** (idempotent) and a **restore** action (e.g. `POST /api/users/{id}/restore`), both server-side guarded and scoped; add the list filter for super-admins. Document in `API.md` (regenerated per 10.6) and cover the route-layer validation/permission behavior (10.23 notes the app lacks a route-test harness). Keep the permission-model hole in mind: `isSuperAdmin` derives from `VIEW_USERS_GLOBAL` while the existing delete affordance is gated on `MANAGE_USERS_GLOBAL || MANAGE_USERS_ORGANIZATION` — resolve this consistently (gate the route on `VIEW_USERS_GLOBAL`, or keep an explicit last-super-admin backstop) so an org-scoped manager cannot deactivate the last super-admin.
 
-  If instead the ordering is done manually in the DAO, follow the precedent already in `TestDataProvider.kt:52-55`:
+  **Flutter.** `UserResponse`/service/provider gain the deactivated marker and restore call. In the user list (`flutter_app/lib/screens/users/user_list_screen.dart`, `providers/user_list.dart`), super-admins can view active/deactivated (and/or all), see status, and **restore** a deactivated user; the destructive flow becomes "deactivate" (not permanent removal). The current client asserts the delete 404s (`user_list_screen_test.dart`), so update it to the new contract. Non-super-admins continue to see only active users.
 
-  ```kotlin
-  Rsvps.deleteWhere { Rsvps.userId eq userId }
-  StaffHours.deleteWhere { StaffHours.userId eq userId }
-  UserRoles.deleteWhere { UserRoles.userId eq userId }
-  UserOrganizations.deleteWhere { UserOrganizations.userId eq userId }
-  Invitations.update({ Invitations.usedByUserId eq userId }) {
-    it[usedByUserId] = null   // nullable — preserve the invite record
-  }
-  Users.deleteWhere { Users.id eq userId }
-  ```
+  **Similar treatment for other CRUD entities (review, don’t assume).** Apply the same "is this a historical reference or an identity/ephemeral record?" test elsewhere, and prefer preserving history over destructive deletes where references matter:
+  - **Customers:** already planned as soft delete in **10.19** (events reference them); keep 10.12/10.19 consistent (customer = reference, user = identity that must stop authenticating but whose history can be retained).
+  - **Inventory items:** hard-deleted today, but referenced by event-inventory associations / usage history (`InventoryItems`, `EventInventory`, `InventoryUsage`); likely warrant soft delete so past events/usage remain intact. Review before implementing/changing.
+  - **Events:** core records with RSVPs, event-inventory, and reporting impact; hard delete destroys history. Consider soft delete/cancel semantics (product decision) rather than irreversible removal.
+  - **Organizations:** tenant roots; deletion is highly destructive. Consider disable/soft delete rather than hard delete.
+  - **Invitations:** largely ephemeral/revocable tokens (with `usedByUserId` audit); hard delete/revocation may be acceptable — confirm intent.
+  - **Roles:** referenced by user roles/invitations and include seeded/system roles; treat as special (restrict/forbid deletion of in-use or system roles) rather than a plain soft-delete case.
 
-  **Ordering is load-bearing** — `Invitations.usedByUserId` is nullable and the invite should survive with the link cleared, since the invitation itself is audit-relevant. Everything else is genuinely dependent and goes.
-
-  **Prefer adding `CASCADE` over manual deletes** — it removes a whole class of future bug where a new dependent table is added and silently forgotten. The five FKs to change are listed above.
-
-  **Guard rails.** Reject deleting the **last** super-admin, and reject self-deletion (a user who can delete themselves can lock themselves out mid-session). Check `VIEW_USERS_GLOBAL`/`MANAGE_USERS_GLOBAL` scoping so one org's admin cannot delete another's user — mirror the permission model on `PUT /api/users/{id}` (`UserRoutes.kt:84`).
-
-  **The last-super-admin check is close to redundant, but not quite — verify before dropping it.** Banning self-deletion does make "zero super-admins left" unreachable *by the obvious route*: the deleter always survives their own delete, so the count bottoms out at one. That argument is sound and it is why the self-deletion ban is the load-bearing half.
-
-  It has a hole, though, and the hole is in the permission model rather than in this route. **`isSuperAdmin` is derived from `VIEW_USERS_GLOBAL`** (`MainLayout.tsx:10`), while the delete button is gated on **`MANAGE_USERS_GLOBAL || MANAGE_USERS_ORGANIZATION`** (`UserList.tsx:25`). Those are independent grants, so a user holding only `MANAGE_USERS_ORGANIZATION` can delete users and is *not* a super-admin — and could delete the only super-admin without deleting themselves. Two ways to close it, and the cheaper one is preferable:
-
-  - **Ban self-deletion server-side and make "may delete users" imply super-admin** (gate the route on `VIEW_USERS_GLOBAL` rather than `MANAGE_USERS_GLOBAL`). One-line, and the invariant then holds by construction.
-  - **Keep the last-super-admin check** as a backstop, and re-check it whenever a new `MANAGE_*` permission is granted to non-super-admins.
-
-  Either way the route must check self-deletion **server-side**; a client-side check is a UI affordance, not a guard, and the React delete button is a UI affordance. Note that the *button* in `UserList.tsx:79` has never worked, so there is no existing behaviour to preserve here and no regression risk in fixing it.
-
-  Add the route to `API.md`, where it is currently documented as if it exists.
+  Verify after: a deactivated user cannot log in or use an existing session, disappears from default user-management lists but remains resolvable where history requires, and a super-admin can list and restore them; `./teven verify-backend` and `./teven verify` pass.
 
 - [ ] **10.13** **Restore the staff-details feature: create `staff_details`, store `skills` as a proper list, and fix the silent-discard path.** **Decision made: fix it, do not delete it.** Staff profiles are a real feature the app presents, so the table and its read/write path get built properly rather than removed.
 
@@ -402,6 +385,38 @@ Please ensure that class is marked as '@Serializable' and that the serialization
   - Keep fetch-on-load as the source of truth for deep links and stale state; do not remove necessary refreshes, only redundant ones immediately after a successful mutation.
 
   Scope this incrementally per resource/screen, with existing tests updated only where behavior (e.g. request counts/timing) intentionally changes.
+
+- [ ] **10.28** **Soft-delete inventory items, so deleting one does not destroy event and usage history.** Inventory items are hard-deleted today (`InventoryDao.deleteInventoryItem` → `InventoryItems.deleteWhere`), but items are referenced by event-inventory associations and inventory usage (`EventInventory`, `InventoryUsage`). Deleting an in-use item risks FK failures or breaks the historical record of what an event used.
+
+  **Decision direction:** treat inventory items as historical references (like customers in 10.19), not ephemeral rows. Plan for a nullable `deletedAt` on `InventoryItems`, `delete` setting the flag, and default list/detail reads excluding deactivated items while keeping associations/usage resolvable for history. Decide whether deactivated items remain selectable/visible in historical event contexts, whether edits/restore are allowed, and what permission/scope gates deletion and restore. `SchemaUtils.create` never alters existing tables, so this requires a dev-database recreate.
+
+  Verify after: deleting an item removes it from default inventory management views without breaking events or usage records that reference it, and history remains intact.
+
+- [ ] **10.29** **Decide and implement non-destructive removal semantics for events (soft delete or cancel/archive).** Events are core records tied to RSVPs, event-inventory allocations, customer associations, and reporting/staff-hours context. A hard delete (`EventDao.deleteEvent`) destroys that history and has broad dependent impact.
+
+  **Decision needed (product):** whether "remove" means soft delete, cancellation, archival, or some combination, and how each state behaves in calendars/lists, reports, RSVP flows, and future scheduling. Whatever is chosen, prefer preserving historical associations over irreversible removal; define visibility (default hidden vs labeled state), whether a removed event is immutable, and who may remove/restore/reopen it.
+
+  Verify after: removing an event does not silently erase dependent history needed for reporting/audit, and the chosen state is represented consistently in the API and UI.
+
+- [ ] **10.30** **Decide and implement disable/soft-delete semantics for organizations (tenant roots).** Organizations are tenant roots that own users, customers, inventory, events, invitations, and roles context; hard-deleting an organization (`OrganizationDao.deleteOrganization`) is highly destructive and risks widespread FK/orphaning issues.
+
+  **Decision direction:** prefer disable/soft delete over hard delete. Define what "disabled" means (e.g. hidden from normal selection, blocks login/access and new activity, preserves all child records for audit/recovery), who can disable/restore (likely global/super-admin only), and how child resources and scoping behave while disabled. Coordinate with `MANAGE_ORGANIZATIONS_*` permissions and any org-switching/selection UI.
+
+  Verify after: disabling an organization prevents normal access/use without destroying tenant data, and a privileged actor can restore it if needed.
+
+- [ ] **10.31** **Review invitation deletion/revocation semantics.** Invitations are largely ephemeral, revocable tokens, but they also carry audit-relevant fields (e.g. `usedByUserId`, expiry/creation). Deleting an invitation today is a hard delete (`InvitationDao.deleteInvitation`).
+
+  **Decide:** whether hard-deleting an unused/expired invitation is acceptable, or whether invitations should be explicitly revoked/retained for audit (and, if so, how used vs unused vs expired invitations are represented and filtered). Confirm the interaction with 10.12’s choice to preserve invitation history when a user is deactivated.
+
+  Verify after: revoking/removing an invitation prevents its use, and the chosen approach preserves any audit trail the product requires.
+
+- [ ] **10.32** **Make role definitions code/seed-managed; keep role assignment in the API.** Role *definitions* (names, permission sets, which roles exist) are authorization policy: they are referenced by user-role assignments and invitations, include seeded/system roles (`SuperAdmin`/`Organizer`/`Staff`, name-coupled to `CAN_ASSIGN_*` behavior), and runtime mutation can escalate privileges or drift from the seeded source of truth. Role *assignment* (who has which role) is operational data and should remain API-driven.
+
+  **Decision direction:** remove or disable runtime create/update/delete of role definitions via the API (`POST/PUT/DELETE /api/roles`), and forbid mutating or deleting seeded/system roles. Manage definitions in code/seed (e.g. `InitialSetup` / versioned init) as reviewable, deploy-time changes; this repo has no migration framework (`SchemaUtils.create` is create-if-missing, no Flyway/Liquibase), so "migrations" here means deliberate, versioned seed/init or data changes rather than automatic schema migrations. Keep role listing and user-role assignment/removal endpoints for operational use.
+
+  **Custom roles are out of scope of the current shape.** The existing model is effectively global and name-coupled; if tenant-defined custom roles become a real requirement, treat that as an explicit feature (data model + scoping + UI + safety rules), not an extension of the current definition-CRUD endpoints.
+
+  Verify after: role definitions cannot be created/changed/deleted at runtime through the API, seeded/system roles remain intact, and role assignment/removal still works as intended.
 
 ---
 

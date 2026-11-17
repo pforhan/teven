@@ -3924,3 +3924,24 @@ the "Other events" panel. Request-body assertions use the recorded requests via
 `flutter_app/test/event_form_test.dart`, `FLUTTER-CONVERT.md`,
 `FLUTTER-CONVERT-NOTES.md`.
 
+---
+
+### 2026-11-17 — Decision revision: 10.12 to soft delete (users), and deletion semantics across CRUD entities
+
+**Planning/doc update, not an implementation.** Task 10.12 in `FLUTTER-CONVERT.md` was rewritten from hard delete to **soft delete (deactivate) with super-admin visibility and restore**, and follow-up tasks 10.28–10.32 were added to review deletion semantics for other entities.
+
+**Why 10.12 was originally hard delete, and why it changed.** The original 10.12 rationale (and the 10.12/10.19 contrast in the checklist) treated a user as an identity that authenticates: a deleted user must stop authenticating, so "credential revocation" argued against soft delete, while a customer (10.19) is a historical reference that events should keep pointing at. The revision keeps that requirement but satisfies it under soft delete: the load-bearing invariant is that a **deactivated user cannot log in or use an existing session** (reject in login/username lookup and treat as unauthorized/disabled in context/principal resolution, with an "active user" predicate shared by auth and default reads). What soft delete adds is what the product now wants — super-admins can see deactivated users and restore them — without discarding the history attached to the account (RSVPs, staff hours, roles/org membership, invitation attribution).
+
+**Reversibility and schema.** This is easy to change in code before or after implementing either approach, but **hard-deleted data is not recoverable**: implementing hard delete (and its cascades/ordered deletes) would permanently remove dependent history, so you could later add a soft-delete feature but not restore what was already deleted. Adding a nullable `deletedAt` early is a low-risk hedge for future code, but it does **not** avoid a destructive migrate on an existing database in this repo — `SchemaUtils.create` is create-if-missing and never alters existing tables (no migration tooling), so any schema addition still requires dropping/recreating the dev DB. The dev DB is regenerable, so that step is cheap now.
+
+**FK / implementation stance under soft delete.** Because no `DELETE FROM users` is issued, dependent rows (`rsvps`, `staffhours`, `userroles`, `userorganizations`, `invitations.used_by_user_id`) can remain and the existing `ON DELETE RESTRICT` FKs are fine; adding `CASCADE` is a hard-delete choice (and makes an accidental hard delete destructive), so it is not treated as a prerequisite. `invitations.used_by_user_id` can remain intact for audit/history when the account row survives (unlike the earlier hard-delete plan, which nulled it). The rewritten 10.12 also carries forward the guard rails (server-side no self-deactivation, last-super-admin protection, org-scoping/permission-model consistency), default filtering with super-admin-only visibility/restore, and the open `username`/`email` uniqueness decision for deactivated rows.
+
+**Other entities (10.28–10.32).** The same "historical reference/identity vs ephemeral or special record" test was applied across CRUD resources:
+- **Customers (10.19):** already planned as soft delete (events reference them); consistent with retaining user history while still revoking user access.
+- **Inventory items (10.28):** referenced by event-inventory and usage history — likely soft delete.
+- **Events (10.29):** core records with RSVP/inventory/reporting impact — needs a product decision on soft delete vs cancel/archive rather than irreversible removal.
+- **Organizations (10.30):** tenant roots — prefer disable/soft delete over destructive removal.
+- **Invitations (10.31):** ephemeral/revocable but audit-relevant — review revoke vs hard-delete semantics (and alignment with preserving invitation history).
+- **Roles (10.32):** seeded/system, name-coupled, and referenced by assignments/invitations — treat definitions as authorization policy managed in code/seed (no runtime create/update/delete of definitions via API; this repo has no migration framework, so changes are versioned seed/init/data changes), while **role assignment/removal remains API-driven**. Custom tenant-defined roles are a separate, explicit feature, not the current shape.
+
+**Files changed:** `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
