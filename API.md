@@ -517,7 +517,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Query Parameters:
         * See [Common Search, Sort, and Pagination Parameters](#common-search-sort-and-pagination-parameters)
         * `organizationId` (optional, integer): Filter inventory items by organization. Requires `VIEW_INVENTORY_GLOBAL` permission.
-    * Response: `PaginatedResponse<InventoryItemResponse>`
+    * Response: `PaginatedResponse<InventoryItemResponse>` (list items include `eventCount`; `events` is empty)
 
 * `GET /api/inventory/{inventoryId}`: Retrieve a specific inventory item.
     * Authentication: Required.
@@ -529,6 +529,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
+          val eventCount: Int,
           val events: List<EventSummaryResponse>, 
           val organization: OrganizationResponse
         )
@@ -553,6 +554,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
+          val eventCount: Int,
           val events: List<EventSummaryResponse>, 
           val organization: OrganizationResponse
         )
@@ -577,6 +579,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
+          val eventCount: Int,
           val events: List<EventSummaryResponse>, 
           val organization: OrganizationResponse
         )
@@ -604,6 +607,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
+          val eventCount: Int,
           val events: List<EventSummaryResponse>, 
           val organization: OrganizationResponse
         )
@@ -941,6 +945,7 @@ data class InventoryItemResponse(
   val name: String, 
   val description: String, 
   val quantity: Int, 
+  val eventCount: Int,
   val events: List<EventSummaryResponse>, 
   val organization: OrganizationResponse
 )

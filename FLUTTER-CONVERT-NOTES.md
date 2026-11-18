@@ -4013,3 +4013,17 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`, `./teven verify`.
 
 **Files changed (primary):** `backend/app/src/main/kotlin/alphainterplanetary/teven/app/user/UserRoutes.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/user/UserServiceImpl.kt`, `flutter_app/lib/screens/users/user_list_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-18 — 10.21: inventory list returns usage count instead of embedded events
+
+**Implemented task 10.21.** Inventory list responses no longer embed unbounded per-event records per row; they now return a usage count (`eventCount`) computed without per-row event fetch/N+1 loading. `GET /api/inventory/{id}` and mutation/detail-returning paths keep full event associations needed for detail.
+
+**Backend.** `InventoryItemResponse` now includes `eventCount` and defaults `events` to empty. `InventoryDao` uses a list mapping that loads page rows, fetches `EventInventory` counts for those item IDs in one grouped query, and returns list items with `eventCount` and no embedded events. Detail/all/event-context mappings (`getInventoryItemById`, `getAllInventoryItems*`, create/update/track-usage re-fetches, `getInventoryItemsForEvent`) return full `events` and `eventCount`.
+
+**Flutter.** `InventoryItemResponse` model adds `eventCount` (generated freezed/json files updated via `dart run build_runner build`; generated files remain gitignored). The inventory list "Used in Events" column now displays the server-provided count (including "Never used") and removes client-side `maxEventsShown` truncation of embedded event rows; list and mobile-card tests updated to the new response shape/UI.
+
+**Verified:** `./teven verify-backend`, `./teven verify` (after regenerating model code).
+
+**Files changed (primary):** `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/inventory/InventoryItemResponse.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/inventory/InventoryDao.kt`, `flutter_app/lib/models/inventory.dart`, `flutter_app/lib/screens/inventory/inventory_list_screen.dart`, `flutter_app/test/inventory_list_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

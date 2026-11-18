@@ -14,11 +14,13 @@ import alphainterplanetary.teven.data.event.Events
 import alphainterplanetary.teven.data.organization.Organizations
 import java.time.Clock
 import java.time.ZoneId
+import org.jetbrains.exposed.v1.core.Count
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -28,28 +30,54 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 
 class InventoryDao(private val clock: Clock) {
-  private suspend fun toInventoryItemResponse(row: ResultRow): InventoryItemResponse {
-    val inventoryId = row[InventoryItems.id].value
-    val events = EventInventory.selectAll().where { EventInventory.inventoryItemId eq inventoryId }
+  private fun toOrganizationResponse(row: ResultRow): OrganizationResponse =
+    OrganizationResponse(
+      organizationId = row[Organizations.id].value,
+      name = row[Organizations.name],
+      contactInformation = row[Organizations.contactInformation],
+      timezone = row[Organizations.timezone],
+    )
+
+  private fun eventsFor(inventoryId: Int): List<EventSummaryResponse> =
+    EventInventory.selectAll()
+      .where { EventInventory.inventoryItemId eq inventoryId }
       .map { EventSummaryResponse(it[EventInventory.eventId], "", it[EventInventory.quantity]) }
 
+  private fun toInventoryItemDetailResponse(row: ResultRow): InventoryItemResponse {
+    val inventoryId = row[InventoryItems.id].value
+    val events = eventsFor(inventoryId)
     val organization = Organizations.selectAll()
       .where { Organizations.id eq row[InventoryItems.organizationId] }
-      .single().let {
-        OrganizationResponse(
-          organizationId = it[Organizations.id].value,
-          name = it[Organizations.name],
-          contactInformation = it[Organizations.contactInformation],
-          timezone = it[Organizations.timezone],
-        )
-      }
+      .single()
+      .let(::toOrganizationResponse)
 
     return InventoryItemResponse(
       inventoryId = inventoryId,
       name = row[InventoryItems.name],
       description = row[InventoryItems.description],
       quantity = row[InventoryItems.quantity],
+      eventCount = events.size,
       events = events,
+      organization = organization,
+    )
+  }
+
+  private fun toInventoryItemListResponse(
+    row: ResultRow,
+    eventCount: Int,
+  ): InventoryItemResponse {
+    val organization = Organizations.selectAll()
+      .where { Organizations.id eq row[InventoryItems.organizationId] }
+      .single()
+      .let(::toOrganizationResponse)
+
+    return InventoryItemResponse(
+      inventoryId = row[InventoryItems.id].value,
+      name = row[InventoryItems.name],
+      description = row[InventoryItems.description],
+      quantity = row[InventoryItems.quantity],
+      eventCount = eventCount,
+      events = emptyList(),
       organization = organization,
     )
   }
@@ -87,7 +115,23 @@ class InventoryDao(private val clock: Clock) {
     query.offset(effectiveOffset)
     query.limit(effectiveLimit)
 
-    val items = query.map { toInventoryItemResponse(it) }
+    val rows = query.toList()
+    val ids = rows.map { it[InventoryItems.id].value }
+    val eventCounts = if (ids.isEmpty()) {
+      emptyMap()
+    } else {
+      val countExpr = Count(EventInventory.eventId)
+      EventInventory
+        .select(EventInventory.inventoryItemId, countExpr)
+        .where { EventInventory.inventoryItemId inList ids }
+        .groupBy(EventInventory.inventoryItemId)
+        .associate { it[EventInventory.inventoryItemId] to it[countExpr].toInt() }
+    }
+
+    val items = rows.map { row ->
+      val id = row[InventoryItems.id].value
+      toInventoryItemListResponse(row, eventCounts[id] ?: 0)
+    }
 
     PaginatedResponse(
       items = items,
@@ -98,20 +142,20 @@ class InventoryDao(private val clock: Clock) {
   }
 
   suspend fun getAllInventoryItems(): List<InventoryItemResponse> = dbQuery {
-    InventoryItems.selectAll().map { toInventoryItemResponse(it) }
+    InventoryItems.selectAll().map { toInventoryItemDetailResponse(it) }
   }
 
   suspend fun getAllInventoryItemsByOrganization(organizationId: Int): List<InventoryItemResponse> =
     dbQuery {
       InventoryItems.selectAll()
         .where { InventoryItems.organizationId eq organizationId }
-        .map { toInventoryItemResponse(it) }
+        .map { toInventoryItemDetailResponse(it) }
     }
 
   suspend fun getInventoryItemById(inventoryId: Int): InventoryItemResponse? = dbQuery {
     InventoryItems.selectAll()
       .where { InventoryItems.id eq inventoryId }
-      .mapNotNull { toInventoryItemResponse(it) }
+      .mapNotNull { toInventoryItemDetailResponse(it) }
       .singleOrNull()
   }
 
@@ -129,17 +173,12 @@ class InventoryDao(private val clock: Clock) {
         name = createInventoryItemRequest.name,
         description = createInventoryItemRequest.description,
         quantity = createInventoryItemRequest.quantity,
+        eventCount = 0,
         events = emptyList(),
         organization = Organizations.selectAll()
           .where { Organizations.id eq createInventoryItemRequest.organizationId }
-          .single().let {
-            OrganizationResponse(
-              organizationId = it[Organizations.id].value,
-              name = it[Organizations.name],
-              contactInformation = it[Organizations.contactInformation],
-              timezone = it[Organizations.timezone],
-            )
-          },
+          .single()
+          .let(::toOrganizationResponse),
       )
     }
 
@@ -163,7 +202,7 @@ class InventoryDao(private val clock: Clock) {
 
     InventoryItems.selectAll()
       .where { InventoryItems.id eq inventoryId }
-      .mapNotNull { toInventoryItemResponse(it) }
+      .mapNotNull { toInventoryItemDetailResponse(it) }
       .singleOrNull()
   }
 
@@ -178,11 +217,11 @@ class InventoryDao(private val clock: Clock) {
     // 7.24: usage_date is the event's date in the event's own zone (not the
     // server's wall clock). The event carries its zone; a PK lookup is enough.
     val event =
-        Events.selectAll()
-            .where { Events.id eq trackInventoryUsageRequest.eventId }
-            .single()
+      Events.selectAll()
+        .where { Events.id eq trackInventoryUsageRequest.eventId }
+        .single()
     val usageDate =
-        event[Events.startsAt].toInstant().atZone(ZoneId.of(event[Events.timezone])).toLocalDate()
+      event[Events.startsAt].toInstant().atZone(ZoneId.of(event[Events.timezone])).toLocalDate()
 
     InventoryUsage.insert {
       it[InventoryUsage.inventoryId] = inventoryId
@@ -193,7 +232,7 @@ class InventoryDao(private val clock: Clock) {
 
     InventoryItems.selectAll()
       .where { InventoryItems.id eq inventoryId }
-      .mapNotNull { toInventoryItemResponse(it) }
+      .mapNotNull { toInventoryItemDetailResponse(it) }
       .singleOrNull()
   }
 
@@ -201,6 +240,6 @@ class InventoryDao(private val clock: Clock) {
     (EventInventory innerJoin InventoryItems)
       .select(InventoryItems.columns)
       .where { EventInventory.eventId eq eventId }
-      .map { toInventoryItemResponse(it) }
+      .map { toInventoryItemDetailResponse(it) }
   }
 }

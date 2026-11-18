@@ -43,14 +43,8 @@ void main() {
               'name': names[i],
               'description': 'Description ${i + 1}',
               'quantity': 10 * (i + 1),
-              'events': [
-                for (
-                  var e = 0;
-                  e < (eventCounts.isEmpty ? 0 : eventCounts[i]);
-                  e++
-                )
-                  {'eventId': 100 + e, 'title': '', 'quantity': e + 1},
-              ],
+              'eventCount': eventCounts.isEmpty ? 0 : eventCounts[i],
+              'events': const <Object>[],
               'organization': {
                 'organizationId': 1,
                 'name': 'Acme',
@@ -211,8 +205,6 @@ void main() {
     );
   });
 
-  // — the third case 4.12 was split off and held back, because it
-  // needs this screen to exist.
   group('used in events', () {
     testWidgets('an item never used says so', (tester) async {
       await openInventory(
@@ -223,39 +215,31 @@ void main() {
       expect(find.text('Never used'), findsOneWidget);
     });
 
-    testWidgets('names every event when there are few enough', (tester) async {
+    testWidgets('shows the server-provided usage count', (tester) async {
       await openInventory(
         tester,
         inventoryAdapter(names: const ['Chairs'], eventCounts: const [3]),
       );
 
-      expect(find.text('ID: 100 (Qty: 1)'), findsOneWidget);
-      expect(find.text('ID: 101 (Qty: 2)'), findsOneWidget);
-      expect(find.text('ID: 102 (Qty: 3)'), findsOneWidget);
+      expect(find.text('Used in 3 events'), findsOneWidget);
+      expect(find.textContaining('ID:'), findsNothing);
       expect(find.textContaining('more'), findsNothing);
     });
 
-    testWidgets('truncates past the cap and counts the rest', (tester) async {
-      // **The reason this screen cannot be a transcription.**
-      // `InventoryDao.getInventoryItems` builds every row through
-      // `toInventoryItemResponse`, which selects *all* of `EventInventory` for
-      // the item — so the `events` list is unpaginated on the list endpoint as
-      // well as on `GET /api/inventory/{id}`. the original inventory list screen
-      // rendered all of them, and a heavily-used item makes a table row tall
-      // enough to swallow the screen.
+    testWidgets('shows the full count without client-side truncation', (
+      tester,
+    ) async {
       await openInventory(
         tester,
         inventoryAdapter(names: const ['Chairs'], eventCounts: const [12]),
       );
 
-      expect(find.text('ID: 100 (Qty: 1)'), findsOneWidget);
-      expect(find.text('ID: 102 (Qty: 3)'), findsOneWidget);
-      // The fourth entry is past `maxEventsShown` and must not be rendered.
-      expect(find.text('ID: 103 (Qty: 4)'), findsNothing);
-      expect(find.text('+9 more'), findsOneWidget);
+      expect(find.text('Used in 12 events'), findsOneWidget);
+      expect(find.textContaining('ID:'), findsNothing);
+      expect(find.textContaining('more'), findsNothing);
     });
 
-    testWidgets('caps per row, not across the whole list', (tester) async {
+    testWidgets('shows each row count independently', (tester) async {
       await openInventory(
         tester,
         inventoryAdapter(
@@ -264,10 +248,8 @@ void main() {
         ),
       );
 
-      // Two independent counts, which is the thing a "show the first N overall"
-      // reading would get wrong.
-      expect(find.text('+3 more'), findsOneWidget);
-      expect(find.text('+2 more'), findsOneWidget);
+      expect(find.text('Used in 6 events'), findsOneWidget);
+      expect(find.text('Used in 5 events'), findsOneWidget);
     });
   });
 
@@ -411,7 +393,7 @@ void main() {
       // The card layout labels every column rather than relying on a header,
       // so "Quantity" appears as a field label rather than a column head.
       expect(find.text('Quantity'), findsWidgets);
-      expect(find.text('ID: 100 (Qty: 1)'), findsOneWidget);
+      expect(find.text('Used in 2 events'), findsOneWidget);
       // Actions are always visible on a card — there is no hover to reveal
       // them, and hiding them would make them unreachable on a touch device.
       expect(find.byIcon(Icons.edit), findsOneWidget);

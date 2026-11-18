@@ -10,6 +10,7 @@ data class InventoryItemResponse(
   val name: String,
   val description: String,
   val quantity: Int,
-  val events: List<EventSummaryResponse>,
+  val eventCount: Int = 0,
+  val events: List<EventSummaryResponse> = emptyList(),
   val organization: OrganizationResponse,
 )

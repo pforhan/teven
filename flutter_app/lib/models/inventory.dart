@@ -5,14 +5,13 @@ import 'organization.dart';
 part 'inventory.freezed.dart';
 part 'inventory.g.dart';
 
-/// An inventory item and the events consuming it.
+/// An inventory item.
 ///
 /// Mirrors `InventoryItemResponse` in
 /// `backend/api/.../model/inventory/InventoryItemResponse.kt`.
 ///
-/// [events] is **unpaginated** — the server embeds every event that has ever
-/// drawn on this item, with no `limit`/`offset`. caps display
-/// client-side. The list can be long for a heavily-used item.
+/// List responses include [eventCount] and omit embedded [events]. Detail and
+/// mutation responses include full [events] associations and [eventCount].
 @freezed
 abstract class InventoryItemResponse with _$InventoryItemResponse {
   const factory InventoryItemResponse({
@@ -20,6 +19,7 @@ abstract class InventoryItemResponse with _$InventoryItemResponse {
     required String name,
     @Default('') String description,
     @Default(0) int quantity,
+    @Default(0) int eventCount,
     @Default(<EventSummaryResponse>[]) List<EventSummaryResponse> events,
     required OrganizationResponse organization,
   }) = _InventoryItemResponse;

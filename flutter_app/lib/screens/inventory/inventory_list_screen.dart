@@ -26,16 +26,10 @@ import '../../widgets/responsive_list_view.dart';
 /// the page size is unchanged, and there is now a way to ask for the next one.
 /// See the customer screen for the fuller note.
 ///
-/// Two things here are not a transcription:
-///
-/// - **The "Used in Events" column is capped.** `InventoryDao` embeds every
-/// event that has ever drawn on an item, unpaginated, on the list endpoint as
-/// well as on the single-item one. A popular item can have hundreds of rows
-/// of `ID: 12 (Qty: 4)` in one cell, which is a table row tall enough to
-/// swallow the rest of the screen. [maxEventsShown] bounds it and the
-/// remainder becomes a count.
-/// - **The row actions sit in their own column** rather than absolutely
-/// positioned over the name, which is what the original list did.
+/// The "Used in Events" column shows the server-provided usage count for each
+/// item (list responses no longer embed per-event records).
+/// The row actions sit in their own column rather than absolutely positioned
+/// over the name, which is what the original list did.
 /// [ResponsiveListView] owns that decision, as the customer screen does.
 class InventoryListScreen extends ConsumerStatefulWidget {
   const InventoryListScreen({super.key});
@@ -142,7 +136,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     ListColumn<InventoryItemResponse>(
       key: 'events',
       label: 'Used in Events',
-      render: (context, item) => _UsedInEvents(events: item.events),
+      render: (context, item) => _UsedInEvents(eventCount: item.eventCount),
     ),
   ];
 
@@ -228,22 +222,15 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   }
 }
 
-/// How many of an item's events a row names before it counts the rest.
-const int maxEventsShown = 3;
-
 /// The "Used in Events" cell.
-///
-/// The original list rendered every entry, which the server has no bound on —
-/// see [InventoryListScreen]. Shown as a bulleted list in a table cell and as a
-/// labelled block in a card, because the cell renders in both.
 class _UsedInEvents extends StatelessWidget {
-  const _UsedInEvents({required this.events});
+  const _UsedInEvents({required this.eventCount});
 
-  final List<EventSummaryResponse> events;
+  final int eventCount;
 
   @override
   Widget build(BuildContext context) {
-    if (events.isEmpty) {
+    if (eventCount <= 0) {
       return Text(
         'Never used',
         style: Theme.of(context).textTheme.bodySmall
@@ -251,32 +238,9 @@ class _UsedInEvents extends StatelessWidget {
       );
     }
 
-    final textTheme = Theme.of(context).textTheme;
-    final shown = events.take(maxEventsShown);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // The original list item's text, verbatim in substance. `title` is never
-        // rendered because the server does not populate it: `InventoryDao`
-        // builds each `EventSummaryResponse` with `""`.
-        for (final event in shown)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text(
-              'ID: ${event.eventId} (Qty: ${event.quantity})',
-              style: textTheme.bodySmall,
-            ),
-          ),
-        if (events.length > maxEventsShown)
-          Text(
-            '+${events.length - maxEventsShown} more',
-            style: textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.outline,
-            ),
-          ),
-      ],
+    return Text(
+      'Used in $eventCount ${eventCount == 1 ? 'event' : 'events'}',
+      style: Theme.of(context).textTheme.bodySmall,
     );
   }
 }
