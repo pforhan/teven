@@ -121,6 +121,7 @@ abstract class CreateUserRequest with _$CreateUserRequest {
     @Default('') String displayName,
     @Default(<String>[]) List<String> roles,
     required int organizationId,
+    UpdateStaffDetails? staffDetails,
   }) = _CreateUserRequest;
 
   factory CreateUserRequest.fromJson(Map<String, dynamic> json) =>

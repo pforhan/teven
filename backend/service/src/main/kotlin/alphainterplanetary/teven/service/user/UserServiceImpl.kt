@@ -15,6 +15,7 @@ import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.core.service.UserService
 import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.core.user.User
+import alphainterplanetary.teven.data.user.StaffDetailsDao
 import alphainterplanetary.teven.data.user.UserDao
 import alphainterplanetary.teven.data.user.UserStatusFilter
 import io.ktor.http.HttpStatusCode
@@ -23,16 +24,19 @@ import java.time.format.DateTimeFormatter
 class UserServiceImpl(
   private val userDao: UserDao,
   private val roleService: RoleService,
+  private val staffDetailsDao: StaffDetailsDao,
 ) : UserService {
   override suspend fun toUserResponse(user: User): UserResponse {
     val roles = roleService.getRolesForUser(user.userId)
     val organization = userDao.getOrganizationForUser(user.userId)
+    val staffDetails = staffDetailsDao.getByUserId(user.userId)
     return UserResponse(
       userId = user.userId,
       username = user.username,
       email = user.email,
       displayName = user.displayName,
       roles = roles.map { it.roleName },
+      staffDetails = staffDetails,
       organization = organization,
       deletedAt = user.deletedAt?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
     )
@@ -58,6 +62,8 @@ class UserServiceImpl(
       val role = authContext.verifyAssignableAndGetRole(it)
       roleService.assignRoleToUser(user.userId, role.roleId)
     }
+
+    createUserRequest.staffDetails?.let { staffDetailsDao.upsert(user.userId, it) }
 
     return toUserResponse(user)
   }
@@ -181,6 +187,7 @@ class UserServiceImpl(
       if (!sameOrg) throw AuthorizationException(HttpStatusCode.Forbidden, "Not authorized to update this user.")
     }
     val user = userDao.updateUser(userId, updateUserRequest)
+    updateUserRequest.staffDetails?.let { staffDetailsDao.upsert(userId, it) }
     val requestedRoles = updateUserRequest.roles
     if (requestedRoles != null) {
       val currentRoleNames = roleService.getRolesForUser(userId).map { it.roleName }

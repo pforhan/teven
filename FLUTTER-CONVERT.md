@@ -138,7 +138,7 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   Verify after: a deactivated user cannot log in or use an existing session, disappears from default user-management lists but remains resolvable where history requires, and a super-admin can list and restore them; `./teven verify-backend` and `./teven verify` pass.
 
-- [ ] **10.13** **Restore the staff-details feature: create `staff_details`, store `skills` as a proper list, and fix the silent-discard path.** **Decision made: fix it, do not delete it.** Staff profiles are a real feature the app presents, so the table and its read/write path get built properly rather than removed.
+- [x] **10.13** **Restore the staff-details feature: create `staff_details`, store `skills` as a proper list, and fix the silent-discard path.** **Decision made: fix it, do not delete it.** Staff profiles are a real feature the app presents, so the table and its read/write path get built properly rather than removed.
 
   **The bug today.** `StaffDetails.kt` defines the table but `DatabaseFactory.kt` omits it from `SchemaUtils.create`, and there is no DAO — nothing in `data/`, `core/`, `service/`, or `app/` references it. With no `.sql` files and no migration tool, the table is simply never made (confirmed: `\dt` returns 13 tables, no `staffdetails`). So `UserResponse.staffDetails` is **always null**, and:
 
@@ -429,6 +429,7 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
   Verify after: an authorized org manager can adjust the intended user attributes for users in their organization (and cannot affect users outside scope), deactivate/restore behaves per the decided permission model with 10.12’s invariants preserved, and `./teven verify-backend` and `./teven verify` pass.
 
+-[ ] **10.34** consider merging StaffDetails right into User.  It's 1:1 (ish) with that table, nothing staff specific, and results in extra complexity.  If you decide to merge, pull in the fields (keeping hoursWorked derived).  The UI layer will have to deal with a different structure.  UI behavior can stay the same (default collapsed) or expanded is fine too.
 ---
 
 ## Phase 11 — Native packaging (deferred, not required for cutover)

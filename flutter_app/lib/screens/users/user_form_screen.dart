@@ -13,6 +13,7 @@ import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/organization_select_field.dart';
+import '../../widgets/picker_fields.dart';
 import '../../widgets/validators.dart';
 
 /// Unified create/edit user form.
@@ -38,12 +39,17 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
   final _passwordController = TextEditingController();
   final _emailController = TextEditingController();
   final _displayNameController = TextEditingController();
+  final _contactController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _dobController = TextEditingController();
+  final _skillsController = TextEditingController();
 
   List<RoleResponse> _roles = [];
   final Set<String> _selectedRoles = {};
 
   UserResponse? _item;
   OrganizationResponse? _selectedOrganization;
+  bool _includeStaffDetails = false;
 
   bool _loading = true;
   bool _submitting = false;
@@ -64,6 +70,10 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     _passwordController.dispose();
     _emailController.dispose();
     _displayNameController.dispose();
+    _contactController.dispose();
+    _phoneController.dispose();
+    _dobController.dispose();
+    _skillsController.dispose();
     super.dispose();
   }
 
@@ -93,6 +103,14 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
             ..addAll(user.roles);
           _roles = roles;
           _selectedOrganization = user.organization;
+          final staff = user.staffDetails;
+          _includeStaffDetails = staff != null;
+          if (staff != null) {
+            _contactController.text = staff.contactInformation;
+            _phoneController.text = staff.phoneNumber;
+            _dobController.text = staff.dateOfBirth ?? '';
+            _skillsController.text = staff.skills.join('\n');
+          }
           _loading = false;
         });
       }
@@ -110,6 +128,54 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       });
     }
   }
+
+  UpdateStaffDetails _buildStaffDetails() => UpdateStaffDetails(
+    contactInformation: _contactController.text.trim(),
+    phoneNumber: _phoneController.text.trim(),
+    dateOfBirth: _dobController.text.trim(),
+    skills: _skillsController.text
+        .split(RegExp(r'\r?\n'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList(),
+  );
+
+  List<Widget> _staffDetailsFields() => [
+    if (!_includeStaffDetails)
+      Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          onPressed: () => setState(() => _includeStaffDetails = true),
+          icon: const Icon(Icons.badge_outlined),
+          label: const Text('Add staff details'),
+        ),
+      )
+    else ...[
+      Text('Staff details', style: Theme.of(context).textTheme.titleMedium),
+      TextFormField(
+        controller: _contactController,
+        decoration: const InputDecoration(labelText: 'Contact Information'),
+      ),
+      TextFormField(
+        controller: _phoneController,
+        decoration: const InputDecoration(labelText: 'Phone Number'),
+      ),
+      DateField(
+        controller: _dobController,
+        label: 'Date of Birth',
+        lastDate: DateTime.now(),
+      ),
+      TextFormField(
+        controller: _skillsController,
+        decoration: const InputDecoration(
+          labelText: 'Skills (one per line)',
+          hintText: 'e.g. animal care, mammals',
+        ),
+        minLines: 2,
+        maxLines: 6,
+      ),
+    ],
+  ];
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -153,6 +219,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           displayName: _displayNameController.text.trim(),
           roles: _selectedRoles.toList(),
           organizationId: organizationId,
+          staffDetails: _includeStaffDetails ? _buildStaffDetails() : null,
         );
         await ref.read(userServiceProvider).createUser(request);
       } else {
@@ -170,6 +237,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           displayName: _displayNameController.text.trim(),
           roles: _selectedRoles.toList(),
           organizationId: organizationIdToUse,
+          staffDetails: _includeStaffDetails ? _buildStaffDetails() : null,
         );
         await ref.read(userServiceProvider).updateUser(widget.userId!, request);
       }
@@ -251,6 +319,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
             validator: Validators.requiredText,
           ),
           _rolesField(),
+          ..._staffDetailsFields(),
           if (canManageGlobal)
             OrganizationSelectField(
               value: _selectedOrganization,
@@ -297,6 +366,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           validator: Validators.requiredText,
         ),
         _rolesField(),
+        ..._staffDetailsFields(),
         if (selectedOrg == null && canManageGlobal)
           OrganizationSelectField(
             value: _selectedOrganization,

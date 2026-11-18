@@ -147,15 +147,29 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                   Text('Roles: ${user.roles.join(', ')}'),
                   Text('Organization: ${user.organization.name}'),
                   if (user.staffDetails != null) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      'Contact Information: ${user.staffDetails!.contactInformation}',
-                    ),
-                    Text('Phone Number: ${user.staffDetails!.phoneNumber}'),
-                    Text(
-                      'Date of Birth: ${user.staffDetails!.dateOfBirth ?? ''}',
-                    ),
-                    Text('Skills: ${user.staffDetails!.skills.join(', ')}'),
+                    ...() {
+                      final staff = user.staffDetails!;
+                      final items = <Widget>[];
+                      if (staff.contactInformation.trim().isNotEmpty) {
+                        items.add(
+                          Text(
+                            'Contact Information: ${staff.contactInformation}',
+                          ),
+                        );
+                      }
+                      if (staff.phoneNumber.trim().isNotEmpty) {
+                        items.add(Text('Phone Number: ${staff.phoneNumber}'));
+                      }
+                      final dob = staff.dateOfBirth?.trim() ?? '';
+                      if (dob.isNotEmpty) {
+                        items.add(Text('Date of Birth: $dob'));
+                      }
+                      if (staff.skills.isNotEmpty) {
+                        items.add(Text('Skills:\n${staff.skills.join('\n')}'));
+                      }
+                      if (items.isEmpty) return <Widget>[];
+                      return <Widget>[const SizedBox(height: 16), ...items];
+                    }(),
                   ],
                   const SizedBox(height: 24),
                 ],

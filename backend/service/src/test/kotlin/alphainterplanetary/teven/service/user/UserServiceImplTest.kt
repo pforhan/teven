@@ -11,11 +11,13 @@ import alphainterplanetary.teven.core.security.AuthorizationException
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.core.user.User
+import alphainterplanetary.teven.data.user.StaffDetailsDao
 import alphainterplanetary.teven.data.user.UserDao
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -23,7 +25,14 @@ class UserServiceImplTest {
 
   private val userDao: UserDao = mockk()
   private val roleService: RoleService = mockk()
-  private val userService = UserServiceImpl(userDao, roleService)
+  private val staffDetailsDao: StaffDetailsDao = mockk()
+  private val userService = UserServiceImpl(userDao, roleService, staffDetailsDao)
+
+  @BeforeEach
+  fun setUp() {
+    coEvery { staffDetailsDao.getByUserId(any()) } returns null
+    coEvery { staffDetailsDao.upsert(any(), any()) } returns Unit
+  }
 
   @Test
   fun `createUser should create user when caller has permission`() = runBlocking {

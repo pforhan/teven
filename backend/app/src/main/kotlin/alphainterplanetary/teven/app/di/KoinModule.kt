@@ -14,6 +14,7 @@ import alphainterplanetary.teven.data.inventory.InventoryDao
 import alphainterplanetary.teven.data.organization.OrganizationDao
 import alphainterplanetary.teven.data.report.ReportDao
 import alphainterplanetary.teven.data.role.RoleDao
+import alphainterplanetary.teven.data.user.StaffDetailsDao
 import alphainterplanetary.teven.data.user.UserDao
 import alphainterplanetary.teven.data.invitation.InvitationDao
 import alphainterplanetary.teven.service.customer.CustomerService
@@ -31,7 +32,8 @@ import org.koin.dsl.module
 val appModule = module {
   single<Clock> { Clock.systemUTC() }
   single { UserDao() }
-  single<UserService> { UserServiceImpl(get(), get()) }
+  single { StaffDetailsDao() }
+  single<UserService> { UserServiceImpl(get(), get(), get()) }
   single<AuthService> { AuthServiceImpl(get(), get(), get()) }
   single<RoleService> { RoleServiceImpl(get()) }
   single<PermissionService> { PermissionServiceImpl(get()) }

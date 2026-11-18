@@ -5,6 +5,8 @@ import alphainterplanetary.teven.api.model.role.RoleResponse
 import alphainterplanetary.teven.api.model.role.UpdateRoleRequest
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.data.dbQuery
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -15,27 +17,38 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 
 class RoleDao {
+  private val json = Json
+
+  private fun parsePermissions(raw: String): List<String> {
+    val names: List<String> = if (raw.trimStart().startsWith("[")) {
+      runCatching { json.decodeFromString<List<String>>(raw) }.getOrDefault(emptyList())
+    } else {
+      raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    }
+    return names.map { Permission.valueOf(it).name }
+  }
+
+  private fun encodePermissions(permissions: List<String>): String =
+    json.encodeToString(permissions.map { Permission.valueOf(it).name })
+
   private fun toRoleResponse(row: ResultRow): RoleResponse {
     return RoleResponse(
       roleId = row[Roles.id].value,
       roleName = row[Roles.roleName],
-      permissions = row[Roles.permissions].split(",").map { it.trim() }
-        .map { Permission.valueOf(it).name }
+      permissions = parsePermissions(row[Roles.permissions]),
     )
   }
 
   suspend fun createRole(createRoleRequest: CreateRoleRequest): RoleResponse = dbQuery {
     val id = Roles.insert {
       it[roleName] = createRoleRequest.roleName
-      it[permissions] = createRoleRequest.permissions.joinToString(",") { permission ->
-        Permission.valueOf(permission).name
-      }
+      it[permissions] = encodePermissions(createRoleRequest.permissions)
     } get Roles.id
 
     RoleResponse(
       roleId = id.value,
       roleName = createRoleRequest.roleName,
-      permissions = createRoleRequest.permissions
+      permissions = createRoleRequest.permissions.map { Permission.valueOf(it).name },
     )
   }
 
@@ -61,8 +74,7 @@ class RoleDao {
     val updated = Roles.update({ Roles.id eq roleId }) {
       updateRoleRequest.roleName?.let { roleName -> it[Roles.roleName] = roleName }
       updateRoleRequest.permissions?.let { permissions ->
-        it[Roles.permissions] =
-          permissions.joinToString(",") { permission -> Permission.valueOf(permission).name }
+        it[Roles.permissions] = encodePermissions(permissions)
       }
     } > 0
     if (!updated) return@dbQuery null

@@ -11,6 +11,7 @@ import alphainterplanetary.teven.data.organization.Organizations
 import alphainterplanetary.teven.data.report.StaffHours
 import alphainterplanetary.teven.data.role.Roles
 import alphainterplanetary.teven.data.role.UserRoles
+import alphainterplanetary.teven.data.user.StaffDetails
 import alphainterplanetary.teven.data.user.UserOrganizations
 import alphainterplanetary.teven.data.user.Users
 import kotlinx.coroutines.Dispatchers
@@ -44,8 +45,9 @@ object DatabaseFactory {
         UserRoles,
         Users,
         UserOrganizations,
+        StaffDetails,
       )
-      SchemaUtils.createMissingTablesAndColumns(Events, Invitations)
+      SchemaUtils.createMissingTablesAndColumns(Events, Invitations, StaffDetails)
     }
   }
 }

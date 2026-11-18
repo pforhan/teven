@@ -25,6 +25,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   ApiException? _error;
   bool _isEditing = false;
   bool _isLoading = true;
+  bool _includeStaffDetails = false;
 
   final _emailController = TextEditingController();
   final _contactController = TextEditingController();
@@ -67,11 +68,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _seedFields(UserResponse details) {
     _emailController.text = details.email;
     final staff = details.staffDetails;
+    _includeStaffDetails = staff != null;
     if (staff != null) {
       _contactController.text = staff.contactInformation;
       _phoneController.text = staff.phoneNumber;
       _dobController.text = staff.dateOfBirth ?? '';
-      _skillsController.text = staff.skills.join(', ');
+      _skillsController.text = staff.skills.join('\n');
+    } else {
+      _contactController.clear();
+      _phoneController.clear();
+      _dobController.clear();
+      _skillsController.clear();
     }
   }
 
@@ -89,16 +96,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userId = ref.read(userContextProvider)?.user.userId;
     if (userId == null) return;
     try {
-      final staff = _userDetails?.staffDetails;
       final request = UpdateUserRequest(
         email: _emailController.text.trim(),
-        staffDetails: staff != null
+        staffDetails: _includeStaffDetails
             ? UpdateStaffDetails(
                 contactInformation: _contactController.text.trim(),
                 phoneNumber: _phoneController.text.trim(),
                 dateOfBirth: _dobController.text.trim(),
                 skills: _skillsController.text
-                    .split(',')
+                    .split(RegExp(r'\r?\n'))
                     .map((s) => s.trim())
                     .where((s) => s.isNotEmpty)
                     .toList(),
@@ -189,7 +195,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             keyboardType: TextInputType.emailAddress,
             validator: Validators.email,
           ),
-          if (details.staffDetails != null) ...[
+          if (!_includeStaffDetails)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () => setState(() => _includeStaffDetails = true),
+                icon: const Icon(Icons.badge_outlined),
+                label: const Text('Add staff details'),
+              ),
+            )
+          else ...[
+            Text(
+              'Staff details',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             TextFormField(
               controller: _contactController,
               decoration: const InputDecoration(
@@ -214,8 +233,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             TextFormField(
               controller: _skillsController,
               decoration: const InputDecoration(
-                labelText: 'Skills (comma-separated)',
+                labelText: 'Skills (one per line)',
+                hintText: 'e.g. animal care, mammals',
               ),
+              minLines: 2,
+              maxLines: 6,
             ),
           ],
         ],
@@ -260,7 +282,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text(
                   'Date of Birth: ${details.staffDetails!.dateOfBirth ?? ''}',
                 ),
-                Text('Skills: ${details.staffDetails!.skills.join(', ')}'),
+                Text(
+                  details.staffDetails!.skills.isEmpty
+                      ? 'Skills:'
+                      : 'Skills:\n${details.staffDetails!.skills.join('\n')}',
+                ),
               ],
               const SizedBox(height: 24),
               FilledButton(

@@ -7,8 +7,7 @@ import org.jetbrains.exposed.v1.javatime.date
 object StaffDetails : IntIdTable() {
   val userId = reference("user_id", Users.id, onDelete = ReferenceOption.CASCADE).uniqueIndex()
   val contactInformation = varchar("contact_information", 255)
-  val skills = text("skills") // Storing as comma-separated string for simplicity
-  val hoursWorked = integer("hours_worked")
+  val skills = text("skills") // JSON array of strings
   val phoneNumber = varchar("phone_number", 20)
-  val dateOfBirth = date("date_of_birth")
+  val dateOfBirth = date("date_of_birth").nullable()
 }
