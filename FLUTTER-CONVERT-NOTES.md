@@ -3969,3 +3969,15 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`, `./teven verify`.
 
 **Files changed (primary):** `backend/data/src/main/kotlin/.../data/user/Users.kt`, `UserDao.kt`, `backend/core/src/main/kotlin/.../core/user/User.kt`, `core/service/UserService.kt`, `backend/api/src/main/kotlin/.../api/model/user/UserResponse.kt`, `backend/service/src/main/kotlin/.../service/user/UserServiceImpl.kt`, `backend/app/src/main/kotlin/.../app/user/UserRoutes.kt`, `backend/auth/src/main/kotlin/.../auth/ApplicationAuth.kt`, `backend/service/src/test/kotlin/.../service/user/UserServiceImplTest.kt`, `flutter_app/lib/models/user.dart`, `core/services/list_query.dart`, `core/services/crud_services.dart`, `screens/users/user_list_screen.dart`, `flutter_app/test/user_list_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-18 — 10.35: fix invitation acceptance response serialization
+
+**Implemented task 10.35.** Accepting an invitation could create the user but fail when responding, surfacing a server error in the UI with `kotlinx.serialization.SerializationException: Serializer for class 'ApiResponse' is not found` from the public accept path.
+
+**Fix.** `AcceptInvitationResponse` lives in `backend:core` and is annotated `@Serializable`, but `backend/core` did not apply the Kotlin serialization plugin or depend on `kotlinx-serialization-json`, so its generated serializer was not available when `InvitationRoutes` responded with `success(AcceptInvitationResponse(...))`. Enabled serialization in `backend/core/build.gradle.kts` (plugin + `libs.kotlinx.serialization.json`).
+
+**Verified:** `./teven verify-backend`; user manually confirmed creating and accepting a fresh invitation while logged out now succeeds without the server crash.
+
+**Files changed (primary):** `backend/core/build.gradle.kts`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
