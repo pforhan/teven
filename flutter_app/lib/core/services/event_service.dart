@@ -89,8 +89,4 @@ class EventService {
             .map((e) => EventResponse.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
-
-  /// **Not implemented.** The original app called `POST /api/events/{id}/join`,
-  /// but no such route exists in `EventRoutes.kt` — the request 404s at the
-  /// `/api` catch-all. Omitted rather than stubbed so the compiler surfaces it.
 }

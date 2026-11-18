@@ -168,7 +168,7 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   **Add `staff_details` to the schema check** so a missing table fails at boot rather than surfacing later as vanished profile fields. That class of bug — a table defined but never created — is exactly what let this ship, and it cost a whole phase to notice.
 
-- [ ] **10.14** **Delete the dead `POST /api/events/{id}/join` route and `EventService.joinEvent` from the React app.** **Confirmed leftover from before the RSVP system** — this is settled, not an open question.
+- [x] **10.14** **Delete the dead `POST /api/events/{id}/join` route and `EventService.joinEvent` from the React app.** **Confirmed leftover from before the RSVP system** — this is settled, not an open question.
 
   The git history is unambiguous, and all four commits land on **2025-09-14**:
 
@@ -181,11 +181,9 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   So `join` was built first, then RSVP was introduced alongside it, then `join` was deleted the same afternoon. In `a6b28e7` both routes coexist — `post("{event_id}/rsvp")` at line 142 and `post("{event_id}/join")` at line 161 — and `fdaf271` removes `join`, changing 4 files and −69 lines.
 
-  **The permission is vestigial too.** The deleted route was gated on `ASSIGN_TO_EVENTS_SELF`, which still exists in `Permission.kt` and is now unreachable. Clean it up in the same change, or note in task 10.16 why it is retained.
+  **Status:** `POST /api/events/{id}/join` is not present in the backend routes, and no `joinEvent` service method remains in backend or Flutter sources. `frontend/` was removed in 10.3, so deleting `joinEvent` from `frontend/src/api/EventService.ts` is satisfied; a repo search confirms no remaining `joinEvent` or `/join` references in active code. A stale Flutter `EventService` note about the omitted join method was removed.
 
-  **The React client was never updated.** `EventService.joinEvent` (`EventService.ts:56`) still calls the removed route — the commit removed the server side and `EventDetails.tsx`, but not the service method. Nothing calls it, so it 404s silently if ever invoked.
-
-  Remaining work: delete `joinEvent` from `frontend/src/api/EventService.ts` (before 10.3 removes the directory), and confirm nothing referenced it. `EventService` in `flutter_app` already omits the method for the same reason as 10.12.
+  **The permission is vestigial as a server gate, but retained for now.** `ASSIGN_TO_EVENTS_SELF` is still defined in `Permission.kt`, seeded for Organizer/Staff, and used by the Flutter event details screen and its tests to gate self-RSVP controls (the RSVP route has no server-side permission check). It was **not** removed in this task; 10.16 must decide whether to keep it for client-side RSVP gating, enforce it on the server, or replace it.
 
 - [ ] **10.15** **Give list endpoints a real default `limit` instead of returning every row.** Every DAO does `limit?.let { query.limit(it) }` — `CustomerDao.kt:73`, `EventDao.kt:180`, plus `UserDao`, `InventoryDao`, `OrganizationDao`. Omitting `limit` therefore applies **no cap**, and the `limit: 0` echoed in the response is cosmetic. An unfiltered `GET /api/customers` returns the entire customer table.
 
@@ -196,6 +194,8 @@ Once the Flutter web app is verified working locally against the real backend. T
 - [ ] **10.16** **Close the permission gap: 33 server permissions, 15 client-known.** `core/security/Permission.kt` defines 33; `src/types/permissions.ts` declared only 15. The 18 unreachable ones are mostly `*_GLOBAL` variants beyond organizations (`MANAGE_EVENTS_GLOBAL`, `MANAGE_CUSTOMERS_GLOBAL`, `MANAGE_INVENTORY_GLOBAL`, `MANAGE_ROLES_GLOBAL`, …) plus `MANAGE_ROLES_*`, `ASSIGN_*`, `CAN_ASSIGN_*`, and `MANAGE_USERS_SELF`.
 
   The backend enforces all 33, so a super-admin *can* hold a permission the client cannot name — meaning the UI cannot gate anything on it, and a nav item or route guard for that capability simply cannot be built. Confirm each of the 18 is intentional and either: (a) grant it a client constant and gate the corresponding UI, or (b) remove it from the server enum if nothing should ever use it. `RoleService` currently exposes read-only access, so `MANAGE_ROLES_*` has no UI at all.
+
+  **10.14 note (`ASSIGN_TO_EVENTS_SELF`):** the deleted `join` route no longer uses it, but it is intentionally retained for now because the Flutter event details screen and its tests gate self-RSVP on it, while the RSVP route has no server-side permission check. 10.16 must decide whether to keep this client-side RSVP gate (and/or enforce it server-side), repurpose it, or remove it.
 
   `Permission` in `flutter_app/lib/models/permissions.dart` mirrors the React 15 for parity. Extend it in the same commit, and re-check the role-assignment path discrepancy already in the table (`FLUTTER-CONVERT-DESIGN.md`; `API.md:632` is wrong; see `RoleRoutes.kt:86`).
 
