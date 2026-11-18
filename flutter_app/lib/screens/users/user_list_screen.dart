@@ -458,6 +458,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             const SizedBox(height: 16),
             if (canViewGlobal) ...[
               SegmentedButton<String>(
+                showSelectedIcon: false,
                 segments: const [
                   ButtonSegment(value: 'active', label: Text('Active')),
                   ButtonSegment(
