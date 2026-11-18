@@ -112,7 +112,7 @@ fun Route.userRoutes() {
       }
     }
 
-    withPermission(alphainterplanetary.teven.core.security.Permission.MANAGE_USERS_GLOBAL) {
+    withPermission(MANAGE_USERS_ORGANIZATION, alphainterplanetary.teven.core.security.Permission.MANAGE_USERS_GLOBAL) {
       post("/{userId}/restore") {
         val userId = call.parameters["userId"]?.toIntOrNull()
           ?: return@post call.respond(HttpStatusCode.BadRequest, failure("Invalid user id"))

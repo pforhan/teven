@@ -3999,3 +3999,17 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend` (compiles and backend tests pass). `Route.intercept` emits a Ktor 3.2 deprecation warning but is functional. **Manual verification against a running backend is recommended** to confirm denied requests now return 403 (not handler 200 responses) and that multi-permission routes still allow callers holding any one of the listed permissions; 10.23 will add route-test harness coverage including authz outcomes.
 
 **Files changed (primary):** `backend/auth/src/main/kotlin/alphainterplanetary/teven/auth/PermissionInterceptor.kt`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-18 — 10.36: allow org-scoped managers to restore users within scope
+
+**Implemented task 10.36.** Org-scoped managers who can deactivate users within scope can now also restore/reactivate them within scope, consistent with 10.12 guard rails and explicit deactivated/all filtering.
+
+**Backend.** `POST /api/users/{id}/restore` now accepts `MANAGE_USERS_ORGANIZATION` or `MANAGE_USERS_GLOBAL` (OR). `UserServiceImpl.restoreUser` allows global managers or org-scoped managers for targets in the same organization (same scoping model as deactivation), loads deactivated targets for scope checks, and remains idempotent for already-active users. User listing/status filtering now permits managers (`MANAGE_USERS_ORGANIZATION`/`MANAGE_USERS_GLOBAL`) as well as global viewers to request `status=deactivated|all` (still scoped to the caller's organization for non-global viewers). `getUserById` allows authorized org/global managers to view deactivated users within scope.
+
+**Flutter.** The user list now exposes the status filter, deactivated status column, and restore action to authorized managers (not only global-manage/global-view cases as before), while keeping organization-wide/global visibility behavior tied to existing global-view permissions. Minor copy updates reflect that deactivated users can be restored later by an authorized manager.
+
+**Verified:** `./teven verify-backend`, `./teven verify`.
+
+**Files changed (primary):** `backend/app/src/main/kotlin/alphainterplanetary/teven/app/user/UserRoutes.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/user/UserServiceImpl.kt`, `flutter_app/lib/screens/users/user_list_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

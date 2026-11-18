@@ -74,7 +74,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   String _sortBy = 'username';
   SortOrder _sortOrder = SortOrder.asc;
 
-  /// Super-admin-only filter: `active`, `deactivated`, or `all`.
+  /// Status filter for users who can view or manage deactivated accounts.
   String _statusFilter = 'active';
 
   /// The invitation whose link was last copied, or null. Mirrors the original
@@ -120,8 +120,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
       title: 'Deactivate user',
       message:
           'Are you sure you want to deactivate ${user.username}? They will no '
-          'longer be able to log in, but their history will be retained and a '
-          'super-admin can restore them.',
+          'longer be able to log in, but their history will be retained and '
+          'they can be restored later.',
       confirmLabel: 'Deactivate',
     );
 
@@ -296,17 +296,19 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   /// a hand-rolled "Actions" column holding a labelled delete button; the action
   /// list here replaces it, which is what the other three screens did.
   /// Builds the provider key from this screen's own state.
-  ListQuery _buildQuery(int? organizationId, {required bool canViewGlobal}) =>
-      ListQuery(
-        search: _searchTerm.isEmpty ? null : _searchTerm,
-        sortBy: _sortBy,
-        sortOrder: _sortOrder,
-        // Scoped by the effective organization: a superadmin in "All
-        // Organizations" sees every organization, a superadmin with a selection
-        // sees that one, and everyone else sees their own.
-        organizationId: organizationId,
-        status: canViewGlobal ? _statusFilter : null,
-      );
+  ListQuery _buildQuery(
+    int? organizationId, {
+    required bool canAccessDeactivated,
+  }) => ListQuery(
+    search: _searchTerm.isEmpty ? null : _searchTerm,
+    sortBy: _sortBy,
+    sortOrder: _sortOrder,
+    // Scoped by the effective organization: a superadmin in "All
+    // Organizations" sees every organization, a superadmin with a selection
+    // sees that one, and everyone else sees their own.
+    organizationId: organizationId,
+    status: canAccessDeactivated ? _statusFilter : null,
+  );
 
   /// The invitation columns.
   List<ListColumn<InvitationResponse>> _invitationColumns(String readerZone) =>
@@ -349,8 +351,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
       Permission.manageUsersGlobal,
       Permission.manageUsersOrganization,
     ]);
-    final canManageGlobal = gate.has(Permission.manageUsersGlobal);
     final canViewGlobal = gate.has(Permission.viewUsersGlobal);
+    final canAccessDeactivated = canViewGlobal || canManage;
     final organizationId = ref.watch(queryOrganizationIdProvider);
 
     // The original screen fetched invitations only for a manager and rendered
@@ -363,7 +365,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             <InvitationResponse>[],
           );
 
-    final query = _buildQuery(organizationId, canViewGlobal: canViewGlobal);
+    final query = _buildQuery(
+      organizationId,
+      canAccessDeactivated: canAccessDeactivated,
+    );
     _query = query;
     final actionError = _actionError;
 
@@ -456,7 +461,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             ],
             Text('Users', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
-            if (canViewGlobal) ...[
+            if (canAccessDeactivated) ...[
               SegmentedButton<String>(
                 showSelectedIcon: false,
                 segments: const [
@@ -491,7 +496,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                   ref.read(userPageProvider(query).notifier).loadMore(),
               columns: _userColumns(
                 canViewGlobal: canViewGlobal,
-                showStatus: canViewGlobal,
+                showStatus: canAccessDeactivated,
               ),
               idOf: (user) => user.userId,
               emptyMessage: 'No users found.',
@@ -517,7 +522,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                             isDestructive: true,
                             onPressed: () => _confirmDeactivateUser(user),
                           ),
-                        if (isDeactivated && canManageGlobal)
+                        if (isDeactivated && canManage)
                           ListRowAction(
                             icon: Icons.restore,
                             label: 'Restore',

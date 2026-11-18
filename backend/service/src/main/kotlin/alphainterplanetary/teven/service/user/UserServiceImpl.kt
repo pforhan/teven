@@ -112,7 +112,12 @@ class UserServiceImpl(
     val canViewGlobal = authContext.hasPermission(Permission.VIEW_USERS_GLOBAL)
     val orgIdToUse = if (canViewGlobal) organizationId else authContext.organizationId
 
-    val statusFilter = if (canViewGlobal) {
+    val canRequestDeactivated =
+      canViewGlobal ||
+        authContext.hasPermission(Permission.MANAGE_USERS_GLOBAL) ||
+        authContext.hasPermission(Permission.MANAGE_USERS_ORGANIZATION)
+
+    val statusFilter = if (canRequestDeactivated) {
       when (status?.lowercase()) {
         "deactivated", "deleted", "inactive" -> UserStatusFilter.DEACTIVATED
         "all" -> UserStatusFilter.ALL
@@ -153,15 +158,18 @@ class UserServiceImpl(
   }
 
   override suspend fun getUserById(userId: Int, authContext: AuthContext?): UserResponse? {
-    val canViewDeactivated = authContext?.hasPermission(Permission.VIEW_USERS_GLOBAL) == true
+    val isGlobalViewer = authContext?.hasPermission(Permission.VIEW_USERS_GLOBAL) == true
+    val isGlobalManager = authContext?.hasPermission(Permission.MANAGE_USERS_GLOBAL) == true
+    val isOrgManager = authContext?.hasPermission(Permission.MANAGE_USERS_ORGANIZATION) == true
+    val canViewDeactivated = isGlobalViewer || isGlobalManager || isOrgManager
     val user = userDao.findUserById(userId, includeDeactivated = canViewDeactivated) ?: return null
     if (user.deletedAt != null) {
       if (authContext == null) return null
-      if (!canViewDeactivated) return null
       val sameOrg = authContext.organizationId == userDao.getOrganizationForUser(userId).organizationId
-      if (!sameOrg) return null
-    } else if (authContext != null && !canViewDeactivated) {
-      // org-scoped viewers must only see users in their org
+      val allowed = isGlobalViewer || isGlobalManager || (isOrgManager && sameOrg)
+      if (!allowed || !sameOrg) return null
+    } else if (authContext != null && !isGlobalViewer && !isGlobalManager) {
+      // org-scoped viewers/managers must only see users in their org
       val sameOrg = userDao.areInSameOrganization(authContext.userId, userId)
       if (!sameOrg) return null
     }
@@ -233,11 +241,16 @@ class UserServiceImpl(
   }
 
   override suspend fun restoreUser(userId: Int, authContext: AuthContext): UserResponse? {
+    val target = userDao.findUserById(userId, includeDeactivated = true) ?: return null
     val canManageGlobal = authContext.hasPermission(Permission.MANAGE_USERS_GLOBAL)
     if (!canManageGlobal) {
-      throw AuthorizationException(HttpStatusCode.Forbidden, "Not authorized to restore users.")
+      val canManageOrg = authContext.hasPermission(Permission.MANAGE_USERS_ORGANIZATION)
+      val sameOrg = canManageOrg && userDao.areInSameOrganization(authContext.userId, userId)
+      if (!sameOrg) {
+        throw AuthorizationException(HttpStatusCode.Forbidden, "Not authorized to restore this user.")
+      }
     }
-    val target = userDao.findUserById(userId, includeDeactivated = true) ?: return null
+
     if (target.deletedAt == null) return toUserResponse(target)
     userDao.restoreUser(userId)
     val restored = userDao.findUserById(userId, includeDeactivated = false) ?: return null
