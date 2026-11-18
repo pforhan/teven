@@ -144,30 +144,33 @@ void main() {
     });
   });
 
-  group(' — event queries are capped by default', () {
-    test('getAllEvents sends limit=10 when unspecified', () async {
-      await EventService(client).getAllEvents();
-      expect(lastPath(), '/api/events');
-      expect(adapter.lastQuery['limit'], 10);
-    });
+  group('event list queries', () {
+    test(
+      'getAllEvents omits limit when unspecified (server applies default)',
+      () async {
+        await EventService(client).getAllEvents();
+        expect(lastPath(), '/api/events');
+        expect(adapter.lastQuery.containsKey('limit'), isFalse);
+      },
+    );
 
-    test('an explicit limit overrides the default', () async {
+    test('an explicit limit is sent when provided', () async {
       await EventService(client).getAllEvents(const ListQuery(limit: 25));
       expect(adapter.lastQuery['limit'], 25);
     });
 
-    test('other filters still pass through alongside the default', () async {
+    test('filters pass through when limit is omitted', () async {
       await EventService(client).getAllEvents(
         const ListQuery(search: 'gala', sortOrder: SortOrder.desc),
       );
       expect(adapter.lastQuery['search'], 'gala');
       expect(adapter.lastQuery['sortOrder'], 'desc');
-      expect(adapter.lastQuery['limit'], 10);
+      expect(adapter.lastQuery.containsKey('limit'), isFalse);
     });
 
-    test('non-event lists send no limit, matching the React client', () async {
-      // Omitting limit returns the whole table server-side, so this is a
-      // deliberate parity choice rather than an oversight.
+    test('non-event lists also omit limit when unspecified', () async {
+      // The server now applies and echoes a default limit for paginated list
+      // endpoints when omitted.
       await CustomerService(client).getAllCustomers();
       expect(adapter.lastQuery.containsKey('limit'), isFalse);
     });

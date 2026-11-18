@@ -185,7 +185,7 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   **The permission is vestigial as a server gate, but retained for now.** `ASSIGN_TO_EVENTS_SELF` is still defined in `Permission.kt`, seeded for Organizer/Staff, and used by the Flutter event details screen and its tests to gate self-RSVP controls (the RSVP route has no server-side permission check). It was **not** removed in this task; 10.16 must decide whether to keep it for client-side RSVP gating, enforce it on the server, or replace it.
 
-- [ ] **10.15** **Give list endpoints a real default `limit` instead of returning every row.** Every DAO does `limit?.let { query.limit(it) }` — `CustomerDao.kt:73`, `EventDao.kt:180`, plus `UserDao`, `InventoryDao`, `OrganizationDao`. Omitting `limit` therefore applies **no cap**, and the `limit: 0` echoed in the response is cosmetic. An unfiltered `GET /api/customers` returns the entire customer table.
+- [x] **10.15** **Give list endpoints a real default `limit` instead of returning every row.** Every DAO does `limit?.let { query.limit(it) }` — `CustomerDao.kt:73`, `EventDao.kt:180`, plus `UserDao`, `InventoryDao`, `OrganizationDao`. Omitting `limit` therefore applies **no cap**, and the `limit: 0` echoed in the response is cosmetic. An unfiltered `GET /api/customers` returns the entire customer table.
 
   **Decision (apply this):** never make “unbounded” the accidental default.
   - **Default:** apply a server-side default `limit` of **25** when omitted for paginated list endpoints (customers, events, users, inventory, organizations, and any similar list routes/DAOs).

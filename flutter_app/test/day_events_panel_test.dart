@@ -147,7 +147,7 @@ void main() {
           'data': {
             'items': events,
             'total': total ?? events.length,
-            'limit': 25,
+            'limit': 500,
             'offset': 0,
           },
         }),
@@ -349,7 +349,7 @@ void main() {
               'data': {
                 'items': [eventJson(id: 1, title: 'The old day')],
                 'total': 1,
-                'limit': 25,
+                'limit': 500,
                 'offset': 0,
               },
             }),
@@ -361,7 +361,7 @@ void main() {
             'data': {
               'items': [eventJson(id: 2, title: 'The new day')],
               'total': 1,
-              'limit': 25,
+              'limit': 500,
               'offset': 0,
             },
           }),

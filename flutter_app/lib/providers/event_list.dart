@@ -8,22 +8,10 @@ import 'service_providers.dart';
 
 /// How many events the calendar asks for in a month.
 ///
-/// The original calendar called `getAllEvents(1000, …)`, so this is that number
-/// rather than one chosen here.
-///
-/// **It is a large number for this endpoint**, and the port is not in a position
-/// to lower it without changing what the calendar shows. `EventResponse`
-/// embeds the customer, the organization, every inventory line and every RSVP,
-/// and the server applies no compression sets a default of 10 for
-/// exactly that reason. A month with fifty events is a large response.
-///
-/// Note what the cap is and is not for. It is **not** pagination: there is no
-/// second page, and a month holding more than a thousand events would silently
-/// render short. It is a ceiling inherited from the original, kept because
-/// dropping it would be a visible behaviour change rather than a fix. The
-/// events *list* is the one that pages properly, via
-/// [eventListProvider].
-const int kCalendarEventLimit = 1000;
+/// The calendar queries a bounded date range, so it requests an explicit high
+/// limit rather than relying on the server default. The server allows a higher
+/// cap for range-bounded event queries than for general lists.
+const int kCalendarEventLimit = 500;
 
 /// The event list, accumulating a page at a time.
 ///
@@ -33,12 +21,11 @@ const int kCalendarEventLimit = 1000;
 /// **Two things about events make this heavier than the other four lists**, and
 /// neither is visible from the call site:
 ///
-/// - **A page of 25 events is much larger than a page of 25 of anything else.**
-/// Each row embeds a customer, an organization, an inventory list and an
-/// RSVP list, with no server-side compression. That is the argument for
-/// [EventService.defaultLimit] being 10 rather than the [kListPageSize] the
-/// other lists share, and the reason to treat the page size here as a
-/// starting point rather than a verified one.
+/// - **A page of events is larger than a page of other list rows.** Each row
+/// embeds a customer, an organization, an inventory list and an RSVP list,
+/// with no server-side compression. The server now applies a default page size
+/// when omitted; callers that need a specific page size should request it
+/// explicitly.
 /// - **`sortBy` and `sortOrder` are forwarded to the server.** The event list
 /// endpoint supports sorting by start time (`startsAt`) and `title`.
 /// `sortOrder` *does* work and defaults to `asc`. The sort

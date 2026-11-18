@@ -4,6 +4,7 @@ import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.organization.CreateOrganizationRequest
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.api.model.organization.UpdateOrganizationRequest
+import alphainterplanetary.teven.core.Pagination
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.user.UserOrganizations
 import org.jetbrains.exposed.v1.core.Op
@@ -59,16 +60,18 @@ class OrganizationDao {
       else -> query.orderBy(Organizations.id, sort)
     }
 
-    offset?.let { query.offset(it) }
-    limit?.let { query.limit(it) }
+    val effectiveOffset = offset ?: 0
+    val effectiveLimit = Pagination.effectiveLimit(limit)
+    query.offset(effectiveOffset)
+    query.limit(effectiveLimit)
 
     val organizations = query.map { toOrganizationResponse(it) }
 
     PaginatedResponse(
       items = organizations,
       total = total,
-      offset = offset ?: 0,
-      limit = limit ?: 0,
+      offset = effectiveOffset,
+      limit = effectiveLimit,
     )
   }
 

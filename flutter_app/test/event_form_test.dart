@@ -80,7 +80,7 @@ StubResponse eventBody({
 StubResponse emptyCustomerPage() => StubResponse.json(
   jsonEncode({
     'success': true,
-    'data': {'items': <Object>[], 'total': 0, 'limit': 1000, 'offset': 0},
+    'data': {'items': <Object>[], 'total': 0, 'limit': 500, 'offset': 0},
   }),
 );
 
@@ -107,7 +107,7 @@ StubResponse customerPageWith({
         },
       ],
       'total': 1,
-      'limit': 1000,
+      'limit': 500,
       'offset': 0,
     },
   }),
@@ -116,7 +116,7 @@ StubResponse customerPageWith({
 StubResponse emptyUserPage() => StubResponse.json(
   jsonEncode({
     'success': true,
-    'data': {'items': <Object>[], 'total': 0, 'limit': 1000, 'offset': 0},
+    'data': {'items': <Object>[], 'total': 0, 'limit': 500, 'offset': 0},
   }),
 );
 

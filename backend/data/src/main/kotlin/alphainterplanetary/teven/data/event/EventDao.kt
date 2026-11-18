@@ -7,6 +7,7 @@ import alphainterplanetary.teven.api.model.event.EventInventoryItem
 import alphainterplanetary.teven.api.model.event.EventResponse
 import alphainterplanetary.teven.api.model.event.RsvpStatus
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
+import alphainterplanetary.teven.core.Pagination
 import alphainterplanetary.teven.data.customer.Customers
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.inventory.InventoryItems
@@ -189,16 +190,22 @@ class EventDao {
       else -> query.orderBy(Events.startsAt, sort)
     }
 
-    offset?.let { query.offset(it) }
-    limit?.let { query.limit(it) }
+    val effectiveOffset = offset ?: 0
+    val bounded = startInstant != null || endExclusiveInstant != null
+    val effectiveLimit = Pagination.effectiveLimit(
+      requested = limit,
+      max = if (bounded) Pagination.MAX_LIMIT_DATE_BOUNDED_EVENTS else Pagination.MAX_LIMIT,
+    )
+    query.offset(effectiveOffset)
+    query.limit(effectiveLimit)
 
     val events = query.map { toEventResponse(it) }
 
     PaginatedResponse(
       items = events,
       total = total,
-      offset = offset ?: 0,
-      limit = limit ?: 0,
+      offset = effectiveOffset,
+      limit = effectiveLimit,
     )
   }
 

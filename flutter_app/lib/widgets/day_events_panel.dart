@@ -131,7 +131,7 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
   int _request = 0;
 
   /// The most events a single day's list may hold.
-  static const int _dayLimit = 1000;
+  static const int _dayLimit = 500;
 
   @override
   void initState() {

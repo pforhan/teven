@@ -7,6 +7,7 @@ import alphainterplanetary.teven.api.model.inventory.InventoryItemResponse
 import alphainterplanetary.teven.api.model.inventory.TrackInventoryUsageRequest
 import alphainterplanetary.teven.api.model.inventory.UpdateInventoryItemRequest
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
+import alphainterplanetary.teven.core.Pagination
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.event.EventInventory
 import alphainterplanetary.teven.data.event.Events
@@ -81,16 +82,18 @@ class InventoryDao(private val clock: Clock) {
       else -> query.orderBy(InventoryItems.id, sort)
     }
 
-    offset?.let { query.offset(it) }
-    limit?.let { query.limit(it) }
+    val effectiveOffset = offset ?: 0
+    val effectiveLimit = Pagination.effectiveLimit(limit)
+    query.offset(effectiveOffset)
+    query.limit(effectiveLimit)
 
     val items = query.map { toInventoryItemResponse(it) }
 
     PaginatedResponse(
       items = items,
       total = total,
-      offset = offset ?: 0,
-      limit = limit ?: 0,
+      offset = effectiveOffset,
+      limit = effectiveLimit,
     )
   }
 

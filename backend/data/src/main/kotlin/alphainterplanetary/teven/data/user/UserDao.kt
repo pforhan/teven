@@ -4,6 +4,7 @@ import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.api.model.user.CreateUserRequest
 import alphainterplanetary.teven.api.model.user.UpdateUserRequest
+import alphainterplanetary.teven.core.Pagination
 import alphainterplanetary.teven.core.security.PasswordHasher
 import alphainterplanetary.teven.core.user.User
 import alphainterplanetary.teven.data.dbQuery
@@ -121,16 +122,18 @@ class UserDao {
       else -> query.orderBy(Users.id, sort)
     }
 
-    offset?.let { query.offset(it) }
-    limit?.let { query.limit(it) }
+    val effectiveOffset = offset ?: 0
+    val effectiveLimit = Pagination.effectiveLimit(limit)
+    query.offset(effectiveOffset)
+    query.limit(effectiveLimit)
 
     val users = query.map { toUser(it) }
 
     PaginatedResponse(
       items = users,
       total = total,
-      offset = offset ?: 0,
-      limit = limit ?: 0,
+      offset = effectiveOffset,
+      limit = effectiveLimit,
     )
   }
 

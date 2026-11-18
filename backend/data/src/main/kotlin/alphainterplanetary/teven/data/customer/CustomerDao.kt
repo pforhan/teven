@@ -5,6 +5,7 @@ import alphainterplanetary.teven.api.model.customer.CustomerResponse
 import alphainterplanetary.teven.api.model.customer.UpdateCustomerRequest
 import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
+import alphainterplanetary.teven.core.Pagination
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.organization.Organizations
 import org.jetbrains.exposed.v1.core.Op
@@ -71,16 +72,18 @@ class CustomerDao {
       else -> query.orderBy(Customers.id, sort)
     }
 
-    offset?.let { query.offset(it) }
-    limit?.let { query.limit(it) }
+    val effectiveOffset = offset ?: 0
+    val effectiveLimit = Pagination.effectiveLimit(limit)
+    query.offset(effectiveOffset)
+    query.limit(effectiveLimit)
 
     val customers = query.map { toCustomerResponse(it) }
 
     PaginatedResponse(
       items = customers,
       total = total,
-      offset = offset ?: 0,
-      limit = limit ?: 0,
+      offset = effectiveOffset,
+      limit = effectiveLimit,
     )
   }
 

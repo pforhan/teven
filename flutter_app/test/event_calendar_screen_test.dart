@@ -71,7 +71,7 @@ void main() {
           'data': {
             'items': events,
             'total': events.length,
-            'limit': 1000,
+            'limit': 500,
             'offset': 0,
           },
         }),
@@ -147,16 +147,13 @@ void main() {
       );
     });
 
-    testWidgets('keeps the inherited thousand-event ceiling', (tester) async {
+    testWidgets('requests an explicit bounded-range limit for the month', (
+      tester,
+    ) async {
       final adapter = calendarAdapter();
       await openCalendar(tester, adapter);
 
-      // The calendar this replaced asked for 1000. Inherited rather than
-      // chosen, and pinned so a "sensible" reduction is a deliberate change
-      // rather than a quiet one that makes a busy month render short.
-      expect(getRequests(adapter).first.queryParameters['limit'], 1000);
-      // Offset paging is the *list* screen's job; a second page here would mean
-      // a second request the grid has nowhere to show.
+      expect(getRequests(adapter).first.queryParameters['limit'], 500);
       expect(
         getRequests(adapter).first.queryParameters.containsKey('offset'),
         isFalse,

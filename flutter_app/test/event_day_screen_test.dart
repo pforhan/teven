@@ -67,7 +67,7 @@ void main() {
           'data': {
             'items': events,
             'total': events.length,
-            'limit': 1000,
+            'limit': 500,
             'offset': 0,
           },
         }),

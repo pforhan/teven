@@ -15,11 +15,11 @@ enum SortOrder {
 /// `search`, `sortBy`, `sortOrder`, and usually `organizationId`), so this is
 /// modelled once rather than as seven near-identical parameter lists.
 ///
-/// **Leaving [limit] null returns every row.** Each DAO does
-/// `limit?.let { query.limit(it) }` (`CustomerDao.kt`, `EventDao.kt`),
-/// so omitting the parameter applies no cap at all. The `limit: 0` that comes
-/// back in the response is cosmetic and does *not* mean zero rows. This is the
-/// trap behind
+/// **Omitting [limit] no longer means "return every row".** The server applies a
+/// default limit when omitted and echoes the applied limit in paginated
+/// responses (not `0`). Callers that need a larger bounded view (for example a
+/// date-ranged calendar query) must pass an explicit [limit] within the server's
+/// caps.
 class ListQuery {
   const ListQuery({
     this.limit,
