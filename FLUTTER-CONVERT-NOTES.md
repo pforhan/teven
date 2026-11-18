@@ -3981,3 +3981,21 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`; user manually confirmed creating and accepting a fresh invitation while logged out now succeeds without the server crash.
 
 **Files changed (primary):** `backend/core/build.gradle.kts`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-18 — 10.22: enforce server authorization checks (short-circuit + OR semantics)
+
+**Implemented task 10.22.** The server previously did not enforce `withPermission` checks: `AuthorizationPlugin` registered per-permission `onCall` hooks that responded 403 but did not short-circuit, so route handlers could still run and answer over the 403; multi-permission routes also behaved as AND-like because each missing permission triggered a deny hook.
+
+**Fix.** Reworked `backend/auth/.../PermissionInterceptor.kt` (`withPermission`) to protect routes with an explicit `ApplicationCallPipeline.Call` intercept inside `authenticate("auth-jwt")`:
+- Resolves the authenticated `AuthContext` principal and returns **401** if missing.
+- Loads caller permissions once and authorizes if **any** required permission matches (`required.any { ... }`), preserving OR semantics for multi-permission routes.
+- On unauthorized/forbidden, responds with the existing envelope messages and calls `finish()` (without `proceed()`), preventing downstream route handler execution.
+- Registers route handlers inside the authenticated/guarded scope.
+
+`AuthorizationPlugin.kt` remains in the tree but is no longer installed by `withPermission`.
+
+**Verified:** `./teven verify-backend` (compiles and backend tests pass). `Route.intercept` emits a Ktor 3.2 deprecation warning but is functional. **Manual verification against a running backend is recommended** to confirm denied requests now return 403 (not handler 200 responses) and that multi-permission routes still allow callers holding any one of the listed permissions; 10.23 will add route-test harness coverage including authz outcomes.
+
+**Files changed (primary):** `backend/auth/src/main/kotlin/alphainterplanetary/teven/auth/PermissionInterceptor.kt`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

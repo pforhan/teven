@@ -316,7 +316,7 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 	at alphainterplanetary.teven.app.invitation.InvitationRoutesKt$publicInvitationRoutes$1$2.invokeSuspend(InvitationRoutes.kt:165)
 ```
 
-- [ ] **10.22** **The server's permission check is not enforced.** Found by hand while porting the event details screen (7.6), against the running dev backend rather than by reading the Kotlin. **This is a security defect, and it is the first one the port has found.**
+- [x] **10.22** **The server's permission check is not enforced.** Found by hand while porting the event details screen (7.6), against the running dev backend rather than by reading the Kotlin. **This is a security defect, and it is the first one the port has found.**
 
   **What was measured.** Signing in as `alice` — a seeded **Organizer**, whose role grants neither `VIEW_ORGANIZATIONS_GLOBAL` nor `VIEW_EVENTS_GLOBAL` (`InitialSetup.kt:60-77`) — and asking for an endpoint gated on exactly that:
 
