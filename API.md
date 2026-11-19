@@ -73,7 +73,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val displayName: String, 
           val roles: List<String> = emptyList(
         ), 
-          val organizationId: Int
+          val organizationId: Int, 
+          val staffDetails: UpdateStaffDetails?
         )
         ```
     * Response:
@@ -85,7 +86,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val displayName: String, 
           val roles: List<String>, 
           val staffDetails: StaffDetails?, 
-          val organization: OrganizationResponse
+          val organization: OrganizationResponse, 
+          val deletedAt: String?
         )
         ```
 
@@ -118,7 +120,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val displayName: String, 
           val roles: List<String>, 
           val staffDetails: StaffDetails?, 
-          val organization: OrganizationResponse
+          val organization: OrganizationResponse, 
+          val deletedAt: String?
         )
         ```
 
@@ -152,7 +155,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val displayName: String, 
           val roles: List<String>, 
           val staffDetails: StaffDetails?, 
-          val organization: OrganizationResponse
+          val organization: OrganizationResponse, 
+          val deletedAt: String?
         )
         ```
 
@@ -436,6 +440,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val longitude: Double?, 
           val formattedAddress: String?, 
           val notes: String, 
+          val deletedAt: String?, 
           val organization: OrganizationResponse
         )
         ```
@@ -467,6 +472,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val longitude: Double?, 
           val formattedAddress: String?, 
           val notes: String, 
+          val deletedAt: String?, 
           val organization: OrganizationResponse
         )
         ```
@@ -498,6 +504,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val longitude: Double?, 
           val formattedAddress: String?, 
           val notes: String, 
+          val deletedAt: String?, 
           val organization: OrganizationResponse
         )
         ```
@@ -517,7 +524,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
     * Query Parameters:
         * See [Common Search, Sort, and Pagination Parameters](#common-search-sort-and-pagination-parameters)
         * `organizationId` (optional, integer): Filter inventory items by organization. Requires `VIEW_INVENTORY_GLOBAL` permission.
-    * Response: `PaginatedResponse<InventoryItemResponse>` (list items include `eventCount`; `events` is empty)
+    * Response: `PaginatedResponse<InventoryItemResponse>`
 
 * `GET /api/inventory/{inventoryId}`: Retrieve a specific inventory item.
     * Authentication: Required.
@@ -529,8 +536,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
-          val eventCount: Int,
-          val events: List<EventSummaryResponse>, 
+          val eventCount: Int = 0, 
+          val events: List<EventSummaryResponse> = emptyList(
+        ), 
           val organization: OrganizationResponse
         )
         ```
@@ -554,8 +562,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
-          val eventCount: Int,
-          val events: List<EventSummaryResponse>, 
+          val eventCount: Int = 0, 
+          val events: List<EventSummaryResponse> = emptyList(
+        ), 
           val organization: OrganizationResponse
         )
         ```
@@ -579,8 +588,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
-          val eventCount: Int,
-          val events: List<EventSummaryResponse>, 
+          val eventCount: Int = 0, 
+          val events: List<EventSummaryResponse> = emptyList(
+        ), 
           val organization: OrganizationResponse
         )
         ```
@@ -607,8 +617,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
           val name: String, 
           val description: String, 
           val quantity: Int, 
-          val eventCount: Int,
-          val events: List<EventSummaryResponse>, 
+          val eventCount: Int = 0, 
+          val events: List<EventSummaryResponse> = emptyList(
+        ), 
           val organization: OrganizationResponse
         )
         ```
@@ -813,7 +824,8 @@ data class CreateUserRequest(
   val displayName: String, 
   val roles: List<String> = emptyList(
 ), 
-  val organizationId: Int
+  val organizationId: Int, 
+  val staffDetails: UpdateStaffDetails?
 )
 
 data class CustomerResponse(
@@ -825,6 +837,7 @@ data class CustomerResponse(
   val longitude: Double?, 
   val formattedAddress: String?, 
   val notes: String, 
+  val deletedAt: String?, 
   val organization: OrganizationResponse
 )
 
@@ -870,8 +883,9 @@ data class InventoryItemResponse(
   val name: String, 
   val description: String, 
   val quantity: Int, 
-  val eventCount: Int,
-  val events: List<EventSummaryResponse>, 
+  val eventCount: Int = 0, 
+  val events: List<EventSummaryResponse> = emptyList(
+), 
   val organization: OrganizationResponse
 )
 
@@ -1047,7 +1061,8 @@ data class UserResponse(
   val displayName: String, 
   val roles: List<String>, 
   val staffDetails: StaffDetails?, 
-  val organization: OrganizationResponse
+  val organization: OrganizationResponse, 
+  val deletedAt: String?
 )
 
 data class ValidateInvitationResponse(
