@@ -863,16 +863,13 @@ class _EventPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Orange means the server is waiting on *this* user's answer, which is the
-    // one case where the colour carries information rather than decoration. An
-    // event with no RSVP from this user at all stays blue, so the check is for
-    // the `requested` value specifically and not for "has any RSVP".
-    final requested =
+    // Orange means the server is waiting on *this* user's answer.
+    final needsAction =
         currentUserId != null &&
         event.rsvps.any(
           (rsvp) =>
               rsvp.userId == currentUserId &&
-              rsvp.availability == RsvpAvailability.requested,
+              rsvp.availability == RsvpAvailability.needsAction,
         );
 
     // The title, followed by the event's time in the reader's zone.
@@ -893,7 +890,9 @@ class _EventPill extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: requested ? TevenTheme.requestedRsvp : TevenTheme.primary,
+              color: needsAction
+                  ? TevenTheme.requestedRsvp
+                  : TevenTheme.primary,
               // A 5px radius on the bar.
               borderRadius: BorderRadius.circular(5),
             ),

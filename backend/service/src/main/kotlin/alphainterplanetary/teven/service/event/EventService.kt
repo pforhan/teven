@@ -152,7 +152,13 @@ class EventService(
     if (!authContext.hasPermission(Permission.MANAGE_EVENTS_ORGANIZATION) && event.organization.organizationId != authContext.organizationId) {
       throw IllegalAccessException("User not authorized to RSVP to events outside their organization")
     }
-    return eventDao.rsvpToEvent(eventId, userId, availability)
+
+    val normalizedAvailability = when (availability) {
+      "accepted", "declined", "tentative", "needs_action" -> availability
+      else -> throw BadRequestException("Invalid RSVP availability: $availability")
+    }
+
+    return eventDao.rsvpToEvent(eventId, userId, normalizedAvailability)
   }
 
   suspend fun getRequestedRsvpEventsForUser(userId: Int): List<EventResponse> {

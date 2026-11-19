@@ -452,53 +452,44 @@ class _RsvpCell extends StatelessWidget {
 
     return Wrap(
       spacing: 4,
+      runSpacing: 4,
       children: [
         _RsvpButton(
           icon: Icons.check,
           tooltip: 'RSVP Yes',
-          selected: mine == RsvpAvailability.available,
+          selected: mine == RsvpAvailability.accepted,
           selectedColor: TevenTheme.success,
-          onPressed: () => onRsvp(RsvpAvailability.available),
+          onPressed: () => onRsvp(RsvpAvailability.accepted),
+        ),
+        _RsvpButton(
+          icon: Icons.question_mark,
+          tooltip: 'RSVP Maybe',
+          selected: mine == RsvpAvailability.tentative,
+          selectedColor: Theme.of(context).colorScheme.primary,
+          onPressed: () => onRsvp(RsvpAvailability.tentative),
         ),
         _RsvpButton(
           icon: Icons.close,
           tooltip: 'RSVP No',
-          selected: mine == RsvpAvailability.unavailable,
+          selected: mine == RsvpAvailability.declined,
           selectedColor: TevenTheme.danger,
-          onPressed: () => onRsvp(RsvpAvailability.unavailable),
+          onPressed: () => onRsvp(RsvpAvailability.declined),
         ),
         _RsvpButton(
           icon: Icons.undo,
           tooltip: 'Clear RSVP',
           selected: false,
-          onPressed: () => onRsvp(kRsvpCleared),
+          onPressed: () => onRsvp(RsvpAvailability.needsAction),
         ),
       ],
     );
   }
 }
 
-/// What the clear button posts.
-///
-/// `'no response'`, verbatim from the original. **Not** `''`, not `'none'`, and
-/// not a member of [RsvpAvailability] — the server stores it as a free-form
-/// string (`RsvpRequest.availability` has no validation) and the original's own
-/// "what did I answer" test was an equality check against `'available'` or
-/// `'unavailable'`, so any other value read as unanswered. Whether that column
-/// should hold a closed set remains an open question.
-const String kRsvpCleared = 'no response';
+/// Compatibility alias: clearing a response now posts `needs_action`.
+const String kRsvpCleared = RsvpAvailability.needsAction;
 
 /// One RSVP button.
-///
-/// A [Tooltip] is the accessible name, so there is no `Semantics` wrapper — task
-/// 4.3 records why, and this is the same widget reaching the same conclusion.
-///
-/// **One size for both layouts, deliberately.** `ResponsiveListView` decides
-/// table vs card from its *own* `LayoutBuilder` width — after the rail has come
-/// off — so a screen cannot ask which layout it is in from the window, and the
-/// `context.layoutSize` this file could read is the window and would disagree.
-/// [kRsvpButtonSize] is therefore one compromise chosen to fit three across a
-/// table cell and still meet the 44pt touch-target floor in a card
 const double kRsvpButtonSize = 44;
 
 class _RsvpButton extends StatelessWidget {

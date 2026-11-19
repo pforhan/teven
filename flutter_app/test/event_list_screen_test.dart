@@ -449,7 +449,7 @@ void main() {
   });
 
   group('RSVP', () {
-    testWidgets('the yes button posts "available" and refetches', (
+    testWidgets('the yes button posts "accepted" and refetches', (
       tester,
     ) async {
       final today = formatLocalDate(DateTime.now().toUtc());
@@ -469,17 +469,38 @@ void main() {
       final post = adapter.requests.firstWhere(
         (o) => o.method == 'POST' && o.path == '/api/events/3/rsvp',
       );
-      // `RequestOptions.data` is the typed request, not a JSON string — dio has
-      // not serialized it by the time the adapter sees it, because the adapter
-      // sits *under* the transformer. Asserting on the string would fail on a
-      // correct request for a reason that has nothing to do with availability.
-      expect((post.data as RsvpRequest).availability, 'available');
-      // `handleRsvp` calls `fetchEvents`. The server answers `success("OK")`,
-      // so the refetch is the only thing that repaints the button.
+      expect(
+        (post.data as RsvpRequest).availability,
+        RsvpAvailability.accepted,
+      );
       expect(getRequests(adapter).length, before + 1);
     });
 
-    testWidgets('the no button posts "unavailable"', (tester) async {
+    testWidgets('the maybe button posts "tentative"', (tester) async {
+      final today = formatLocalDate(DateTime.now().toUtc());
+      final adapter = eventAdapter(
+        events: [eventJson(id: 31, title: 'Site visit', date: today)],
+      );
+      await openList(tester, adapter);
+
+      await tester.tap(rsvpButtonFor('Site visit', Icons.question_mark));
+      await tester.pump();
+      await settleRequests(tester);
+
+      expect(
+        (adapter.requests
+                    .firstWhere(
+                      (o) =>
+                          o.method == 'POST' && o.path == '/api/events/31/rsvp',
+                    )
+                    .data
+                as RsvpRequest)
+            .availability,
+        RsvpAvailability.tentative,
+      );
+    });
+
+    testWidgets('the no button posts "declined"', (tester) async {
       final today = formatLocalDate(DateTime.now().toUtc());
       final adapter = eventAdapter(
         events: [eventJson(id: 4, title: 'Site visit', date: today)],
@@ -499,13 +520,11 @@ void main() {
                     .data
                 as RsvpRequest)
             .availability,
-        'unavailable',
+        RsvpAvailability.declined,
       );
     });
 
-    testWidgets('the clear button posts the original\'s literal string', (
-      tester,
-    ) async {
+    testWidgets('the clear button posts needs_action', (tester) async {
       final today = formatLocalDate(DateTime.now().toUtc());
       final adapter = eventAdapter(
         events: [eventJson(id: 5, title: 'Site visit', date: today)],
@@ -516,11 +535,6 @@ void main() {
       await tester.pump();
       await settleRequests(tester);
 
-      // `'no response'`, verbatim from the original event list screen — **not** `''`
-      // and **not** a member of [RsvpAvailability]. The server stores it as a
-      // free-form string, so "improving" it here would change what lands in the
-      // `rsvps.availability` column and every existing filter over it. Task
-      // 10.17 owns that question.
       expect(
         (adapter.requests
                     .firstWhere(
@@ -530,9 +544,9 @@ void main() {
                     .data
                 as RsvpRequest)
             .availability,
-        'no response',
+        RsvpAvailability.needsAction,
       );
-      expect(kRsvpCleared, 'no response');
+      expect(kRsvpCleared, RsvpAvailability.needsAction);
     });
 
     testWidgets("the current answer is read from this user's own RSVP", (
@@ -555,13 +569,13 @@ void main() {
                   'userId': 99,
                   'displayName': 'Bob',
                   'email': '',
-                  'availability': 'unavailable',
+                  'availability': 'declined',
                 },
                 {
                   'userId': 1,
                   'displayName': 'Ada',
                   'email': '',
-                  'availability': 'available',
+                  'availability': 'accepted',
                 },
               ],
             ),

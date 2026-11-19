@@ -61,9 +61,7 @@ abstract final class TevenTheme {
   /// Today's date highlight in the original calendar.
   static const Color todayHighlight = Color(0xFFE7F0F7);
 
-  /// The unresolved "requested" RSVP pill in the original calendar.
-  ///
-  /// The original value was the CSS keyword `orange` — `#FFA500`.
+  /// The unresolved "needs action" RSVP pill in the calendar.
   static const Color requestedRsvp = Color(0xFFFFA500);
 
   /// The month grid's rules.

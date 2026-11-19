@@ -28,12 +28,7 @@ import 'error_display.dart';
 /// Whether this should live behind a route at all is an open question; this is
 /// the answer this port gives it.
 ///
-/// **The availability is a free-form string, not an enum.** The server type is
-/// `String` with no validation (`RsvpRequest.kt`), so anything posted is stored
-/// as-is. [RsvpAvailability.available] and [RsvpAvailability.unavailable] are
-/// `String` constants for exactly that reason — a Dart enum would be a closed
-/// set the server does not enforce. Whether the column should hold a closed set
-/// remains an open question.
+/// Pending RSVP requests, with Accept/Decline/Tentative actions.
 class RsvpWidget extends ConsumerStatefulWidget {
   const RsvpWidget({super.key});
 
@@ -208,8 +203,10 @@ class _RsvpRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.end,
           children: [
             FilledButton(
               style: FilledButton.styleFrom(
@@ -218,10 +215,15 @@ class _RsvpRow extends StatelessWidget {
               ),
               onPressed: pending
                   ? null
-                  : () => onAnswer(RsvpAvailability.available),
+                  : () => onAnswer(RsvpAvailability.accepted),
               child: const Text('Accept'),
             ),
-            const SizedBox(width: 8),
+            FilledButton.tonal(
+              onPressed: pending
+                  ? null
+                  : () => onAnswer(RsvpAvailability.tentative),
+              child: const Text('Maybe'),
+            ),
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: TevenTheme.danger,
@@ -229,7 +231,7 @@ class _RsvpRow extends StatelessWidget {
               ),
               onPressed: pending
                   ? null
-                  : () => onAnswer(RsvpAvailability.unavailable),
+                  : () => onAnswer(RsvpAvailability.declined),
               child: const Text('Decline'),
             ),
           ],

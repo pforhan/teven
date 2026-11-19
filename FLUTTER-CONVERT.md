@@ -209,7 +209,7 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   **Related:** re-check the role-assignment path discrepancy in `FLUTTER-CONVERT-DESIGN.md` (`API.md:632` is wrong; see `backend/app/src/main/kotlin/alphainterplanetary/teven/app/role/RoleRoutes.kt:86`). If role-assignment UI/work is in scope, align client routes/constants with actual server paths and required permissions.
 
-- [ ] **10.17** **Replace free-form RSVP `availability` with a validated enum.** **Decision:** use an enum (not a free-form `String`). The current wire/app values are `"available"`, `"unavailable"`, and server-initiated `"requested"`; `Rsvps.availability` is `varchar(50)` with no validation, so typos are stored silently.
+- [x] **10.17** **Replace free-form RSVP `availability` with a validated enum.** **Decision:** use an enum (not a free-form `String`). The current wire/app values are `"available"`, `"unavailable"`, and server-initiated `"requested"`; `Rsvps.availability` is `varchar(50)` with no validation, so typos are stored silently.
 
   **Canonical wire values (iCalendar `PARTSTAT`-aligned):** `accepted`, `declined`, `tentative`, `needs_action`.
   - `available` → `accepted` (yes/attending)
@@ -220,6 +220,8 @@ Once the Flutter web app is verified working locally against the real backend. T
   **Important:** `requested`/`needs_action` is currently a real stored, server-initiated state used in code paths (staff invitations insert it, event updates clear/reset requested RSVPs, and requested-RSVP queries/filtering depend on it), not merely the absence of a row. A null/absent column is likely **not** sufficient without changing behavior; verify this before choosing the representation.
 
   **Work items:** check `SELECT DISTINCT availability FROM rsvps` and audit derived behavior/usages (DAO/service/routes/UI/constants) before migrating; decide migration/compatibility strategy for existing stored values and any client compatibility needed during rollout; enforce the enum server-side (request/response/storage as appropriate), update Flutter `RsvpAvailability`/models and the RSVP UI to include **tentative**, and handle display/mapping for existing/current states as needed. Keep API docs/client types in sync.
+
+  **Implemented (green field).** Server RSVP availability now uses canonical PARTSTAT-aligned values and validates writes in `EventService.rsvpToEvent` (`accepted|declined|tentative|needs_action`); invalid values are rejected as bad requests. Staff-invite insert/update/reset paths and requested-RSVP queries now use `needs_action` as the stored invited/awaiting-response state. Flutter `RsvpAvailability`/models and RSVP flows were updated to the canonical values, added **Tentative/Maybe** responses (pending RSVP widget, event list, event details), and treat clearing a response as posting `needs_action`. Calendar pending markers and event-details roster/grouping now reflect `needs_action`/`accepted`/`tentative`/`declined`. Related Flutter tests were updated for the new contract/UI and both `./teven verify-backend` and `./teven verify` passed. Dev data is green-field (no migration/backfill).
 
 - [x] **10.19** **Soft-delete customers, so deleting one does not destroy the events that reference it.** Found by deleting a real customer during task 4.4's browser check. **Decision made: soft delete**, on the grounds that prior events are business records and a customer row is not.
 

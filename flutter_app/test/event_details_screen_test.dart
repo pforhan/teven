@@ -100,7 +100,7 @@ void main() {
     required int userId,
     String displayName = 'Alice',
     String email = 'alice@example.com',
-    String availability = 'available',
+    String availability = 'accepted',
   }) => {
     'userId': userId,
     'displayName': displayName,
@@ -418,7 +418,7 @@ void main() {
   });
 
   group('RSVP', () {
-    testWidgets('"Going" posts "available" and refetches', (tester) async {
+    testWidgets('"Going" posts "accepted" and refetches', (tester) async {
       final adapter = detailsAdapter();
       await openDetails(tester, adapter);
       final before = eventFetches(adapter).length;
@@ -430,16 +430,32 @@ void main() {
       final post = adapter.requests.firstWhere(
         (o) => o.method == 'POST' && o.path == '/api/events/42/rsvp',
       );
-      // `RequestOptions.data` is the typed request — dio has not serialized
-      // it by the time the adapter sees it.
-      expect((post.data as RsvpRequest).availability, 'available');
-      // **The refetch is what repaints the roster**: the server answers
-      // `success("OK")`, so nothing comes back to display.
+      expect(
+        (post.data as RsvpRequest).availability,
+        RsvpAvailability.accepted,
+      );
       expect(eventFetches(adapter).length, before + 1);
       expect(find.textContaining('Successfully updated RSVP'), findsOneWidget);
     });
 
-    testWidgets('"Not Going" posts "unavailable"', (tester) async {
+    testWidgets('"Maybe" posts "tentative"', (tester) async {
+      final adapter = detailsAdapter();
+      await openDetails(tester, adapter);
+
+      await tester.tap(find.text('Maybe'));
+      await tester.pump();
+      await settleRequests(tester);
+
+      final post = adapter.requests.firstWhere(
+        (o) => o.method == 'POST' && o.path == '/api/events/42/rsvp',
+      );
+      expect(
+        (post.data as RsvpRequest).availability,
+        RsvpAvailability.tentative,
+      );
+    });
+
+    testWidgets('"Not Going" posts "declined"', (tester) async {
       final adapter = detailsAdapter();
       await openDetails(tester, adapter);
 
@@ -450,20 +466,20 @@ void main() {
       final post = adapter.requests.firstWhere(
         (o) => o.method == 'POST' && o.path == '/api/events/42/rsvp',
       );
-      expect((post.data as RsvpRequest).availability, 'unavailable');
+      expect(
+        (post.data as RsvpRequest).availability,
+        RsvpAvailability.declined,
+      );
     });
 
-    testWidgets('"Clear my response" posts the original\'s literal string', (
-      tester,
-    ) async {
+    testWidgets('"Clear my response" posts needs_action', (tester) async {
       final adapter = detailsAdapter(
         event: eventJson(
-          rsvps: [rsvpJson(userId: 1, availability: 'available')],
+          rsvps: [rsvpJson(userId: 1, availability: 'accepted')],
         ),
       );
       await openDetails(tester, adapter);
 
-      // The clear button only exists once this user has answered something.
       expect(
         find.widgetWithText(TextButton, 'Clear my response'),
         findsOneWidget,
@@ -476,12 +492,11 @@ void main() {
       final post = adapter.requests.firstWhere(
         (o) => o.method == 'POST' && o.path == '/api/events/42/rsvp',
       );
-      // `'no response'`, verbatim from the original event details screen. **Not** `''`,
-      // and **not** a member of `RsvpAvailability` — the server stores it as
-      // a free-form string, so it is a fourth answer rather than the absence
-      // of one.
-      expect((post.data as RsvpRequest).availability, 'no response');
-      expect(kRsvpCleared, 'no response');
+      expect(
+        (post.data as RsvpRequest).availability,
+        RsvpAvailability.needsAction,
+      );
+      expect(kRsvpCleared, RsvpAvailability.needsAction);
     });
 
     testWidgets('the answer that is current is the filled button', (
@@ -495,13 +510,9 @@ void main() {
               rsvpJson(
                 userId: 99,
                 displayName: 'Bob',
-                availability: 'unavailable',
+                availability: 'declined',
               ),
-              rsvpJson(
-                userId: 1,
-                displayName: 'Ada',
-                availability: 'available',
-              ),
+              rsvpJson(userId: 1, displayName: 'Ada', availability: 'accepted'),
             ],
           ),
         ),
@@ -532,7 +543,7 @@ void main() {
   });
 
   group('the roster', () {
-    testWidgets('splits the RSVPs three ways', (tester) async {
+    testWidgets('splits the RSVPs by status', (tester) async {
       await openDetails(
         tester,
         detailsAdapter(
@@ -541,17 +552,18 @@ void main() {
               rsvpJson(
                 userId: 2,
                 displayName: 'Bob',
-                availability: 'requested',
+                availability: 'needs_action',
               ),
               rsvpJson(
                 userId: 3,
                 displayName: 'Cleo',
-                availability: 'available',
+                availability: 'accepted',
               ),
+              rsvpJson(userId: 4, displayName: 'Dan', availability: 'declined'),
               rsvpJson(
-                userId: 4,
-                displayName: 'Dan',
-                availability: 'unavailable',
+                userId: 5,
+                displayName: 'Eve',
+                availability: 'tentative',
               ),
             ],
           ),
@@ -561,10 +573,12 @@ void main() {
       expect(find.text('Staff Roster'), findsOneWidget);
       expect(find.text('INVITED'), findsOneWidget);
       expect(find.text('CONFIRMED'), findsOneWidget);
+      expect(find.text('TENTATIVE'), findsOneWidget);
       expect(find.text('DECLINED'), findsOneWidget);
       expect(find.text('Bob'), findsOneWidget);
       expect(find.text('Cleo'), findsOneWidget);
       expect(find.text('Dan'), findsOneWidget);
+      expect(find.text('Eve'), findsOneWidget);
     });
 
     testWidgets('the declined list is for managers only', (tester) async {
@@ -574,18 +588,12 @@ void main() {
           permissions: const [viewEvents, assignToEventsSelf],
           event: eventJson(
             rsvps: [
-              rsvpJson(
-                userId: 4,
-                displayName: 'Dan',
-                availability: 'unavailable',
-              ),
+              rsvpJson(userId: 4, displayName: 'Dan', availability: 'declined'),
             ],
           ),
         ),
       );
 
-      // the original event details screen — the gate is the manage permission, not the
-      // size of the list.
       expect(find.text('DECLINED'), findsNothing);
       expect(find.text('Dan'), findsNothing);
     });
@@ -603,9 +611,9 @@ void main() {
         detailsAdapter(
           event: eventJson(
             rsvps: [
-              rsvpJson(userId: 3, availability: 'available'),
-              rsvpJson(userId: 4, availability: 'available'),
-              rsvpJson(userId: 5, availability: 'requested'),
+              rsvpJson(userId: 3, availability: 'accepted'),
+              rsvpJson(userId: 4, availability: 'accepted'),
+              rsvpJson(userId: 5, availability: 'needs_action'),
             ],
           ),
         ),

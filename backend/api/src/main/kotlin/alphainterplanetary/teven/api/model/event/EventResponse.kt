@@ -29,5 +29,5 @@ data class RsvpStatus(
   val userId: Int,
   val displayName: String,
   val email: String,
-  val availability: String, // "available" or "unavailable"
+  val availability: String, // accepted | declined | tentative | needs_action
 )

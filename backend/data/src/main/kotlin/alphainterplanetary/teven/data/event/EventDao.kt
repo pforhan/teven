@@ -154,7 +154,7 @@ class EventDao {
       Rsvps.insert {
         it[eventId] = id
         it[Rsvps.userId] = userId
-        it[availability] = "requested"
+        it[availability] = "needs_action"
       }
     }
 
@@ -256,8 +256,8 @@ class EventDao {
         }
       }
       updateEventRequest.staffInvites?.let { staffInvites ->
-        // Clear existing 'requested' RSVPs for this event to handle deselections
-        Rsvps.deleteWhere { (Rsvps.eventId eq eventId) and (Rsvps.availability eq "requested") }
+        // Clear existing invited/awaiting-response RSVPs for this event to handle deselections.
+        Rsvps.deleteWhere { (Rsvps.eventId eq eventId) and (Rsvps.availability eq "needs_action") }
 
         staffInvites.specificStaffIds?.let { specificStaffIds ->
           for (userId in specificStaffIds) {
@@ -267,13 +267,13 @@ class EventDao {
                 .singleOrNull()
             if (existingRsvp != null) {
               Rsvps.update({ (Rsvps.eventId eq eventId) and (Rsvps.userId eq userId) }) {
-                it[Rsvps.availability] = "requested"
+                it[Rsvps.availability] = "needs_action"
               }
             } else {
               Rsvps.insert {
                 it[Rsvps.eventId] = eventId
                 it[Rsvps.userId] = userId
-                it[Rsvps.availability] = "requested"
+                it[Rsvps.availability] = "needs_action"
               }
             }
           }
@@ -323,7 +323,7 @@ class EventDao {
 
   suspend fun getRequestedRsvpEventsForUser(userId: Int): List<EventResponse> = dbQuery {
     val eventIds = Rsvps.selectAll()
-      .where { (Rsvps.userId eq userId) and (Rsvps.availability eq "requested") }
+      .where { (Rsvps.userId eq userId) and (Rsvps.availability eq "needs_action") }
       .map { it[Rsvps.eventId] }
 
     eventIds.mapNotNull { eventId ->

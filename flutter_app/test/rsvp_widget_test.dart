@@ -113,12 +113,13 @@ void main() {
         findsOneWidget,
       );
       expect(find.widgetWithText(FilledButton, 'Accept'), findsNWidgets(2));
+      expect(find.widgetWithText(FilledButton, 'Maybe'), findsNWidgets(2));
       expect(find.widgetWithText(FilledButton, 'Decline'), findsNWidgets(2));
     });
   });
 
   group('answering', () {
-    testWidgets('Accept posts "available" and drops the row', (tester) async {
+    testWidgets('Accept posts "accepted" and drops the row', (tester) async {
       final adapter = rsvpAdapter(requested: [eventJson(id: 61)]);
       await pumpApp(tester, token: 'token', adapter: adapter);
 
@@ -129,21 +130,33 @@ void main() {
       final post = adapter.requests.firstWhere(
         (o) => o.method == 'POST' && o.path == '/api/events/61/rsvp',
       );
-      // **A free-form string, not an enum** — the server type is `String`
-      // with no validation, and the port's `RsvpAvailability` names the
-      // values rather than closing the set.
-      expect((post.data as RsvpRequest).availability, 'available');
       expect(
         (post.data as RsvpRequest).availability,
-        RsvpAvailability.available,
+        RsvpAvailability.accepted,
       );
       // The row goes, because the server no longer holds a *request* for it.
       expect(find.text('Rooftop Garden Maintenance'), findsNothing);
     });
 
-    testWidgets('Decline posts "unavailable" and drops the row', (
-      tester,
-    ) async {
+    testWidgets('Maybe posts "tentative" and drops the row', (tester) async {
+      final adapter = rsvpAdapter(requested: [eventJson(id: 61)]);
+      await pumpApp(tester, token: 'token', adapter: adapter);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Maybe'));
+      await tester.pump();
+      await settleRequests(tester);
+
+      final post = adapter.requests.firstWhere(
+        (o) => o.method == 'POST' && o.path == '/api/events/61/rsvp',
+      );
+      expect(
+        (post.data as RsvpRequest).availability,
+        RsvpAvailability.tentative,
+      );
+      expect(find.text('Rooftop Garden Maintenance'), findsNothing);
+    });
+
+    testWidgets('Decline posts "declined" and drops the row', (tester) async {
       final adapter = rsvpAdapter(requested: [eventJson(id: 61)]);
       await pumpApp(tester, token: 'token', adapter: adapter);
 
@@ -156,7 +169,7 @@ void main() {
       );
       expect(
         (post.data as RsvpRequest).availability,
-        RsvpAvailability.unavailable,
+        RsvpAvailability.declined,
       );
       expect(find.text('Rooftop Garden Maintenance'), findsNothing);
     });

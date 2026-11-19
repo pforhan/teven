@@ -4,5 +4,5 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RsvpRequest(
-  val availability: String, // "available" or "unavailable"
+  val availability: String, // accepted | declined | tentative | needs_action
 )

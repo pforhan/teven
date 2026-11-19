@@ -4091,3 +4091,17 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`, `./teven verify`.
 
 **Files changed (primary):** `backend/app/src/main/kotlin/alphainterplanetary/teven/app/event/EventRoutes.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/event/EventService.kt`, `backend/service/src/test/kotlin/alphinterplanetary/teven/service/event/EventServiceTest.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/event/EventDao.kt`, `flutter_app/lib/core/services/list_query.dart`, `flutter_app/lib/routing/app_router.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/customers/customer_details_screen.dart`, `flutter_app/lib/screens/organizations/organization_details_screen.dart`, `flutter_app/lib/screens/organizations/organization_list_screen.dart`, `flutter_app/lib/screens/users/user_list_screen.dart`, `flutter_app/lib/widgets/organization_selector.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-19 — 10.17: validated RSVP availability enum (PARTSTAT values)
+
+**Implemented task 10.17 (green field).** Replaced free-form RSVP availability values with canonical, validated iCalendar/PARTSTAT-aligned values: `accepted`, `declined`, `tentative`, `needs_action`.
+
+**Server.** `EventService.rsvpToEvent` now validates/normalizes RSVP input and rejects invalid values; `EventDao` staff-invite insert/update/reset flows and requested-RSVP queries now use `needs_action` as the stored invited/awaiting-response state. RSVP API model comments were updated to reflect the canonical contract.
+
+**Flutter.** Updated `RsvpAvailability`/RSVP models and UI flows to the canonical values, added **Tentative/Maybe** as a selectable response (pending RSVP card, event list, event details), and changed "clear response" behavior to post `needs_action`. Calendar pending highlighting and event-details roster/status grouping were updated for the new values, and related tests were updated.
+
+**Verified:** `./teven verify-backend`, `./teven verify`. No existing-data migration/backfill required (green field).
+
+**Files changed (primary):** `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/event/EventResponse.kt`, `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/event/RsvpRequest.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/event/EventDao.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/event/EventService.kt`, `flutter_app/lib/models/event.dart`, `flutter_app/lib/widgets/rsvp_widget.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `flutter_app/lib/screens/events/event_calendar_screen.dart`, `flutter_app/lib/core/theme/teven_theme.dart`, `flutter_app/test/rsvp_widget_test.dart`, `flutter_app/test/event_list_screen_test.dart`, `flutter_app/test/event_details_screen_test.dart`, `flutter_app/test/event_calendar_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

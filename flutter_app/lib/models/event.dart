@@ -95,12 +95,8 @@ abstract class EventInventoryItem with _$EventInventoryItem {
 
 /// One person's RSVP to an event.
 ///
-/// [availability] is a **free-form string**, not an enum. The server type is
-/// `String` with no validation (`RsvpRequest.kt`), and the app posts
-/// `"available"`, `"unavailable"`, and `"requested"` — the last of which has
-/// no matching constant on the Kotlin side. Modelling it as an enum would
-/// mean inventing server-side validation that does not exist, and would throw
-/// on an unrecognized value. See [RsvpAvailability].
+/// Canonical wire values are iCalendar/PARTSTAT-aligned:
+/// `accepted`, `declined`, `tentative`, `needs_action`.
 @freezed
 abstract class RsvpStatus with _$RsvpStatus {
   const factory RsvpStatus({
@@ -114,16 +110,17 @@ abstract class RsvpStatus with _$RsvpStatus {
       _$RsvpStatusFromJson(json);
 }
 
-/// The availability values this app posts.
+/// Canonical RSVP availability values (PARTSTAT-aligned).
 ///
-/// [requested] is server-initiated: it marks an event awaiting the user's
-/// RSVP and is never sent by the client.
+/// `needs_action` is a real stored/server-initiated state (invited/awaiting
+/// response). The UI also posts it to clear a prior response.
 abstract final class RsvpAvailability {
   const RsvpAvailability._();
 
-  static const String available = 'available';
-  static const String unavailable = 'unavailable';
-  static const String requested = 'requested';
+  static const String accepted = 'accepted';
+  static const String declined = 'declined';
+  static const String tentative = 'tentative';
+  static const String needsAction = 'needs_action';
 }
 
 /// How an event asks for staff.

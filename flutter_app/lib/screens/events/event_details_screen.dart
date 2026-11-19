@@ -224,15 +224,8 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
 
   /// Posts this user's availability.
   ///
-  /// The availability is a **free-form string** — the server type is `String`
-  /// with no validation (`RsvpRequest.kt`) — and the values the app posts are
-  /// named in [RsvpAvailability] plus `'no response'`, which is the original's
-  /// literal for "clear my answer".
-  ///
-  /// **The event is refetched afterwards,** which is what the original did and
-  /// the only way the roster repaints: the server answers `success("OK")`, so
-  /// nothing comes back to display, and the new availability has to come from a
-  /// fresh `GET /api/events/{id}`.
+  /// **The event is refetched afterwards,** because the server response does not
+  /// include the updated roster payload.
   Future<void> _rsvp(String availability) async {
     if (_submitting) return;
     setState(() {
@@ -245,8 +238,15 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
           .read(eventServiceProvider)
           .rsvpToEvent(widget.eventId, RsvpRequest(availability: availability));
       if (!mounted) return;
+      final label = switch (availability) {
+        RsvpAvailability.accepted => 'Going',
+        RsvpAvailability.declined => 'Not going',
+        RsvpAvailability.tentative => 'Maybe',
+        RsvpAvailability.needsAction => 'No response',
+        _ => availability,
+      };
       setState(() {
-        _successMessage = 'Successfully updated RSVP to $availability!';
+        _successMessage = 'Successfully updated RSVP to $label.';
         _myRsvpStatus = availability;
         _submitting = false;
       });
@@ -969,31 +969,36 @@ class _AvailabilityCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             if (canJoin)
-              // **`btn-group w-100`** — the two buttons share the row.
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Expanded(
-                    child: _AvailabilityButton(
-                      label: 'Going',
-                      icon: Icons.check_circle_outline,
-                      color: TevenTheme.success,
-                      selected: status == RsvpAvailability.available,
-                      onPressed: submitting
-                          ? null
-                          : () => onRsvp(RsvpAvailability.available),
-                    ),
+                  _AvailabilityButton(
+                    label: 'Going',
+                    icon: Icons.check_circle_outline,
+                    color: TevenTheme.success,
+                    selected: status == RsvpAvailability.accepted,
+                    onPressed: submitting
+                        ? null
+                        : () => onRsvp(RsvpAvailability.accepted),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _AvailabilityButton(
-                      label: 'Not Going',
-                      icon: Icons.cancel_outlined,
-                      color: TevenTheme.danger,
-                      selected: status == RsvpAvailability.unavailable,
-                      onPressed: submitting
-                          ? null
-                          : () => onRsvp(RsvpAvailability.unavailable),
-                    ),
+                  _AvailabilityButton(
+                    label: 'Maybe',
+                    icon: Icons.help_outline,
+                    color: theme.colorScheme.primary,
+                    selected: status == RsvpAvailability.tentative,
+                    onPressed: submitting
+                        ? null
+                        : () => onRsvp(RsvpAvailability.tentative),
+                  ),
+                  _AvailabilityButton(
+                    label: 'Not Going',
+                    icon: Icons.cancel_outlined,
+                    color: TevenTheme.danger,
+                    selected: status == RsvpAvailability.declined,
+                    onPressed: submitting
+                        ? null
+                        : () => onRsvp(RsvpAvailability.declined),
                   ),
                 ],
               )
@@ -1004,16 +1009,12 @@ class _AvailabilityCard extends StatelessWidget {
                   color: theme.colorScheme.secondary,
                 ),
               ),
-            if (status != null) ...[
+            if (status != null && status != RsvpAvailability.needsAction) ...[
               const SizedBox(height: 8),
-              // **"Clear my response"** — as in the original screen. It posts
-              // `'no response'`, which is **not** one of
-              // [RsvpAvailability]'s values and is not a removal: the server
-              // stores the string as the availability, so the user stops
-              // counting as available or unavailable and the roster's three
-              // lists each stop counting them.
               TextButton(
-                onPressed: submitting ? null : () => onRsvp(kRsvpCleared),
+                onPressed: submitting
+                    ? null
+                    : () => onRsvp(RsvpAvailability.needsAction),
                 child: const Text('Clear my response'),
               ),
             ],
@@ -1069,19 +1070,17 @@ class _RosterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // The original split the roster three ways. **A fourth possibility is not
-    // in the split:** a user who answered `'no response'` appears in none of the
-    // three lists, because the server stores that string as their availability.
-    // That is the original's behaviour and it is kept — see the note on the
-    // clear button.
     final invited = event.rsvps
-        .where((rsvp) => rsvp.availability == RsvpAvailability.requested)
+        .where((rsvp) => rsvp.availability == RsvpAvailability.needsAction)
         .toList();
     final confirmed = event.rsvps
-        .where((rsvp) => rsvp.availability == RsvpAvailability.available)
+        .where((rsvp) => rsvp.availability == RsvpAvailability.accepted)
+        .toList();
+    final tentative = event.rsvps
+        .where((rsvp) => rsvp.availability == RsvpAvailability.tentative)
         .toList();
     final declined = event.rsvps
-        .where((rsvp) => rsvp.availability == RsvpAvailability.unavailable)
+        .where((rsvp) => rsvp.availability == RsvpAvailability.declined)
         .toList();
 
     return Card(
@@ -1138,9 +1137,17 @@ class _RosterCard extends StatelessWidget {
               members: confirmed,
               emptyMessage: 'No one confirmed yet.',
             ),
-            // **The declined list is for managers only.** The original hid it
-            // from users who could not manage events, so they do not see who
-            // said no.
+            if (tentative.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _RosterSection(
+                title: 'Tentative',
+                color: theme.colorScheme.tertiary,
+                icon: Icons.help_outline,
+                members: tentative,
+                emptyMessage: 'No tentative responses yet.',
+              ),
+            ],
+            // **The declined list is for managers only.**
             if (canManage && declined.isNotEmpty) ...[
               const SizedBox(height: 16),
               _RosterSection(
@@ -1241,11 +1248,5 @@ class _RosterSection extends StatelessWidget {
 /// so its content *is* its viewport. See the comment at the split.
 const double kTwoColumnContentWidth = 860;
 
-/// What the clear button posts.
-///
-/// `'no response'`, verbatim from the original event details and event list
-/// screens. **Not** `''`, and **not** a member of [RsvpAvailability]: the server
-/// stores it as a free-form string, so it is a fourth answer rather than the
-/// absence of one. Whether that column should hold a closed set remains an open
-/// question.
-const String kRsvpCleared = 'no response';
+/// Compatibility alias: clearing a response now posts `needs_action`.
+const String kRsvpCleared = RsvpAvailability.needsAction;
