@@ -121,7 +121,7 @@ class _OrganizationListScreenState
       render: (context, organization) => RecordLinkButton(
         label: organization.name,
         onPressed: () => context.go(
-          AppRoutes.organizationEditPath(organization.organizationId),
+          AppRoutes.organizationDetailsPath(organization.organizationId),
         ),
       ),
     ),

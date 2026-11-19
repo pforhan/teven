@@ -163,6 +163,7 @@ class EventDao {
 
   suspend fun getEvents(
     organizationId: Int?,
+    customerId: Int? = null,
     startInstant: Instant?,
     endExclusiveInstant: Instant?,
     search: String?,
@@ -173,6 +174,7 @@ class EventDao {
   ): PaginatedResponse<EventResponse> = dbQuery {
     val conditions = mutableListOf<Op<Boolean>>()
     organizationId?.let { conditions.add(Events.organizationId eq it) }
+    customerId?.let { conditions.add(Events.customerId eq it) }
     startInstant?.let { conditions.add(Events.startsAt greaterEq OffsetDateTime.ofInstant(it, ZoneOffset.UTC)) }
     endExclusiveInstant?.let { conditions.add(Events.startsAt less OffsetDateTime.ofInstant(it, ZoneOffset.UTC)) }
     search?.let { conditions.add(Events.title.lowerCase() like "%${it.lowercase()}%") }

@@ -20,6 +20,7 @@ import '../screens/inventory/inventory_details_screen.dart';
 import '../screens/inventory/inventory_form_screen.dart';
 import '../screens/inventory/inventory_list_screen.dart';
 import '../screens/login_screen.dart';
+import '../screens/organizations/organization_details_screen.dart';
 import '../screens/organizations/organization_list_screen.dart';
 import '../screens/organizations/organization_screen.dart';
 import '../screens/placeholder_screen.dart';
@@ -41,6 +42,15 @@ abstract final class AppRoutes {
 
   static const String events = '/events';
   static const String eventList = '/events/list';
+
+  static String eventListPath({int? customerId}) {
+    final uri = Uri(
+      path: eventList,
+      queryParameters: {if (customerId != null) 'customerId': '$customerId'},
+    );
+    return uri.toString();
+  }
+
   static const String eventCreate = '/events/create';
   static const String eventDay = '/events/day';
   static const String eventEdit = '/events/edit/:eventId';
@@ -114,12 +124,10 @@ abstract final class AppRoutes {
   static const String organizations = '/organizations';
   static const String organizationCreate = '/organizations/create';
   static const String organizationEdit = '/organizations/edit/:organizationId';
+  static const String organizationDetails = '/organizations/:organizationId';
 
-  /// A concrete link to an organization's detail page.
-  ///
-  /// the original detail route was dead; link to the edit screen.
-  static String organizationDetails(int organizationId) =>
-      organizationEditPath(organizationId);
+  static String organizationDetailsPath(int organizationId) =>
+      organizationDetails.replaceFirst(':organizationId', '$organizationId');
 
   static String organizationEditPath(int organizationId) =>
       organizationEdit.replaceFirst(':organizationId', '$organizationId');
@@ -329,9 +337,16 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   _guarded(ref, AppRoutes.events, [
     Permission.viewEventsOrganization,
   ], (_) => const EventCalendarScreen()),
-  _guarded(ref, AppRoutes.eventList, [
-    Permission.viewEventsOrganization,
-  ], (_) => const EventListScreen()),
+  _guarded(
+    ref,
+    AppRoutes.eventList,
+    [Permission.viewEventsOrganization],
+    (state) => EventListScreen(
+      initialCustomerId: int.tryParse(
+        state.uri.queryParameters['customerId'] ?? '',
+      ),
+    ),
+  ),
   _guarded(ref, AppRoutes.eventCreate, [
     Permission.manageEventsOrganization,
   ], (_) => const CreateEventScreen()),
@@ -432,6 +447,15 @@ List<RouteBase> _shellRoutes(Ref ref) => [
     AppRoutes.organizationEdit,
     [Permission.manageOrganizationsGlobal, Permission.manageOrganization],
     (state) => OrganizationScreen(
+      organizationId:
+          int.tryParse(state.pathParameters['organizationId'] ?? '') ?? -1,
+    ),
+  ),
+  _guarded(
+    ref,
+    AppRoutes.organizationDetails,
+    [Permission.viewOrganizationsGlobal],
+    (state) => OrganizationDetailsScreen(
       organizationId:
           int.tryParse(state.pathParameters['organizationId'] ?? '') ?? -1,
     ),

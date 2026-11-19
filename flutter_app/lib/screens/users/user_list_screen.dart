@@ -283,7 +283,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
         render: (context, user) => RecordLinkButton(
           label: user.organization.name,
           onPressed: () => context.go(
-            AppRoutes.organizationDetails(user.organization.organizationId),
+            AppRoutes.organizationDetailsPath(user.organization.organizationId),
           ),
         ),
       ),

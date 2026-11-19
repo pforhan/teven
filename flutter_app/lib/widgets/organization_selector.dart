@@ -81,7 +81,7 @@ class _StaticOrganizationLabel extends ConsumerWidget {
         .has(Permission.manageOrganization);
     final onTap = canManageOwnOrg
         ? () => context.go(
-            AppRoutes.organizationEditPath(organization.organizationId),
+            AppRoutes.organizationDetailsPath(organization.organizationId),
           )
         : null;
 

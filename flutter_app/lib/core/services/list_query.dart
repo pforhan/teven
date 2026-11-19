@@ -28,6 +28,7 @@ class ListQuery {
     this.sortBy,
     this.sortOrder,
     this.organizationId,
+    this.customerId,
     this.startDate,
     this.endDate,
     this.timezone,
@@ -40,6 +41,9 @@ class ListQuery {
   final String? sortBy;
   final SortOrder? sortOrder;
   final int? organizationId;
+
+  /// Event-list filter: restrict results to a specific customer.
+  final int? customerId;
   final String? startDate;
   final String? endDate;
 
@@ -66,6 +70,7 @@ class ListQuery {
     if (sortBy != null) 'sortBy': sortBy,
     if (sortOrder != null) 'sortOrder': sortOrder!.wireName,
     if (organizationId != null) 'organizationId': organizationId,
+    if (customerId != null) 'customerId': customerId,
     if (startDate != null && startDate!.isNotEmpty) 'startDate': startDate,
     if (endDate != null && endDate!.isNotEmpty) 'endDate': endDate,
     if (timezone != null && timezone!.isNotEmpty) 'timezone': timezone,
@@ -79,6 +84,7 @@ class ListQuery {
     String? sortBy,
     SortOrder? sortOrder,
     int? organizationId,
+    int? customerId,
     String? startDate,
     String? endDate,
     String? timezone,
@@ -90,6 +96,7 @@ class ListQuery {
     sortBy: sortBy ?? this.sortBy,
     sortOrder: sortOrder ?? this.sortOrder,
     organizationId: organizationId ?? this.organizationId,
+    customerId: customerId ?? this.customerId,
     startDate: startDate ?? this.startDate,
     endDate: endDate ?? this.endDate,
     timezone: timezone ?? this.timezone,
@@ -114,6 +121,7 @@ class ListQuery {
           sortBy == other.sortBy &&
           sortOrder == other.sortOrder &&
           organizationId == other.organizationId &&
+          customerId == other.customerId &&
           startDate == other.startDate &&
           endDate == other.endDate &&
           timezone == other.timezone &&
@@ -127,6 +135,7 @@ class ListQuery {
     sortBy,
     sortOrder,
     organizationId,
+    customerId,
     startDate,
     endDate,
     timezone,
@@ -137,5 +146,5 @@ class ListQuery {
   String toString() =>
       'ListQuery(limit: $limit, offset: $offset, search: $search, '
       'sortBy: $sortBy, sortOrder: $sortOrder, organizationId: $organizationId, '
-      'timezone: $timezone, status: $status)';
+      'customerId: $customerId, timezone: $timezone, status: $status)';
 }

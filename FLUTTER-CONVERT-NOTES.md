@@ -4073,3 +4073,21 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/widgets/create_form_organization.dart`, `flutter_app/test/create_form_organization_policy_test.dart`, `flutter_app/lib/screens/customers/customer_form_screen.dart`, `flutter_app/lib/screens/inventory/inventory_form_screen.dart`, `flutter_app/lib/screens/users/user_form_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-19 — 10.20: detail/linking improvements and extensible event filters
+
+**Implemented task 10.20 (reasonable attempt).** Extended event filtering/linking and completed key detail-screen navigation gaps.
+
+**Events filtering/linking.** Added `customerId` filtering to `GET /api/events` (route/service/DAO) and extended Flutter `ListQuery`/event fetching plus the events list route (`/events/list?customerId=...`, `AppRoutes.eventListPath`) for deep-linkable, extensible query params. The events list now accepts an initial `customerId` filter and applies it with existing start-date semantics.
+
+**Customer details.** `CustomerDetailsScreen` now shows a "Today and upcoming events" section (customer-scoped query from today in the reader zone) and a "View all events" link to the filtered events list, where the user can adjust the start date.
+
+**Organization details.** Added read-only `OrganizationDetailsScreen` with a permission-gated Edit action, added `/organizations/:organizationId` details routing (after create/edit), and updated organization list/selector/user links to open details while keeping explicit edit actions/routes for editing.
+
+**Geo UI audit.** Audited Flutter detail/form screens for `latitude`/`longitude`/`formattedAddress` display and found none shown; geo fields remain in models/DTOs.
+
+**Verified:** `./teven verify-backend`, `./teven verify`.
+
+**Files changed (primary):** `backend/app/src/main/kotlin/alphainterplanetary/teven/app/event/EventRoutes.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/event/EventService.kt`, `backend/service/src/test/kotlin/alphinterplanetary/teven/service/event/EventServiceTest.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/event/EventDao.kt`, `flutter_app/lib/core/services/list_query.dart`, `flutter_app/lib/routing/app_router.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/customers/customer_details_screen.dart`, `flutter_app/lib/screens/organizations/organization_details_screen.dart`, `flutter_app/lib/screens/organizations/organization_list_screen.dart`, `flutter_app/lib/screens/users/user_list_screen.dart`, `flutter_app/lib/widgets/organization_selector.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
