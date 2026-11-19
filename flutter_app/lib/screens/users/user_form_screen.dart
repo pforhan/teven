@@ -12,6 +12,7 @@ import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/create_form_organization.dart';
+import '../../widgets/error_display.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/organization_select_field.dart';
 import '../../widgets/picker_fields.dart';
@@ -285,12 +286,46 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     }
 
     if (_isEdit) {
-      if (_item == null) {
+      final item = _item;
+      if (item == null) {
         return Scaffold(
-          body: Center(
-            child: _error != null
-                ? Text(_error!.message)
-                : const CircularProgressIndicator(),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('User', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                if (_error != null)
+                  ErrorDisplay.fromException(_error!)
+                else
+                  const Text('Could not load user.'),
+                const SizedBox(height: 24),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => context.go(AppRoutes.users),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          _loading = true;
+                          _error = null;
+                          _item = null;
+                          _roles = [];
+                          _selectedRoles.clear();
+                        });
+                        _load();
+                      },
+                      child: const Text('Try again'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       }
@@ -301,7 +336,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
 
       return FormCard(
         formKey: _formKey,
-        title: 'Edit User: ${_item!.displayName}',
+        title: 'Edit User: ${item.displayName}',
         submitLabel: 'Update User',
         submitting: _submitting,
         error: _error,

@@ -4121,3 +4121,17 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`, `./teven verify`.
 
 **Files changed (primary):** `backend/core/src/main/kotlin/alphainterplanetary/teven/core/security/Permission.kt`, `backend/app/src/main/kotlin/alphainterplanetary/teven/app/role/RoleRoutes.kt`, `backend/core/src/main/kotlin/alphainterplanetary/teven/core/service/RoleService.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/role/RoleServiceImpl.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/role/RoleDao.kt`, `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/role/UpdateRoleRequest.kt` (removed), `backend/core/src/test/kotlin/alphainterplanetary/teven/core/security/UserPermissionsTest.kt`, `flutter_app/lib/models/permissions.dart`, `flutter_app/lib/core/services/misc_services.dart`, `API.md`, `API_TEMPLATE.md`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-19 — 10.25: standardize edit-form load/error recovery
+
+**Implemented task 10.25 (audit/fix).** Audited edit-form load/submit behavior and aligned recoverable edit-load failure UX to the customer pattern without merging resource-specific form implementations.
+
+**Fixes.** `inventory_form_screen.dart`, `user_form_screen.dart`, `event_form_screen.dart`, and `organization_screen.dart` now show recoverable edit-load error states (error display/message with **Cancel** and **Try again**) instead of stuck/non-recoverable plain-text or spinner states when an edit record fails to load.
+
+**Audit.** Reviewed edit/create global-organization handling in these screens; kept existing resource-specific rules/behavior intact (including global-manager-only organization controls and update-time `organizationId` submission behavior where applicable). No intended behavior changes in working flows.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/screens/inventory/inventory_form_screen.dart`, `flutter_app/lib/screens/users/user_form_screen.dart`, `flutter_app/lib/screens/events/event_form_screen.dart`, `flutter_app/lib/screens/organizations/organization_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

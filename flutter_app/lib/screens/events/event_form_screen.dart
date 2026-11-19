@@ -797,7 +797,40 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (_isEdit && _error != null && _title.text.isEmpty) {
-      return Scaffold(body: Center(child: Text(_error!.message)));
+      return Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Event', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 16),
+              ErrorDisplay.fromException(_error!),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => context.go(AppRoutes.events),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        _loading = true;
+                        _error = null;
+                      });
+                      _loadEvent();
+                    },
+                    child: const Text('Try again'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     final theme = Theme.of(context);

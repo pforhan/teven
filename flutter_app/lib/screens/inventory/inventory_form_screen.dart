@@ -12,6 +12,7 @@ import '../../providers/organization_list.dart';
 import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
 import '../../widgets/create_form_organization.dart';
+import '../../widgets/error_display.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/organization_select_field.dart';
 import '../../widgets/picker_fields.dart';
@@ -201,12 +202,47 @@ class _InventoryFormScreenState extends ConsumerState<InventoryFormScreen> {
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
 
-      if (_item == null) {
+      final item = _item;
+      if (item == null) {
         return Scaffold(
-          body: Center(
-            child: _error != null
-                ? Text(_error!.message)
-                : const CircularProgressIndicator(),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Inventory',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+                if (_error != null)
+                  ErrorDisplay.fromException(_error!)
+                else
+                  const Text('Could not load inventory item.'),
+                const SizedBox(height: 24),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => context.go(AppRoutes.inventory),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          _loading = true;
+                          _error = null;
+                          _item = null;
+                        });
+                        _loadItem();
+                      },
+                      child: const Text('Try again'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       }
@@ -217,7 +253,7 @@ class _InventoryFormScreenState extends ConsumerState<InventoryFormScreen> {
 
       return FormCard(
         formKey: _formKey,
-        title: 'Edit Inventory Item: ${_item!.name}',
+        title: 'Edit Inventory Item: ${item.name}',
         submitLabel: 'Update Item',
         submitting: _submitting,
         error: _error,

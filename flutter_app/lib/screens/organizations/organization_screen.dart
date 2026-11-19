@@ -7,6 +7,7 @@ import '../../models/organization.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
+import '../../widgets/error_display.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/time_zone_field.dart';
 import '../../widgets/validators.dart';
@@ -153,17 +154,51 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Scaffold(
-        body: Center(
-          child: _error != null
-              ? Text(_error!.message)
-              : const CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (!widget.isCreate && _item == null && _error != null) {
-      return Scaffold(body: Center(child: Text(_error!.message)));
+    if (!widget.isCreate && _item == null) {
+      return Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Organization',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              if (_error != null)
+                ErrorDisplay.fromException(_error!)
+              else
+                const Text('Could not load organization.'),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => context.go(AppRoutes.organizations),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        _loading = true;
+                        _error = null;
+                        _item = null;
+                      });
+                      _loadItem();
+                    },
+                    child: const Text('Try again'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     final title = widget.isCreate
