@@ -26,6 +26,7 @@ abstract class CustomerResponse with _$CustomerResponse {
     double? latitude,
     double? longitude,
     String? formattedAddress,
+    String? deletedAt,
     required OrganizationResponse organization,
   }) = _CustomerResponse;
 

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
-
 import '../../core/services/list_query.dart';
 import '../../models/customer.dart';
 import '../../models/permissions.dart';
@@ -22,20 +21,8 @@ import '../../widgets/responsive_list_view.dart';
 
 /// The customer list.
 ///
-/// Search, sort, create and delete, plus pagination — the one thing here the
-/// original app did not have.
-///
-/// **The paging is new rather than ported, and it is worth being clear which
-/// part of it is not.** The original screen fetched the first 25 rows and there
-/// was no control anywhere in the original app to reach row 26. The page *size*
-/// is still 25 — [kListPageSize], shared by all list screens — because that is
-/// what the original asked for. What is new is that there is now a way to ask
-/// for the
-/// next page, and that it is the same shape on every list screen.
-///
-/// The row actions were hover-revealed in the original, which is unreachable on
-/// a phone. The shared [ResponsiveListView] resolves that: hover on a pointer,
-/// always visible in a card.
+/// Search, sort, create, deactivate/restore, and pagination. Follows the user
+/// list's status-filter pattern for deactivated customers.
 class CustomerListScreen extends ConsumerStatefulWidget {
   const CustomerListScreen({super.key});
 
@@ -47,27 +34,11 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   String _searchTerm = '';
   String _sortBy = 'name';
   SortOrder _sortOrder = SortOrder.asc;
+  String _statusFilter = 'active';
 
-  /// The query built during the last build, kept so event handlers — "load
-  /// more", "reload after a delete" — can reach the same provider the screen is
-  /// watching.
-  ///
-  /// Rebuilding it in the handler instead would mean repeating the scoping rules
-  /// in a second place, and getting one of them subtly different is the kind of
-  /// bug that only shows up after a delete: the list reloads unfiltered, or
-  /// reloads the wrong organization's rows. One construction, one use.
   ListQuery? _query;
-
-  /// An error from a mutation — a failed delete, which the list itself does not
-  /// re-render.
-  ///
-  /// The React original held one `error` for both the fetch and the delete and
-  /// rendered it through `TableView`. Here the fetch's error lives in the
-  /// provider, so only the mutation's needs a field.
   ApiException? _actionError;
 
-  /// Matches the original list: re-tapping the active column reverses it, and a
-  /// different column starts ascending.
   void _onSort(String key) {
     setState(() {
       if (_sortBy == key) {
@@ -81,18 +52,14 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     });
   }
 
-  /// The delete confirmation.
-  ///
-  /// The dialog is shared — see [confirmDestructiveAction] — and what stays here
-  /// is the part that is specific to this screen: the service call, the refetch,
-  /// and where a failure is shown.
-  Future<void> _confirmDelete(CustomerResponse customer) async {
+  Future<void> _confirmDeactivate(CustomerResponse customer) async {
     final confirmed = await confirmDestructiveAction(
       context,
-      title: 'Delete customer',
+      title: 'Deactivate customer',
       message:
-          'Are you sure you want to delete ${customer.name}? This cannot be '
-          'undone.',
+          'Are you sure you want to deactivate ${customer.name}? Historical '
+          'event associations will be retained and the customer can be restored later.',
+      confirmLabel: 'Deactivate',
     );
 
     if (!confirmed || !mounted) return;
@@ -101,10 +68,6 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       await ref
           .read(customerServiceProvider)
           .deleteCustomer(customer.customerId);
-      // `fetchCustomers` in the original. [PagedListController.reload]
-      // rather than `ref.invalidate`, which would rebuild every accumulated
-      // page key rather than resetting to the first — and the pages past the
-      // deletion are stale anyway, see `reload`.
       await ref.read(customerListProvider(_query!).notifier).reload();
       setState(() => _actionError = null);
     } on ApiException catch (error) {
@@ -112,7 +75,19 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     }
   }
 
-  List<ListColumn<CustomerResponse>> _columns() => [
+  Future<void> _restoreCustomer(CustomerResponse customer) async {
+    try {
+      await ref
+          .read(customerServiceProvider)
+          .restoreCustomer(customer.customerId);
+      await ref.read(customerListProvider(_query!).notifier).reload();
+      setState(() => _actionError = null);
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _actionError = error);
+    }
+  }
+
+  List<ListColumn<CustomerResponse>> _columns({required bool showStatus}) => [
     ListColumn<CustomerResponse>(
       key: 'name',
       label: 'Name',
@@ -138,47 +113,41 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
       label: 'Notes',
       text: (customer) => customer.notes,
     ),
+    if (showStatus)
+      ListColumn<CustomerResponse>(
+        key: 'status',
+        label: 'Status',
+        text: (customer) =>
+            customer.deletedAt == null ? 'Active' : 'Deactivated',
+      ),
   ];
 
-  /// Builds the provider key from this screen's own state.
-  ///
-  /// **`limit` and `offset` are deliberately absent.** They used to be here —
-  /// `offset: 0` hard-coded, which is why the list could never reach past the
-  /// first page. They now belong to [PagedListController], which applies the
-  /// page size and advances the offset itself; putting them in the key as well
-  /// would make each page its own provider and the screen would have to stitch
-  /// N independent results back into one list.
-  ///
-  /// That this is a plain function of the screen's own state is what makes the
-  /// reset work: a changed search term or sort is a different [ListQuery], which
-  /// is a different provider, which starts again at offset 0. See
-  /// [PagedListController] for why that is the right place for the offset to
-  /// live.
-  ///
-  /// Called from `build` rather than being cached as a getter, because it reads
-  /// `selectedOrganizationProvider` — a `ref.watch` inside a getter would be a
-  /// dependency registered outside the build that is supposed to own it.
-  ListQuery _buildQuery(int? organizationId) => ListQuery(
+  ListQuery _buildQuery(
+    int? organizationId, {
+    required bool canAccessDeactivated,
+  }) => ListQuery(
     search: _searchTerm.isEmpty ? null : _searchTerm,
     sortBy: _sortBy,
     sortOrder: _sortOrder,
-    // Scoped by the effective organization: a superadmin in "All
-    // Organizations" sees every organization, a superadmin with a selection
-    // sees that one, and everyone else sees their own.
     organizationId: organizationId,
+    status: canAccessDeactivated ? _statusFilter : null,
   );
 
   @override
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
-    final canManage = gate.has(Permission.manageCustomersOrganization);
+    final canManage = gate.hasAny([
+      Permission.manageCustomersOrganization,
+      Permission.manageCustomersGlobal,
+    ]);
+    final canViewGlobal = gate.has(Permission.viewCustomersGlobal);
+    final canAccessDeactivated = canViewGlobal || canManage;
     final organizationId = ref.watch(queryOrganizationIdProvider);
 
-    final query = _buildQuery(organizationId);
-    // Assigning during build rather than in an event handler: the search field's
-    // debounce and the sort toggle both go through `setState`, and this is the
-    // only place that sees the organization selection change without a
-    // `setState` of its own.
+    final query = _buildQuery(
+      organizationId,
+      canAccessDeactivated: canAccessDeactivated,
+    );
     _query = query;
     final actionError = _actionError;
 
@@ -207,9 +176,24 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                   : null,
             ),
             const SizedBox(height: 16),
-            // The debounce from lives with the field, not here —
-            // see `DebouncedSearchField` for why every list screen gets the
-            // same one rather than its own copy of the timer.
+            if (canAccessDeactivated) ...[
+              SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: 'active', label: Text('Active')),
+                  ButtonSegment(
+                    value: 'deactivated',
+                    label: Text('Deactivated'),
+                  ),
+                  ButtonSegment(value: 'all', label: Text('All')),
+                ],
+                selected: {_statusFilter},
+                onSelectionChanged: (selection) {
+                  setState(() => _statusFilter = selection.first);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
             DebouncedSearchField(
               onChanged: (value) => setState(() => _searchTerm = value),
             ),
@@ -220,36 +204,42 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
             ],
             PagedListSection<CustomerResponse>(
               provider: customerListProvider(query),
-              // The same handler `PagedScrollView` uses for scrolling, so the
-              // button and the automatic load cannot drift apart.
               loadMore: () =>
                   ref.read(customerListProvider(query).notifier).loadMore(),
-              columns: _columns(),
+              columns: _columns(showStatus: canAccessDeactivated),
               idOf: (customer) => customer.customerId,
               emptyMessage: 'No customers found.',
-              // Only reaches the footer, to word its count. Same test as the one
-              // `_buildQuery` uses to decide whether to send `search` at all, so
-              // the label cannot claim a filter the request did not apply.
               filtered: _searchTerm.isNotEmpty,
               sortBy: _sortBy,
               sortOrder: _sortOrder,
               onSort: _onSort,
               actions: canManage
-                  ? (context, customer) => [
-                      ListRowAction(
-                        icon: Icons.edit,
-                        label: 'Edit',
-                        onPressed: () => context.go(
-                          AppRoutes.customerEditPath(customer.customerId),
-                        ),
-                      ),
-                      ListRowAction(
-                        icon: Icons.delete,
-                        label: 'Delete',
-                        isDestructive: true,
-                        onPressed: () => _confirmDelete(customer),
-                      ),
-                    ]
+                  ? (context, customer) {
+                      final isDeactivated = customer.deletedAt != null;
+                      return [
+                        if (!isDeactivated)
+                          ListRowAction(
+                            icon: Icons.edit,
+                            label: 'Edit',
+                            onPressed: () => context.go(
+                              AppRoutes.customerEditPath(customer.customerId),
+                            ),
+                          ),
+                        if (!isDeactivated)
+                          ListRowAction(
+                            icon: Icons.person_off,
+                            label: 'Deactivate',
+                            isDestructive: true,
+                            onPressed: () => _confirmDeactivate(customer),
+                          ),
+                        if (isDeactivated)
+                          ListRowAction(
+                            icon: Icons.restore,
+                            label: 'Restore',
+                            onPressed: () => _restoreCustomer(customer),
+                          ),
+                      ];
+                    }
                   : null,
             ),
           ],

@@ -221,7 +221,7 @@ Once the Flutter web app is verified working locally against the real backend. T
 
   **Work items:** check `SELECT DISTINCT availability FROM rsvps` and audit derived behavior/usages (DAO/service/routes/UI/constants) before migrating; decide migration/compatibility strategy for existing stored values and any client compatibility needed during rollout; enforce the enum server-side (request/response/storage as appropriate), update Flutter `RsvpAvailability`/models and the RSVP UI to include **tentative**, and handle display/mapping for existing/current states as needed. Keep API docs/client types in sync.
 
-- [ ] **10.19** **Soft-delete customers, so deleting one does not destroy the events that reference it.** Found by deleting a real customer during task 4.4's browser check. **Decision made: soft delete**, on the grounds that prior events are business records and a customer row is not.
+- [x] **10.19** **Soft-delete customers, so deleting one does not destroy the events that reference it.** Found by deleting a real customer during task 4.4's browser check. **Decision made: soft delete**, on the grounds that prior events are business records and a customer row is not.
 
   **Follow the user-deactivation pattern (10.12) where applicable.**
   - **Flag:** add nullable `deletedAt` (timestamp with time zone) to `Customers`. `SchemaUtils.create` is create-if-missing and never alters existing tables, so this requires dropping/recreating the dev database.
@@ -231,9 +231,9 @@ Once the Flutter web app is verified working locally against the real backend. T
   - **Edit/reactivate:** treat deactivated customers as immutable except restore/reactivation, consistent with deactivated users. Add a restore/reactivation action.
   - **Permissions:** follow the general soft-delete rule — if a caller has permission to delete/deactivate, they generally have permission to restore/reactivate (no exceptions unless explicitly decided later). Apply the same org/global scoping model as other customer management actions.
 
-  **Bug context:** `CustomerDao.deleteCustomer` currently hard-deletes; `Events.customerId` has no `onDelete`, so deleting a customer referenced by any event fails with FK constraint `fk_events_customer_id__id` and surfaces as a 500/stack trace. Fix by soft delete + correct filtering, not by cascading or nulling historical event references.
+  **Implemented.** Customers now use `deletedAt` soft deletion (deactivate-on-delete, idempotent) with `status=active|deactivated|all` filtering for authorized callers (global viewers/managers and org-scoped customer managers, scoped appropriately), default/normal reads and pickers excluding deactivated customers, and restore via `POST /api/customers/{id}/restore`. Deactivated customers remain resolvable in embedded event responses for historical associations, cannot be edited/accidentally reactivated via update, and the Flutter customer list follows the user list status-filter/restore pattern. `VIEW_CUSTOMERS_GLOBAL` was mirrored in Flutter permissions for parity. Verified with `./teven verify-backend` and `./teven verify`.
 
-  **Verify after:** deleting a referenced customer no longer 500s; deactivated customers are hidden from default lists/pickers unless explicitly requested; historical events still resolve their customer; authorized users can restore/reactivated customers per permissions.
+  **Bug context:** `CustomerDao.deleteCustomer` currently hard-deletes; `Events.customerId` has no `onDelete`, so deleting a customer referenced by any event fails with FK constraint `fk_events_customer_id__id` and surfaces as a 500/stack trace. Fix by soft delete + correct filtering, not by cascading or nulling historical event references.
 
 - [ ] **10.20** **Finish detail screens and the linked "dead link" cases.** Historically, the React app linked to customer/inventory/organization/user detail routes that did not exist. The Flutter app has since added real detail screens/routes for customers (`/customers/:customerId`), inventory (`/inventory/:inventoryId`), and users (`/users/:userId`), so those links are no longer dead-end fallthroughs in the same way.
 

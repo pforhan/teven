@@ -4045,3 +4045,19 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`.
 
 **Files changed (primary):** `backend/app/build.gradle.kts`, `gradle/libs.versions.toml`, `backend/app/src/test/kotlin/alphainterplanetary/teven/app/RouteTestHarness.kt`, `backend/app/src/test/kotlin/alphainterplanetary/teven/app/RouteAuthorizationAndValidationTest.kt`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-19 — 10.19: soft-delete customers (deactivate/restore) with filtered visibility
+
+**Implemented task 10.19.** Customers now soft-delete via nullable `deletedAt` (deactivate-on-delete, idempotent) instead of hard delete, following the user-deactivation pattern where applicable.
+
+**Backend.** Added `Customers.deletedAt` and `CustomerResponse.deletedAt`; `CustomerDao` centralizes active/deactivated/all filtering, excludes deactivated customers from default reads/lists (`status=active|deactivated|all`), keeps deactivated rows immutable except restore, and preserves historical resolution by still returning embedded customer data (including `deletedAt`) in event responses. `CustomerService`/routes add `POST /api/customers/{id}/restore` (under customer manage permissions, OR org/global), gate explicit deactivated/all access to authorized callers (global viewers/managers and org-scoped managers, scoped to organization where required), and prevent normal deactivated reads/picker-style access. `DELETE /api/customers/{id}` now deactivates.
+
+**Flutter.** `CustomerResponse` and client service include `deletedAt` and `restoreCustomer`; the customer list follows the user-list status filter pattern (Active/Deactivated/All for authorized users) with deactivate/restore actions and deactivated status display. Normal event-form customer pickers load active customers only while preserving a currently selected customer on edit so historical associations remain editable/viewable. Mirrored `VIEW_CUSTOMERS_GLOBAL` in `flutter_app/lib/models/permissions.dart` for parity with server gating.
+
+**Schema note:** dev database must be dropped/recreated for the new `customers.deleted_at` column (`SchemaUtils.create` does not alter existing tables).
+
+**Verified:** `./teven verify-backend`, `./teven verify`.
+
+**Files changed (primary):** `backend/data/src/main/kotlin/alphainterplanetary/teven/data/customer/Customers.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/customer/CustomerDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/event/EventDao.kt`, `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/customer/CustomerResponse.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/customer/CustomerService.kt`, `backend/app/src/main/kotlin/alphainterplanetary/teven/app/customer/CustomerRoutes.kt`, `flutter_app/lib/models/customer.dart`, `flutter_app/lib/models/permissions.dart`, `flutter_app/lib/core/services/crud_services.dart`, `flutter_app/lib/screens/customers/customer_list_screen.dart`, `flutter_app/lib/screens/events/event_form_screen.dart`, `flutter_app/test/customer_list_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

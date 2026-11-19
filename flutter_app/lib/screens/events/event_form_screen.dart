@@ -298,8 +298,21 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
       ]);
       if (mounted) {
         setState(() {
-          _availableCustomers =
+          final fetchedCustomers =
               (results[0] as PaginatedResponse<CustomerResponse>).items;
+          if (_customerId.isNotEmpty &&
+              !fetchedCustomers.any(
+                (c) => c.customerId.toString() == _customerId,
+              )) {
+            final selected = _availableCustomers
+                .where((c) => c.customerId.toString() == _customerId)
+                .firstOrNull;
+            _availableCustomers = selected == null
+                ? fetchedCustomers
+                : [selected, ...fetchedCustomers];
+          } else {
+            _availableCustomers = fetchedCustomers;
+          }
           _availableUsers =
               (results[1] as PaginatedResponse<UserResponse>).items;
         });
@@ -321,7 +334,22 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
               sortOrder: SortOrder.asc,
             ),
           );
-      if (mounted) setState(() => _availableCustomers = resp.items);
+      if (mounted) {
+        setState(() {
+          final items = resp.items;
+          if (_customerId.isNotEmpty &&
+              !items.any((c) => c.customerId.toString() == _customerId)) {
+            final selected = _availableCustomers
+                .where((c) => c.customerId.toString() == _customerId)
+                .firstOrNull;
+            _availableCustomers = selected == null
+                ? items
+                : [selected, ...items];
+          } else {
+            _availableCustomers = items;
+          }
+        });
+      }
     } catch (_) {}
   }
 

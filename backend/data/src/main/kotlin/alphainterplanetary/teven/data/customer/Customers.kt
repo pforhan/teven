@@ -2,6 +2,7 @@ package alphainterplanetary.teven.data.customer
 
 import alphainterplanetary.teven.data.organization.Organizations
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.timestampWithTimeZone
 
 object Customers : Table() {
   val id = integer("id").autoIncrement()
@@ -13,6 +14,7 @@ object Customers : Table() {
   val formattedAddress = varchar("formatted_address", 255).nullable()
   val notes = text("notes")
   val organizationId = integer("organization_id").references(Organizations.id)
+  val deletedAt = timestampWithTimeZone("deleted_at").nullable()
 
   override val primaryKey = PrimaryKey(id)
 }

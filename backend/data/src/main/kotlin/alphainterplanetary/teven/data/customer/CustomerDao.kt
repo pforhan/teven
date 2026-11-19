@@ -1,9 +1,9 @@
 package alphainterplanetary.teven.data.customer
 
+import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.customer.CreateCustomerRequest
 import alphainterplanetary.teven.api.model.customer.CustomerResponse
 import alphainterplanetary.teven.api.model.customer.UpdateCustomerRequest
-import alphainterplanetary.teven.api.model.common.PaginatedResponse
 import alphainterplanetary.teven.api.model.organization.OrganizationResponse
 import alphainterplanetary.teven.core.Pagination
 import alphainterplanetary.teven.data.dbQuery
@@ -13,14 +13,25 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.isNotNull
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.lowerCase
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
-import org.jetbrains.exposed.v1.core.like
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+
+enum class CustomerStatusFilter {
+  ACTIVE,
+  DEACTIVATED,
+  ALL,
+}
 
 class CustomerDao {
+  private fun activeCondition(): Op<Boolean> = Customers.deletedAt.isNull()
+
   private fun toCustomerResponse(row: ResultRow): CustomerResponse {
     val organization =
       Organizations.selectAll().where { Organizations.id eq row[Customers.organizationId] }.single()
@@ -41,6 +52,7 @@ class CustomerDao {
       longitude = row[Customers.longitude],
       formattedAddress = row[Customers.formattedAddress],
       notes = row[Customers.notes],
+      deletedAt = row[Customers.deletedAt]?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
       organization = organization,
     )
   }
@@ -52,8 +64,14 @@ class CustomerDao {
     offset: Long?,
     sortBy: String?,
     sortOrder: String?,
+    status: CustomerStatusFilter = CustomerStatusFilter.ACTIVE,
   ): PaginatedResponse<CustomerResponse> = dbQuery {
     val conditions = mutableListOf<Op<Boolean>>()
+    when (status) {
+      CustomerStatusFilter.ACTIVE -> conditions.add(activeCondition())
+      CustomerStatusFilter.DEACTIVATED -> conditions.add(Customers.deletedAt.isNotNull())
+      CustomerStatusFilter.ALL -> {}
+    }
     organizationId?.let { conditions.add(Customers.organizationId eq it) }
     search?.let { conditions.add(Customers.name.lowerCase() like "%${it.lowercase()}%") }
 
@@ -87,21 +105,48 @@ class CustomerDao {
     )
   }
 
-  suspend fun getAllCustomers(): List<CustomerResponse> = dbQuery {
-    Customers.selectAll().map { toCustomerResponse(it) }
+  suspend fun getAllCustomers(includeDeactivated: Boolean = false): List<CustomerResponse> = dbQuery {
+    val query = if (includeDeactivated) {
+      Customers.selectAll()
+    } else {
+      Customers.selectAll().where { activeCondition() }
+    }
+    query.map { toCustomerResponse(it) }
   }
 
-  suspend fun getAllCustomersByOrganization(organizationId: Int): List<CustomerResponse> = dbQuery {
+  suspend fun getAllCustomersByOrganization(
+    organizationId: Int,
+    includeDeactivated: Boolean = false,
+  ): List<CustomerResponse> = dbQuery {
+    val condition = if (includeDeactivated) {
+      Customers.organizationId eq organizationId
+    } else {
+      (Customers.organizationId eq organizationId) and activeCondition()
+    }
     Customers.selectAll()
-      .where { Customers.organizationId eq organizationId }
+      .where { condition }
       .map { toCustomerResponse(it) }
   }
 
-  suspend fun getCustomerById(customerId: Int): CustomerResponse? = dbQuery {
-    Customers.selectAll().where { Customers.id eq customerId }
+  suspend fun getCustomerById(
+    customerId: Int,
+    includeDeactivated: Boolean = false,
+  ): CustomerResponse? = dbQuery {
+    val condition = if (includeDeactivated) {
+      Customers.id eq customerId
+    } else {
+      (Customers.id eq customerId) and activeCondition()
+    }
+    Customers.selectAll()
+      .where { condition }
       .mapNotNull { toCustomerResponse(it) }
       .singleOrNull()
   }
+
+  suspend fun findCustomerById(
+    customerId: Int,
+    includeDeactivated: Boolean = false,
+  ): CustomerResponse? = getCustomerById(customerId, includeDeactivated)
 
   suspend fun createCustomer(createCustomerRequest: CreateCustomerRequest): CustomerResponse =
     dbQuery {
@@ -116,33 +161,14 @@ class CustomerDao {
         it[organizationId] = createCustomerRequest.organizationId!!
       } get Customers.id
 
-      CustomerResponse(
-        customerId = id,
-        name = createCustomerRequest.name,
-        phone = createCustomerRequest.phone,
-        address = createCustomerRequest.address,
-        latitude = createCustomerRequest.latitude,
-        longitude = createCustomerRequest.longitude,
-        formattedAddress = createCustomerRequest.formattedAddress,
-        notes = createCustomerRequest.notes,
-        organization = Organizations.selectAll()
-          .where { Organizations.id eq createCustomerRequest.organizationId!! }
-          .single().let {
-            OrganizationResponse(
-              organizationId = it[Organizations.id].value,
-              name = it[Organizations.name],
-              contactInformation = it[Organizations.contactInformation],
-              timezone = it[Organizations.timezone],
-            )
-          },
-      )
+      toCustomerResponse(Customers.selectAll().where { Customers.id eq id }.single())
     }
 
   suspend fun updateCustomer(
     customerId: Int,
     updateCustomerRequest: UpdateCustomerRequest,
   ): CustomerResponse? = dbQuery {
-    val updated = Customers.update({ Customers.id eq customerId }) {
+    val updated = Customers.update({ (Customers.id eq customerId) and Customers.deletedAt.isNull() }) {
       updateCustomerRequest.name?.let { name -> it[Customers.name] = name }
       updateCustomerRequest.phone?.let { phone -> it[Customers.phone] = phone }
       updateCustomerRequest.address?.let { address -> it[Customers.address] = address }
@@ -158,13 +184,20 @@ class CustomerDao {
     } > 0
     if (!updated) return@dbQuery null
 
-    Customers.selectAll()
-      .where { Customers.id eq customerId }
-      .mapNotNull { toCustomerResponse(it) }
-      .singleOrNull()
+    getCustomerById(customerId, includeDeactivated = false)
   }
 
-  suspend fun deleteCustomer(customerId: Int): Boolean = dbQuery {
-    Customers.deleteWhere { Customers.id eq customerId } > 0
+  suspend fun deactivateCustomer(customerId: Int): Boolean = dbQuery {
+    Customers.update({ (Customers.id eq customerId) and Customers.deletedAt.isNull() }) {
+      it[deletedAt] = OffsetDateTime.now()
+    } > 0
   }
+
+  suspend fun restoreCustomer(customerId: Int): Boolean = dbQuery {
+    Customers.update({ (Customers.id eq customerId) and Customers.deletedAt.isNotNull() }) {
+      it[deletedAt] = null
+    } > 0
+  }
+
+  suspend fun deleteCustomer(customerId: Int): Boolean = deactivateCustomer(customerId)
 }

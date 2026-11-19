@@ -13,5 +13,6 @@ data class CustomerResponse(
   val longitude: Double? = null,
   val formattedAddress: String? = null,
   val notes: String,
+  val deletedAt: String? = null,
   val organization: OrganizationResponse,
 )

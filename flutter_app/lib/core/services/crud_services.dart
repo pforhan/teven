@@ -147,9 +147,18 @@ class CustomerService {
     decode: (json) => CustomerResponse.fromJson(json! as Map<String, dynamic>),
   );
 
-  /// Answers `204 NoContent`.
+  /// Deactivates (soft-deletes) a customer.
+  ///
+  /// The server returns `204 No Content` on success.
   Future<void> deleteCustomer(int customerId) =>
       _client.delete('/api/customers/$customerId');
+
+  Future<CustomerResponse> restoreCustomer(int customerId) =>
+      _client.post<CustomerResponse>(
+        '/api/customers/$customerId/restore',
+        decode: (json) =>
+            CustomerResponse.fromJson(json! as Map<String, dynamic>),
+      );
 }
 
 /// Inventory items.

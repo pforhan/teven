@@ -142,6 +142,7 @@ void main() {
       expect(request.queryParameters['offset'], 0);
       expect(request.queryParameters['sortBy'], 'name');
       expect(request.queryParameters['sortOrder'], 'asc');
+      expect(request.queryParameters['status'], 'active');
       // `ListQuery.toParams` omits an empty search rather than sending `""`.
       expect(request.queryParameters.containsKey('search'), isFalse);
     });
@@ -171,6 +172,7 @@ void main() {
       );
 
       expect(getRequests(adapter).last.queryParameters['organizationId'], 2);
+      expect(getRequests(adapter).last.queryParameters['status'], 'active');
     });
 
     testWidgets(
@@ -256,7 +258,7 @@ void main() {
       expect(find.text('Create Customer'), findsNothing);
 
       await hoverFirstRow(tester);
-      expect(find.byIcon(Icons.delete), findsNothing);
+      expect(find.byIcon(Icons.person_off), findsNothing);
       expect(find.byIcon(Icons.edit), findsNothing);
       // The data is still there — the gate is on the actions, not the screen.
       expect(find.text('Globex'), findsOneWidget);
@@ -273,11 +275,11 @@ void main() {
       // On web only the hovered row's are built. The hover path itself is
       // pinned in `responsive_list_view_test.dart`, where the flag is explicit.
       expect(find.byIcon(Icons.edit), findsWidgets);
-      expect(find.byIcon(Icons.delete), findsWidgets);
+      expect(find.byIcon(Icons.person_off), findsWidgets);
     });
   });
 
-  group('delete', () {
+  group('deactivate', () {
     testWidgets(
       'asks first, naming the record, and cancelling changes nothing',
       (tester) async {
@@ -285,37 +287,36 @@ void main() {
         await openCustomers(tester, adapter);
         await hoverFirstRow(tester);
 
-        await tester.tap(find.byIcon(Icons.delete).first);
+        await tester.tap(find.byIcon(Icons.person_off).first);
         await tester.pumpAndSettle();
 
-        expect(find.text('Delete customer'), findsOneWidget);
-        // `window.confirm` did not say which record; this does. Both the
-        // dialog and the row behind it name the customer.
+        expect(find.text('Deactivate customer'), findsOneWidget);
+        // The dialog names the customer so the manager knows what will be
+        // deactivated (and retained for historical event resolution).
         expect(find.textContaining('Globex'), findsWidgets);
 
         await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
         await tester.pumpAndSettle();
 
         expect(adapter.requests.where((o) => o.method == 'DELETE'), isEmpty);
-        expect(find.text('Delete customer'), findsNothing);
+        expect(find.text('Deactivate customer'), findsNothing);
       },
     );
 
-    testWidgets('confirming deletes and refetches', (tester) async {
+    testWidgets('confirming deactivates and refetches', (tester) async {
       final adapter = customerAdapter();
       await openCustomers(tester, adapter);
       await hoverFirstRow(tester);
 
-      await tester.tap(find.byIcon(Icons.delete).first);
+      await tester.tap(find.byIcon(Icons.person_off).first);
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.tap(find.widgetWithText(TextButton, 'Deactivate'));
       await settleRequests(tester);
 
       expect(
         adapter.requests.where((o) => o.method == 'DELETE').map((o) => o.path),
         ['/api/customers/1'],
       );
-      // the original customer list screen re-fetched after deleting.
       expect(getRequests(adapter), hasLength(2));
     });
   });
@@ -378,7 +379,7 @@ void main() {
       // `findsWidgets`: the card layout renders one action pair per row and the
       // fixture has two customers.
       expect(find.byIcon(Icons.edit), findsWidgets);
-      expect(find.byIcon(Icons.delete), findsWidgets);
+      expect(find.byIcon(Icons.person_off), findsWidgets);
     });
   });
 }

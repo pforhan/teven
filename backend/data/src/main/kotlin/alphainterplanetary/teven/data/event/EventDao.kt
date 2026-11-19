@@ -32,6 +32,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 class EventDao {
   private suspend fun toEventResponse(row: ResultRow): EventResponse {
@@ -88,6 +89,7 @@ class EventDao {
         longitude = customerRow[Customers.longitude],
         formattedAddress = customerRow[Customers.formattedAddress],
         notes = customerRow[Customers.notes],
+        deletedAt = customerRow[Customers.deletedAt]?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
         organization = OrganizationResponse(
           organizationId = customerOrgRow[Organizations.id].value,
           name = customerOrgRow[Organizations.name],

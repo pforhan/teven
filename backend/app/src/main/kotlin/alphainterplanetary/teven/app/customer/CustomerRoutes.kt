@@ -6,14 +6,12 @@ import alphainterplanetary.teven.api.model.customer.CreateCustomerRequest
 import alphainterplanetary.teven.api.model.customer.UpdateCustomerRequest
 import alphainterplanetary.teven.app.requireAuthContext
 import alphainterplanetary.teven.auth.withPermission
-import alphainterplanetary.teven.core.security.AuthContext
 import alphainterplanetary.teven.core.security.Permission.MANAGE_CUSTOMERS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.MANAGE_CUSTOMERS_ORGANIZATION
 import alphainterplanetary.teven.core.security.Permission.VIEW_CUSTOMERS_GLOBAL
 import alphainterplanetary.teven.core.security.Permission.VIEW_CUSTOMERS_ORGANIZATION
 import alphainterplanetary.teven.service.customer.CustomerService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -60,7 +58,7 @@ fun Route.customerRoutes() {
       }
     }
 
-    // Delete Customer
+    // Deactivate Customer (soft delete)
     withPermission(MANAGE_CUSTOMERS_ORGANIZATION, MANAGE_CUSTOMERS_GLOBAL) {
       delete("{customer_id}") {
         val authContext = requireAuthContext()
@@ -71,6 +69,21 @@ fun Route.customerRoutes() {
         }
         if (customerService.deleteCustomer(authContext, customerId)) {
           call.respond(HttpStatusCode.NoContent)
+        } else {
+          call.respond(HttpStatusCode.NotFound, failure("Customer not found"))
+        }
+      }
+
+      post("{customer_id}/restore") {
+        val authContext = requireAuthContext()
+        val customerId = call.parameters["customer_id"]?.toIntOrNull()
+        if (customerId == null) {
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid customer ID"))
+          return@post
+        }
+        val restored = customerService.restoreCustomer(authContext, customerId)
+        if (restored != null) {
+          call.respond(HttpStatusCode.OK, success(restored))
         } else {
           call.respond(HttpStatusCode.NotFound, failure("Customer not found"))
         }
@@ -87,6 +100,7 @@ fun Route.customerRoutes() {
         val offset = call.request.queryParameters["offset"]?.toLongOrNull()
         val sortBy = call.request.queryParameters["sortBy"]
         val sortOrder = call.request.queryParameters["sortOrder"]
+        val status = call.request.queryParameters["status"]
 
         val customers = customerService.getCustomers(
           authContext = authContext,
@@ -95,13 +109,14 @@ fun Route.customerRoutes() {
           limit = limit,
           offset = offset,
           sortBy = sortBy,
-          sortOrder = sortOrder
+          sortOrder = sortOrder,
+          status = status,
         )
         call.respond(HttpStatusCode.OK, success(customers))
       }
 
       get("{customer_id}") {
-        val authContext = call.principal<AuthContext>()!!
+        val authContext = requireAuthContext()
         val customerId = call.parameters["customer_id"]?.toIntOrNull()
         if (customerId == null) {
           call.respond(HttpStatusCode.BadRequest, failure("Invalid customer ID"))

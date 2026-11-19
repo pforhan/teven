@@ -18,6 +18,7 @@ enum Permission {
   manageEventsGlobal('MANAGE_EVENTS_GLOBAL'),
   viewCustomersOrganization('VIEW_CUSTOMERS_ORGANIZATION'),
   manageCustomersOrganization('MANAGE_CUSTOMERS_ORGANIZATION'),
+  viewCustomersGlobal('VIEW_CUSTOMERS_GLOBAL'),
 
   /// The global permission for managing customers across organizations. Today it
   /// is the gate that decides whether the customer create/edit forms can be used
