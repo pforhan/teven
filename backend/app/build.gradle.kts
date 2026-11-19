@@ -24,4 +24,17 @@ dependencies {
   implementation(libs.koin.ktor)
   implementation(libs.koin.logger.slf4j)
   implementation(libs.logback.classic)
+
+  testImplementation(libs.ktor.server.test.host.jvm)
+  testImplementation(libs.koin.ktor)
+  testImplementation(libs.koin.logger.slf4j)
+  testImplementation(libs.kotlin.test.junit)
+  testImplementation(libs.junit.jupiter.api)
+  testRuntimeOnly(libs.junit.jupiter.engine)
+  testRuntimeOnly(libs.junit.platform.launcher)
+  testImplementation(libs.mockk)
+}
+
+tasks.withType<Test> {
+  useJUnitPlatform()
 }

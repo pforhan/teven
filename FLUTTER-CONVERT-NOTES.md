@@ -4027,3 +4027,21 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`, `./teven verify` (after regenerating model code).
 
 **Files changed (primary):** `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/inventory/InventoryItemResponse.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/inventory/InventoryDao.kt`, `flutter_app/lib/models/inventory.dart`, `flutter_app/lib/screens/inventory/inventory_list_screen.dart`, `flutter_app/test/inventory_list_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-19 — 10.23: backend app route-test harness and initial route-boundary coverage
+
+**Implemented task 10.23 (initial harness + coverage).** Added a reusable `backend:app` route-test harness and initial tests for route-layer validation, authorization wiring, and envelope/status behavior not covered by service tests.
+
+**Harness/setup.** Added `backend:app` test dependencies (`ktor-server-test-host`, Koin, JUnit/MockK) and JUnit platform test config in `backend/app/build.gradle.kts` (and updated `gradle/libs.versions.toml` to use `ktor-server-test-host-jvm`). Created `RouteTestHarness.kt` to run `testApplication` with `ContentNegotiation`/JSON, `StatusPages`, Koin modules, a test bearer `auth-jwt` provider supplying an `AuthContext`, and injectable `PermissionService` state for `withPermission` routes.
+
+**Coverage added.** `RouteAuthorizationAndValidationTest` covers:
+- authenticated `POST /api/invitations` with malformed `expiresAt` returns **400 + failure envelope** before calling `InvitationService.generateInvitation` (route-layer validation);
+- `withPermission` denied request returns **403 + failure envelope** and does **not** execute the route handler (10.22 short-circuit behavior);
+- `withPermission` allowed request (OR semantics: any required permission) returns **200 + success envelope** and executes the handler;
+- public `GET /api/invitations/validate` without token returns **400 + failure envelope**.
+
+**Verified:** `./teven verify-backend`.
+
+**Files changed (primary):** `backend/app/build.gradle.kts`, `gradle/libs.versions.toml`, `backend/app/src/test/kotlin/alphainterplanetary/teven/app/RouteTestHarness.kt`, `backend/app/src/test/kotlin/alphainterplanetary/teven/app/RouteAuthorizationAndValidationTest.kt`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

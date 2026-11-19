@@ -340,7 +340,7 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
   **Until this is fixed, the client-side permission gates are the only thing standing between a user and the whole database.** That is worth saying plainly: the port's route guards, the nav items and the per-screen buttons all work, and none of them is a security boundary.
 
-- [ ] **10.23** **Add a `backend:app` route-test harness and cover route-only validation/authorization gaps (broader coverage).** `backend:service` has JUnit/MockK tests (`./teven verify-backend`), but `backend/app` has no test sources and no test dependencies (`backend/app/build.gradle.kts`). Some request validation and route-layer behavior happens before the service runs (or at the HTTP boundary) and is not exercised by service tests.
+- [x] **10.23** **Add a `backend:app` route-test harness and cover route-only validation/authorization gaps (broader coverage).** `backend:service` has JUnit/MockK tests (`./teven verify-backend`), but `backend/app` has no test sources and no test dependencies (`backend/app/build.gradle.kts`). Some request validation and route-layer behavior happens before the service runs (or at the HTTP boundary) and is not exercised by service tests.
 
   **General setup needed:**
   - Add `testImplementation` dependencies to `backend:app` (at minimum Ktor test host — `ktor-server-tests-jvm` is in `gradle/libs.versions.toml` — plus JUnit/MockK consistent with the repo).
