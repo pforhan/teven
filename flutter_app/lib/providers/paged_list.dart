@@ -276,6 +276,28 @@ abstract class PagedListController<T> extends AsyncNotifier<PagedListState<T>> {
     }
   }
 
+  /// Replaces the first matching item in the current accumulated list.
+  ///
+  /// Used for in-place mutations that return the updated resource while the
+  /// screen stays put (e.g. RSVP), avoiding a redundant refetch/reload.
+  void replaceItemWhere(bool Function(T item) test, T replacement) {
+    final current = state.value;
+    if (current == null) return;
+    final index = current.items.indexWhere(test);
+    if (index < 0) return;
+    final items = [...current.items];
+    items[index] = replacement;
+    state = AsyncData(
+      PagedListState<T>(
+        items: items,
+        total: current.total,
+        isLoadingMore: current.isLoadingMore,
+        hasMore: current.hasMore,
+        loadMoreError: current.loadMoreError,
+      ),
+    );
+  }
+
   /// The screen's query, with this page's paging applied.
   ListQuery _query(int offset) =>
       baseQuery.copyWith(limit: kListPageSize, offset: offset);

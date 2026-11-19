@@ -148,23 +148,19 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     }
   }
 
-  /// Posts the availability and reloads.
+  /// Posts the availability and updates the affected row in place.
   ///
-  /// The server answers `success("OK")`, so nothing comes back to display and a
-  /// refetch is the only way to repaint the three buttons' selected state — which
-  /// is what the original did.
-  ///
-  /// `'no response'` is the literal the original posted for its clear button,
-  /// and it is **not** one of [RsvpAvailability]'s named values. Reproduced
-  /// verbatim: inventing `''` or `'none'` would change what lands in the
-  /// `rsvps.availability` column, and whether that column should hold a closed
-  /// set at all remains an open question.
+  /// The server returns the updated event, so reloading the whole list is not
+  /// necessary for this in-place mutation.
   Future<void> _rsvp(EventResponse event, String availability) async {
     try {
-      await ref
+      final updated = await ref
           .read(eventServiceProvider)
           .rsvpToEvent(event.eventId, RsvpRequest(availability: availability));
-      await ref.read(eventListProvider(_query!).notifier).reload();
+      if (!mounted || _query == null) return;
+      ref
+          .read(eventListProvider(_query!).notifier)
+          .replaceItemWhere((e) => e.eventId == event.eventId, updated);
       if (mounted) setState(() => _actionError = null);
     } on ApiException catch (error) {
       if (mounted) setState(() => _actionError = error);

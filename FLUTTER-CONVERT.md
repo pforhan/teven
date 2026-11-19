@@ -371,11 +371,13 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
   **This commit changes no behaviour** except where it fixes a stuck-loading-on-error case to match the recoverable pattern. Existing edit-form tests must still pass; add or adjust coverage only where behaviour is intentionally brought into line. Verified with `./teven verify`.
 
-- [ ] **10.26** **Use returned mutation results to avoid redundant refetches on in-place updates.** Several flows now receive the saved entity back from the server but still reload/refetch. Apply the returned object where the screen stays put:
+- [x] **10.26** **Use returned mutation results to avoid redundant refetches on in-place updates.** Several flows now receive the saved entity back from the server but still reload/refetch. Apply the returned object where the screen stays put:
   - **Event RSVP:** `POST /api/events/{id}/rsvp` returns the updated `EventResponse`. In the event list, update the affected item in the paged/list state instead of `reload()`; in the event details screen, replace the loaded event (and derived RSVP state) instead of calling `_load(initial: false)`.
   - **Inventory usage / other in-place mutations:** if a screen records usage or performs a mutation that returns the updated resource without navigating away, prefer updating local/provider state from the response over a follow-up fetch.
 
-  **Behaviour-preserving where possible:** the UI should reflect the same server state; avoid optimistic guesses that disagree with the returned entity.
+  **Implemented.** Added `replaceItemWhere` to `PagedListController` for in-place row replacement without refetch/reload. Event list RSVP now applies the returned `EventResponse` to the affected row in paged state; event details RSVP now applies the returned event (and derived RSVP status) in place instead of refetching. Updated RSVP tests to assert no redundant list/detail refetch after RSVP. No other in-place inventory-usage mutation UI flow exists in the current app.
+
+  **Behaviour-preserving where possible:** the UI should reflect the same server state; avoid optimistic guesses that disagree with the returned entity. Verified with `./teven verify`.
 
 - [ ] **10.27** **Reduce redundant fetches after create/update navigations by reusing returned entities.** Create and edit forms (customers, inventory, organizations, events, users/roles where applicable) currently `await` the mutation, discard the returned saved object, and navigate away; the destination then fetches again. Where practical, avoid the immediate extra round trip:
   - Prefer updating/inserting into the relevant list/detail provider cache (or invalidating in a way that can seed from the returned entity) so the destination can render the known result without a redundant fetch.

@@ -222,10 +222,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
     return null;
   }
 
-  /// Posts this user's availability.
-  ///
-  /// **The event is refetched afterwards,** because the server response does not
-  /// include the updated roster payload.
+  /// Posts this user's availability and applies the returned event in place.
   Future<void> _rsvp(String availability) async {
     if (_submitting) return;
     setState(() {
@@ -234,7 +231,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
       _submitting = true;
     });
     try {
-      await ref
+      final updated = await ref
           .read(eventServiceProvider)
           .rsvpToEvent(widget.eventId, RsvpRequest(availability: availability));
       if (!mounted) return;
@@ -246,11 +243,12 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
         _ => availability,
       };
       setState(() {
+        _event = updated;
+        _myRsvpStatus = _statusOf(updated);
         _successMessage = 'Successfully updated RSVP to $label.';
-        _myRsvpStatus = availability;
         _submitting = false;
+        _actionError = null;
       });
-      await _load(initial: false);
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() {

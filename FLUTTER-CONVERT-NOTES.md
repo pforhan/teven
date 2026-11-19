@@ -4135,3 +4135,19 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/screens/inventory/inventory_form_screen.dart`, `flutter_app/lib/screens/users/user_form_screen.dart`, `flutter_app/lib/screens/events/event_form_screen.dart`, `flutter_app/lib/screens/organizations/organization_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-19 — 10.26: use returned mutation results for in-place RSVP updates
+
+**Implemented task 10.26 (incremental).** Avoided redundant refetch/reload for event RSVP flows that already return the updated event.
+
+**Flutter.** Added `replaceItemWhere` to `PagedListController` to replace a matching accumulated item in place. Event list RSVP now applies the returned `EventResponse` to the affected row in `eventListProvider` state instead of calling `reload()`. Event details RSVP now applies the returned `EventResponse` (and derived RSVP status/message) directly to screen state instead of refetching the event.
+
+**Tests.** Updated event list/details RSVP tests to assert the RSVP POST occurs without a redundant list/detail refetch, while preserving the same user-visible state/message behavior.
+
+**Scope note.** No other in-place inventory-usage mutation UI flow currently exists in the app; task 10.26’s inventory-usage clause is not applicable to present screens.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/providers/paged_list.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `flutter_app/test/event_list_screen_test.dart`, `flutter_app/test/event_details_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

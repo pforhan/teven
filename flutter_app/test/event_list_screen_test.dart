@@ -449,7 +449,7 @@ void main() {
   });
 
   group('RSVP', () {
-    testWidgets('the yes button posts "accepted" and refetches', (
+    testWidgets('the yes button posts "accepted" and updates in place', (
       tester,
     ) async {
       final today = formatLocalDate(DateTime.now().toUtc());
@@ -473,7 +473,8 @@ void main() {
         (post.data as RsvpRequest).availability,
         RsvpAvailability.accepted,
       );
-      expect(getRequests(adapter).length, before + 1);
+      // RSVP returns the updated event; no redundant list reload needed.
+      expect(getRequests(adapter).length, before);
     });
 
     testWidgets('the maybe button posts "tentative"', (tester) async {

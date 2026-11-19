@@ -418,7 +418,9 @@ void main() {
   });
 
   group('RSVP', () {
-    testWidgets('"Going" posts "accepted" and refetches', (tester) async {
+    testWidgets('"Going" posts "accepted" and updates in place', (
+      tester,
+    ) async {
       final adapter = detailsAdapter();
       await openDetails(tester, adapter);
       final before = eventFetches(adapter).length;
@@ -434,7 +436,8 @@ void main() {
         (post.data as RsvpRequest).availability,
         RsvpAvailability.accepted,
       );
-      expect(eventFetches(adapter).length, before + 1);
+      // RSVP returns the updated event; no redundant refetch needed.
+      expect(eventFetches(adapter).length, before);
       expect(find.textContaining('Successfully updated RSVP'), findsOneWidget);
     });
 
