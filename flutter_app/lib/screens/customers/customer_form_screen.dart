@@ -11,6 +11,7 @@ import '../../providers/organization_controller.dart';
 import '../../providers/organization_list.dart';
 import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
+import '../../widgets/create_form_organization.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/organization_select_field.dart';
@@ -104,18 +105,11 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
     }
   }
 
-  /// The dropdown's value for create: what the user chose, or the first
-  /// organization. Shared by the control and submit so they agree.
-  static OrganizationResponse? _defaultOrganization(
-    List<OrganizationResponse> organizations,
-    OrganizationResponse? chosen,
-  ) => chosen ?? (organizations.isEmpty ? null : organizations.first);
-
   int? get _createOrganizationId {
     final selected = ref.read(selectedOrganizationProvider);
     if (selected != null) return selected.organizationId;
     if (_canManageGlobal) {
-      return _defaultOrganization(
+      return CreateFormOrganizationPolicy.defaultFirstOrganization(
         ref.read(organizationsProvider),
         _organization,
       )?.organizationId;
@@ -295,9 +289,12 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
 
     final gate = ref.watch(permissionGateProvider);
     final canManageGlobal = gate.has(Permission.manageCustomersGlobal);
-    final hasSelectedOrganization =
-        ref.watch(selectedOrganizationProvider) != null;
-    final showOrganizationField = canManageGlobal && !hasSelectedOrganization;
+    final selectedOrg = ref.watch(selectedOrganizationProvider);
+    final showOrganizationField =
+        CreateFormOrganizationPolicy.showGlobalOrganizationField(
+          canManageGlobal: canManageGlobal,
+          selectedOrganization: selectedOrg,
+        );
 
     return FormCard(
       formKey: _formKey,
@@ -338,7 +335,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
         if (showOrganizationField)
           OrganizationSelectField(
             value: _organization,
-            resolve: _CustomerFormScreenState._defaultOrganization,
+            resolve: CreateFormOrganizationPolicy.defaultFirstOrganization,
             onChanged: (organization) =>
                 setState(() => _organization = organization),
             validator: Validators.requiredSelection,

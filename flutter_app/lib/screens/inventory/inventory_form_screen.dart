@@ -11,6 +11,7 @@ import '../../providers/organization_controller.dart';
 import '../../providers/organization_list.dart';
 import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
+import '../../widgets/create_form_organization.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/organization_select_field.dart';
 import '../../widgets/picker_fields.dart';
@@ -106,16 +107,11 @@ class _InventoryFormScreenState extends ConsumerState<InventoryFormScreen> {
     }
   }
 
-  static OrganizationResponse? _defaultOrganization(
-    List<OrganizationResponse> organizations,
-    OrganizationResponse? chosen,
-  ) => chosen ?? (organizations.isEmpty ? null : organizations.first);
-
   int? get _createOrganizationId {
     final selected = ref.read(selectedOrganizationProvider);
     if (selected != null) return selected.organizationId;
     if (_canManageGlobal) {
-      return _defaultOrganization(
+      return CreateFormOrganizationPolicy.defaultFirstOrganization(
         ref.read(organizationsProvider),
         _selectedOrganization,
       )?.organizationId;
@@ -256,7 +252,11 @@ class _InventoryFormScreenState extends ConsumerState<InventoryFormScreen> {
     final canManageGlobal = ref
         .watch(permissionGateProvider)
         .has(Permission.manageInventoryGlobal);
-    final showOrganizationField = canManageGlobal && selectedOrg == null;
+    final showOrganizationField =
+        CreateFormOrganizationPolicy.showGlobalOrganizationField(
+          canManageGlobal: canManageGlobal,
+          selectedOrganization: selectedOrg,
+        );
 
     return FormCard(
       formKey: _formKey,
@@ -285,7 +285,7 @@ class _InventoryFormScreenState extends ConsumerState<InventoryFormScreen> {
         if (showOrganizationField)
           OrganizationSelectField(
             value: _selectedOrganization,
-            resolve: _InventoryFormScreenState._defaultOrganization,
+            resolve: CreateFormOrganizationPolicy.defaultFirstOrganization,
             onChanged: (org) => setState(() => _selectedOrganization = org),
             validator: Validators.requiredSelection,
           ),

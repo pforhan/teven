@@ -4061,3 +4061,15 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`, `./teven verify`.
 
 **Files changed (primary):** `backend/data/src/main/kotlin/alphainterplanetary/teven/data/customer/Customers.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/customer/CustomerDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/event/EventDao.kt`, `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/customer/CustomerResponse.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/customer/CustomerService.kt`, `backend/app/src/main/kotlin/alphainterplanetary/teven/app/customer/CustomerRoutes.kt`, `flutter_app/lib/models/customer.dart`, `flutter_app/lib/models/permissions.dart`, `flutter_app/lib/core/services/crud_services.dart`, `flutter_app/lib/screens/customers/customer_list_screen.dart`, `flutter_app/lib/screens/events/event_form_screen.dart`, `flutter_app/test/customer_list_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-19 — 10.24: extract shared create-form organization resolution policy
+
+**Implemented task 10.24 (behavior-preserving refactor).** Extracted shared create-form organization resolution/default-selection and dropdown-visibility mechanics into `CreateFormOrganizationPolicy` (`flutter_app/lib/widgets/create_form_organization.dart`), with focused unit tests in `flutter_app/test/create_form_organization_policy_test.dart`.
+
+**Refactor.** Customer, inventory, and user create forms now use the shared helpers for dropdown visibility (`showGlobalOrganizationField`) and first-organization/default-resolution helpers where applicable, while keeping resource-specific global permissions, submit-time resolution rules, service calls, request DTOs, routes, and fields at the call sites. No behavior changes intended.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/widgets/create_form_organization.dart`, `flutter_app/test/create_form_organization_policy_test.dart`, `flutter_app/lib/screens/customers/customer_form_screen.dart`, `flutter_app/lib/screens/inventory/inventory_form_screen.dart`, `flutter_app/lib/screens/users/user_form_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

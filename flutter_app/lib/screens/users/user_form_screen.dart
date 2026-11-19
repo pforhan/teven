@@ -11,6 +11,7 @@ import '../../providers/auth_controller.dart';
 import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
 import '../../routing/app_router.dart';
+import '../../widgets/create_form_organization.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/organization_select_field.dart';
 import '../../widgets/picker_fields.dart';
@@ -367,15 +368,13 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
         ),
         _rolesField(),
         ..._staffDetailsFields(),
-        if (selectedOrg == null && canManageGlobal)
+        if (CreateFormOrganizationPolicy.showGlobalOrganizationField(
+          canManageGlobal: canManageGlobal,
+          selectedOrganization: selectedOrg,
+        ))
           OrganizationSelectField(
             value: _selectedOrganization,
-            resolve: (loaded, chosen) {
-              if (chosen == null && loaded.isNotEmpty) {
-                return loaded[0];
-              }
-              return chosen;
-            },
+            resolve: CreateFormOrganizationPolicy.defaultFirstOrganization,
             onChanged: (org) => setState(() => _selectedOrganization = org),
             validator: Validators.requiredSelection,
           ),
