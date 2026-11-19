@@ -640,97 +640,22 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ### VII. Role Management API
 
-* `POST /api/roles`: Create a new role.
-    * Authentication: Required.
-    * Permissions: `MANAGE_ROLES_GLOBAL`
-    * Request:
-        ```kotlin
-        data class CreateRoleRequest(
-          val roleName: String, 
-          val permissions: List<String>
-        )
-        ```
-    * Response:
-        ```kotlin
-        data class RoleResponse(
-          val roleId: Int, 
-          val roleName: String, 
-          val permissions: List<String>
-        )
-        ```
+Role definitions are seed-managed and role-definition management/user-role assignment management endpoints are not exposed in the webapp.
 
 * `GET /api/roles`: Retrieve all roles.
     * Authentication: Required.
-    * Permissions: `VIEW_ROLES_ORGANIZATION` or `VIEW_ROLES_GLOBAL`
+    * Permissions: none (ungated read-only listing for selection flows).
     * Response: `List<RoleResponse>`
 
 * `GET /api/roles/{roleId}`: Get a role by ID.
     * Authentication: Required.
-    * Permissions: `VIEW_ROLES_ORGANIZATION` or `VIEW_ROLES_GLOBAL`
+    * Permissions: none (ungated read-only lookup).
     * Response:
         ```kotlin
         data class RoleResponse(
           val roleId: Int, 
           val roleName: String, 
           val permissions: List<String>
-        )
-        ```
-
-* `PUT /api/roles/{roleId}`: Update a role.
-    * Authentication: Required.
-    * Permissions: `MANAGE_ROLES_GLOBAL`
-    * Request:
-        ```kotlin
-        data class UpdateRoleRequest(
-          val roleName: String?, 
-          val permissions: List<String>?
-        )
-        ```
-    * Response:
-        ```kotlin
-        data class RoleResponse(
-          val roleId: Int, 
-          val roleName: String, 
-          val permissions: List<String>
-        )
-        ```
-
-* `DELETE /api/roles/{roleId}`: Delete a role.
-    * Authentication: Required.
-    * Permissions: `MANAGE_ROLES_GLOBAL`
-    * Response: `204 No Content`
-
-* `POST /api/users/{userId}/roles`: Assign a role to a user.
-    * Authentication: Required.
-    * Permissions: `ASSIGN_ROLES_ORGANIZATION` or `ASSIGN_ROLES_GLOBAL`
-    * Request:
-        <!-- DATA_MODEL_AssignRoleRequest -->
-    * Response:
-        ```kotlin
-        data class UserResponse(
-          val userId: Int, 
-          val username: String, 
-          val email: String, 
-          val displayName: String, 
-          val roles: List<String>, 
-          val staffDetails: StaffDetails?, 
-          val organization: OrganizationResponse
-        )
-        ```
-
-* `DELETE /api/users/{userId}/roles/{roleId}`: Remove a role from a user.
-    * Authentication: Required.
-    * Permissions: `ASSIGN_ROLES_ORGANIZATION` or `ASSIGN_ROLES_GLOBAL`
-    * Response:
-        ```kotlin
-        data class UserResponse(
-          val userId: Int, 
-          val username: String, 
-          val email: String, 
-          val displayName: String, 
-          val roles: List<String>, 
-          val staffDetails: StaffDetails?, 
-          val organization: OrganizationResponse
         )
         ```
 

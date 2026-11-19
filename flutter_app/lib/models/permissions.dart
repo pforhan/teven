@@ -13,7 +13,19 @@ enum Permission {
   viewUsersOrganization('VIEW_USERS_ORGANIZATION'),
   viewUsersGlobal('VIEW_USERS_GLOBAL'),
   manageUsersGlobal('MANAGE_USERS_GLOBAL'),
+
+  /// Allows assigning the SuperAdmin role (enforced server-side during role assignment).
+  canAssignSuperAdmin('CAN_ASSIGN_SUPERADMIN'),
+
+  /// Allows assigning the Organizer role (enforced server-side during role assignment).
+  canAssignOrganizer('CAN_ASSIGN_ORGANIZER'),
+
+  /// Allows assigning the Staff role (enforced server-side during role assignment).
+  canAssignStaff('CAN_ASSIGN_STAFF'),
   viewEventsOrganization('VIEW_EVENTS_ORGANIZATION'),
+
+  /// Allows viewing all events across organizations (route/service-scoped on server).
+  viewEventsGlobal('VIEW_EVENTS_GLOBAL'),
   manageEventsOrganization('MANAGE_EVENTS_ORGANIZATION'),
   manageEventsGlobal('MANAGE_EVENTS_GLOBAL'),
   viewCustomersOrganization('VIEW_CUSTOMERS_ORGANIZATION'),
@@ -39,6 +51,9 @@ enum Permission {
 
   viewInventoryOrganization('VIEW_INVENTORY_ORGANIZATION'),
   manageInventoryOrganization('MANAGE_INVENTORY_ORGANIZATION'),
+
+  /// Allows viewing all inventory items across organizations (route/service-scoped on server).
+  viewInventoryGlobal('VIEW_INVENTORY_GLOBAL'),
 
   /// The global permission for managing inventory across organizations.
   ///

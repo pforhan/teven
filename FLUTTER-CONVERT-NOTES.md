@@ -4105,3 +4105,19 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`, `./teven verify`. No existing-data migration/backfill required (green field).
 
 **Files changed (primary):** `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/event/EventResponse.kt`, `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/event/RsvpRequest.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/event/EventDao.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/event/EventService.kt`, `flutter_app/lib/models/event.dart`, `flutter_app/lib/widgets/rsvp_widget.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `flutter_app/lib/screens/events/event_calendar_screen.dart`, `flutter_app/lib/core/theme/teven_theme.dart`, `flutter_app/test/rsvp_widget_test.dart`, `flutter_app/test/event_list_screen_test.dart`, `flutter_app/test/event_details_screen_test.dart`, `flutter_app/test/event_calendar_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-19 — 10.16: close wired permission gaps and remove role-management surfaces
+
+**Implemented task 10.16 per direction.** Moved clearly wired server permissions into Flutter and removed role view/manage functionality/endpoints/permissions not anticipated for the webapp.
+
+**Flutter.** Added mirrored permission constants for wired server capabilities: `CAN_ASSIGN_SUPERADMIN`, `CAN_ASSIGN_ORGANIZER`, `CAN_ASSIGN_STAFF`, `VIEW_EVENTS_GLOBAL`, and `VIEW_INVENTORY_GLOBAL` (`VIEW_CUSTOMERS_GLOBAL` was already present). `MANAGE_USERS_SELF` and `ASSIGN_STAFF_TO_EVENTS_ORGANIZATION` remain server-defined/seeded but not mirrored as clearly wired client gates at this time.
+
+**Backend role-management removal.** Removed role view/manage/assign permissions (`VIEW_ROLES_*`, `MANAGE_ROLES_*`, `ASSIGN_ROLES_*`) and removed role-definition management and user-role assignment management API endpoints (`POST/PUT/DELETE /api/roles`, `/api/users/{id}/roles` assign/remove). Kept read-only `GET /api/roles` and `GET /api/roles/{id}` for selection flows. Role definitions remain seed-managed; internal role read/assign/remove service/DAO methods used by user/invitation flows were retained (definition update/delete APIs removed).
+
+**Docs/tests cleanup.** Updated API docs, core permission tests, and Flutter role-service comments to reflect removed role-management surfaces and added mirrored permissions.
+
+**Verified:** `./teven verify-backend`, `./teven verify`.
+
+**Files changed (primary):** `backend/core/src/main/kotlin/alphainterplanetary/teven/core/security/Permission.kt`, `backend/app/src/main/kotlin/alphainterplanetary/teven/app/role/RoleRoutes.kt`, `backend/core/src/main/kotlin/alphainterplanetary/teven/core/service/RoleService.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/role/RoleServiceImpl.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/role/RoleDao.kt`, `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/role/UpdateRoleRequest.kt` (removed), `backend/core/src/test/kotlin/alphainterplanetary/teven/core/security/UserPermissionsTest.kt`, `flutter_app/lib/models/permissions.dart`, `flutter_app/lib/core/services/misc_services.dart`, `API.md`, `API_TEMPLATE.md`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

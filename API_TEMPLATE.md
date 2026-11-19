@@ -290,51 +290,18 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 
 ### VII. Role Management API
 
-* `POST /api/roles`: Create a new role.
-    * Authentication: Required.
-    * Permissions: `MANAGE_ROLES_GLOBAL`
-    * Request:
-        <!-- DATA_MODEL_CreateRoleRequest -->
-    * Response:
-        <!-- DATA_MODEL_RoleResponse -->
+Role definitions are seed-managed and role-definition management/user-role assignment management endpoints are not exposed in the webapp.
 
 * `GET /api/roles`: Retrieve all roles.
     * Authentication: Required.
-    * Permissions: `VIEW_ROLES_ORGANIZATION` or `VIEW_ROLES_GLOBAL`
+    * Permissions: none (ungated read-only listing for selection flows).
     * Response: `List<RoleResponse>`
 
 * `GET /api/roles/{roleId}`: Get a role by ID.
     * Authentication: Required.
-    * Permissions: `VIEW_ROLES_ORGANIZATION` or `VIEW_ROLES_GLOBAL`
+    * Permissions: none (ungated read-only lookup).
     * Response:
         <!-- DATA_MODEL_RoleResponse -->
-
-* `PUT /api/roles/{roleId}`: Update a role.
-    * Authentication: Required.
-    * Permissions: `MANAGE_ROLES_GLOBAL`
-    * Request:
-        <!-- DATA_MODEL_UpdateRoleRequest -->
-    * Response:
-        <!-- DATA_MODEL_RoleResponse -->
-
-* `DELETE /api/roles/{roleId}`: Delete a role.
-    * Authentication: Required.
-    * Permissions: `MANAGE_ROLES_GLOBAL`
-    * Response: `204 No Content`
-
-* `POST /api/users/{userId}/roles`: Assign a role to a user.
-    * Authentication: Required.
-    * Permissions: `ASSIGN_ROLES_ORGANIZATION` or `ASSIGN_ROLES_GLOBAL`
-    * Request:
-        <!-- DATA_MODEL_AssignRoleRequest -->
-    * Response:
-        <!-- DATA_MODEL_UserResponse -->
-
-* `DELETE /api/users/{userId}/roles/{roleId}`: Remove a role from a user.
-    * Authentication: Required.
-    * Permissions: `ASSIGN_ROLES_ORGANIZATION` or `ASSIGN_ROLES_GLOBAL`
-    * Response:
-        <!-- DATA_MODEL_UserResponse -->
 
 ---
 

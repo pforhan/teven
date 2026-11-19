@@ -2,7 +2,6 @@ package alphainterplanetary.teven.data.role
 
 import alphainterplanetary.teven.api.model.role.CreateRoleRequest
 import alphainterplanetary.teven.api.model.role.RoleResponse
-import alphainterplanetary.teven.api.model.role.UpdateRoleRequest
 import alphainterplanetary.teven.core.security.Permission
 import alphainterplanetary.teven.data.dbQuery
 import kotlinx.serialization.encodeToString
@@ -14,7 +13,6 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.update
 
 class RoleDao {
   private val json = Json
@@ -70,24 +68,7 @@ class RoleDao {
       .singleOrNull()
   }
 
-  suspend fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): RoleResponse? = dbQuery {
-    val updated = Roles.update({ Roles.id eq roleId }) {
-      updateRoleRequest.roleName?.let { roleName -> it[Roles.roleName] = roleName }
-      updateRoleRequest.permissions?.let { permissions ->
-        it[Roles.permissions] = encodePermissions(permissions)
-      }
-    } > 0
-    if (!updated) return@dbQuery null
-
-    Roles.selectAll()
-      .where { Roles.id eq roleId }
-      .mapNotNull { toRoleResponse(it) }
-      .singleOrNull()
-  }
-
-  suspend fun deleteRole(roleId: Int): Boolean = dbQuery {
-    Roles.deleteWhere { Roles.id eq roleId } > 0
-  }
+  // Role definitions are seed-managed; runtime update/delete endpoints are removed.
 
   suspend fun assignRoleToUser(userId: Int, roleId: Int): Boolean = dbQuery {
     val insertStatement = UserRoles.insert {

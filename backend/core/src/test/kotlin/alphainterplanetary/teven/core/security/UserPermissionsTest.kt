@@ -52,7 +52,7 @@ class UserPermissionsTest {
     Assertions.assertTrue(
       userPermissions.hasAllPermissions(
         Permission.MANAGE_USERS_GLOBAL,
-        Permission.MANAGE_ROLES_GLOBAL
+        Permission.VIEW_USERS_GLOBAL
       )
     )
   }
@@ -92,7 +92,7 @@ class UserPermissionsTest {
     Assertions.assertTrue(
       userPermissions.hasAnyPermissions(
         Permission.MANAGE_USERS_GLOBAL,
-        Permission.MANAGE_ROLES_GLOBAL
+        Permission.VIEW_USERS_GLOBAL
       )
     )
   }
@@ -120,7 +120,7 @@ class UserPermissionsTest {
     Assertions.assertFalse(
       userPermissions.hasAnyPermissions(
         Permission.VIEW_USERS_GLOBAL,
-        Permission.MANAGE_ROLES_GLOBAL
+        Permission.VIEW_EVENTS_GLOBAL
       )
     )
   }

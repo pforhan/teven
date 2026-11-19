@@ -30,25 +30,6 @@ enum class Permission {
   /** Allows a user to send or delete user invitations for any organization. */
   MANAGE_INVITATIONS_GLOBAL,
 
-  // Role Management
-  /** Allows a user to view roles within their own organization. */
-  VIEW_ROLES_ORGANIZATION,
-
-  /** Allows a user to create, edit, and delete roles within their own organization. This does not grant the ability to assign roles. */
-  MANAGE_ROLES_ORGANIZATION,
-
-  /** Allows a user to assign or unassign roles to users within their own organization. */
-  ASSIGN_ROLES_ORGANIZATION,
-
-  /** Allows a user to view all roles across all organizations. */
-  VIEW_ROLES_GLOBAL,
-
-  /** Allows a user to create, edit, and delete roles across all organizations. */
-  MANAGE_ROLES_GLOBAL,
-
-  /** Allows a user to assign or unassign roles to any user in any organization. */
-  ASSIGN_ROLES_GLOBAL,
-
   // Organization Management
   /** Allows a user to view all organizations in the system. */
   VIEW_ORGANIZATIONS_GLOBAL,

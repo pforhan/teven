@@ -1,18 +1,12 @@
 package alphainterplanetary.teven.service.role
 
-import alphainterplanetary.teven.api.model.role.CreateRoleRequest
 import alphainterplanetary.teven.api.model.role.RoleResponse
-import alphainterplanetary.teven.api.model.role.UpdateRoleRequest
 import alphainterplanetary.teven.core.service.RoleService
 import alphainterplanetary.teven.data.role.RoleDao
 
 class RoleServiceImpl(
   private val roleDao: RoleDao,
 ) : RoleService {
-  override suspend fun createRole(createRoleRequest: CreateRoleRequest): RoleResponse {
-    return roleDao.createRole(createRoleRequest)
-  }
-
   override suspend fun getAllRoles(): List<RoleResponse> {
     return roleDao.getAllRoles()
   }
@@ -23,14 +17,6 @@ class RoleServiceImpl(
 
   override suspend fun getRoleByName(roleName: String): RoleResponse? {
     return roleDao.getRoleByName(roleName)
-  }
-
-  override suspend fun updateRole(roleId: Int, updateRoleRequest: UpdateRoleRequest): RoleResponse? {
-    return roleDao.updateRole(roleId, updateRoleRequest)
-  }
-
-  override suspend fun deleteRole(roleId: Int): Boolean {
-    return roleDao.deleteRole(roleId)
   }
 
   override suspend fun assignRoleToUser(userId: Int, roleId: Int): Boolean {

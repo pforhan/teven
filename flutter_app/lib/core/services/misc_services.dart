@@ -130,11 +130,9 @@ class ReportService {
 
 /// Roles and their permissions.
 ///
-/// Replaces the original role API service.
-///
-/// `GET /api/roles` is deliberately **ungated** (`RoleRoutes.kt` has no
-/// `withPermission` wrapper), so any authenticated caller can list roles. Only
-/// create/update/delete require `MANAGE_ROLES_GLOBAL`.
+/// `GET /api/roles` is deliberately **ungated**, so any authenticated caller can
+/// list roles for selection flows. Role-definition management endpoints are not
+/// exposed in the webapp.
 class RoleService {
   const RoleService(this._client);
 
@@ -151,10 +149,4 @@ class RoleService {
     '/api/roles/$roleId',
     decode: (json) => RoleResponse.fromJson(json! as Map<String, dynamic>),
   );
-
-  // No create/update/delete. The React `RoleService` only ever calls
-  // `getAllRoles`, and ported only `RoleResponse` — the create and
-  // update request DTOs (`CreateRoleRequest`, `UpdateRoleRequest`) exist
-  // server-side but were never needed by the app. Adding role *management*
-  // is new feature work, not a port, so it is out of scope here.
 }
