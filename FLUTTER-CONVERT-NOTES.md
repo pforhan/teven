@@ -4151,3 +4151,17 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/providers/paged_list.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `flutter_app/test/event_list_screen_test.dart`, `flutter_app/test/event_details_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-19 — 10.27: reuse returned event after edit navigation
+
+**Implemented task 10.27 (incremental).** Reduced a redundant fetch after event edit by reusing the returned updated entity.
+
+**Flutter.** Event edit now passes the returned `EventResponse` to event details via `go_router` `extra`; router forwards it and `EventDetailsScreen` accepts an optional `initialEvent` to render immediately when it matches the requested event id (no initial fetch). Deep links and navigations without `extra` continue to fetch on load.
+
+**Scope note.** Other create/edit flows currently navigate to list screens with query-keyed paged providers rebuilt on arrival; seeding/inserting across arbitrary filters/sorts/pages was not practical in this pass, so no list-navigation fetches were removed and no navigation targets changed.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/screens/events/event_form_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `flutter_app/lib/routing/app_router.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

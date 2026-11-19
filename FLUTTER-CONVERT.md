@@ -379,12 +379,14 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
   **Behaviour-preserving where possible:** the UI should reflect the same server state; avoid optimistic guesses that disagree with the returned entity. Verified with `./teven verify`.
 
-- [ ] **10.27** **Reduce redundant fetches after create/update navigations by reusing returned entities.** Create and edit forms (customers, inventory, organizations, events, users/roles where applicable) currently `await` the mutation, discard the returned saved object, and navigate away; the destination then fetches again. Where practical, avoid the immediate extra round trip:
+- [x] **10.27** **Reduce redundant fetches after create/update navigations by reusing returned entities.** Create and edit forms (customers, inventory, organizations, events, users/roles where applicable) currently `await` the mutation, discard the returned saved object, and navigate away; the destination then fetches again. Where practical, avoid the immediate extra round trip:
   - Prefer updating/inserting into the relevant list/detail provider cache (or invalidating in a way that can seed from the returned entity) so the destination can render the known result without a redundant fetch.
   - Alternatively, pass the returned entity to the destination when the route/screen contract makes that straightforward.
   - Keep fetch-on-load as the source of truth for deep links and stale state; do not remove necessary refreshes, only redundant ones immediately after a successful mutation.
 
-  Scope this incrementally per resource/screen, with existing tests updated only where behavior (e.g. request counts/timing) intentionally changes.
+  **Implemented (incremental).** Event edit now navigates to event details with the returned `EventResponse` (`go_router` `extra`), and `EventDetailsScreen` can render a matching `initialEvent` immediately without an initial fetch; deep links and normal navigations without `extra` still fetch on load. Other create/edit flows still navigate to list screens whose paged/query-keyed state is rebuilt on arrival, so cache seeding there was not practical in this pass; no navigation behavior was changed.
+
+  Scope this incrementally per resource/screen, with existing tests updated only where behavior (e.g. request counts/timing) intentionally changes. Verified with `./teven verify`.
 
 - [ ] **10.28** **Soft-delete inventory items, so deleting one does not destroy event and usage history.** Inventory items are hard-deleted today (`InventoryDao.deleteInventoryItem` → `InventoryItems.deleteWhere`), but items are referenced by event-inventory associations and inventory usage (`EventInventory`, `InventoryUsage`). Deleting an in-use item risks FK failures or breaks the historical record of what an event used.
 

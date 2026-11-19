@@ -477,10 +477,12 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
           // it alone" to the server.
           organizationId: _canManageGlobalEvents ? orgId : null,
         );
-        await ref
+        final updated = await ref
             .read(eventServiceProvider)
             .updateEvent(widget.eventId!, request);
-        if (mounted) context.go('/events/${widget.eventId}');
+        if (mounted) {
+          context.go('/events/${widget.eventId}', extra: updated);
+        }
       }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e);

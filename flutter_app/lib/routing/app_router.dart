@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/util/local_date.dart';
+import '../models/event.dart';
 import '../models/permissions.dart';
 import '../providers/auth_controller.dart';
 import '../screens/accept_invitation_screen.dart';
@@ -378,6 +379,9 @@ List<RouteBase> _shellRoutes(Ref ref) => [
       // which 404s, which lands on the error branch.
       eventId: int.tryParse(state.pathParameters['eventId'] ?? '') ?? -1,
       backToDay: state.uri.queryParameters['fromDay'],
+      initialEvent: state.extra is EventResponse
+          ? state.extra as EventResponse
+          : null,
     ),
   ),
 

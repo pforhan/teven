@@ -43,13 +43,22 @@ import '../../widgets/day_events_panel.dart';
 /// that is gone. This is the one case where *not* refetching is the point, and
 /// it is why the shared delete dialog leaves the consequence at the call site.
 class EventDetailsScreen extends ConsumerStatefulWidget {
-  const EventDetailsScreen({super.key, required this.eventId, this.backToDay});
+  const EventDetailsScreen({
+    super.key,
+    required this.eventId,
+    this.backToDay,
+    this.initialEvent,
+  });
 
   final int eventId;
 
   /// When set to a `yyyy-MM-dd` date, the back control returns to that day view
   /// and intra-day navigation preserves this context.
   final String? backToDay;
+
+  /// Optional event data to render immediately (e.g. returned from edit),
+  /// avoiding a redundant initial fetch. Deep links do not provide this.
+  final EventResponse? initialEvent;
 
   @override
   ConsumerState<EventDetailsScreen> createState() => _EventDetailsScreenState();
@@ -108,7 +117,15 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    unawaited(_load(initial: _event == null));
+    final initial = widget.initialEvent;
+    if (initial != null && initial.eventId == widget.eventId) {
+      _event = initial;
+      _myRsvpStatus = _statusOf(initial);
+      _loading = false;
+      _loadError = null;
+    } else {
+      unawaited(_load(initial: true));
+    }
   }
 
   @override
