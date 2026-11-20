@@ -37,7 +37,6 @@ void main() {
       final container = await pumpApp(tester, token: 'token', adapter: adapter);
       await goTo(tester, container, AppRoutes.reports);
 
-      expect(find.text('Organization: Acme'), findsOneWidget);
       expect(
         find.textContaining(
           'not scoped to the selected organization on the server',
@@ -84,7 +83,8 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Select Organization'), findsWidgets);
+      expect(find.text('Select Organization'), findsNothing);
+      expect(find.text('Change Organization'), findsNothing);
       expect(
         adapter.requests.where((r) => r.path.startsWith('/api/reports')),
         isEmpty,
@@ -125,7 +125,9 @@ void main() {
       );
       await goTo(tester, container, AppRoutes.reports);
 
-      expect(find.text('Organization: Globex'), findsOneWidget);
+      expect(find.text('Organization: Globex'), findsNothing);
+      expect(find.text('Select Organization'), findsNothing);
+      expect(find.text('Change Organization'), findsNothing);
       final usageRequests = adapter.requests
           .where(
             (r) =>

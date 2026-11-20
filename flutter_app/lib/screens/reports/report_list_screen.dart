@@ -10,7 +10,6 @@ import '../../providers/organization_controller.dart';
 import '../../providers/service_providers.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/list_screen_header.dart';
-import '../../widgets/organization_picker.dart';
 
 /// Staff-hours and inventory-usage reports.
 ///
@@ -129,13 +128,6 @@ class _ReportListScreenState extends ConsumerState<ReportListScreen> {
     }
   }
 
-  String _organizationLabel() {
-    final selected = ref.watch(selectedOrganizationProvider);
-    if (selected != null) return selected.name;
-    return ref.watch(userContextProvider)?.user.organization.name ??
-        'Unknown organization';
-  }
-
   @override
   Widget build(BuildContext context) {
     final error = _error;
@@ -173,23 +165,6 @@ class _ReportListScreenState extends ConsumerState<ReportListScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const ListScreenHeader(title: 'Reports'),
-            const SizedBox(height: 8),
-            Text(
-              'Organization: ${needsSelection ? 'Select an organization to view reports.' : _organizationLabel()}',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            if (hasGlobal) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => showOrganizationPicker(context),
-                icon: const Icon(Icons.business),
-                label: Text(
-                  selected == null
-                      ? 'Select Organization'
-                      : 'Change Organization',
-                ),
-              ),
-            ],
             const SizedBox(height: 16),
             if (error != null) ...[
               ErrorDisplay.fromException(error),

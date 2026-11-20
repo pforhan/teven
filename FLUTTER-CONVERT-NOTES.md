@@ -4203,3 +4203,15 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/screens/customers/customer_details_screen.dart`, `flutter_app/lib/screens/customers/customer_form_screen.dart`, `flutter_app/lib/screens/users/user_details_screen.dart`, `flutter_app/lib/screens/users/user_form_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.43: remove redundant organization controls from Reports
+
+**Implemented task 10.43.** Simplified the Reports screen by removing redundant in-page organization controls.
+
+**Flutter.** Removed the organization label and "Select/Change Organization" button from the Reports page. The screen still requires a specific effective organization before loading reports and continues to show the blocking message when a global user has no organization selected.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/screens/reports/report_list_screen.dart`, `flutter_app/test/report_list_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
