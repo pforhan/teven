@@ -228,16 +228,23 @@ abstract class PagedListController<T> extends AsyncNotifier<PagedListState<T>> {
   /// user pages: the guards below make every redundant call a no-op rather than
   /// a request.
   ///
+  /// [userInitiated] distinguishes explicit actions (footer "Load more" /
+  /// "Try again" buttons) from automatic scroll-triggered requests. After a
+  /// load-more failure, automatic retries are suppressed so scrolling near the
+  /// threshold doesn't repeatedly retry and trap the footer in an
+  /// error/spinner loop; explicit actions may retry.
+  ///
   /// Offset paging has the usual weakness — a row inserted or deleted between
   /// two requests shifts everything after it, so a page boundary can skip or
   /// repeat a row. That belongs to the API rather than to this code: the
   /// endpoint is offset/limit with no cursor (see [PaginatedResponse]), so there
   /// is nothing better to ask for.
-  Future<void> loadMore() async {
+  Future<void> loadMore({bool userInitiated = false}) async {
     final current = state.value;
     // `state.value` is null during the first load and after a failure, and
     // either way there is nothing to append to.
     if (current == null || current.isLoadingMore || !current.hasMore) return;
+    if (current.loadMoreError != null && !userInitiated) return;
 
     // Not `++_generation`. A page is additive rather than a replacement, so
     // claiming a new generation here would make this call invalidate *itself*,

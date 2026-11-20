@@ -66,13 +66,12 @@ class PagedListView<T> extends StatelessWidget {
   final List<ListColumn<T>> columns;
   final Object Function(T item) idOf;
 
-  /// Requests the next page, from the footer's button.
+  /// Requests the next page from the footer's explicit actions ("Load more" /
+  /// "Try again").
   ///
-  /// **The same callback [PagedScrollView] is given for scrolling.** One
-  /// handler, two triggers — which is what keeps the automatic and manual paths
-  /// from drifting, and is why the button needs no knowledge of what the scroll
-  /// listener does. It must tolerate being called when there is nothing to
-  /// fetch, which [PagedListController.loadMore] does.
+  /// Scroll-triggered automatic loading is wired separately via
+  /// [PagedScrollView]; after a load-more error, automatic retries are
+  /// suppressed until the user explicitly retries.
   final VoidCallback loadMore;
 
   final List<ListRowAction> Function(BuildContext context, T item)? actions;
@@ -178,9 +177,10 @@ class PagedScrollView extends StatelessWidget {
     this.onRefresh,
   });
 
-  /// Requests the next page. Called by the scroll listener and by the footer
-  /// button, so it must tolerate being called when there is nothing to fetch —
-  /// [PagedListController.loadMore] does.
+  /// Requests the next page from the scroll listener (automatic trigger).
+  ///
+  /// Must tolerate redundant calls. After a load-more error, implementations
+  /// should suppress automatic retries until an explicit user action retries.
   final VoidCallback onLoadMore;
 
   final Widget child;
@@ -401,7 +401,8 @@ class PagedListSection<T> extends ConsumerStatefulWidget {
   /// replaced.
   final ProviderListenable<AsyncValue<PagedListState<T>>> provider;
 
-  /// Requests the next page — the same handler [PagedScrollView] uses.
+  /// Requests the next page from explicit footer actions ("Load more" /
+  /// "Try again").
   final VoidCallback loadMore;
 
   final List<ListColumn<T>> columns;

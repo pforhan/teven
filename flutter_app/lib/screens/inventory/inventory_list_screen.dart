@@ -185,8 +185,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             ],
             PagedListSection<InventoryItemResponse>(
               provider: inventoryListProvider(query),
-              loadMore: () =>
-                  ref.read(inventoryListProvider(query).notifier).loadMore(),
+              loadMore: () => ref
+                  .read(inventoryListProvider(query).notifier)
+                  .loadMore(userInitiated: true),
               columns: _columns(),
               idOf: (item) => item.inventoryId,
               emptyMessage: 'No inventory items found.',

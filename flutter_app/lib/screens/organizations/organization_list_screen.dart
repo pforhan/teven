@@ -181,8 +181,9 @@ class _OrganizationListScreenState
             ],
             PagedListSection<OrganizationResponse>(
               provider: organizationPageProvider(query),
-              loadMore: () =>
-                  ref.read(organizationPageProvider(query).notifier).loadMore(),
+              loadMore: () => ref
+                  .read(organizationPageProvider(query).notifier)
+                  .loadMore(userInitiated: true),
               columns: _columns(),
               idOf: (organization) => organization.organizationId,
               emptyMessage: 'No organizations found.',

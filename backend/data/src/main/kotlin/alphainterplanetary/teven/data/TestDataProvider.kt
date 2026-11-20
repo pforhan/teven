@@ -647,5 +647,68 @@ suspend fun populateTestData() {
       it[userId] = scenarioManagerId
       it[availability] = "accepted"
     }
+
+    // Pagination-focused seed data: enough active rows in one org/scope to exceed
+    // the default server page size (25) for common lists.
+    val paginationOrgId = (Organizations.insert {
+      it[name] = "${testOrgPrefix}Pagination Lab (30+ Customers/Inventory/Users)"
+      it[contactInformation] = "pagination-lab@example.test"
+      it[Organizations.timezone] = "UTC"
+    } get Organizations.id).value
+
+    val paginationManagerId = (Users.insert {
+      it[username] = "pagination.manager"
+      it[displayName] = "Pagination Manager"
+      it[email] = "pagination.manager@paginationlab.test"
+      it[passwordHash] = seededPasswordHash
+    } get Users.id).value
+
+    UserOrganizations.insert {
+      it[userId] = paginationManagerId
+      it[organizationId] = paginationOrgId
+    }
+    UserRoles.insert {
+      it[userId] = paginationManagerId
+      it[roleId] = organizerRoleId
+    }
+
+    for (i in 1..30) {
+      val n = i.toString().padStart(2, '0')
+      Customers.insert {
+        it[name] = "Pagination Customer $n"
+        it[phone] = "555-8${n}00"
+        it[address] = "${100 + i} Pagination St"
+        it[notes] = "Seeded customer $n for pagination testing"
+        it[organizationId] = paginationOrgId
+      }
+    }
+
+    for (i in 1..30) {
+      val n = i.toString().padStart(2, '0')
+      InventoryItems.insert {
+        it[name] = "Pagination Inventory Item $n"
+        it[description] = "Seeded inventory item $n for pagination testing"
+        it[quantity] = i
+        it[organizationId] = paginationOrgId
+      }
+    }
+
+    for (i in 1..29) {
+      val n = i.toString().padStart(2, '0')
+      val paginationStaffId = (Users.insert {
+        it[username] = "pagination.staff$n"
+        it[displayName] = "Pagination Staff $n"
+        it[email] = "pagination.staff$n@paginationlab.test"
+        it[passwordHash] = seededPasswordHash
+      } get Users.id).value
+      UserOrganizations.insert {
+        it[userId] = paginationStaffId
+        it[organizationId] = paginationOrgId
+      }
+      UserRoles.insert {
+        it[userId] = paginationStaffId
+        it[roleId] = staffRoleId
+      }
+    }
   }
 }

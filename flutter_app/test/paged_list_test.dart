@@ -326,7 +326,9 @@ void main() {
 
       // The backend recovers, as it would once the server did.
       pages.failAtOffset = null;
-      await container.read(pagedRowsProvider(provider).notifier).loadMore();
+      await container
+          .read(pagedRowsProvider(provider).notifier)
+          .loadMore(userInitiated: true);
 
       final state = container.read(pagedRowsProvider(provider)).value!;
       expect(state.items.length, 50);

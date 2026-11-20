@@ -492,8 +492,9 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             ],
             PagedListSection<UserResponse>(
               provider: userPageProvider(query),
-              loadMore: () =>
-                  ref.read(userPageProvider(query).notifier).loadMore(),
+              loadMore: () => ref
+                  .read(userPageProvider(query).notifier)
+                  .loadMore(userInitiated: true),
               columns: _userColumns(
                 canViewGlobal: canViewGlobal,
                 showStatus: canAccessDeactivated,

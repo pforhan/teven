@@ -204,8 +204,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
             ],
             PagedListSection<CustomerResponse>(
               provider: customerListProvider(query),
-              loadMore: () =>
-                  ref.read(customerListProvider(query).notifier).loadMore(),
+              loadMore: () => ref
+                  .read(customerListProvider(query).notifier)
+                  .loadMore(userInitiated: true),
               columns: _columns(showStatus: canAccessDeactivated),
               idOf: (customer) => customer.customerId,
               emptyMessage: 'No customers found.',

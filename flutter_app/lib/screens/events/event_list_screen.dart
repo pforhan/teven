@@ -287,8 +287,9 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
             ],
             PagedListSection<EventResponse>(
               provider: eventListProvider(query),
-              loadMore: () =>
-                  ref.read(eventListProvider(query).notifier).loadMore(),
+              loadMore: () => ref
+                  .read(eventListProvider(query).notifier)
+                  .loadMore(userInitiated: true),
               columns: _columns(currentUserId, readerZone),
               idOf: (event) => event.eventId,
               emptyMessage: 'No events found.',
