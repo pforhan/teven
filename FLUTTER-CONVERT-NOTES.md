@@ -4241,3 +4241,15 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/screens/users/user_list_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.46: improve hover spacing for linked list titles
+
+**Implemented task 10.46.** Adjusted spacing for linked list name/title elements.
+
+**Flutter.** `RecordLinkButton` now includes horizontal padding so linked labels have more comfortable hover/highlight spacing.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/widgets/record_link_button.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

@@ -25,7 +25,7 @@ class RecordLinkButton extends StatelessWidget {
   Widget build(BuildContext context) => TextButton(
     style: TextButton.styleFrom(
       foregroundColor: Theme.of(context).colorScheme.primary,
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       minimumSize: const Size(48, 32),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       // **Load-bearing, and it was not obvious.** `RenderTable` hands every

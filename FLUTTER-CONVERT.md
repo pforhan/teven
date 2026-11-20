@@ -485,7 +485,9 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
   **Implemented.** Customer and user details screens hide Edit for deactivated records and show deactivated status; customer and user edit screens block editing of deactivated records with a clear message and navigation back/view details. Audited currently implemented soft-deleted entity UI flows (customers/users). Verified with `./teven verify`.
 - [ ] **10.45** we have incosistent rsvp UIs between the events calendar (pending only, rounded filled buttons), events list (icons in two rows), view event (odd round outlined buttons that clip the containing text), and day view (no ui present).  Events calendar and events list are the most polished of these.  Settle on one if possible, and make sure they work reasonably consistently in terms of look and feel, toasts/snackbars/change-confirmations, and availability.  Avoid flicker and screen refreshes (only observed on view event so far)
-- [ ] **10.46** all entity list screens -- on hover there's a rounded rect over name/title element; there's not enough padding for the text to fit cleanly in the corners.
+- [x] **10.46** all entity list screens -- on hover there's a rounded rect over name/title element; there's not enough padding for the text to fit cleanly in the corners.
+
+  **Implemented.** Added horizontal padding to `RecordLinkButton` so hover/highlight states for linked name/title entries have better spacing. Verified with `./teven verify`.
 - [ ] **10.47** edit timezone -- timezone popup should recommend the browser/system timezone at the top of the list.
 - [ ] **10.48** Profile screen has a timezone field -- changes seem to be applied instantly.  but there's an edit profile button that doesn't show time zone.  Probably move to edit profile screen and require a save action like other fields.  Consider if folks that can edit users can also edit their timezones
 - [ ] **10.49** selection and text copying seems to be disabled on all view screens
