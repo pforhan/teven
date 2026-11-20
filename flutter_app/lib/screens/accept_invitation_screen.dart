@@ -298,6 +298,14 @@ class _AcceptInvitationScreenState
           color: Theme.of(context).colorScheme.primaryContainer,
           foreground: Theme.of(context).colorScheme.onPrimaryContainer,
         ),
+        if ((_invitation!.note ?? '').trim().isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _InfoBanner(
+            message: 'Note from inviter: ${_invitation!.note!.trim()}',
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            foreground: Theme.of(context).colorScheme.onSurface,
+          ),
+        ],
         const SizedBox(height: 24),
         Form(
           key: _formKey,

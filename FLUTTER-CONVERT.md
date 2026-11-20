@@ -467,7 +467,9 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
   Verify after: a user with only `MANAGE_ORGANIZATION` cannot list or access other organizations (403 or scoped empty/not-found as appropriate) but can still view/update their own organization settings when allowed; global organization managers/viewers retain intended behavior. Verified with `./teven verify-backend` and `./teven verify`.
 
-- [ ] **10.39:** Surface user invitation note in the accept invite UI
+- [x] **10.39:** Surface user invitation note in the accept invite UI
+
+  **Implemented.** Added invitation `note` to the validation response (backend API/service) and surfaced it on the accept-invitation screen when present. Updated Flutter invitation model/codegen and backend validation service test. Verified with `./teven verify-backend` and `./teven verify`.
 
 - [ ] **10.40** When the create invitation panel is open on the user list, the button remains there but does nothing.  It's almost identical to the actual create invitation button that does the work.  Distinguish these somehow -- perhaps put a chevron on it, or change the color, or something.
 - [x] **10.41** Users correctly cannot deactivate themselves via a server error.  We can probably check that in the client first for a better ux

@@ -7,4 +7,5 @@ data class ValidateInvitationResponse(
     val organizationId: Int,
     val organizationName: String,
     val roleName: String,
+    val note: String? = null,
 )

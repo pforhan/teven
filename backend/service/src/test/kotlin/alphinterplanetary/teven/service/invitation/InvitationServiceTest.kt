@@ -30,7 +30,7 @@ class InvitationServiceTest {
   private val invitationService =
     InvitationService(invitationDao, roleService, userService, organizationService, clock)
 
-  private fun invitation(expiringAt: Instant): Invitation =
+  private fun invitation(expiringAt: Instant, note: String? = null): Invitation =
     Invitation(
       id = 1,
       organizationId = 1,
@@ -41,18 +41,20 @@ class InvitationServiceTest {
       expiresAt = expiringAt,
       usedByUserId = null,
       createdAt = Instant.parse("2026-10-23T12:00:00Z"),
-      note = null,
+      note = note,
     )
 
   @Test
   fun `validate invitation should accept a token that is not expired`() = runBlocking {
     coEvery { invitationDao.getInvitationByToken("token") } returns invitation(
       expiringAt = Instant.parse("2026-11-06T12:00:00Z"),
+      note = "Welcome to the team",
     )
 
     val result = invitationService.validateInvitation("token")
 
     assertNotNull(result)
+    assertEquals("Welcome to the team", result?.note)
   }
 
   @Test

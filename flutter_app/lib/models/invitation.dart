@@ -39,6 +39,7 @@ abstract class ValidateInvitationResponse with _$ValidateInvitationResponse {
     required int organizationId,
     required String organizationName,
     @Default('') String roleName,
+    String? note,
   }) = _ValidateInvitationResponse;
 
   factory ValidateInvitationResponse.fromJson(Map<String, dynamic> json) =>

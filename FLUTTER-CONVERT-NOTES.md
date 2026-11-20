@@ -4215,3 +4215,17 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/screens/reports/report_list_screen.dart`, `flutter_app/test/report_list_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.39: surface invitation note in accept-invite UI
+
+**Implemented task 10.39.** Exposed and displayed inviter notes during invitation acceptance.
+
+**Backend.** `ValidateInvitationResponse` now includes the invitation `note` (nullable), and `InvitationService.validateInvitation` returns it from the stored invitation.
+
+**Flutter.** `ValidateInvitationResponse` includes `note`, and the accept-invitation screen shows a "Note from inviter" banner when a non-empty note is present.
+
+**Verified:** `./teven verify-backend`, `./teven verify`.
+
+**Files changed (primary):** `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/invitation/ValidateInvitationResponse.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/invitation/InvitationService.kt`, `backend/service/src/test/kotlin/alphinterplanetary/teven/service/invitation/InvitationServiceTest.kt`, `flutter_app/lib/models/invitation.dart`, `flutter_app/lib/screens/accept_invitation_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

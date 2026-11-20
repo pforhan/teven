@@ -75,6 +75,7 @@ class InvitationService(
         organizationId = invitation.organizationId,
         organizationName = invitation.organizationName,
         roleName = invitation.roleName,
+        note = invitation.note,
       )
     } else {
       null
