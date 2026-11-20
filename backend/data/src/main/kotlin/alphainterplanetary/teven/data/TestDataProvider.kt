@@ -6,6 +6,7 @@ import alphainterplanetary.teven.data.event.EventInventory
 import alphainterplanetary.teven.data.event.Events
 import alphainterplanetary.teven.data.event.Rsvps
 import alphainterplanetary.teven.data.inventory.InventoryItems
+import alphainterplanetary.teven.data.inventory.InventoryUsage
 import alphainterplanetary.teven.data.invitation.Invitations
 import alphainterplanetary.teven.data.organization.Organizations
 import alphainterplanetary.teven.data.role.Roles
@@ -441,6 +442,210 @@ suspend fun populateTestData() {
         it[openInvitation] = false
         it[numberOfStaffNeeded] = 0
       }
+    }
+
+    // Scenario-focused seed data for recent manual testing (soft delete/restore,
+    // RSVP states, and inventory associations/usage counts). Uses a clearly
+    // named TEST_ORG_* org so populateTestData cleanup remains idempotent.
+    val scenarioOrgId = (Organizations.insert {
+      it[name] = "${testOrgPrefix}Scenario Lab (Soft Delete, RSVP, Usage)"
+      it[contactInformation] = "scenario-lab@example.test"
+      it[Organizations.timezone] = "UTC"
+    } get Organizations.id).value
+
+    val scenarioManagerId = (Users.insert {
+      it[username] = "scenario.manager"
+      it[displayName] = "Scenario Manager (Org Admin)"
+      it[email] = "scenario.manager@scenariolab.test"
+      it[passwordHash] = seededPasswordHash
+    } get Users.id).value
+    val scenarioStaffId = (Users.insert {
+      it[username] = "scenario.staff"
+      it[displayName] = "Scenario Staff"
+      it[email] = "scenario.staff@scenariolab.test"
+      it[passwordHash] = seededPasswordHash
+    } get Users.id).value
+    val scenarioDeactivatedStaffId = (Users.insert {
+      it[username] = "scenario.deactivated"
+      it[displayName] = "Scenario Deactivated Staff"
+      it[email] = "scenario.deactivated@scenariolab.test"
+      it[passwordHash] = seededPasswordHash
+      it[Users.deletedAt] = OffsetDateTime.now(ZoneOffset.UTC)
+    } get Users.id).value
+
+    UserOrganizations.insert {
+      it[userId] = scenarioManagerId
+      it[organizationId] = scenarioOrgId
+    }
+    UserOrganizations.insert {
+      it[userId] = scenarioStaffId
+      it[organizationId] = scenarioOrgId
+    }
+    UserOrganizations.insert {
+      it[userId] = scenarioDeactivatedStaffId
+      it[organizationId] = scenarioOrgId
+    }
+
+    UserRoles.insert {
+      it[userId] = scenarioManagerId
+      it[roleId] = organizerRoleId
+    }
+    UserRoles.insert {
+      it[userId] = scenarioStaffId
+      it[roleId] = staffRoleId
+    }
+    UserRoles.insert {
+      it[userId] = scenarioDeactivatedStaffId
+      it[roleId] = staffRoleId
+    }
+
+    val scenarioActiveCustomerId = Customers.insert {
+      it[name] = "Scenario Active Customer (Today/Upcoming/All)"
+      it[phone] = "555-7001"
+      it[address] = "100 Scenario Ave"
+      it[notes] = "Active customer for 10.20 details and event filtering"
+      it[organizationId] = scenarioOrgId
+    } get Customers.id
+    val scenarioDeactivatedCustomerId = Customers.insert {
+      it[name] = "Scenario Deactivated Customer (Restore/History)"
+      it[phone] = "555-7002"
+      it[address] = "200 Scenario Ave"
+      it[notes] = "Deactivated customer for 10.19 restore and historical event resolution"
+      it[organizationId] = scenarioOrgId
+      it[Customers.deletedAt] = OffsetDateTime.now(ZoneOffset.UTC)
+    } get Customers.id
+
+    val scenarioInventoryUsedId = (InventoryItems.insert {
+      it[name] = "Scenario Inventory (Used on Events)"
+      it[description] = "Has event associations and usage records for 10.21"
+      it[quantity] = 12
+      it[organizationId] = scenarioOrgId
+    } get InventoryItems.id).value
+    val scenarioInventoryAssociatedId = (InventoryItems.insert {
+      it[name] = "Scenario Inventory (Associated Only)"
+      it[description] = "Associated to events for eventCount display"
+      it[quantity] = 4
+      it[organizationId] = scenarioOrgId
+    } get InventoryItems.id).value
+    val scenarioInventoryUnusedId = (InventoryItems.insert {
+      it[name] = "Scenario Inventory (Unused)"
+      it[description] = "Control item with no associations"
+      it[quantity] = 7
+      it[organizationId] = scenarioOrgId
+    } get InventoryItems.id).value
+
+    val scenarioTodayEventId = Events.insert {
+      it[title] = "Scenario Today Event (RSVP Mix)"
+      it[startsAt] = eventInstant(today, LocalTime.of(15, 0), "UTC")
+      it[timezone] = "UTC"
+      it[durationMinutes] = 60
+      it[location] = "Scenario Site Today"
+      it[description] = "Mixed RSVP states for 10.17/10.26 testing"
+      it[customerId] = scenarioActiveCustomerId
+      it[organizationId] = scenarioOrgId
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 2
+    } get Events.id
+    val scenarioUpcomingEventId = Events.insert {
+      it[title] = "Scenario Upcoming Event (Customer Filter)"
+      it[startsAt] = eventInstant(today.plusDays(3), LocalTime.of(9, 30), "UTC")
+      it[timezone] = "UTC"
+      it[durationMinutes] = 90
+      it[location] = "Scenario Site Upcoming"
+      it[description] = "Upcoming event for active customer details/filtering"
+      it[customerId] = scenarioActiveCustomerId
+      it[organizationId] = scenarioOrgId
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 1
+    } get Events.id
+    val scenarioPastEventId = Events.insert {
+      it[title] = "Scenario Past Event (History)"
+      it[startsAt] = eventInstant(today.minusDays(5), LocalTime.of(11, 0), "UTC")
+      it[timezone] = "UTC"
+      it[durationMinutes] = 120
+      it[location] = "Scenario Site Past"
+      it[description] = "Past event for active customer history"
+      it[customerId] = scenarioActiveCustomerId
+      it[organizationId] = scenarioOrgId
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 1
+    } get Events.id
+    val scenarioDeactivatedCustomerEventId = Events.insert {
+      it[title] = "Scenario Event for Deactivated Customer"
+      it[startsAt] = eventInstant(today.plusDays(1), LocalTime.of(13, 0), "UTC")
+      it[timezone] = "UTC"
+      it[durationMinutes] = 60
+      it[location] = "Scenario Site Deactivated Customer"
+      it[description] = "Historical event should remain resolvable while customer is deactivated"
+      it[customerId] = scenarioDeactivatedCustomerId
+      it[organizationId] = scenarioOrgId
+      it[openInvitation] = false
+      it[numberOfStaffNeeded] = 1
+    } get Events.id
+
+    EventInventory.insert {
+      it[eventId] = scenarioTodayEventId
+      it[inventoryItemId] = scenarioInventoryUsedId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = scenarioUpcomingEventId
+      it[inventoryItemId] = scenarioInventoryUsedId
+      it[quantity] = 1
+    }
+    EventInventory.insert {
+      it[eventId] = scenarioPastEventId
+      it[inventoryItemId] = scenarioInventoryAssociatedId
+      it[quantity] = 3
+    }
+    EventInventory.insert {
+      it[eventId] = scenarioDeactivatedCustomerEventId
+      it[inventoryItemId] = scenarioInventoryAssociatedId
+      it[quantity] = 1
+    }
+
+    InventoryUsage.insert {
+      it[inventoryId] = scenarioInventoryUsedId
+      it[eventId] = scenarioTodayEventId
+      it[quantityUsed] = 2
+      it[usageDate] = today
+    }
+    InventoryUsage.insert {
+      it[inventoryId] = scenarioInventoryUsedId
+      it[eventId] = scenarioPastEventId
+      it[quantityUsed] = 1
+      it[usageDate] = today.minusDays(5)
+    }
+
+    Rsvps.insert {
+      it[eventId] = scenarioTodayEventId
+      it[userId] = scenarioManagerId
+      it[availability] = "accepted"
+    }
+    Rsvps.insert {
+      it[eventId] = scenarioTodayEventId
+      it[userId] = scenarioStaffId
+      it[availability] = "tentative"
+    }
+    Rsvps.insert {
+      it[eventId] = scenarioTodayEventId
+      it[userId] = scenarioDeactivatedStaffId
+      it[availability] = "needs_action"
+    }
+    Rsvps.insert {
+      it[eventId] = scenarioUpcomingEventId
+      it[userId] = scenarioStaffId
+      it[availability] = "declined"
+    }
+    Rsvps.insert {
+      it[eventId] = scenarioUpcomingEventId
+      it[userId] = scenarioManagerId
+      it[availability] = "needs_action"
+    }
+    Rsvps.insert {
+      it[eventId] = scenarioDeactivatedCustomerEventId
+      it[userId] = scenarioManagerId
+      it[availability] = "accepted"
     }
   }
 }

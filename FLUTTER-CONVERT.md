@@ -450,6 +450,32 @@ Please ensure that class is marked as '@Serializable' and that the serialization
   Verify after: an org-scoped manager can deactivate and restore users in their own organization (subject to safety checks), cannot affect users outside scope, and global-manager behavior remains correct.
 
 - [ ] **10.37** **Add smarter paging/window navigation to the events list (follow-up).** For filtered/event views (including the customer “all events” view), support easier navigation through time windows/pages (e.g. earlier/later ranges or previous/next N events) instead of relying only on manually changing the start date. Coordinate with 10.15 (default/applied limits and caps) and 10.20’s extensible event filter/query model; define the UX and API/query semantics (date-window paging vs offset paging, or both) before implementation.
+
+- [ ] **10.38** **Restrict `MANAGE_ORGANIZATION` to its own organization (no global org listing/access).** Found during manual verification of 10.22: an authenticated Organizer with `MANAGE_ORGANIZATION` (e.g. seeded `charlie`) can call `GET /api/organizations` and receive all organizations because the route allows `VIEW_ORGANIZATIONS_GLOBAL OR MANAGE_ORGANIZATION` and `OrganizationService.getOrganizations(...)` returns an unscoped list. `MANAGE_ORGANIZATION` should not grant visibility into other organizations.
+
+  **Direction:** prevent org-scoped organization managers from seeing anything except their own organization.
+  - **List endpoint:** likely remove `MANAGE_ORGANIZATION` from `GET /api/organizations` so org-scoped managers have no access to the organizations collection/list (global viewers/managers retain access as appropriate). Do not return or expose other organizations.
+  - **Own-org read/update:** preserve the ability to read and edit one’s own organization (e.g. timezone/settings). Keep or adjust `GET /api/organizations/{id}` and `PUT /api/organizations/{id}` so callers with `MANAGE_ORGANIZATION` may access/update only their own organization (service-side scoping already exists for get/update; verify route/service alignment). If the UI needs own-org details for editing, ensure a scoped path remains available without granting list/global visibility.
+  - **Create/delete and other org operations:** review `POST`/`DELETE /api/organizations` and any related routes/services for the same over-broad `MANAGE_ORGANIZATION` access; restrict cross-org/global organization management to global permissions where intended.
+  - **Client/UI impact:** update Flutter route guards, screens, and organization-selection/edit flows as needed so org-scoped users can still edit their own organization settings where supported, but cannot browse all organizations.
+
+  Verify after: a user with only `MANAGE_ORGANIZATION` cannot list or access other organizations (403 or scoped empty/not-found as appropriate) but can still view/update their own organization settings when allowed; global organization managers/viewers retain intended behavior.
+
+- [ ] **10.39:** Surface user invitation note in the accept invite UI
+
+- [ ] **10.40** When the create invitation panel is open on the user list, the button remains there but does nothing.  It's almost identical to the actual create invitation button that does the work.  Distinguish these somehow -- perhaps put a chevron on it, or change the color, or something.
+- [ ] **10.41** Users correctly cannot deactivate themselves via a server error.  We can probably check that in the client first for a better ux
+- [ ] **10.42** Soft delete events -- looks like it's a hard delete now.  Figure out the surface area affected and design how it would work.  Follow general guidelines established by prior soft-delete cases. we would have to add a filter to calendar, all events, and day view perhaps.  Or since events is the whole point of this app, a top-level deleted events may be warranted.  Similarly, may need to track the user who deleted for audit purposes.  We'll have to decide what happens to inventory, rsvps, etc, both on deletion and on restore.
+- [ ] **10.43** the reports page has its own organization display and change organization prompt, this isn't necessary since the sidebar does that.  Still should maintain the requirement that an organization is selected on visit.
+- [ ] **10.44** customer edit is not available on customer list for deactivated customers.  it does show up on view customer, and allows entry.  Saving (correctly) doesn't work, server provides a "Customer not found or no changes applied" error.  We can detect and prevent this in client code to make a better UX.  Check all soft delete entities and prevent similar cases.
+- [ ] **10.45** we have incosistent rsvp UIs between the events calendar (pending only, rounded filled buttons), events list (icons in two rows), view event (odd round outlined buttons that clip the containing text), and day view (no ui present).  Events calendar and events list are the most polished of these.  Settle on one if possible, and make sure they work reasonably consistently in terms of look and feel, toasts/snackbars/change-confirmations, and availability.  Avoid flicker and screen refreshes (only observed on view event so far)
+- [ ] **10.46** all entity list screens -- on hover there's a rounded rect over name/title element; there's not enough padding for the text to fit cleanly in the corners.
+- [ ] **10.47** edit timezone -- timezone popup should recommend the browser/system timezone at the top of the list.
+- [ ] **10.48** Profile screen has a timezone field -- changes seem to be applied instantly.  but there's an edit profile button that doesn't show time zone.  Probably move to edit profile screen and require a save action like other fields.  Consider if folks that can edit users can also edit their timezones
+- [ ] **10.49** selection and text copying seems to be disabled on all view screens
+- [ ] **10.50** Profile screen: time zone display is weird, with reading in and override and detected -- at times you can see the same three repeated.
+- [ ] **10.51** inconsistent coverage of cancel/try again when server unreachable; works from view -> edit, but not on, say, initial list load, or initial view load
+- [ ] **10.52** view inventory should list current/future events it's used in similar to customer's event list
 ---
 
 ## Phase 11 — Native packaging (deferred, not required for cutover)

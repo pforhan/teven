@@ -23,12 +23,17 @@ readonly APP_READY_TIMEOUT=120
 
 # Build flags for the host-side Flutter build. --no-web-resources-cdn self-hosts
 # CanvasKit, removing a third-party runtime fetch (FLUTTER-CONVERT.md task 0.10).
+# Build flags for the host-side Flutter build. --no-web-resources-cdn self-hosts
+# CanvasKit, removing a third-party runtime fetch (FLUTTER-CONVERT.md task 0.10).
 readonly FLUTTER_BUILD_ARGS=(
   build
   web
   --release
   --no-web-resources-cdn
 )
+
+readonly FLUTTER_BUILD_SENTINEL="${FLUTTER_DIR}/build/web/flutter_bootstrap.js"
+readonly DOCKER_BUILD_STAMP="${ROOT}/.teven/docker-build.stamp"
 
 die() {
   printf 'teven: %s\n' "$1" >&2
@@ -101,8 +106,11 @@ teven — task runner for the Teven stack
 Usage: ./teven <command> [options]
 
 Commands:
-  up                 Build the Flutter web bundle, then start the stack
-                     in the background (docker compose -d).
+  up                 Build the Flutter web bundle if needed, then start the
+                     stack in the background (docker compose -d). Skips the
+                     Flutter build when flutter_app/build/web is up to date,
+                     and skips "docker compose --build" when neither the
+                     frontend bundle nor the backend image inputs changed.
   up -f | --foreground
                      Same, but stream logs in the foreground instead.
   up -o | --open     Same, but wait for the backend to answer, then open the
@@ -128,12 +136,16 @@ Options:
                      answers (for `up`). Ignored with -f, which never returns
                      to the prompt to do it.
   -v, --volumes      Also delete volumes (for `down`).
+      --build        Force the full Flutter build and "docker compose --build"
+                     (for `up`), reverting to the original always-rebuild
+                     behavior.
   -n, --dry-run      Print the commands that would run, without running them.
   -h, --help         Show this help.
 
 Examples:
-  ./teven up                    # build Flutter, then start in background
-  ./teven up -f                 # build Flutter, then stream logs
+  ./teven up                    # build only what changed, then start
+  ./teven up --build            # force Flutter + Docker rebuild
+  ./teven up -f                 # stream logs in the foreground
   ./teven up --open             # start, wait, then open the browser
   ./teven up --dry-run          # show what would run
   ./teven verify                # analyze + format check + test (Flutter)
@@ -147,13 +159,14 @@ main() {
   local command="${1:-help}"
   shift || true
 
-  local foreground=0 volumes=0 dry_run=0 open_app=0
+  local foreground=0 volumes=0 dry_run=0 open_app=0 force=0
 
   while [ $# -gt 0 ]; do
     case "$1" in
       -f | --foreground) foreground=1 ;;
       -o | --open) open_app=1 ;;
       -v | --volumes) volumes=1 ;;
+      --build) force=1 ;;
       -n | --dry-run) dry_run=1 ;;
       -h | --help)
         usage
@@ -169,7 +182,7 @@ main() {
   done
 
   case "$command" in
-    up) cmd_up "$foreground" "$dry_run" "$open_app" ;;
+    up) cmd_up "$foreground" "$dry_run" "$open_app" "$force" ;;
     build) cmd_build "$dry_run" ;;
     dev) cmd_dev "$dry_run" ;;
     verify) cmd_verify "$dry_run" ;;
@@ -187,6 +200,66 @@ main() {
       return 2
       ;;
   esac
+}
+
+flutter_build_needed() {
+  local sentinel="${FLUTTER_BUILD_SENTINEL}"
+  [ -f "$sentinel" ] || return 0
+
+  local -a inputs=()
+  local p
+  for p in \
+    "${FLUTTER_DIR}/lib" \
+    "${FLUTTER_DIR}/web" \
+    "${FLUTTER_DIR}/pubspec.yaml" \
+    "${FLUTTER_DIR}/pubspec.lock" \
+    "${FLUTTER_DIR}/assets" \
+    "${FLUTTER_DIR}/fonts" \
+    "${FLUTTER_DIR}/.metadata"; do
+    [ -e "$p" ] && inputs+=("$p")
+  done
+  [ ${#inputs[@]} -eq 0 ] && return 0
+
+  local newer
+  newer="$(find "${inputs[@]}" -newer "$sentinel" -print -quit 2>/dev/null || true)"
+  [ -n "$newer" ]
+}
+
+docker_build_needed() {
+  local stamp="${DOCKER_BUILD_STAMP}"
+  [ -f "$stamp" ] || return 0
+
+  local -a inputs=(
+    "${ROOT}/Dockerfile"
+    "${ROOT}/.dockerignore"
+    "${ROOT}/gradlew"
+    "${ROOT}/settings.gradle.kts"
+    "${ROOT}/build.gradle.kts"
+    "${ROOT}/gradle"
+    "${ROOT}/backend"
+    "${FLUTTER_DIR}/build/web"
+  )
+  local -a existing=()
+  local p
+  for p in "${inputs[@]}"; do
+    [ -e "$p" ] && existing+=("$p")
+  done
+  [ ${#existing[@]} -eq 0 ] && return 0
+
+  local newer
+  newer="$(find "${existing[@]}" -newer "$stamp" -print -quit 2>/dev/null || true)"
+  [ -n "$newer" ]
+}
+
+mark_docker_built() {
+  local dry_run="$1"
+  if [ "$dry_run" -eq 1 ]; then
+    show mkdir -p "${ROOT}/.teven"
+    show touch "${DOCKER_BUILD_STAMP}"
+  else
+    mkdir -p "${ROOT}/.teven"
+    touch "${DOCKER_BUILD_STAMP}"
+  fi
 }
 
 # Build the Flutter web bundle. This must run before the Docker image build,
@@ -236,15 +309,61 @@ maybe_open() {
 }
 
 cmd_up() {
-  local foreground="$1" dry_run="$2" open_app="$3"
-  cmd_build "$dry_run" || return 1
-  printf '==> Starting the stack\n'
-  local -a compose=(docker compose up --build)
-  [ "$foreground" -eq 1 ] || compose+=(-d)
-  if [ "$dry_run" -eq 1 ]; then
-    show "${compose[@]}"
+  local foreground="$1" dry_run="$2" open_app="$3" force="$4"
+  local frontend_ran=0 need_docker_build=0
+
+  if [ "$force" -eq 1 ]; then
+    cmd_build "$dry_run" || return 1
+    frontend_ran=1
+    need_docker_build=1
   else
-    "${compose[@]}"
+    if flutter_build_needed; then
+      cmd_build "$dry_run" || return 1
+      frontend_ran=1
+    else
+      printf '==> Flutter web bundle up to date (flutter_app/build/web/flutter_bootstrap.js); skipping build\n'
+    fi
+
+    if [ "$frontend_ran" -eq 1 ] || docker_build_needed; then
+      need_docker_build=1
+    fi
+  fi
+
+  printf '==> Starting the stack\n'
+  if [ "$dry_run" -eq 1 ]; then
+    if [ "$need_docker_build" -eq 1 ]; then
+      if [ "$foreground" -eq 1 ]; then
+        show docker compose build
+        mark_docker_built "$dry_run"
+        show docker compose up
+      else
+        show docker compose up --build -d
+        mark_docker_built "$dry_run"
+      fi
+    else
+      if [ "$foreground" -eq 1 ]; then
+        show docker compose up
+      else
+        show docker compose up -d
+      fi
+    fi
+  else
+    if [ "$need_docker_build" -eq 1 ]; then
+      if [ "$foreground" -eq 1 ]; then
+        docker compose build
+        mark_docker_built "$dry_run"
+        docker compose up
+      else
+        docker compose up --build -d
+        mark_docker_built "$dry_run"
+      fi
+    else
+      if [ "$foreground" -eq 1 ]; then
+        docker compose up
+      else
+        docker compose up -d
+      fi
+    fi
   fi
   maybe_open "$open_app" "$foreground" "$dry_run"
 }

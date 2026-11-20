@@ -42,3 +42,6 @@ local.properties
 .dart_tool/
 .flutter-plugins*
 *.iml
+
+# Local task-runner state
+.teven/

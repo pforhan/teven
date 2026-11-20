@@ -32,3 +32,6 @@ backend/*/*/build
 # Local env and editor config
 .env
 *.log
+
+# Local task-runner state
+.teven/
