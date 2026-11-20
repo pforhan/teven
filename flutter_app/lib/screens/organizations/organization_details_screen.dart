@@ -95,69 +95,71 @@ class _OrganizationDetailsScreenState
     ]);
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => context.go(
-                    canViewOrganizationList
-                        ? AppRoutes.organizations
-                        : AppRoutes.profile,
-                  ),
-                  icon: const Icon(Icons.arrow_back),
-                  label: Text(
-                    canViewOrganizationList
-                        ? 'Back to Organizations'
-                        : 'Back to Profile',
-                  ),
-                ),
-                if (canEdit)
+      body: SelectionArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
                   OutlinedButton.icon(
                     onPressed: () => context.go(
-                      AppRoutes.organizationEditPath(
-                        organization.organizationId,
-                      ),
+                      canViewOrganizationList
+                          ? AppRoutes.organizations
+                          : AppRoutes.profile,
                     ),
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit'),
+                    icon: const Icon(Icons.arrow_back),
+                    label: Text(
+                      canViewOrganizationList
+                          ? 'Back to Organizations'
+                          : 'Back to Profile',
+                    ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Organization Details',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Name: ${organization.name}'),
-                  Text('Time Zone: ${organization.timezone}'),
-                  Text(
-                    'Contact Information: ${organization.contactInformation}',
-                  ),
+                  if (canEdit)
+                    OutlinedButton.icon(
+                      onPressed: () => context.go(
+                        AppRoutes.organizationEditPath(
+                          organization.organizationId,
+                        ),
+                      ),
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Edit'),
+                    ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Organization Details',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Name: ${organization.name}'),
+                    Text('Time Zone: ${organization.timezone}'),
+                    Text(
+                      'Contact Information: ${organization.contactInformation}',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

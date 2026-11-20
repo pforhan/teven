@@ -86,59 +86,61 @@ class _InventoryDetailsScreenState
     }
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => context.go(AppRoutes.inventory),
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Back to Inventory'),
-                ),
-                if (canEdit) ...[
-                  OutlinedButton.icon(
-                    onPressed: () => context.go(
-                      AppRoutes.inventoryEditPath(widget.inventoryId),
-                    ),
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit'),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: SelectionArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Text(
-                    'Inventory Details',
-                    style: Theme.of(context).textTheme.titleLarge,
+                  OutlinedButton.icon(
+                    onPressed: () => context.go(AppRoutes.inventory),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back to Inventory'),
                   ),
-                  const SizedBox(height: 16),
-                  Text('Name: ${item.name}'),
-                  Text('Description: ${item.description}'),
-                  Text('Quantity: ${item.quantity}'),
-                  const SizedBox(height: 24),
+                  if (canEdit) ...[
+                    OutlinedButton.icon(
+                      onPressed: () => context.go(
+                        AppRoutes.inventoryEditPath(widget.inventoryId),
+                      ),
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Edit'),
+                    ),
+                  ],
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Inventory Details',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Name: ${item.name}'),
+                    Text('Description: ${item.description}'),
+                    Text('Quantity: ${item.quantity}'),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

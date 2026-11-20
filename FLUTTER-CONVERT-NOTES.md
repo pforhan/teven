@@ -4265,3 +4265,15 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/widgets/time_zone_field.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.49: enable text selection on view screens
+
+**Implemented task 10.49.** Enabled text selection/copy on detail view screens.
+
+**Flutter.** Wrapped customer, user, organization, inventory, and event details screen content in `SelectionArea` so displayed text can be selected and copied.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/screens/customers/customer_details_screen.dart`, `flutter_app/lib/screens/users/user_details_screen.dart`, `flutter_app/lib/screens/organizations/organization_details_screen.dart`, `flutter_app/lib/screens/inventory/inventory_details_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

@@ -492,7 +492,9 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
   **Implemented.** `TimeZoneField`'s picker now surfaces the detected system/browser timezone in a "Recommended" section at the top when available (used by profile and organization create/edit flows, and other timezone fields sharing the widget). Verified with `./teven verify`.
 - [ ] **10.48** Profile screen has a timezone field -- changes seem to be applied instantly.  but there's an edit profile button that doesn't show time zone.  Probably move to edit profile screen and require a save action like other fields.  Consider if folks that can edit users can also edit their timezones
-- [ ] **10.49** selection and text copying seems to be disabled on all view screens
+- [x] **10.49** selection and text copying seems to be disabled on all view screens
+
+  **Implemented.** Wrapped detail view screen content in `SelectionArea` for customer, user, organization, inventory, and event details so users can select and copy text. Verified with `./teven verify`.
 - [ ] **10.50** Profile screen: time zone display is weird, with reading in and override and detected -- at times you can see the same three repeated.
 - [ ] **10.51** inconsistent coverage of cancel/try again when server unreachable; works from view -> edit, but not on, say, initial list load, or initial view load
 - [ ] **10.52** view inventory should list current/future events it's used in similar to customer's event list

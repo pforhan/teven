@@ -140,129 +140,131 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen> {
     final readerZone = tz.value?.effectiveZone ?? 'UTC';
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => context.go(AppRoutes.customers),
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Back to Customers'),
-                ),
-                if (canEdit)
-                  OutlinedButton.icon(
-                    onPressed: () => context.go(
-                      AppRoutes.customerEditPath(widget.customerId),
-                    ),
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit'),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: SelectionArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Text(
-                    'Customer Details',
-                    style: Theme.of(context).textTheme.titleLarge,
+                  OutlinedButton.icon(
+                    onPressed: () => context.go(AppRoutes.customers),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back to Customers'),
                   ),
-                  const SizedBox(height: 16),
-                  if (customer.deletedAt != null) ...[
-                    Text(
-                      'Status: Deactivated',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w600,
+                  if (canEdit)
+                    OutlinedButton.icon(
+                      onPressed: () => context.go(
+                        AppRoutes.customerEditPath(widget.customerId),
                       ),
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Edit'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Customer Details',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    if (customer.deletedAt != null) ...[
+                      Text(
+                        'Status: Deactivated',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Text('Name: ${customer.name}'),
+                    Text('Phone: ${customer.phone}'),
+                    Text('Address: ${customer.address}'),
+                    Text('Notes: ${customer.notes}'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        Text(
+                          'Today and upcoming events',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        TextButton(
+                          onPressed: () => context.go(
+                            AppRoutes.eventListPath(
+                              customerId: widget.customerId,
+                            ),
+                          ),
+                          child: const Text('View all events'),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
+                    if (_isLoadingEvents)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: LinearProgressIndicator(),
+                      )
+                    else if (_eventsError != null)
+                      ErrorDisplay.fromException(_eventsError!)
+                    else if ((_upcomingEvents ?? const []).isEmpty)
+                      const Text('No upcoming events.')
+                    else
+                      ...?_upcomingEvents?.map(
+                        (event) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: RecordLinkButton(
+                            label: event.title,
+                            onPressed: () => context.go(
+                              AppRoutes.eventDetailsPath(event.eventId),
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${event.dateIn(readerZone)} ${event.timeIn(readerZone)}',
+                          ),
+                        ),
+                      ),
                   ],
-                  Text('Name: ${customer.name}'),
-                  Text('Phone: ${customer.phone}'),
-                  Text('Address: ${customer.address}'),
-                  Text('Notes: ${customer.notes}'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
-                borderRadius: BorderRadius.circular(8),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      Text(
-                        'Today and upcoming events',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      TextButton(
-                        onPressed: () => context.go(
-                          AppRoutes.eventListPath(
-                            customerId: widget.customerId,
-                          ),
-                        ),
-                        child: const Text('View all events'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  if (_isLoadingEvents)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: LinearProgressIndicator(),
-                    )
-                  else if (_eventsError != null)
-                    ErrorDisplay.fromException(_eventsError!)
-                  else if ((_upcomingEvents ?? const []).isEmpty)
-                    const Text('No upcoming events.')
-                  else
-                    ...?_upcomingEvents?.map(
-                      (event) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: RecordLinkButton(
-                          label: event.title,
-                          onPressed: () => context.go(
-                            AppRoutes.eventDetailsPath(event.eventId),
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${event.dateIn(readerZone)} ${event.timeIn(readerZone)}',
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

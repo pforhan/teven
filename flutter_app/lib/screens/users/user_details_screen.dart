@@ -100,95 +100,99 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
         user.deletedAt == null;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => context.go(AppRoutes.users),
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Back to Users'),
-                ),
-                if (canEdit) ...[
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        context.go(AppRoutes.userEditPath(widget.userId)),
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit'),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: SelectionArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Text(
-                    'User Details',
-                    style: Theme.of(context).textTheme.titleLarge,
+                  OutlinedButton.icon(
+                    onPressed: () => context.go(AppRoutes.users),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back to Users'),
                   ),
-                  const SizedBox(height: 16),
-                  if (user.deletedAt != null) ...[
-                    Text(
-                      'Status: Deactivated',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  if (canEdit) ...[
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          context.go(AppRoutes.userEditPath(widget.userId)),
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Edit'),
                     ),
-                    const SizedBox(height: 8),
                   ],
-                  Text('Username: ${user.username}'),
-                  Text('Display Name: ${user.displayName}'),
-                  Text('Email: ${user.email}'),
-                  Text('Roles: ${user.roles.join(', ')}'),
-                  Text('Organization: ${user.organization.name}'),
-                  if (user.staffDetails != null) ...[
-                    ...() {
-                      final staff = user.staffDetails!;
-                      final items = <Widget>[];
-                      if (staff.contactInformation.trim().isNotEmpty) {
-                        items.add(
-                          Text(
-                            'Contact Information: ${staff.contactInformation}',
-                          ),
-                        );
-                      }
-                      if (staff.phoneNumber.trim().isNotEmpty) {
-                        items.add(Text('Phone Number: ${staff.phoneNumber}'));
-                      }
-                      final dob = staff.dateOfBirth?.trim() ?? '';
-                      if (dob.isNotEmpty) {
-                        items.add(Text('Date of Birth: $dob'));
-                      }
-                      if (staff.skills.isNotEmpty) {
-                        items.add(Text('Skills:\n${staff.skills.join('\n')}'));
-                      }
-                      if (items.isEmpty) return <Widget>[];
-                      return <Widget>[const SizedBox(height: 16), ...items];
-                    }(),
-                  ],
-                  const SizedBox(height: 24),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'User Details',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    if (user.deletedAt != null) ...[
+                      Text(
+                        'Status: Deactivated',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Text('Username: ${user.username}'),
+                    Text('Display Name: ${user.displayName}'),
+                    Text('Email: ${user.email}'),
+                    Text('Roles: ${user.roles.join(', ')}'),
+                    Text('Organization: ${user.organization.name}'),
+                    if (user.staffDetails != null) ...[
+                      ...() {
+                        final staff = user.staffDetails!;
+                        final items = <Widget>[];
+                        if (staff.contactInformation.trim().isNotEmpty) {
+                          items.add(
+                            Text(
+                              'Contact Information: ${staff.contactInformation}',
+                            ),
+                          );
+                        }
+                        if (staff.phoneNumber.trim().isNotEmpty) {
+                          items.add(Text('Phone Number: ${staff.phoneNumber}'));
+                        }
+                        final dob = staff.dateOfBirth?.trim() ?? '';
+                        if (dob.isNotEmpty) {
+                          items.add(Text('Date of Birth: $dob'));
+                        }
+                        if (staff.skills.isNotEmpty) {
+                          items.add(
+                            Text('Skills:\n${staff.skills.join('\n')}'),
+                          );
+                        }
+                        if (items.isEmpty) return <Widget>[];
+                        return <Widget>[const SizedBox(height: 16), ...items];
+                      }(),
+                    ],
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

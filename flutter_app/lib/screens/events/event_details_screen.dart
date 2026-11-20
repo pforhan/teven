@@ -323,98 +323,103 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
     final event = _event;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Header(
-              canManage: canManage,
-              submitting: _submitting,
-              backToDay: widget.backToDay,
-              onEdit: () => context.go(AppRoutes.eventEditPath(widget.eventId)),
-              onDelete: () => unawaited(_confirmDelete()),
-            ),
-            const SizedBox(height: 16),
-            if (_loading && event == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (event == null)
-              // **The divergence.** The React original spins here forever; see
-              // the class comment.
-              ErrorDisplay.fromException(
-                _loadError ??
-                    const ApiRequestException('That event could not be found.'),
-              )
-            else
-              Stack(
-                children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final main = _EventCard(
-                        event: event,
-                        readerZone: readerZone,
-                        actionError: _actionError,
-                        successMessage: _successMessage,
-                      );
-                      final side = _Sidebar(
-                        event: event,
-                        readerZone: readerZone,
-                        canJoin: canJoin,
-                        canManage: canManage,
-                        myRsvpStatus: _myRsvpStatus,
-                        submitting: _submitting,
-                        backToDay: widget.backToDay,
-                        onRsvp: (availability) =>
-                            unawaited(_rsvp(availability)),
-                      );
-
-                      // **`col-lg-8` / `col-lg-4`, one column below.**
-                      //
-                      // **The threshold is the content width, not the window's**,
-                      // and the difference is not cosmetic. Bootstrap's `lg` is
-                      // 992px of *viewport*; the React original has a navbar
-                      // across the top, so its content *is* its viewport. This
-                      // port has a rail down the side, which takes 80px on a
-                      // tablet layout and 256px on a desktop one — so a viewport
-                      // of 1100px leaves about 820px of column, and a split
-                      // keyed on the window would put a 330px sidebar into a
-                      // 820px space.
-                      //
-                      // 860 is the width at which a 2:1 split gives the sidebar
-                      // about 280px and the main card about 560px. Below it the
-                      // sidebar stacks under the card instead — and the thing
-                      // that decides it is the width of the *card*, not of the
-                      // window.
-                      if (constraints.maxWidth < kTwoColumnContentWidth) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [main, const SizedBox(height: 16), side],
-                        );
-                      }
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 8 of 12 and 4 of 12.
-                          Expanded(flex: 2, child: main),
-                          const SizedBox(width: 16),
-                          Expanded(flex: 1, child: side),
-                        ],
-                      );
-                    },
-                  ),
-                  if (_showRefreshingBar && _refreshing)
-                    const Positioned(
-                      left: 0,
-                      right: 0,
-                      top: 0,
-                      child: LinearProgressIndicator(minHeight: 2),
-                    ),
-                ],
+      body: SelectionArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(
+                canManage: canManage,
+                submitting: _submitting,
+                backToDay: widget.backToDay,
+                onEdit: () =>
+                    context.go(AppRoutes.eventEditPath(widget.eventId)),
+                onDelete: () => unawaited(_confirmDelete()),
               ),
-          ],
+              const SizedBox(height: 16),
+              if (_loading && event == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (event == null)
+                // **The divergence.** The React original spins here forever; see
+                // the class comment.
+                ErrorDisplay.fromException(
+                  _loadError ??
+                      const ApiRequestException(
+                        'That event could not be found.',
+                      ),
+                )
+              else
+                Stack(
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final main = _EventCard(
+                          event: event,
+                          readerZone: readerZone,
+                          actionError: _actionError,
+                          successMessage: _successMessage,
+                        );
+                        final side = _Sidebar(
+                          event: event,
+                          readerZone: readerZone,
+                          canJoin: canJoin,
+                          canManage: canManage,
+                          myRsvpStatus: _myRsvpStatus,
+                          submitting: _submitting,
+                          backToDay: widget.backToDay,
+                          onRsvp: (availability) =>
+                              unawaited(_rsvp(availability)),
+                        );
+
+                        // **`col-lg-8` / `col-lg-4`, one column below.**
+                        //
+                        // **The threshold is the content width, not the window's**,
+                        // and the difference is not cosmetic. Bootstrap's `lg` is
+                        // 992px of *viewport*; the React original has a navbar
+                        // across the top, so its content *is* its viewport. This
+                        // port has a rail down the side, which takes 80px on a
+                        // tablet layout and 256px on a desktop one — so a viewport
+                        // of 1100px leaves about 820px of column, and a split
+                        // keyed on the window would put a 330px sidebar into a
+                        // 820px space.
+                        //
+                        // 860 is the width at which a 2:1 split gives the sidebar
+                        // about 280px and the main card about 560px. Below it the
+                        // sidebar stacks under the card instead — and the thing
+                        // that decides it is the width of the *card*, not of the
+                        // window.
+                        if (constraints.maxWidth < kTwoColumnContentWidth) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [main, const SizedBox(height: 16), side],
+                          );
+                        }
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 8 of 12 and 4 of 12.
+                            Expanded(flex: 2, child: main),
+                            const SizedBox(width: 16),
+                            Expanded(flex: 1, child: side),
+                          ],
+                        );
+                      },
+                    ),
+                    if (_showRefreshingBar && _refreshing)
+                      const Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        child: LinearProgressIndicator(minHeight: 2),
+                      ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
