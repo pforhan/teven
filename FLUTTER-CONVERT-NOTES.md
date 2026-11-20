@@ -4253,3 +4253,15 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/widgets/record_link_button.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.47: recommend system timezone in timezone picker
+
+**Implemented task 10.47.** Added a system/browser timezone recommendation to timezone pickers.
+
+**Flutter.** The shared `TimeZoneField` picker now shows the detected timezone in a "Recommended" section at the top (when available and matching search), covering profile and organization create/edit timezone selection.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/widgets/time_zone_field.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

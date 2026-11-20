@@ -104,18 +104,25 @@ class _TimeZoneFieldState extends ConsumerState<TimeZoneField> {
 
   Future<void> _openPicker() async {
     final service = _service();
+    final recommendedZone = ref.read(timeZoneDetectorProvider).asData?.value;
     final picked = context.layoutSize == LayoutSize.mobile
         ? await showModalBottomSheet<String>(
             context: context,
             isScrollControlled: true,
             showDragHandle: true,
-            builder: (context) =>
-                _TimeZonePickerSheet(zone: widget.zone, service: service),
+            builder: (context) => _TimeZonePickerSheet(
+              zone: widget.zone,
+              service: service,
+              recommendedZone: recommendedZone,
+            ),
           )
         : await showDialog<String>(
             context: context,
-            builder: (context) =>
-                _TimeZonePickerDialog(zone: widget.zone, service: service),
+            builder: (context) => _TimeZonePickerDialog(
+              zone: widget.zone,
+              service: service,
+              recommendedZone: recommendedZone,
+            ),
           );
 
     if (picked != null) {
@@ -126,10 +133,15 @@ class _TimeZoneFieldState extends ConsumerState<TimeZoneField> {
 
 /// The picker's body: a search field and the zone list, grouped by offset.
 class _TimeZonePickerBody extends StatefulWidget {
-  const _TimeZonePickerBody({required this.zone, required this.service});
+  const _TimeZonePickerBody({
+    required this.zone,
+    required this.service,
+    this.recommendedZone,
+  });
 
   final String zone;
   final TimeZoneService service;
+  final String? recommendedZone;
 
   @override
   State<_TimeZonePickerBody> createState() => _TimeZonePickerBodyState();
@@ -182,9 +194,35 @@ class _TimeZonePickerBodyState extends State<_TimeZonePickerBody> {
   Widget build(BuildContext context) {
     final groups = _groups;
     final theme = Theme.of(context);
+    final query = _search.trim().toLowerCase();
+    final recommendedZone = widget.recommendedZone;
+    final showRecommended =
+        recommendedZone != null &&
+        widget.service.locations.contains(recommendedZone) &&
+        (query.isEmpty || recommendedZone.toLowerCase().contains(query));
 
     final list = ListView(
       children: [
+        if (showRecommended) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Text(
+              'Recommended',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.secondary,
+              ),
+            ),
+          ),
+          ListTile(
+            title: Text(recommendedZone),
+            subtitle: Text(
+              'System timezone (${formatZoneOffset(widget.service.offsetAt(recommendedZone, DateTime.now()))})',
+            ),
+            selected: recommendedZone == widget.zone,
+            onTap: () => Navigator.of(context).pop(recommendedZone),
+          ),
+          const Divider(height: 1),
+        ],
         for (final group in groups) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -224,10 +262,15 @@ class _TimeZonePickerBodyState extends State<_TimeZonePickerBody> {
 }
 
 class _TimeZonePickerSheet extends StatelessWidget {
-  const _TimeZonePickerSheet({required this.zone, required this.service});
+  const _TimeZonePickerSheet({
+    required this.zone,
+    required this.service,
+    this.recommendedZone,
+  });
 
   final String zone;
   final TimeZoneService service;
+  final String? recommendedZone;
 
   @override
   Widget build(BuildContext context) {
@@ -242,17 +285,26 @@ class _TimeZonePickerSheet extends StatelessWidget {
           top: 8,
           bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
         ),
-        child: _TimeZonePickerBody(zone: zone, service: service),
+        child: _TimeZonePickerBody(
+          zone: zone,
+          service: service,
+          recommendedZone: recommendedZone,
+        ),
       ),
     );
   }
 }
 
 class _TimeZonePickerDialog extends StatelessWidget {
-  const _TimeZonePickerDialog({required this.zone, required this.service});
+  const _TimeZonePickerDialog({
+    required this.zone,
+    required this.service,
+    this.recommendedZone,
+  });
 
   final String zone;
   final TimeZoneService service;
+  final String? recommendedZone;
 
   @override
   Widget build(BuildContext context) {
@@ -261,7 +313,11 @@ class _TimeZonePickerDialog extends StatelessWidget {
       contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       content: SizedBox(
         width: 420,
-        child: _TimeZonePickerBody(zone: zone, service: service),
+        child: _TimeZonePickerBody(
+          zone: zone,
+          service: service,
+          recommendedZone: recommendedZone,
+        ),
       ),
     );
   }

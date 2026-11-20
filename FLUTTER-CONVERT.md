@@ -488,7 +488,9 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 - [x] **10.46** all entity list screens -- on hover there's a rounded rect over name/title element; there's not enough padding for the text to fit cleanly in the corners.
 
   **Implemented.** Added horizontal padding to `RecordLinkButton` so hover/highlight states for linked name/title entries have better spacing. Verified with `./teven verify`.
-- [ ] **10.47** edit timezone -- timezone popup should recommend the browser/system timezone at the top of the list.
+- [x] **10.47** edit timezone -- timezone popup should recommend the browser/system timezone at the top of the list.
+
+  **Implemented.** `TimeZoneField`'s picker now surfaces the detected system/browser timezone in a "Recommended" section at the top when available (used by profile and organization create/edit flows, and other timezone fields sharing the widget). Verified with `./teven verify`.
 - [ ] **10.48** Profile screen has a timezone field -- changes seem to be applied instantly.  but there's an edit profile button that doesn't show time zone.  Probably move to edit profile screen and require a save action like other fields.  Consider if folks that can edit users can also edit their timezones
 - [ ] **10.49** selection and text copying seems to be disabled on all view screens
 - [ ] **10.50** Profile screen: time zone display is weird, with reading in and override and detected -- at times you can see the same three repeated.
