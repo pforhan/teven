@@ -25,13 +25,28 @@ fun Route.organizationRoutes() {
   val organizationService by inject<OrganizationService>()
 
   route("/api/organizations") {
-    withPermission(MANAGE_ORGANIZATIONS_GLOBAL, MANAGE_ORGANIZATION) {
+    withPermission(MANAGE_ORGANIZATIONS_GLOBAL) {
       post {
         val createOrganizationRequest = call.receive<CreateOrganizationRequest>()
         val newOrganization = organizationService.createOrganization(createOrganizationRequest)
         call.respond(HttpStatusCode.Created, success(newOrganization))
       }
 
+      delete("/{organization_id}") {
+        val organizationId = call.parameters["organization_id"]?.toIntOrNull()
+        if (organizationId == null) {
+          call.respond(HttpStatusCode.BadRequest, failure("Invalid organization ID"))
+          return@delete
+        }
+        if (organizationService.deleteOrganization(organizationId)) {
+          call.respond(HttpStatusCode.NoContent)
+        } else {
+          call.respond(HttpStatusCode.NotFound, failure("Organization not found"))
+        }
+      }
+    }
+
+    withPermission(MANAGE_ORGANIZATIONS_GLOBAL, MANAGE_ORGANIZATION) {
       put("/{organization_id}") {
         val organizationId = call.parameters["organization_id"]?.toIntOrNull()
         if (organizationId == null) {
@@ -54,22 +69,9 @@ fun Route.organizationRoutes() {
           )
         }
       }
-
-      delete("/{organization_id}") {
-        val organizationId = call.parameters["organization_id"]?.toIntOrNull()
-        if (organizationId == null) {
-          call.respond(HttpStatusCode.BadRequest, failure("Invalid organization ID"))
-          return@delete
-        }
-        if (organizationService.deleteOrganization(organizationId)) {
-          call.respond(HttpStatusCode.NoContent)
-        } else {
-          call.respond(HttpStatusCode.NotFound, failure("Organization not found"))
-        }
-      }
     }
 
-    withPermission(VIEW_ORGANIZATIONS_GLOBAL, MANAGE_ORGANIZATION) {
+    withPermission(VIEW_ORGANIZATIONS_GLOBAL, MANAGE_ORGANIZATIONS_GLOBAL) {
       get {
         val search = call.request.queryParameters["search"]
         val limit = call.request.queryParameters["limit"]?.toIntOrNull()
@@ -86,7 +88,9 @@ fun Route.organizationRoutes() {
         )
         call.respond(HttpStatusCode.OK, success(organizations))
       }
+    }
 
+    withPermission(VIEW_ORGANIZATIONS_GLOBAL, MANAGE_ORGANIZATIONS_GLOBAL, MANAGE_ORGANIZATION) {
       get("/{organization_id}") {
         val organizationId = call.parameters["organization_id"]?.toIntOrNull()
         if (organizationId == null) {

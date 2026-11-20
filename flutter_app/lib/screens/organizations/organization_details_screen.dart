@@ -89,6 +89,10 @@ class _OrganizationDetailsScreenState
 
     final gate = ref.watch(permissionGateProvider);
     final canEdit = _canEdit(gate, organization);
+    final canViewOrganizationList = gate.hasAny([
+      Permission.viewOrganizationsGlobal,
+      Permission.manageOrganizationsGlobal,
+    ]);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -103,9 +107,17 @@ class _OrganizationDetailsScreenState
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () => context.go(AppRoutes.organizations),
+                  onPressed: () => context.go(
+                    canViewOrganizationList
+                        ? AppRoutes.organizations
+                        : AppRoutes.profile,
+                  ),
                   icon: const Icon(Icons.arrow_back),
-                  label: const Text('Back to Organizations'),
+                  label: Text(
+                    canViewOrganizationList
+                        ? 'Back to Organizations'
+                        : 'Back to Profile',
+                  ),
                 ),
                 if (canEdit)
                   OutlinedButton.icon(

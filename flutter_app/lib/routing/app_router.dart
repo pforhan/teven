@@ -442,6 +442,7 @@ List<RouteBase> _shellRoutes(Ref ref) => [
 
   _guarded(ref, AppRoutes.organizations, [
     Permission.viewOrganizationsGlobal,
+    Permission.manageOrganizationsGlobal,
   ], (_) => const OrganizationListScreen()),
   _guarded(ref, AppRoutes.organizationCreate, [
     Permission.manageOrganizationsGlobal,
@@ -458,7 +459,11 @@ List<RouteBase> _shellRoutes(Ref ref) => [
   _guarded(
     ref,
     AppRoutes.organizationDetails,
-    [Permission.viewOrganizationsGlobal],
+    [
+      Permission.viewOrganizationsGlobal,
+      Permission.manageOrganizationsGlobal,
+      Permission.manageOrganization,
+    ],
     (state) => OrganizationDetailsScreen(
       organizationId:
           int.tryParse(state.pathParameters['organizationId'] ?? '') ?? -1,

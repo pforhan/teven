@@ -4165,3 +4165,17 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/screens/events/event_form_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `flutter_app/lib/routing/app_router.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.38: restrict MANAGE_ORGANIZATION to own organization
+
+**Implemented task 10.38.** Prevented org-scoped `MANAGE_ORGANIZATION` users from listing/accessing other organizations while preserving own-organization settings access.
+
+**Backend.** `GET /api/organizations` now requires global org permissions (`VIEW_ORGANIZATIONS_GLOBAL` or `MANAGE_ORGANIZATIONS_GLOBAL`), removing org-scoped access to the unscoped organization list. `POST` and `DELETE /api/organizations...` are restricted to `MANAGE_ORGANIZATIONS_GLOBAL`. `GET/PUT /api/organizations/{id}` continue to allow `MANAGE_ORGANIZATION` (with global permissions also accepted where applicable) so org-scoped managers can view/update only their own organization via existing service scoping. Added route-harness tests covering list denial for `MANAGE_ORGANIZATION` and allowed own-org read/update vs denied create/delete.
+
+**Flutter.** Updated organization routes to match: list/create remain global-only, details allow `MANAGE_ORGANIZATION` for own-org access, edit remains own-org scoped for `MANAGE_ORGANIZATION`. Organization details/edit screens now navigate back to own-org details/profile when the user cannot access the organizations list (instead of always returning to `/organizations`).
+
+**Verified:** `./teven verify-backend`, `./teven verify`.
+
+**Files changed (primary):** `backend/app/src/main/kotlin/alphainterplanetary/teven/app/organization/OrganizationRoutes.kt`, `backend/app/src/test/kotlin/alphainterplanetary/teven/app/RouteAuthorizationAndValidationTest.kt`, `flutter_app/lib/routing/app_router.dart`, `flutter_app/lib/screens/organizations/organization_details_screen.dart`, `flutter_app/lib/screens/organizations/organization_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

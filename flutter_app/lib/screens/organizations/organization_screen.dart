@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../models/organization.dart';
+import '../../models/permissions.dart';
+import '../../providers/auth_controller.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/time_zone_controller.dart';
 import '../../routing/app_router.dart';
@@ -105,6 +107,19 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
     super.dispose();
   }
 
+  String _exitPath() {
+    final gate = ref.read(permissionGateProvider);
+    final canViewOrganizationList = gate.hasAny([
+      Permission.viewOrganizationsGlobal,
+      Permission.manageOrganizationsGlobal,
+    ]);
+    if (canViewOrganizationList) return AppRoutes.organizations;
+    if (!widget.isCreate && widget.organizationId != null) {
+      return AppRoutes.organizationDetailsPath(widget.organizationId!);
+    }
+    return AppRoutes.profile;
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -137,7 +152,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
             );
       }
       if (!mounted) return;
-      context.go(AppRoutes.organizations);
+      context.go(_exitPath());
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _error = e);
@@ -179,7 +194,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                 runSpacing: 8,
                 children: [
                   OutlinedButton(
-                    onPressed: () => context.go(AppRoutes.organizations),
+                    onPressed: () => context.go(_exitPath()),
                     child: const Text('Cancel'),
                   ),
                   FilledButton(
@@ -216,7 +231,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
       submitting: _isSubmitting,
       error: _error,
       onSubmit: _handleSubmit,
-      onCancel: () => context.go(AppRoutes.organizations),
+      onCancel: () => context.go(_exitPath()),
       fields: [
         TextFormField(
           controller: _nameController,
