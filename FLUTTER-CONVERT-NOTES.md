@@ -4191,3 +4191,15 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/screens/users/user_list_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.44: prevent editing deactivated entities in UI
+
+**Implemented task 10.44.** Prevented UI edit flows that cannot succeed for deactivated records.
+
+**Flutter.** Customer and user details screens now hide Edit for deactivated records and display deactivated status. Customer and user edit screens detect deactivated records after load and block editing with a clear message plus navigation back to the list or to details (where restore is available). Audited currently implemented soft-deleted entity flows in Flutter (customers/users).
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/screens/customers/customer_details_screen.dart`, `flutter_app/lib/screens/customers/customer_form_screen.dart`, `flutter_app/lib/screens/users/user_details_screen.dart`, `flutter_app/lib/screens/users/user_form_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

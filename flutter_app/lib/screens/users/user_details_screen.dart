@@ -68,18 +68,6 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
-    // The edit route accepts either manage scope recorded the
-    // create/edit asymmetry (create ORs the two, edit gated on global alone)
-    // and the port reproduced it rather than fixing it; the live report that an
-    // organization-scoped Organizer's edit led back to `/events` confirmed the
-    // drift had reached the route, and the button could no longer be trusted to
-    // ask for the right thing. The server gates both create and update on
-    // `MANAGE_USERS_ORGANIZATION` (which the SuperAdmin also holds), so the
-    // affordance here matches the route.
-    final canEdit = gate.hasAny([
-      Permission.manageUsersGlobal,
-      Permission.manageUsersOrganization,
-    ]);
 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -95,6 +83,21 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
         ),
       );
     }
+
+    // The edit route accepts either manage scope recorded the
+    // create/edit asymmetry (create ORs the two, edit gated on global alone)
+    // and the port reproduced it rather than fixing it; the live report that an
+    // organization-scoped Organizer's edit led back to `/events` confirmed the
+    // drift had reached the route, and the button could no longer be trusted to
+    // ask for the right thing. The server gates both create and update on
+    // `MANAGE_USERS_ORGANIZATION` (which the SuperAdmin also holds), so the
+    // affordance here matches the route.
+    final canEdit =
+        gate.hasAny([
+          Permission.manageUsersGlobal,
+          Permission.manageUsersOrganization,
+        ]) &&
+        user.deletedAt == null;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -141,6 +144,16 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 16),
+                  if (user.deletedAt != null) ...[
+                    Text(
+                      'Status: Deactivated',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Text('Username: ${user.username}'),
                   Text('Display Name: ${user.displayName}'),
                   Text('Email: ${user.email}'),

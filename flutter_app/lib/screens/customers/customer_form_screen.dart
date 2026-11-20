@@ -237,6 +237,42 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
         );
       }
 
+      if (customer.deletedAt != null) {
+        return Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Customer', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                Text(
+                  'This customer is deactivated and cannot be edited.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => context.go(AppRoutes.customers),
+                      child: const Text('Back to Customers'),
+                    ),
+                    FilledButton(
+                      onPressed: () => context.go(
+                        AppRoutes.customerDetailsPath(widget.customerId!),
+                      ),
+                      child: const Text('View details'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       final canManageGlobal = ref
           .watch(permissionGateProvider)
           .has(Permission.manageCustomersGlobal);

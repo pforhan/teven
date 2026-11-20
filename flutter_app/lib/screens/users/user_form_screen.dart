@@ -330,6 +330,41 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
         );
       }
 
+      if (item.deletedAt != null) {
+        return Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('User', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                Text(
+                  'This user is deactivated and cannot be edited.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => context.go(AppRoutes.users),
+                      child: const Text('Back to Users'),
+                    ),
+                    FilledButton(
+                      onPressed: () =>
+                          context.go(AppRoutes.userDetailsPath(widget.userId!)),
+                      child: const Text('View details'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       final canManageGlobal = ref
           .watch(permissionGateProvider)
           .has(Permission.manageUsersGlobal);

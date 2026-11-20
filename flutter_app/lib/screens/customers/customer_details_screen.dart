@@ -115,9 +115,6 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
-    final canEdit =
-        gate.has(Permission.manageCustomersOrganization) ||
-        gate.has(Permission.manageCustomersGlobal);
 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -133,6 +130,11 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen> {
         ),
       );
     }
+
+    final canEdit =
+        (gate.has(Permission.manageCustomersOrganization) ||
+            gate.has(Permission.manageCustomersGlobal)) &&
+        customer.deletedAt == null;
 
     final tz = ref.watch(timeZoneControllerProvider);
     final readerZone = tz.value?.effectiveZone ?? 'UTC';
@@ -182,6 +184,16 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 16),
+                  if (customer.deletedAt != null) ...[
+                    Text(
+                      'Status: Deactivated',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Text('Name: ${customer.name}'),
                   Text('Phone: ${customer.phone}'),
                   Text('Address: ${customer.address}'),
