@@ -42,6 +42,11 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
   }
 
   Future<void> _load() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _user = null;
+    });
     try {
       final user = await ref.read(userServiceProvider).getUser(widget.userId);
       if (!mounted) return;
@@ -56,7 +61,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
         _error = error;
         _isLoading = false;
       });
-    } catch (error) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = const ApiRequestException('An unknown error occurred');
@@ -76,10 +81,37 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
     final user = _user;
     if (user == null) {
       return Scaffold(
-        body: Center(
-          child: _error != null
-              ? ErrorDisplay.fromException(_error!)
-              : const CircularProgressIndicator(),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'User Details',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              if (_error != null)
+                ErrorDisplay.fromException(_error!)
+              else
+                const Text('User not found.'),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => context.go(AppRoutes.users),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: _load,
+                    child: const Text('Try again'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       );
     }

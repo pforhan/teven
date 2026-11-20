@@ -346,11 +346,26 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
               else if (event == null)
                 // **The divergence.** The React original spins here forever; see
                 // the class comment.
-                ErrorDisplay.fromException(
-                  _loadError ??
-                      const ApiRequestException(
-                        'That event could not be found.',
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ErrorDisplay.fromException(
+                      _loadError ??
+                          const ApiRequestException(
+                            'That event could not be found.',
+                          ),
+                    ),
+                    if (_loadError != null) ...[
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: FilledButton(
+                          onPressed: () => unawaited(_load(initial: true)),
+                          child: const Text('Try again'),
+                        ),
                       ),
+                    ],
+                  ],
                 )
               else
                 Stack(

@@ -43,6 +43,14 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen> {
   }
 
   Future<void> _load() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _customer = null;
+      _upcomingEvents = null;
+      _eventsError = null;
+      _isLoadingEvents = true;
+    });
     try {
       final customer = await ref
           .read(customerServiceProvider)
@@ -61,7 +69,7 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen> {
         _isLoading = false;
         _isLoadingEvents = false;
       });
-    } catch (error) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = const ApiRequestException('An unknown error occurred');
@@ -123,10 +131,37 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen> {
     final customer = _customer;
     if (customer == null) {
       return Scaffold(
-        body: Center(
-          child: _error != null
-              ? ErrorDisplay.fromException(_error!)
-              : const Text('Customer not found.'),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Customer Details',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              if (_error != null)
+                ErrorDisplay.fromException(_error!)
+              else
+                const Text('Customer not found.'),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => context.go(AppRoutes.customers),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: _load,
+                    child: const Text('Try again'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       );
     }

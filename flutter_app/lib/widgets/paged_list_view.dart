@@ -389,6 +389,8 @@ class PagedListSection<T> extends ConsumerStatefulWidget {
     this.emptyMessage = 'Nothing to show.',
     this.revealActionsOnHover,
     this.filtered = false,
+    this.onRetry,
+    this.onCancel,
   });
 
   /// The list being watched.
@@ -404,6 +406,12 @@ class PagedListSection<T> extends ConsumerStatefulWidget {
   /// Requests the next page from explicit footer actions ("Load more" /
   /// "Try again").
   final VoidCallback loadMore;
+
+  /// Retries an initial load failure when no rows have been retained.
+  final VoidCallback? onRetry;
+
+  /// Optional escape action for an initial load failure with no retained rows.
+  final VoidCallback? onCancel;
 
   final List<ListColumn<T>> columns;
   final Object Function(T item) idOf;
@@ -466,7 +474,32 @@ class _PagedListSectionState<T> extends ConsumerState<PagedListSection<T>> {
       final banner = ErrorDisplay.fromException(
         error is ApiException ? error : ApiRequestException('$error'),
       );
-      if (retained == null) return banner;
+      if (retained == null) {
+        if (widget.onRetry == null && widget.onCancel == null) return banner;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            banner,
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (widget.onCancel != null)
+                  OutlinedButton(
+                    onPressed: widget.onCancel,
+                    child: const Text('Cancel'),
+                  ),
+                if (widget.onRetry != null)
+                  FilledButton(
+                    onPressed: widget.onRetry,
+                    child: const Text('Try again'),
+                  ),
+              ],
+            ),
+          ],
+        );
+      }
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

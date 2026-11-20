@@ -34,6 +34,11 @@ class _OrganizationDetailsScreenState
   }
 
   Future<void> _load() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _organization = null;
+    });
     try {
       final organization = await ref
           .read(organizationServiceProvider)
@@ -76,23 +81,57 @@ class _OrganizationDetailsScreenState
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final organization = _organization;
-    if (organization == null) {
-      return Scaffold(
-        body: Center(
-          child: _error != null
-              ? ErrorDisplay.fromException(_error!)
-              : const Text('Organization not found.'),
-        ),
-      );
-    }
-
     final gate = ref.watch(permissionGateProvider);
-    final canEdit = _canEdit(gate, organization);
     final canViewOrganizationList = gate.hasAny([
       Permission.viewOrganizationsGlobal,
       Permission.manageOrganizationsGlobal,
     ]);
+
+    final organization = _organization;
+    if (organization == null) {
+      return Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Organization Details',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              if (_error != null)
+                ErrorDisplay.fromException(_error!)
+              else
+                const Text('Organization not found.'),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => context.go(
+                      canViewOrganizationList
+                          ? AppRoutes.organizations
+                          : AppRoutes.profile,
+                    ),
+                    child: Text(
+                      canViewOrganizationList ? 'Cancel' : 'Back to Profile',
+                    ),
+                  ),
+                  FilledButton(
+                    onPressed: _load,
+                    child: const Text('Try again'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final canEdit = _canEdit(gate, organization);
 
     return Scaffold(
       body: SelectionArea(

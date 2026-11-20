@@ -290,6 +290,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
               loadMore: () => ref
                   .read(eventListProvider(query).notifier)
                   .loadMore(userInitiated: true),
+              onRetry: () => ref.invalidate(eventListProvider(query)),
               columns: _columns(currentUserId, readerZone),
               idOf: (event) => event.eventId,
               emptyMessage: 'No events found.',

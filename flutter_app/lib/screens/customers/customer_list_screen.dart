@@ -207,6 +207,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               loadMore: () => ref
                   .read(customerListProvider(query).notifier)
                   .loadMore(userInitiated: true),
+              onRetry: () => ref.invalidate(customerListProvider(query)),
               columns: _columns(showStatus: canAccessDeactivated),
               idOf: (customer) => customer.customerId,
               emptyMessage: 'No customers found.',

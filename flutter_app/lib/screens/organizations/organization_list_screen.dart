@@ -184,6 +184,7 @@ class _OrganizationListScreenState
               loadMore: () => ref
                   .read(organizationPageProvider(query).notifier)
                   .loadMore(userInitiated: true),
+              onRetry: () => ref.invalidate(organizationPageProvider(query)),
               columns: _columns(),
               idOf: (organization) => organization.organizationId,
               emptyMessage: 'No organizations found.',

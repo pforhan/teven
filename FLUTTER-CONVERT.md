@@ -498,6 +498,10 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 - [ ] **10.50** Profile screen: time zone display is weird, with reading in and override and detected -- at times you can see the same three repeated.
 - [ ] **10.51** inconsistent coverage of cancel/try again when server unreachable; works from view -> edit, but not on, say, initial list load, or initial view load
 - [ ] **10.52** view inventory should list current/future events it's used in similar to customer's event list
+- [ ] **10.53** only superadmins can create superadmin users and invites.  Invite form allows selection but prevents creation with a message; create user allows selection and creation but the server prevents it.  So clearly we know the current user's state, we can prevent these cases more directly by not even showing SuperAdmin as an option.  Related: you can also create users with no role at all; this should be a required field, and should act as an exclusive selection.
+- [ ] **10.54** in the UI consider a user to have only one role.  we can keep the ability to assign multiple roles on the server in case we want to expand that in the future but we should assume a user has one and only one role (after 10.53 completed).
+- [ ] **10.55** for super admin, all entity list tables should show organization column if superadmin selects "all organizations".  Do not show  organization column when a specific organization selected. Allow sort by organization
+
 ---
 
 ## Phase 11 — Native packaging (deferred, not required for cutover)

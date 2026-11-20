@@ -188,6 +188,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
               loadMore: () => ref
                   .read(inventoryListProvider(query).notifier)
                   .loadMore(userInitiated: true),
+              onRetry: () => ref.invalidate(inventoryListProvider(query)),
               columns: _columns(),
               idOf: (item) => item.inventoryId,
               emptyMessage: 'No inventory items found.',

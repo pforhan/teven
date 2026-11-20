@@ -40,6 +40,11 @@ class _InventoryDetailsScreenState
   }
 
   Future<void> _load() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _item = null;
+    });
     try {
       final item = await ref
           .read(inventoryServiceProvider)
@@ -56,7 +61,7 @@ class _InventoryDetailsScreenState
         _error = error;
         _isLoading = false;
       });
-    } catch (error) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = const ApiRequestException('An unknown error occurred');
@@ -77,10 +82,37 @@ class _InventoryDetailsScreenState
     final item = _item;
     if (item == null) {
       return Scaffold(
-        body: Center(
-          child: _error != null
-              ? ErrorDisplay.fromException(_error!)
-              : const CircularProgressIndicator(),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Inventory Details',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              if (_error != null)
+                ErrorDisplay.fromException(_error!)
+              else
+                const Text('Inventory item not found.'),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => context.go(AppRoutes.inventory),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: _load,
+                    child: const Text('Try again'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       );
     }

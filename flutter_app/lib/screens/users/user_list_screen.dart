@@ -504,6 +504,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
               loadMore: () => ref
                   .read(userPageProvider(query).notifier)
                   .loadMore(userInitiated: true),
+              onRetry: () => ref.invalidate(userPageProvider(query)),
               columns: _userColumns(
                 canViewGlobal: canViewGlobal,
                 showStatus: canAccessDeactivated,
