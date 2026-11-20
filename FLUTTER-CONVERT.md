@@ -470,7 +470,9 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 - [ ] **10.39:** Surface user invitation note in the accept invite UI
 
 - [ ] **10.40** When the create invitation panel is open on the user list, the button remains there but does nothing.  It's almost identical to the actual create invitation button that does the work.  Distinguish these somehow -- perhaps put a chevron on it, or change the color, or something.
-- [ ] **10.41** Users correctly cannot deactivate themselves via a server error.  We can probably check that in the client first for a better ux
+- [x] **10.41** Users correctly cannot deactivate themselves via a server error.  We can probably check that in the client first for a better ux
+
+  **Implemented.** The users list now hides the Deactivate action for the currently signed-in user (client-side UX guard), while server-side self-deactivation protection remains unchanged. Verified with `./teven verify`.
 - [ ] **10.42** _(Merged into 10.29.)_ Soft-delete/events removal semantics, affected UI surfaces (calendar/events list/day view or dedicated removed-events view), audit (who deleted/when), and dependent behavior for RSVPs/inventory/etc. on remove and restore are now captured in **10.29**. Keep 10.42 as a pointer so the user-reported note isn’t lost.
 - [ ] **10.43** the reports page has its own organization display and change organization prompt, this isn't necessary since the sidebar does that.  Still should maintain the requirement that an organization is selected on visit.
 - [ ] **10.44** customer edit is not available on customer list for deactivated customers.  it does show up on view customer, and allows entry.  Saving (correctly) doesn't work, server provides a "Customer not found or no changes applied" error.  We can detect and prevent this in client code to make a better UX.  Check all soft delete entities and prevent similar cases.

@@ -54,10 +54,10 @@ void main() {
         'items': [
           for (var i = 0; i < usernames.length; i++)
             {
-              'userId': i + 1,
+              'userId': i + 2,
               'username': usernames[i],
               'email': '${usernames[i]}@example.com',
-              'displayName': 'Display ${i + 1}',
+              'displayName': 'Display ${i + 2}',
               'roles': ['Admin'],
               // Deliberately not "Acme", which the chrome already puts on
               // screen as the signed-in user's own organization, so a
@@ -251,7 +251,7 @@ void main() {
       expect(find.text('grace'), findsOneWidget);
       expect(find.text('alan'), findsOneWidget);
       expect(find.text('grace@example.com'), findsOneWidget);
-      expect(find.text('Display 1'), findsOneWidget);
+      expect(find.text('Display 2'), findsOneWidget);
       // the original user list screen — `user.roles.join(', ')`. Two matches, not one:
       // every fixture user has the role "Admin" and so does the signed-in
       // user the harness describes, which the chrome names.
@@ -1060,7 +1060,7 @@ void main() {
           if (options.path == '/api/invitations' && options.method == 'GET') {
             return invitationsList(const []);
           }
-          if (options.method == 'DELETE' && options.path == '/api/users/1') {
+          if (options.method == 'DELETE' && options.path == '/api/users/2') {
             return const StubResponse.noContent();
           }
           return null;
@@ -1076,7 +1076,7 @@ void main() {
 
       expect(
         adapter.requests.where((o) => o.method == 'DELETE').map((o) => o.path),
-        ['/api/users/1'],
+        ['/api/users/2'],
       );
       expect(userRequests(adapter), hasLength(2));
       expect(find.text('grace'), findsNothing);

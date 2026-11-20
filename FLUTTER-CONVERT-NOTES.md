@@ -4179,3 +4179,15 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`, `./teven verify`.
 
 **Files changed (primary):** `backend/app/src/main/kotlin/alphainterplanetary/teven/app/organization/OrganizationRoutes.kt`, `backend/app/src/test/kotlin/alphainterplanetary/teven/app/RouteAuthorizationAndValidationTest.kt`, `flutter_app/lib/routing/app_router.dart`, `flutter_app/lib/screens/organizations/organization_details_screen.dart`, `flutter_app/lib/screens/organizations/organization_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.41: prevent self-deactivation in users list UI
+
+**Implemented task 10.41.** Improved UX for the existing server-side self-deactivation guard.
+
+**Flutter.** The users list now hides the **Deactivate** action for the currently signed-in user, preventing an avoidable server error flow while keeping server-side protection unchanged.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/screens/users/user_list_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.

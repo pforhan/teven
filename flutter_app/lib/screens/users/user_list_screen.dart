@@ -354,6 +354,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     final canViewGlobal = gate.has(Permission.viewUsersGlobal);
     final canAccessDeactivated = canViewGlobal || canManage;
     final organizationId = ref.watch(queryOrganizationIdProvider);
+    final currentUserId = ref.watch(userContextProvider)?.user.userId;
 
     // The original screen fetched invitations only for a manager and rendered
     // the table only when there was something in it. Gating the watch rather
@@ -508,6 +509,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
               actions: canManage
                   ? (context, user) {
                       final isDeactivated = user.deletedAt != null;
+                      final isSelf =
+                          currentUserId != null && user.userId == currentUserId;
                       return [
                         if (!isDeactivated)
                           ListRowAction(
@@ -516,7 +519,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                             onPressed: () =>
                                 context.go(AppRoutes.userEditPath(user.userId)),
                           ),
-                        if (!isDeactivated)
+                        if (!isDeactivated && !isSelf)
                           ListRowAction(
                             icon: Icons.person_off,
                             label: 'Deactivate',
