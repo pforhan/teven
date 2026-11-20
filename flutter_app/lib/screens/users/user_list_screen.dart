@@ -412,12 +412,20 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                           icon: const Icon(Icons.add),
                           label: const Text('Create User'),
                         ),
-                        FilledButton.icon(
-                          onPressed: () =>
-                              setState(() => _showInvitationForm = true),
-                          icon: const Icon(Icons.mail),
-                          label: const Text('Create Invitation'),
-                        ),
+                        if (_showInvitationForm)
+                          OutlinedButton.icon(
+                            onPressed: () =>
+                                setState(() => _showInvitationForm = false),
+                            icon: const Icon(Icons.expand_less),
+                            label: const Text('Hide Invitation Form'),
+                          )
+                        else
+                          FilledButton.icon(
+                            onPressed: () =>
+                                setState(() => _showInvitationForm = true),
+                            icon: const Icon(Icons.mail),
+                            label: const Text('Create Invitation'),
+                          ),
                       ],
                     )
                   : null,

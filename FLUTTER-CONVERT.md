@@ -471,7 +471,9 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
   **Implemented.** Added invitation `note` to the validation response (backend API/service) and surfaced it on the accept-invitation screen when present. Updated Flutter invitation model/codegen and backend validation service test. Verified with `./teven verify-backend` and `./teven verify`.
 
-- [ ] **10.40** When the create invitation panel is open on the user list, the button remains there but does nothing.  It's almost identical to the actual create invitation button that does the work.  Distinguish these somehow -- perhaps put a chevron on it, or change the color, or something.
+- [x] **10.40** When the create invitation panel is open on the user list, the button remains there but does nothing.  It's almost identical to the actual create invitation button that does the work.  Distinguish these somehow -- perhaps put a chevron on it, or change the color, or something.
+
+  **Implemented.** The header invitation toggle now switches to a distinct outlined "Hide Invitation Form" button (with chevron) when the panel is open and toggles the panel closed, avoiding the no-op/confusing duplicate-looking control. Verified with `./teven verify`.
 - [x] **10.41** Users correctly cannot deactivate themselves via a server error.  We can probably check that in the client first for a better ux
 
   **Implemented.** The users list now hides the Deactivate action for the currently signed-in user (client-side UX guard), while server-side self-deactivation protection remains unchanged. Verified with `./teven verify`.

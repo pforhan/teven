@@ -4229,3 +4229,15 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify-backend`, `./teven verify`.
 
 **Files changed (primary):** `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/invitation/ValidateInvitationResponse.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/invitation/InvitationService.kt`, `backend/service/src/test/kotlin/alphinterplanetary/teven/service/invitation/InvitationServiceTest.kt`, `flutter_app/lib/models/invitation.dart`, `flutter_app/lib/screens/accept_invitation_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.40: distinguish create-invitation toggle when panel is open
+
+**Implemented task 10.40.** Clarified the users-list invitation panel toggle.
+
+**Flutter.** When the create-invitation panel is open, the header control becomes an outlined "Hide Invitation Form" button with a chevron and toggles the panel closed instead of appearing as a no-op duplicate of the create action.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/screens/users/user_list_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
