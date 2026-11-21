@@ -39,6 +39,42 @@ class TimeZoneResolution {
   /// The zone all of the above resolve to: the override when set, else the
   /// detection, else the organization zone, else UTC.
   final String effectiveZone;
+
+  bool get hasOverride => overrideZone != null;
+
+  bool get overrideDiffersFromDetected =>
+      overrideZone != null &&
+      detectedZone != null &&
+      overrideZone != detectedZone;
+
+  bool get effectiveDiffersFromOrganization =>
+      organizationZone != null && effectiveZone != organizationZone;
+}
+
+/// A noteworthy timezone mismatch for UI badges/warnings.
+class TimeZoneMismatch {
+  const TimeZoneMismatch({
+    required this.overrideDiffersFromDetected,
+    required this.effectiveDiffersFromOrganization,
+  });
+
+  final bool overrideDiffersFromDetected;
+  final bool effectiveDiffersFromOrganization;
+
+  bool get hasMismatch =>
+      overrideDiffersFromDetected || effectiveDiffersFromOrganization;
+
+  bool get hasWarning => overrideDiffersFromDetected;
+}
+
+TimeZoneMismatch? timeZoneMismatchFor(TimeZoneResolution? resolution) {
+  if (resolution == null) return null;
+  final mismatch = TimeZoneMismatch(
+    overrideDiffersFromDetected: resolution.overrideDiffersFromDetected,
+    effectiveDiffersFromOrganization:
+        resolution.effectiveDiffersFromOrganization,
+  );
+  return mismatch.hasMismatch ? mismatch : null;
 }
 
 /// Resolves the reader's time zone and holds the override.
@@ -49,6 +85,21 @@ final timeZoneControllerProvider =
     AsyncNotifierProvider<TimeZoneController, TimeZoneResolution>(
       TimeZoneController.new,
     );
+
+/// Session-only dismissal of the timezone mismatch badge. Resets on app
+/// restart/reload.
+final timeZoneMismatchDismissedProvider =
+    NotifierProvider<TimeZoneMismatchDismissedNotifier, bool>(
+      TimeZoneMismatchDismissedNotifier.new,
+    );
+
+class TimeZoneMismatchDismissedNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void dismiss() => state = true;
+  void clear() => state = false;
+}
 
 class TimeZoneController extends AsyncNotifier<TimeZoneResolution> {
   /// The `shared_preferences` key the override is persisted under.
@@ -72,8 +123,8 @@ class TimeZoneController extends AsyncNotifier<TimeZoneResolution> {
     final override = prefs.getString(storageKey);
     final detected = await ref.read(timeZoneDetectorProvider.future);
     final organizationZone =
-        ref.read(effectiveOrganizationProvider)?.timezone ??
-        ref.read(userContextProvider)?.user.organization.timezone;
+        ref.watch(effectiveOrganizationProvider)?.timezone ??
+        ref.watch(userContextProvider)?.user.organization.timezone;
     return TimeZoneResolution(
       detectedZone: detected,
       overrideZone: override,

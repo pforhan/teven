@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../core/layout/breakpoints.dart';
 import '../core/theme/teven_theme.dart';
 import '../providers/auth_controller.dart';
+import '../providers/time_zone_controller.dart';
 import '../routing/app_router.dart';
 import 'nav_destinations.dart';
 import 'organization_selector.dart';
+import 'time_zone_fix_dialog.dart';
 
 /// The chrome every authenticated screen sits inside.
 ///
@@ -37,6 +39,12 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(timeZoneControllerProvider, (prev, next) {
+      final mismatch = timeZoneMismatchFor(next.value);
+      if (mismatch == null) {
+        ref.read(timeZoneMismatchDismissedProvider.notifier).clear();
+      }
+    });
     // `LayoutBuilder` rather than a device or `MediaQuery` check, because on
     // web the meaningful event is a window resize and both of the others are
     // evaluated against the physical device rather than the space actually
@@ -70,6 +78,11 @@ class _DrawerShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final resolution = ref.watch(timeZoneControllerProvider).value;
+    final mismatch = timeZoneMismatchFor(resolution);
+    final dismissed = ref.watch(timeZoneMismatchDismissedProvider);
+    final showBadge = mismatch != null && !dismissed;
+
     return Scaffold(
       appBar: AppBar(
         title: const _Brand(),
@@ -77,8 +90,18 @@ class _DrawerShell extends ConsumerWidget {
         // has to stay a button, since `AppBar.title` is not a navigation target.
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            tooltip: 'Open navigation',
+            icon: showBadge
+                ? Badge(
+                    smallSize: 8,
+                    backgroundColor: mismatch.hasWarning
+                        ? Colors.amber
+                        : Colors.lightBlueAccent,
+                    child: const Icon(Icons.menu),
+                  )
+                : const Icon(Icons.menu),
+            tooltip: showBadge
+                ? 'Open navigation (timezone issue)'
+                : 'Open navigation',
             onPressed: Scaffold.of(context).openDrawer,
           ),
         ),
@@ -337,11 +360,7 @@ class _DrawerContents extends ConsumerWidget {
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: OrganizationSelector(layoutSize: LayoutSize.mobile),
           ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Profile'),
-            onTap: () => goTo(AppRoutes.profile),
-          ),
+          _DrawerProfileTile(onOpenProfile: () => goTo(AppRoutes.profile)),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Logout'),
@@ -361,26 +380,136 @@ class _DrawerContents extends ConsumerWidget {
 /// Ungated, because `/profile` is the one authenticated route with no
 /// permission requirement in the original router — the router would redirect the
 /// user straight back out.
-class _ProfileAction extends StatelessWidget {
+class _ProfileAction extends ConsumerWidget {
   const _ProfileAction({required this.extended});
 
   final bool extended;
 
   @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resolution = ref.watch(timeZoneControllerProvider).value;
+    final mismatch = timeZoneMismatchFor(resolution);
+    final dismissed = ref.watch(timeZoneMismatchDismissedProvider);
+    final showBadge = mismatch != null && !dismissed;
+    final icon = _profileIcon(showBadge ? mismatch : null);
+
+    if (!extended) {
+      return IconButton(
+        onPressed: () => _go(context, AppRoutes.profile),
+        icon: icon,
+        tooltip: showBadge ? 'Profile (timezone issue)' : 'Profile',
+        style: _trailingStyle(context),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextButton.icon(
+          onPressed: () => _go(context, AppRoutes.profile),
+          icon: icon,
+          label: const Text('Profile'),
+          style: _trailingStyle(context),
+        ),
+        if (mismatch != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 8, right: 8, bottom: 4),
+            child: _TimeZoneMismatchInlineAction(
+              resolution: resolution,
+              mismatch: mismatch,
+              dense: true,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+Widget _profileIcon(TimeZoneMismatch? mismatch) {
+  const icon = Icon(Icons.person);
+  if (mismatch == null) return icon;
+  return Badge(
+    smallSize: 8,
+    backgroundColor: mismatch.hasWarning
+        ? Colors.amber
+        : Colors.lightBlueAccent,
+    child: icon,
+  );
+}
+
+class _DrawerProfileTile extends ConsumerWidget {
+  const _DrawerProfileTile({required this.onOpenProfile});
+
+  final VoidCallback onOpenProfile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resolution = ref.watch(timeZoneControllerProvider).value;
+    final mismatch = timeZoneMismatchFor(resolution);
+    final dismissed = ref.watch(timeZoneMismatchDismissedProvider);
+    final showBadge = mismatch != null && !dismissed;
+    return ListTile(
+      leading: _profileIcon(showBadge ? mismatch : null),
+      title: const Text('Profile'),
+      subtitle: mismatch == null
+          ? null
+          : _TimeZoneMismatchInlineAction(
+              resolution: resolution,
+              mismatch: mismatch,
+              dense: true,
+            ),
+      onTap: onOpenProfile,
+    );
+  }
+}
+
+class _TimeZoneMismatchInlineAction extends StatelessWidget {
+  const _TimeZoneMismatchInlineAction({
+    required this.resolution,
+    required this.mismatch,
+    this.dense = false,
+    this.foregroundColor,
+  });
+
+  final TimeZoneResolution? resolution;
+  final TimeZoneMismatch mismatch;
+  final bool dense;
+  final Color? foregroundColor;
+
+  @override
   Widget build(BuildContext context) {
-    return extended
-        ? TextButton.icon(
-            onPressed: () => _go(context, AppRoutes.profile),
-            icon: const Icon(Icons.person),
-            label: const Text('Profile'),
-            style: _trailingStyle(context),
-          )
-        : IconButton(
-            onPressed: () => _go(context, AppRoutes.profile),
-            icon: const Icon(Icons.person),
-            tooltip: 'Profile',
-            style: _trailingStyle(context),
-          );
+    final theme = Theme.of(context);
+    final color = foregroundColor ?? theme.colorScheme.onSurfaceVariant;
+    final iconColor = mismatch.hasWarning
+        ? Colors.amber
+        : (foregroundColor ?? theme.colorScheme.primary);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: () => showTimeZoneFixDialog(context, resolution: resolution),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.info_outline, size: 14, color: iconColor),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                'Possible timezone issue',
+                style:
+                    (dense
+                            ? theme.textTheme.labelSmall
+                            : theme.textTheme.bodySmall)
+                        ?.copyWith(color: color),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

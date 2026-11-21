@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,7 +9,9 @@ import '../../providers/time_zone_controller.dart';
 import '../../widgets/form_card.dart';
 import '../../widgets/picker_fields.dart';
 import '../../widgets/time_zone_field.dart';
+import '../../widgets/time_zone_fix_dialog.dart';
 import '../../widgets/validators.dart';
+import '../../providers/time_zone_fix.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -25,7 +25,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   ApiException? _error;
   bool _isEditing = false;
   bool _isLoading = true;
+  bool _isSaving = false;
   bool _includeStaffDetails = false;
+  String? _draftOverrideZone;
+  bool _draftOverrideInitialized = false;
 
   final _emailController = TextEditingController();
   final _contactController = TextEditingController();
@@ -82,6 +85,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  void _beginEdit() {
+    final resolution = ref.read(timeZoneControllerProvider).value;
+    setState(() {
+      _isEditing = true;
+      _error = null;
+      _draftOverrideZone = resolution?.overrideZone;
+      _draftOverrideInitialized = true;
+    });
+  }
+
+  void _cancelEdit() {
+    final details = _userDetails;
+    if (details != null) _seedFields(details);
+    setState(() {
+      _isEditing = false;
+      _error = null;
+      _draftOverrideZone = null;
+      _draftOverrideInitialized = false;
+    });
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -95,6 +119,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _handleSave() async {
     final userId = ref.read(userContextProvider)?.user.userId;
     if (userId == null) return;
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
     try {
       final request = UpdateUserRequest(
         email: _emailController.text.trim(),
@@ -112,47 +140,122 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             : null,
       );
       await ref.read(userServiceProvider).updateUser(userId, request);
+      await ref
+          .read(timeZoneControllerProvider.notifier)
+          .setOverride(_draftOverrideZone);
       if (!mounted) return;
-      setState(() => _isEditing = false);
+      setState(() {
+        _isEditing = false;
+        _isSaving = false;
+        _draftOverrideZone = null;
+        _draftOverrideInitialized = false;
+      });
       await _load();
     } on ApiException catch (e) {
       if (!mounted) return;
-      setState(() => _error = e);
+      setState(() {
+        _error = e;
+        _isSaving = false;
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(
-        () => _error = const ApiRequestException('An unknown error occurred'),
-      );
+      setState(() {
+        _error = const ApiRequestException('An unknown error occurred');
+        _isSaving = false;
+      });
     }
   }
 
-  /// The reader's time zone, with the detected zone and any override, and the
-  /// picker that sets the override.
-  ///
-  /// The profile is where "see and override the detected timezone"
-  /// lives; the event forms and the organization screen get the same field
-  /// through the shared [TimeZoneField].
-  Widget _timeZoneRow() {
+  Widget _timeZoneReadSection() {
     final resolution = ref.watch(timeZoneControllerProvider).value;
-    final zone = resolution?.effectiveZone ?? 'UTC';
+    final effectiveZone = resolution?.effectiveZone ?? 'UTC';
+    final theme = Theme.of(context);
+    final issues = resolution == null
+        ? const <String>[]
+        : timeZoneIssuesFor(resolution);
+    final hasFixes =
+        resolution != null &&
+        availableTimeZoneFixOptions(resolution).isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Time zone',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(effectiveZone, style: theme.textTheme.titleMedium),
+        if (issues.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          for (final issue in issues)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: theme.colorScheme.secondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(issue, style: theme.textTheme.bodySmall),
+                  ),
+                ],
+              ),
+            ),
+        ],
+        if (hasFixes) ...[
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () =>
+                  showTimeZoneFixDialog(context, resolution: resolution),
+              icon: const Icon(Icons.tune),
+              label: const Text('Resolve'),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _timeZoneEditSection() {
+    final resolution = ref.watch(timeZoneControllerProvider).value;
+    final detected = resolution?.detectedZone;
+    final organization = resolution?.organizationZone;
+    final automaticZone = detected ?? organization ?? 'UTC';
+    final effectiveDraftZone = _draftOverrideZone ?? automaticZone;
+    final draftResolution = TimeZoneResolution(
+      detectedZone: detected,
+      overrideZone: _draftOverrideZone,
+      organizationZone: organization,
+      effectiveZone: effectiveDraftZone,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('Time zone', style: Theme.of(context).textTheme.titleMedium),
-        Text('Reading in: $zone'),
-        if (resolution?.overrideZone != null)
-          Text(
-            'Override: ${resolution!.overrideZone} '
-            '(detected: ${resolution.detectedZone ?? 'unavailable'})',
-          ),
         const SizedBox(height: 8),
         TimeZoneField(
-          zone: zone,
-          defaultZone: resolution?.organizationZone,
-          onChanged: (newZone) => unawaited(
-            ref.read(timeZoneControllerProvider.notifier).setOverride(newZone),
-          ),
+          zone: effectiveDraftZone,
+          defaultZone: organization,
+          onChanged: (newZone) => setState(() => _draftOverrideZone = newZone),
+        ),
+        const SizedBox(height: 12),
+        TimeZoneFixContent(
+          resolution: draftResolution,
+          popOnApply: false,
+          onApply: (targetZone) async {
+            setState(() => _draftOverrideZone = targetZone);
+          },
         ),
         const SizedBox(height: 16),
       ],
@@ -162,6 +265,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final userContext = ref.watch(userContextProvider);
+    ref.listen<AsyncValue<TimeZoneResolution>>(timeZoneControllerProvider, (
+      prev,
+      next,
+    ) {
+      if (!_isEditing) return;
+      final nextOverride = next.value?.overrideZone;
+      final prevOverride = prev?.value?.overrideZone;
+      if (nextOverride != prevOverride) {
+        setState(() {
+          _draftOverrideZone = nextOverride;
+        });
+      }
+    });
 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -180,14 +296,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final details = _userDetails!;
 
     if (_isEditing) {
+      if (!_draftOverrideInitialized) {
+        final resolution = ref.watch(timeZoneControllerProvider).value;
+        _draftOverrideZone = resolution?.overrideZone;
+        _draftOverrideInitialized = true;
+      }
       return FormCard(
         formKey: GlobalKey<FormState>(),
         title: 'Edit Profile',
         submitLabel: 'Save Changes',
         error: _error,
-        submitting: false,
+        submitting: _isSaving,
         onSubmit: _handleSave,
-        onCancel: () => setState(() => _isEditing = false),
+        onCancel: _cancelEdit,
         fields: [
           TextFormField(
             controller: _emailController,
@@ -195,6 +316,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             keyboardType: TextInputType.emailAddress,
             validator: Validators.email,
           ),
+          _timeZoneEditSection(),
           if (!_includeStaffDetails)
             Align(
               alignment: Alignment.centerLeft,
@@ -273,7 +395,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 'Organization: ${userContext?.user.organization.name ?? 'N/A'}',
               ),
               const SizedBox(height: 16),
-              _timeZoneRow(),
+              _timeZoneReadSection(),
               if (details.staffDetails != null) ...[
                 Text(
                   'Contact Information: ${details.staffDetails!.contactInformation}',
@@ -290,7 +412,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: () => setState(() => _isEditing = true),
+                onPressed: _beginEdit,
                 child: const Text('Edit Profile'),
               ),
             ],
