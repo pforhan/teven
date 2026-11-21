@@ -264,7 +264,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     ),
     ListColumn<UserResponse>(
       key: 'roles',
-      label: 'Roles',
+      label: 'Role',
       flex: 1,
       text: (user) => user.roles.join(', '),
     ),

@@ -190,7 +190,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                     Text('Username: ${user.username}'),
                     Text('Display Name: ${user.displayName}'),
                     Text('Email: ${user.email}'),
-                    Text('Roles: ${user.roles.join(', ')}'),
+                    Text('Role: ${user.roles.join(', ')}'),
                     Text('Organization: ${user.organization.name}'),
                     if (user.staffDetails != null) ...[
                       ...() {

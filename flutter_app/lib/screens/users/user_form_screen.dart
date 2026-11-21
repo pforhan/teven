@@ -47,7 +47,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
   final _skillsController = TextEditingController();
 
   List<RoleResponse> _roles = [];
-  final Set<String> _selectedRoles = {};
+  String? _selectedRoleName;
 
   UserResponse? _item;
   OrganizationResponse? _selectedOrganization;
@@ -79,13 +79,24 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     super.dispose();
   }
 
+  List<RoleResponse> _visibleRoles(List<RoleResponse> roles) {
+    final canAssignSuperAdmin = ref
+        .read(permissionGateProvider)
+        .has(Permission.canAssignSuperAdmin);
+    return roles
+        .where((role) => role.roleName != 'SuperAdmin' || canAssignSuperAdmin)
+        .toList();
+  }
+
   Future<void> _load() async {
     try {
       if (_isCreate) {
         final roles = await ref.read(roleServiceProvider).getAllRoles();
         if (!mounted) return;
+        final visibleRoles = _visibleRoles(roles);
         setState(() {
-          _roles = roles;
+          _roles = visibleRoles;
+          _selectedRoleName = null;
           _loading = false;
         });
       } else {
@@ -96,14 +107,32 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
         final user = results[0] as UserResponse;
         final roles = results[1] as List<RoleResponse>;
         if (!mounted) return;
+        final visibleRoles = [..._visibleRoles(roles)];
+        final existingRoleName = user.roles.firstWhere(
+          (name) => visibleRoles.any((role) => role.roleName == name),
+          orElse: () => user.roles.isNotEmpty ? user.roles.first : '',
+        );
+        final selectedRoleName = existingRoleName.isEmpty
+            ? null
+            : existingRoleName;
+        if (selectedRoleName != null &&
+            !visibleRoles.any((role) => role.roleName == selectedRoleName)) {
+          final existing = roles.firstWhere(
+            (role) => role.roleName == selectedRoleName,
+            orElse: () => RoleResponse(
+              roleId: -1,
+              roleName: selectedRoleName,
+              permissions: const [],
+            ),
+          );
+          visibleRoles.add(existing);
+        }
         setState(() {
           _item = user;
           _emailController.text = user.email;
           _displayNameController.text = user.displayName;
-          _selectedRoles
-            ..clear()
-            ..addAll(user.roles);
-          _roles = roles;
+          _selectedRoleName = selectedRoleName;
+          _roles = visibleRoles;
           _selectedOrganization = user.organization;
           final staff = user.staffDetails;
           _includeStaffDetails = staff != null;
@@ -187,6 +216,15 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       _error = null;
     });
 
+    final selectedRoleName = _selectedRoleName;
+    if (selectedRoleName == null || selectedRoleName.isEmpty) {
+      setState(() {
+        _error = const ApiRequestException('A role must be selected.');
+        _submitting = false;
+      });
+      return;
+    }
+
     try {
       if (_isCreate) {
         final selectedOrg = ref.read(selectedOrganizationProvider);
@@ -219,7 +257,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           password: _passwordController.text,
           email: _emailController.text.trim(),
           displayName: _displayNameController.text.trim(),
-          roles: _selectedRoles.toList(),
+          roles: [selectedRoleName],
           organizationId: organizationId,
           staffDetails: _includeStaffDetails ? _buildStaffDetails() : null,
         );
@@ -237,7 +275,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
         final request = UpdateUserRequest(
           email: _emailController.text.trim(),
           displayName: _displayNameController.text.trim(),
-          roles: _selectedRoles.toList(),
+          roles: [selectedRoleName],
           organizationId: organizationIdToUse,
           staffDetails: _includeStaffDetails ? _buildStaffDetails() : null,
         );
@@ -258,26 +296,36 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     }
   }
 
-  Widget _rolesField() => Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: [
-      for (final role in _roles)
-        FilterChip(
-          label: Text(role.roleName),
-          selected: _selectedRoles.contains(role.roleName),
-          onSelected: (selected) {
-            setState(() {
-              if (selected) {
-                _selectedRoles.add(role.roleName);
-              } else {
-                _selectedRoles.remove(role.roleName);
-              }
-            });
-          },
+  Widget _rolesField() {
+    final canAssignSuperAdmin = ref
+        .watch(permissionGateProvider)
+        .has(Permission.canAssignSuperAdmin);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Role', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final role in _roles)
+              ChoiceChip(
+                label: Text(role.roleName),
+                selected: _selectedRoleName == role.roleName,
+                onSelected:
+                    (!canAssignSuperAdmin && role.roleName == 'SuperAdmin')
+                    ? null
+                    : (selected) {
+                        if (!selected) return;
+                        setState(() => _selectedRoleName = role.roleName);
+                      },
+              ),
+          ],
         ),
-    ],
-  );
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -316,7 +364,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                           _error = null;
                           _item = null;
                           _roles = [];
-                          _selectedRoles.clear();
+                          _selectedRoleName = null;
                         });
                         _load();
                       },

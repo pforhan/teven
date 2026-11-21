@@ -268,7 +268,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text('Username: ${userContext?.user.username ?? ''}'),
               Text('Display Name: ${userContext?.user.displayName ?? ''}'),
               Text('Email: ${userContext?.user.email ?? ''}'),
-              Text('Roles: ${details.roles.join(', ')}'),
+              Text('Role: ${details.roles.join(', ')}'),
               Text(
                 'Organization: ${userContext?.user.organization.name ?? 'N/A'}',
               ),

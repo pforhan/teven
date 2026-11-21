@@ -52,7 +52,8 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
       final roles = await ref.read(roleServiceProvider).getAllRoles();
       if (!mounted) return;
       setState(() {
-        _roles = roles;
+        // Invitations cannot be created for SuperAdmin users.
+        _roles = roles.where((role) => role.roleName != 'SuperAdmin').toList();
         _selectedRoleId = null;
       });
 
@@ -105,30 +106,11 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
       setState(() => _error = "Please select one role.");
       return;
     }
-
-    final selectedRole = _roles
-        .where((role) => role.roleId == _selectedRoleId)
-        .firstOrNull;
-    if (selectedRole?.roleName == "SuperAdmin") {
-      setState(
-        () => _error = "Invitations can only be created for Organizer or Staff roles. Use Create User instead.",
-      );
-      return;
-    }
     final canManageGlobal = ref
         .read(permissionGateProvider)
         .has(Permission.manageInvitationsGlobal);
-    int? organizationId;
-    if (canManageGlobal) {
-      organizationId = _selectedOrganizationId;
-    } else {
-      organizationId = ref
-          .read(userContextProvider)
-          ?.user
-          .organization
-          .organizationId;
-    }
-    if (organizationId == null) {
+    final selectedOrganizationId = _selectedOrganizationId;
+    if (canManageGlobal && selectedOrganizationId == null) {
       setState(() => _error = 'Organization ID is not available.');
       return;
     }
@@ -145,7 +127,9 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
           .createInvitation(
             CreateInvitationRequest(
               roleId: _selectedRoleId!,
-              organizationId: organizationId,
+              // Non-global callers must not specify organizationId; the server
+              // rejects it and uses the caller's organization instead.
+              organizationId: canManageGlobal ? selectedOrganizationId : null,
               note: _noteController.text.trim().isEmpty
                   ? null
                   : _noteController.text.trim(),
@@ -229,6 +213,12 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
           const SizedBox(height: 16),
         ],
         const Text('Select Role:'),
+        if (gate.has(Permission.canAssignSuperAdmin)) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Create SuperAdmin users directly instead of sending invitations.',
+          ),
+        ],
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -241,9 +231,8 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
                 onSelected: _loading
                     ? null
                     : (selected) {
-                        setState(() {
-                          _selectedRoleId = selected ? role.roleId : null;
-                        });
+                        if (!selected) return;
+                        setState(() => _selectedRoleId = role.roleId);
                       },
               ),
           ],
@@ -255,46 +244,20 @@ class _CreateInvitationFormState extends ConsumerState<CreateInvitationForm> {
           enabled: !_loading,
         ),
         const SizedBox(height: 16),
-        if (_roles
-                .where((role) => role.roleId == _selectedRoleId)
-                .firstOrNull
-                ?.roleName ==
-            'SuperAdmin') ...[
-          const Text(
-            'Invitations can only be created for Organizer or Staff roles. Use Create User instead.',
-            style: TextStyle(color: Colors.red),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              OutlinedButton(
-                onPressed: _loading ? null : widget.onCancel,
-                child: const Text('Cancel'),
-              ),
-              const SizedBox(width: 8),
-              const FilledButton(
-                onPressed: null,
-                child: Text('Create Invitation'),
-              ),
-            ],
-          ),
-        ] else ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              OutlinedButton(
-                onPressed: _loading ? null : widget.onCancel,
-                child: const Text('Cancel'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: _loading ? null : _handleCreate,
-                child: Text(_loading ? 'Creating...' : 'Create Invitation'),
-              ),
-            ],
-          ),
-        ],
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            OutlinedButton(
+              onPressed: _loading ? null : widget.onCancel,
+              child: const Text('Cancel'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: _loading ? null : _handleCreate,
+              child: Text(_loading ? 'Creating...' : 'Create Invitation'),
+            ),
+          ],
+        ),
       ],
     );
   }

@@ -12,7 +12,6 @@ import 'package:teven_app/models/invitation.dart';
 import 'package:teven_app/models/user.dart';
 import 'package:teven_app/routing/app_router.dart';
 import 'package:teven_app/screens/users/user_list_screen.dart';
-import 'package:teven_app/widgets/create_invitation_form.dart';
 import 'package:teven_app/widgets/responsive_list_view.dart';
 
 import 'support/auth_harness.dart';
@@ -474,7 +473,7 @@ void main() {
       final adapter = userAdapter();
       await openUsers(tester, adapter);
 
-      await tester.tap(find.text('Roles'));
+      await tester.tap(find.text('Role'));
       await settleRequests(tester);
 
       expect(userRequests(adapter).map((r) => r.queryParameters['sortBy']), [
@@ -715,7 +714,7 @@ void main() {
         .map((o) => jsonDecode(adapter.bodyOf(o)!) as Map<String, dynamic>)
         .toList();
 
-    testWidgets('offers the roles the server sent', (tester) async {
+    testWidgets('offers only invitation-eligible roles', (tester) async {
       await openInvitationForm(
         tester,
         inviteAdapter(roles: ['Organizer', 'Staff', 'SuperAdmin']),
@@ -723,9 +722,10 @@ void main() {
 
       expect(find.widgetWithText(ChoiceChip, 'Organizer'), findsOneWidget);
       expect(find.widgetWithText(ChoiceChip, 'Staff'), findsOneWidget);
-      expect(find.widgetWithText(ChoiceChip, 'SuperAdmin'), findsOneWidget);
-      // No role is selected on arrival — the original invitation form seeds
-      // `_selectedRoleId` with null and requires a click.
+      // Invitations cannot be created for SuperAdmin users, so SuperAdmin is
+      // not offered even if the server returns it.
+      expect(find.widgetWithText(ChoiceChip, 'SuperAdmin'), findsNothing);
+      // No role is selected on arrival; one must be chosen explicitly.
       expect(
         tester
             .widgetList<ChoiceChip>(find.byType(ChoiceChip))
@@ -768,11 +768,9 @@ void main() {
       // Role 2 of the harness's list, so this distinguishes "the picked role"
       // from "the first role".
       expect(bodies.single['roleId'], 2);
-      // the original invitation form reads the signed-in user's organization
-      // from the context rather than sending the dropdown's value, because a
-      // non-global manager is never shown the dropdown. The harness's context
-      // user is in organization 1.
-      expect(bodies.single['organizationId'], 1);
+      // An org-scoped invitation manager must not specify organizationId;
+      // the server rejects it and uses the caller's organization from context.
+      expect(bodies.single['organizationId'], isNull);
       // The note is optional and blank, so it goes as an explicit null —
       // the original invitation form sends `note || null`, and the port sends
       // the same thing. Asserting on `containsKey` would be the wrong claim
@@ -872,36 +870,17 @@ void main() {
       expect(invitationRequests(adapter).length, greaterThanOrEqualTo(2));
     });
 
-    testWidgets('refuses SuperAdmin and disables the button', (tester) async {
+    testWidgets('does not allow SuperAdmin invitations', (tester) async {
       final adapter = inviteAdapter(roles: ['Organizer', 'SuperAdmin']);
       await openInvitationForm(tester, adapter);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'SuperAdmin'));
-      await tester.pumpAndSettle();
+      expect(find.widgetWithText(ChoiceChip, 'SuperAdmin'), findsNothing);
+      expect(find.widgetWithText(ChoiceChip, 'Organizer'), findsOneWidget);
 
-      // the original invitation form. The assertion that matters is the
-      // disabled button: the warning is *also* stated in `_handleCreate`, but
-      // that copy is unreachable through the UI because the button cannot be
-      // pressed. Asserting both messages would pin the second one as live,
-      // which it is not — a presence-only check here would be describing a
-      // defence that a form that showed the warning and let the request through
-      // would also satisfy.
-      expect(
-        find.textContaining(
-          'Invitations can only be created for Organizer or Staff roles',
-        ),
-        findsOneWidget,
-      );
-      // Scoped to the form, because the screen's own header has a button with the
-      // same label — `find.widgetWithText(FilledButton, 'Create Invitation')`
-      // matches both and throws "Bad state: Too many elements".
-      final formButton = find.descendant(
-        of: find.byType(CreateInvitationForm),
-        matching: find.widgetWithText(FilledButton, 'Create Invitation'),
-      );
-      expect(tester.widget<FilledButton>(formButton).onPressed, isNull);
+      await tester.tap(find.text('Create Invitation').last);
+      await settleRequests(tester);
 
-      // And nothing was sent.
+      expect(find.text('Please select one role.'), findsOneWidget);
       expect(createBodies(adapter), isEmpty);
     });
 

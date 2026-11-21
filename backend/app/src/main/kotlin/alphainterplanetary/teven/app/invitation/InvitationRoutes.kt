@@ -86,7 +86,11 @@ fun Route.invitationRoutes() {
       }
 
       val organizationId = request.organizationId
-      if (organizationId != null && !authContext.hasPermission(Permission.MANAGE_INVITATIONS_GLOBAL)) {
+      if (
+        organizationId != null &&
+        organizationId != authContext.organizationId &&
+        !authContext.hasPermission(Permission.MANAGE_INVITATIONS_GLOBAL)
+      ) {
         call.respond(
           HttpStatusCode.Forbidden,
           failure("User does not have permission to create invitations for other organizations")

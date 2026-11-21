@@ -92,6 +92,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `POST /api/invitations`: Create a new invitation.
     * Authentication: Required.
     * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
+    * Organization scope: callers with `MANAGE_INVITATIONS_GLOBAL` may create an invitation for any organization by specifying `organizationId`. Callers without it may create invitations only for their own organization; if `organizationId` is provided, it must match their own organization, and when omitted the server uses the caller's organization.
     * Request:
         <!-- DATA_MODEL_CreateInvitationRequest -->
         * `expiresAt`, when provided, is an ISO 8601 instant with an explicit UTC offset. A malformed value is rejected with **400**.

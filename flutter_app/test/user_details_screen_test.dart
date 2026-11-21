@@ -42,7 +42,7 @@ void main() {
       expect(find.text('Username: ada'), findsOneWidget);
       expect(find.text('Display Name: Ada'), findsOneWidget);
       expect(find.text('Email: ada@example.com'), findsOneWidget);
-      expect(find.text('Roles: Admin'), findsOneWidget);
+      expect(find.text('Role: Admin'), findsOneWidget);
       // The staff block renders only for a user who has one, and the stubbed
       // user does not.
       expect(find.text('Skills:'), findsNothing);
