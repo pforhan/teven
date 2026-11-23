@@ -503,7 +503,7 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 - [x] **10.51** inconsistent coverage of cancel/try again when server unreachable; works from view -> edit, but not on, say, initial list load, or initial view load
 
   **Implemented.** Added consistent recoverable initial-load error handling for list and detail/view screens: `PagedListSection` supports retry/cancel actions for initial load failures with no retained rows, list screens wire retry, and detail screens provide retry/cancel paths for initial load failures instead of dead-end/spinner-only states. Verified with `./teven verify`.
-- [ ] **10.52** view inventory should list current/future events it's used in similar to customer's event list
+- [x] **10.52** view inventory should list current/future events it's used in similar to customer's event list
 - [x] **10.53** only superadmins can create superadmin users and invites.  Invite form allows selection but prevents creation with a message; create user allows selection and creation but the server prevents it.  So clearly we know the current user's state, we can prevent these cases more directly by not even showing SuperAdmin as an option.  Related: you can also create users with no role at all; this should be a required field, and should act as an exclusive selection.
 
   **Implemented.** Invitation and user create/edit forms hide SuperAdmin for callers without `CAN_ASSIGN_SUPERADMIN`, require a role selection, and use exclusive single-role selection in the UI. Invitation creation no longer sends `organizationId` for org-scoped managers (and backend allows matching own-org `organizationId` for consistency). Verified with `./teven verify` and `./teven verify-backend`.

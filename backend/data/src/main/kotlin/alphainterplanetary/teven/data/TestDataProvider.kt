@@ -198,70 +198,70 @@ suspend fun populateTestData() {
     } get Customers.id
 
     // Create Inventory Items
-    InventoryItems.insert {
+    val lawnMowerId = (InventoryItems.insert {
       it[name] = "Lawn Mower"
       it[description] = "Gas-powered"
       it[quantity] = 5
       it[organizationId] = org1Id
-    }
-    InventoryItems.insert {
+    } get InventoryItems.id).value
+    val hedgeTrimmerId = (InventoryItems.insert {
       it[name] = "Hedge Trimmer"
       it[description] = "Electric"
       it[quantity] = 3
       it[organizationId] = org1Id
-    }
-    InventoryItems.insert {
+    } get InventoryItems.id).value
+    val shovelId = (InventoryItems.insert {
       it[name] = "Shovel"
       it[description] = "Round point"
       it[quantity] = 10
       it[organizationId] = org1Id
-    }
-    InventoryItems.insert {
+    } get InventoryItems.id).value
+    val rakeId = (InventoryItems.insert {
       it[name] = "Rake"
       it[description] = "Leaf rake"
       it[quantity] = 8
       it[organizationId] = org1Id
-    }
-    InventoryItems.insert {
+    } get InventoryItems.id).value
+    val glovesId = (InventoryItems.insert {
       it[name] = "Gloves"
       it[description] = "Leather"
       it[quantity] = 20
       it[organizationId] = org1Id
-    }
-    InventoryItems.insert {
+    } get InventoryItems.id).value
+    val flowerPotsId = (InventoryItems.insert {
       it[name] = "Flower Pots"
       it[description] = "Terracotta"
       it[quantity] = 50
       it[organizationId] = org2Id
-    }
-    InventoryItems.insert {
+    } get InventoryItems.id).value
+    val soilId = (InventoryItems.insert {
       it[name] = "Soil"
       it[description] = "10 lb bag"
       it[quantity] = 100
       it[organizationId] = org2Id
-    }
-    InventoryItems.insert {
+    } get InventoryItems.id).value
+    val wateringCanId = (InventoryItems.insert {
       it[name] = "Watering Can"
       it[description] = "2 gallon"
       it[quantity] = 15
       it[organizationId] = org2Id
-    }
-    InventoryItems.insert {
+    } get InventoryItems.id).value
+    val pruningShearsId = (InventoryItems.insert {
       it[name] = "Pruning Shears"
       it[description] = "Bypass"
       it[quantity] = 12
       it[organizationId] = org2Id
-    }
-    InventoryItems.insert {
+    } get InventoryItems.id).value
+    val trowelId = (InventoryItems.insert {
       it[name] = "Trowel"
       it[description] = "Hand trowel"
       it[quantity] = 25
       it[organizationId] = org2Id
-    }
+    } get InventoryItems.id).value
 
     // Create Events
     val today = LocalDate.now()
-    Events.insert {
+    val lawnMaintenanceEventId = Events.insert {
       it[title] = "Lawn Maintenance"
       it[startsAt] = eventInstant(today.plusDays(1), LocalTime.of(9, 0), "America/New_York")
       it[timezone] = "America/New_York"
@@ -272,8 +272,8 @@ suspend fun populateTestData() {
       it[organizationId] = org1Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val hedgeTrimmingEventId = Events.insert {
       it[title] = "Hedge Trimming"
       it[startsAt] = eventInstant(today.plusDays(2), LocalTime.of(10, 0), "America/New_York")
       it[timezone] = "America/New_York"
@@ -284,8 +284,8 @@ suspend fun populateTestData() {
       it[organizationId] = org1Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val fallCleanupEventId = Events.insert {
       it[title] = "Fall Cleanup"
       it[startsAt] = eventInstant(today.minusDays(1), LocalTime.of(8, 0), "America/New_York")
       it[timezone] = "America/New_York"
@@ -296,8 +296,8 @@ suspend fun populateTestData() {
       it[organizationId] = org1Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val plantingFlowersEventId = Events.insert {
       it[title] = "Planting new flowers"
       it[startsAt] = eventInstant(today.plusDays(5), LocalTime.of(9, 0), "Europe/Berlin")
       it[timezone] = "Europe/Berlin"
@@ -308,8 +308,8 @@ suspend fun populateTestData() {
       it[organizationId] = org2Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val rooftopGardenEventId = Events.insert {
       it[title] = "Rooftop Garden Maintenance"
       it[startsAt] = eventInstant(today.minusDays(3), LocalTime.of(11, 0), "Europe/Berlin")
       it[timezone] = "Europe/Berlin"
@@ -320,8 +320,8 @@ suspend fun populateTestData() {
       it[organizationId] = org2Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val soilDeliveryEventId = Events.insert {
       it[title] = "Soil delivery"
       it[startsAt] = eventInstant(today.plusDays(7), LocalTime.of(14, 0), "Pacific/Auckland")
       it[timezone] = "Pacific/Auckland"
@@ -332,7 +332,7 @@ suspend fun populateTestData() {
       it[organizationId] = org2Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
+    } get Events.id
 
     // Events that share a day, so the "Other events on {date}" panel has
     // something to show.
@@ -352,7 +352,7 @@ suspend fun populateTestData() {
     // the panel's three visible behaviours are all exercisable at a glance:
     // the sort by time, the duration, and the location that is only rendered
     // when there is one.
-    Events.insert {
+    val morningIrrigationEventId = Events.insert {
       it[title] = "Morning Irrigation Check"
       it[startsAt] = eventInstant(today, LocalTime.of(7, 30), "America/New_York")
       it[timezone] = "America/New_York"
@@ -363,8 +363,8 @@ suspend fun populateTestData() {
       it[organizationId] = org1Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val fenceRepairEventId = Events.insert {
       it[title] = "Fence Repair"
       it[startsAt] = eventInstant(today, LocalTime.of(10, 0), "America/New_York")
       it[timezone] = "America/New_York"
@@ -375,8 +375,8 @@ suspend fun populateTestData() {
       it[organizationId] = org1Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val mulchDeliveryEventId = Events.insert {
       it[title] = "Mulch Delivery"
       it[startsAt] = eventInstant(today, LocalTime.of(13, 15), "America/New_York")
       it[timezone] = "America/New_York"
@@ -389,8 +389,8 @@ suspend fun populateTestData() {
       it[organizationId] = org1Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val gutterCleaningEventId = Events.insert {
       it[title] = "Gutter Cleaning"
       it[startsAt] = eventInstant(today, LocalTime.of(16, 0), "America/New_York")
       it[timezone] = "America/New_York"
@@ -401,8 +401,8 @@ suspend fun populateTestData() {
       it[organizationId] = org1Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val planterMaintenanceEventId = Events.insert {
       it[title] = "Planter Maintenance"
       it[startsAt] = eventInstant(today, LocalTime.of(9, 0), "Europe/Berlin")
       it[timezone] = "Europe/Berlin"
@@ -413,8 +413,8 @@ suspend fun populateTestData() {
       it[organizationId] = org2Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
-    }
-    Events.insert {
+    } get Events.id
+    val greenhouseRepottingEventId = Events.insert {
       it[title] = "Greenhouse Repotting"
       it[startsAt] = eventInstant(today, LocalTime.of(14, 0), "Europe/Berlin")
       it[timezone] = "Europe/Berlin"
@@ -425,6 +425,124 @@ suspend fun populateTestData() {
       it[organizationId] = org2Id
       it[openInvitation] = false
       it[numberOfStaffNeeded] = 0
+    } get Events.id
+
+    // Associate inventory with Green Vistas and Urban Bloom events so inventory
+    // details and event views have realistic usage to display.
+    EventInventory.insert {
+      it[eventId] = lawnMaintenanceEventId
+      it[inventoryItemId] = lawnMowerId
+      it[quantity] = 1
+    }
+    EventInventory.insert {
+      it[eventId] = lawnMaintenanceEventId
+      it[inventoryItemId] = glovesId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = hedgeTrimmingEventId
+      it[inventoryItemId] = hedgeTrimmerId
+      it[quantity] = 1
+    }
+    EventInventory.insert {
+      it[eventId] = hedgeTrimmingEventId
+      it[inventoryItemId] = glovesId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = fallCleanupEventId
+      it[inventoryItemId] = rakeId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = fallCleanupEventId
+      it[inventoryItemId] = glovesId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = morningIrrigationEventId
+      it[inventoryItemId] = shovelId
+      it[quantity] = 1
+    }
+    EventInventory.insert {
+      it[eventId] = fenceRepairEventId
+      it[inventoryItemId] = shovelId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = fenceRepairEventId
+      it[inventoryItemId] = glovesId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = mulchDeliveryEventId
+      it[inventoryItemId] = shovelId
+      it[quantity] = 1
+    }
+    EventInventory.insert {
+      it[eventId] = gutterCleaningEventId
+      it[inventoryItemId] = rakeId
+      it[quantity] = 1
+    }
+    EventInventory.insert {
+      it[eventId] = gutterCleaningEventId
+      it[inventoryItemId] = glovesId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = plantingFlowersEventId
+      it[inventoryItemId] = flowerPotsId
+      it[quantity] = 12
+    }
+    EventInventory.insert {
+      it[eventId] = plantingFlowersEventId
+      it[inventoryItemId] = soilId
+      it[quantity] = 5
+    }
+    EventInventory.insert {
+      it[eventId] = plantingFlowersEventId
+      it[inventoryItemId] = trowelId
+      it[quantity] = 3
+    }
+    EventInventory.insert {
+      it[eventId] = rooftopGardenEventId
+      it[inventoryItemId] = wateringCanId
+      it[quantity] = 1
+    }
+    EventInventory.insert {
+      it[eventId] = rooftopGardenEventId
+      it[inventoryItemId] = pruningShearsId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = soilDeliveryEventId
+      it[inventoryItemId] = soilId
+      it[quantity] = 20
+    }
+    EventInventory.insert {
+      it[eventId] = planterMaintenanceEventId
+      it[inventoryItemId] = wateringCanId
+      it[quantity] = 1
+    }
+    EventInventory.insert {
+      it[eventId] = planterMaintenanceEventId
+      it[inventoryItemId] = trowelId
+      it[quantity] = 2
+    }
+    EventInventory.insert {
+      it[eventId] = greenhouseRepottingEventId
+      it[inventoryItemId] = flowerPotsId
+      it[quantity] = 8
+    }
+    EventInventory.insert {
+      it[eventId] = greenhouseRepottingEventId
+      it[inventoryItemId] = soilId
+      it[quantity] = 4
+    }
+    EventInventory.insert {
+      it[eventId] = greenhouseRepottingEventId
+      it[inventoryItemId] = trowelId
+      it[quantity] = 2
     }
 
     // Create 14 more events to test pagination

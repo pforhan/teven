@@ -14,6 +14,7 @@ import 'support/stub_adapter.dart';
 void main() {
   const viewInventory = 'VIEW_INVENTORY_ORGANIZATION';
   const manageInventory = 'MANAGE_INVENTORY_ORGANIZATION';
+  const viewEvents = 'VIEW_EVENTS_ORGANIZATION';
 
   /// Opens `/inventory/42` — the id the stubbed backend answers every inventory
   /// lookup with.
@@ -51,6 +52,80 @@ void main() {
       expect(find.text('Name: Nails'), findsOneWidget);
       expect(find.text('Description: Box of nails'), findsOneWidget);
       expect(find.text('Quantity: 3'), findsOneWidget);
+    });
+
+    testWidgets('shows today and upcoming events for the inventory item', (
+      tester,
+    ) async {
+      final adapter = contextAdapter(
+        permissions: [viewInventory],
+        forOtherRoutes: (options) {
+          if (options.path == '/api/inventory/42') {
+            return const StubResponse.json(
+              '{"success":true,"data":{"inventoryId":42,"name":"Nails",'
+              '"description":"Box of nails","quantity":3,"events":[],'
+              '"organization":{"organizationId":1,"name":"Acme",'
+              '"contactInformation":"","timezone":"UTC"}}}',
+            );
+          }
+          if (options.method == 'GET' &&
+              options.path == '/api/events' &&
+              options.queryParameters['inventoryId']?.toString() == '42') {
+            return const StubResponse.json(
+              '{"success":true,"data":{"items":[{"eventId":7,'
+              '"title":"Build Day","startsAt":"2026-11-24T09:00:00Z",'
+              '"timezone":"UTC","durationMinutes":60,"location":null,'
+              '"latitude":null,"longitude":null,"formattedAddress":null,'
+              '"description":null,"inventoryItems":[],"customer":null,'
+              '"rsvps":[],"organization":{"organizationId":1,"name":"Acme",'
+              '"contactInformation":"","timezone":"UTC"},'
+              '"openInvitation":false,"numberOfStaffNeeded":0}],'
+              '"total":1,"limit":25,"offset":0}}',
+            );
+          }
+          return null;
+        },
+      );
+      await openInventoryDetails(tester, adapter);
+
+      expect(find.text('Today and upcoming events'), findsOneWidget);
+      expect(find.text('Build Day'), findsOneWidget);
+      expect(find.text('View all events'), findsOneWidget);
+    });
+
+    testWidgets('View all events links to the filtered event list', (
+      tester,
+    ) async {
+      final adapter = contextAdapter(
+        permissions: [viewInventory, viewEvents],
+        forOtherRoutes: (options) {
+          if (options.path == '/api/inventory/42') {
+            return const StubResponse.json(
+              '{"success":true,"data":{"inventoryId":42,"name":"Nails",'
+              '"description":"Box of nails","quantity":3,"events":[],'
+              '"organization":{"organizationId":1,"name":"Acme",'
+              '"contactInformation":"","timezone":"UTC"}}}',
+            );
+          }
+          if (options.method == 'GET' &&
+              options.path == '/api/events' &&
+              options.queryParameters['inventoryId']?.toString() == '42') {
+            return const StubResponse.json(
+              '{"success":true,"data":{"items":[],"total":0,"limit":25,"offset":0}}',
+            );
+          }
+          return null;
+        },
+      );
+      final container = await openInventoryDetails(tester, adapter);
+
+      await tester.tap(find.text('View all events'));
+      await settleRequests(tester);
+
+      expect(
+        currentLocation(container),
+        AppRoutes.eventListPath(inventoryId: 42),
+      );
     });
 
     testWidgets('a failure shows the server message rather than spinning on', (

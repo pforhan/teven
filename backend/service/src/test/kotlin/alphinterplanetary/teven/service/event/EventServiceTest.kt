@@ -149,7 +149,7 @@ class EventServiceTest {
 
   @Test
   fun `get events converts a local date range into an instant range in the requested zone`() = runBlocking {
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     val result =
@@ -171,6 +171,7 @@ class EventServiceTest {
       eventDao.getEvents(
         organizationId = 1,
         customerId = null,
+        inventoryId = null,
         startInstant = Instant.parse("2026-03-03T23:00:00Z"),
         endExclusiveInstant = Instant.parse("2026-03-05T23:00:00Z"),
         search = null,
@@ -184,7 +185,7 @@ class EventServiceTest {
 
   @Test
   fun `get events converts a Pacific Auckland date range so the month boundaries include the local day`() = runBlocking {
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     eventService.getEvents(
@@ -204,6 +205,7 @@ class EventServiceTest {
       eventDao.getEvents(
         organizationId = 1,
         customerId = null,
+        inventoryId = null,
         startInstant = Instant.parse("2026-02-28T11:00:00Z"),
         endExclusiveInstant = Instant.parse("2026-03-31T11:00:00Z"),
         search = null,
@@ -217,7 +219,7 @@ class EventServiceTest {
 
   @Test
   fun `get events covers a 25-hour fall-back day with an exclusive end`() = runBlocking {
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     eventService.getEvents(
@@ -237,6 +239,7 @@ class EventServiceTest {
       eventDao.getEvents(
         organizationId = 1,
         customerId = null,
+        inventoryId = null,
         startInstant = Instant.parse("2026-11-01T04:00:00Z"),
         endExclusiveInstant = Instant.parse("2026-11-02T05:00:00Z"),
         search = null,
@@ -251,7 +254,7 @@ class EventServiceTest {
   @Test
   fun `get events uses the caller organization zone when timezone is absent`() = runBlocking {
     coEvery { organizationService.getOrganizationZone(1) } returns "Europe/Berlin"
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     eventService.getEvents(
@@ -271,6 +274,7 @@ class EventServiceTest {
       eventDao.getEvents(
         organizationId = 1,
         customerId = null,
+        inventoryId = null,
         startInstant = Instant.parse("2026-03-03T23:00:00Z"),
         endExclusiveInstant = Instant.parse("2026-03-05T23:00:00Z"),
         search = null,
@@ -285,7 +289,7 @@ class EventServiceTest {
   @Test
   fun `get events falls back to utc when timezone is absent and no organization zone applies`() = runBlocking {
     coEvery { organizationService.getOrganizationZone(1) } returns null
-    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
         PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
 
     eventService.getEvents(
@@ -305,8 +309,44 @@ class EventServiceTest {
       eventDao.getEvents(
         organizationId = 1,
         customerId = null,
+        inventoryId = null,
         startInstant = Instant.parse("2026-03-04T00:00:00Z"),
         endExclusiveInstant = Instant.parse("2026-03-06T00:00:00Z"),
+        search = null,
+        limit = null,
+        offset = null,
+        sortBy = null,
+        sortOrder = "asc",
+      )
+    }
+  }
+
+  @Test
+  fun `get events passes inventory filter through`() = runBlocking {
+    coEvery { eventDao.getEvents(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+        PaginatedResponse(items = emptyList(), total = 0, offset = 0, limit = 0)
+
+    eventService.getEvents(
+      authContext = authContext,
+      startDate = null,
+      endDate = null,
+      search = null,
+      limit = null,
+      offset = null,
+      sortBy = null,
+      sortOrder = "asc",
+      organizationId = null,
+      timezone = "UTC",
+      inventoryId = 42,
+    )
+
+    coVerify {
+      eventDao.getEvents(
+        organizationId = 1,
+        customerId = null,
+        inventoryId = 42,
+        startInstant = null,
+        endExclusiveInstant = null,
         search = null,
         limit = null,
         offset = null,

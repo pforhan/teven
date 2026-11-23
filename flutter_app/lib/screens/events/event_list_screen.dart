@@ -46,10 +46,17 @@ import '../../widgets/responsive_list_view.dart';
 /// pages of a bespoke pager would be a second pagination implementation in the
 /// app, and the shared delete dialog is one implementation, not one per screen.
 class EventListScreen extends ConsumerStatefulWidget {
-  const EventListScreen({super.key, this.initialCustomerId});
+  const EventListScreen({
+    super.key,
+    this.initialCustomerId,
+    this.initialInventoryId,
+  });
 
   /// Optional deep-link/filter: restrict the list to events for this customer.
   final int? initialCustomerId;
+
+  /// Optional deep-link/filter: restrict the list to events using this inventory item.
+  final int? initialInventoryId;
 
   @override
   ConsumerState<EventListScreen> createState() => _EventListScreenState();
@@ -115,6 +122,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     // sees that one, and everyone else sees their own.
     organizationId: organizationId,
     customerId: widget.initialCustomerId,
+    inventoryId: widget.initialInventoryId,
     // **A floor, not a range.** The original passed `startDate` and left
     // `endDate` undefined, so it showed upcoming events only. The date is
     // interpreted in the reader's zone, so "today" means the same day the reader

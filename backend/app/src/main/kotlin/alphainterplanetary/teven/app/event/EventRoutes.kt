@@ -90,6 +90,7 @@ fun Route.eventRoutes() {
         val sortOrder = call.request.queryParameters["sortOrder"] ?: "asc"
         val organizationId = call.request.queryParameters["organizationId"]?.toIntOrNull()
         val customerId = call.request.queryParameters["customerId"]?.toIntOrNull()
+        val inventoryId = call.request.queryParameters["inventoryId"]?.toIntOrNull()
 
         val events = eventService.getEvents(
           authContext = authContext,
@@ -103,6 +104,7 @@ fun Route.eventRoutes() {
           organizationId = organizationId,
           timezone = timezone,
           customerId = customerId,
+          inventoryId = inventoryId,
         )
         call.respond(HttpStatusCode.OK, success(events))
       }

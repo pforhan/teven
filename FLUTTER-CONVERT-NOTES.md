@@ -4333,3 +4333,17 @@ Shell/menu shows a "Possible timezone issue" row when mismatches exist. The row 
 **Verified:** `./teven verify-backend`, `./teven verify`.
 
 **Files changed (primary):** `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/invitation/InvitationResponse.kt`, `backend/app/src/main/kotlin/alphainterplanetary/teven/app/invitation/InvitationRoutes.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/invitation/InvitationService.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/invitation/InvitationDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/customer/CustomerDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/event/EventDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/inventory/InventoryDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/user/UserDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/organization/OrganizationDao.kt`, `flutter_app/lib/models/invitation.dart`, `flutter_app/lib/core/services/misc_services.dart`, `flutter_app/lib/providers/user_list.dart`, `flutter_app/lib/screens/users/user_list_screen.dart`, `flutter_app/lib/screens/customers/customer_list_screen.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/inventory/inventory_list_screen.dart`, `FLUTTER-CONVERT.md`.
+
+---
+
+### 2026-11-23 — 10.52: inventory details current/future events
+
+**Implemented task 10.52.** Inventory details now shows "Today and upcoming events" for the item and a "View all events" link to the filtered events list, mirroring customer details.
+
+**Flutter.** `InventoryDetailsScreen` loads upcoming events in the reader zone (`startDate=today`, `inventoryId`, `sortBy=startsAt asc`, limit 25) and renders the section with loading/error/empty states and event links. `AppRoutes.eventListPath` and `EventListScreen` accept `inventoryId`; the router passes the query param through. `ListQuery` gained `inventoryId` for event filtering/URL deep links.
+
+**Backend.** `GET /api/events` accepts `inventoryId`, threaded through route/service/DAO. `EventDao.getEvents` filters by `EventInventory` membership via subquery, preserving existing event-list behavior. Added EventService passthrough coverage for the inventory filter.
+
+**Verified:** `./teven verify-backend`, `./teven verify`.
+
+**Files changed (primary):** `backend/app/src/main/kotlin/alphainterplanetary/teven/app/event/EventRoutes.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/event/EventService.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/event/EventDao.kt`, `backend/service/src/test/kotlin/alphinterplanetary/teven/service/event/EventServiceTest.kt`, `flutter_app/lib/core/services/list_query.dart`, `flutter_app/lib/routing/app_router.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/inventory/inventory_details_screen.dart`, `flutter_app/test/inventory_details_screen_test.dart`, `FLUTTER-CONVERT.md`.

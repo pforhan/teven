@@ -20,6 +20,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.inSubQuery
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.lowerCase
@@ -164,6 +165,7 @@ class EventDao {
   suspend fun getEvents(
     organizationId: Int?,
     customerId: Int? = null,
+    inventoryId: Int? = null,
     startInstant: Instant?,
     endExclusiveInstant: Instant?,
     search: String?,
@@ -175,6 +177,13 @@ class EventDao {
     val conditions = mutableListOf<Op<Boolean>>()
     organizationId?.let { conditions.add(Events.organizationId eq it) }
     customerId?.let { conditions.add(Events.customerId eq it) }
+    inventoryId?.let {
+      conditions.add(
+        Events.id inSubQuery EventInventory
+          .select(EventInventory.eventId)
+          .where { EventInventory.inventoryItemId eq it },
+      )
+    }
     startInstant?.let { conditions.add(Events.startsAt greaterEq OffsetDateTime.ofInstant(it, ZoneOffset.UTC)) }
     endExclusiveInstant?.let { conditions.add(Events.startsAt less OffsetDateTime.ofInstant(it, ZoneOffset.UTC)) }
     search?.let { conditions.add(Events.title.lowerCase() like "%${it.lowercase()}%") }

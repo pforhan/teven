@@ -54,6 +54,7 @@ class EventService(
     organizationId: Int?,
     timezone: String?,
     customerId: Int? = null,
+    inventoryId: Int? = null,
   ): PaginatedResponse<EventResponse> {
     val organizationIdToUse = if (authContext.hasPermission(Permission.VIEW_EVENTS_GLOBAL)) {
       organizationId
@@ -69,6 +70,7 @@ class EventService(
     return eventDao.getEvents(
       organizationId = organizationIdToUse,
       customerId = customerId,
+      inventoryId = inventoryId,
       startInstant = startInstant,
       endExclusiveInstant = endExclusiveInstant,
       search = search,

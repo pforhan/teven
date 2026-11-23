@@ -44,10 +44,13 @@ abstract final class AppRoutes {
   static const String events = '/events';
   static const String eventList = '/events/list';
 
-  static String eventListPath({int? customerId}) {
+  static String eventListPath({int? customerId, int? inventoryId}) {
     final uri = Uri(
       path: eventList,
-      queryParameters: {if (customerId != null) 'customerId': '$customerId'},
+      queryParameters: {
+        if (customerId != null) 'customerId': '$customerId',
+        if (inventoryId != null) 'inventoryId': '$inventoryId',
+      },
     );
     return uri.toString();
   }
@@ -345,6 +348,9 @@ List<RouteBase> _shellRoutes(Ref ref) => [
     (state) => EventListScreen(
       initialCustomerId: int.tryParse(
         state.uri.queryParameters['customerId'] ?? '',
+      ),
+      initialInventoryId: int.tryParse(
+        state.uri.queryParameters['inventoryId'] ?? '',
       ),
     ),
   ),
