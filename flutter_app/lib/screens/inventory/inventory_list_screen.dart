@@ -109,7 +109,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     organizationId: organizationId,
   );
 
-  List<ListColumn<InventoryItemResponse>> _columns() => [
+  List<ListColumn<InventoryItemResponse>> _columns({
+    required bool showOrganization,
+  }) => [
     ListColumn<InventoryItemResponse>(
       key: 'name',
       label: 'Name',
@@ -120,6 +122,18 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             context.go(AppRoutes.inventoryDetailsPath(item.inventoryId)),
       ),
     ),
+    if (showOrganization)
+      ListColumn<InventoryItemResponse>(
+        key: 'organization',
+        label: 'Organization',
+        sortable: true,
+        render: (context, item) => RecordLinkButton(
+          label: item.organization.name,
+          onPressed: () => context.go(
+            AppRoutes.organizationDetailsPath(item.organization.organizationId),
+          ),
+        ),
+      ),
     ListColumn<InventoryItemResponse>(
       key: 'quantity',
       label: 'Quantity',
@@ -144,6 +158,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   Widget build(BuildContext context) {
     final gate = ref.watch(permissionGateProvider);
     final canManage = gate.has(Permission.manageInventoryOrganization);
+    final isAllOrganizations = ref.watch(isAllOrganizationsProvider);
     final organizationId = ref.watch(queryOrganizationIdProvider);
 
     final query = _buildQuery(organizationId);
@@ -189,7 +204,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                   .read(inventoryListProvider(query).notifier)
                   .loadMore(userInitiated: true),
               onRetry: () => ref.invalidate(inventoryListProvider(query)),
-              columns: _columns(),
+              columns: _columns(showOrganization: isAllOrganizations),
               idOf: (item) => item.inventoryId,
               emptyMessage: 'No inventory items found.',
               // Only reaches the footer, to word its count. Same test as the one

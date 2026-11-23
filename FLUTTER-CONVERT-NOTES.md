@@ -4277,3 +4277,59 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 **Verified:** `./teven verify`.
 
 **Files changed (primary):** `flutter_app/lib/screens/customers/customer_details_screen.dart`, `flutter_app/lib/screens/users/user_details_screen.dart`, `flutter_app/lib/screens/organizations/organization_details_screen.dart`, `flutter_app/lib/screens/inventory/inventory_details_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-21 — 10.48/10.50: profile timezone save flow and mismatch dialog
+
+**Implemented tasks 10.48 and 10.50 (local-only timezone).** Made profile timezone editing explicit and simplified timezone display/mismatch resolution.
+
+**Flutter.** `ProfileScreen` no longer applies timezone changes instantly from the read view. Edit Profile now includes timezone editing with staged draft state: Save persists profile fields and the local timezone override, Cancel discards draft timezone/profile field changes. Timezone remains a device-local override in `shared_preferences` (no backend/API/model changes), so admin editing of other users' timezones is out of scope.
+
+Read view now shows a prominent effective timezone with concise, non-redundant issue notes. Added shared timezone fix UI (`TimeZoneFixDialog` / `TimeZoneFixContent`) and isolated logic (`time_zone_fix.dart`) for contextual actions: **Use automatic**, **Use system timezone**, and **Use organization timezone**, depending on saved settings/differences. Profile read view offers **Resolve**; profile edit inlines the fix content and applies actions to the draft (saved only on Save).
+
+Shell/menu shows a "Possible timezone issue" row when mismatches exist. The row is clickable and opens the dialog; the badge is session-dismissible via **Ignore for now** and reappears on reload/restart. The mobile hamburger menu shows the badge when collapsed. `TimeZoneController` now watches effective organization/user context so org timezone edits refresh timezone state.
+
+**Tests.** Added `flutter_app/test/time_zone_fix_test.dart` covering fix-action availability/targets. Verified with `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/providers/time_zone_controller.dart`, `flutter_app/lib/providers/time_zone_fix.dart`, `flutter_app/lib/screens/profile/profile_screen.dart`, `flutter_app/lib/widgets/app_shell.dart`, `flutter_app/lib/widgets/time_zone_fix_dialog.dart`, `flutter_app/test/time_zone_fix_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
+### 2026-11-20 — 10.51: consistent cancel/try again for initial load failures
+
+**Implemented task 10.51.** Expanded recoverable initial-load error handling beyond edit screens.
+
+**Flutter.** `PagedListSection` now supports retry/cancel actions for initial list load failures with no retained rows; list screens wire retry. Customer/user/inventory/organization/event detail screens provide explicit retry/cancel recovery for initial load failures instead of dead-end or spinner-only states.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/widgets/paged_list_view.dart`, `flutter_app/lib/screens/customers/customer_list_screen.dart`, `flutter_app/lib/screens/inventory/inventory_list_screen.dart`, `flutter_app/lib/screens/organizations/organization_list_screen.dart`, `flutter_app/lib/screens/users/user_list_screen.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/customers/customer_details_screen.dart`, `flutter_app/lib/screens/users/user_details_screen.dart`, `flutter_app/lib/screens/inventory/inventory_details_screen.dart`, `flutter_app/lib/screens/organizations/organization_details_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `FLUTTER-CONVERT.md`.
+
+---
+
+### 2026-11-21 — 10.53/10.54: single-role UI and valid role selection
+
+**Implemented tasks 10.53 and 10.54 together.** Prevented invalid SuperAdmin/empty role selection and treated users as single-role in the UI.
+
+**Flutter.** Invitation and user create/edit flows hide `SuperAdmin` for callers without `CAN_ASSIGN_SUPERADMIN`, require an explicit role, and use exclusive single-role selection. User create/edit submits one role; display flows continue to render roles returned by the server. Org-scoped invitation creation no longer sends `organizationId`.
+
+**Backend/API.** Invitation create route allows non-global callers to specify `organizationId` only when it matches their own organization; `API_TEMPLATE.md` documented the scoping rule.
+
+**Verified:** `./teven verify`, `./teven verify-backend`.
+
+**Files changed (primary):** `flutter_app/lib/widgets/create_invitation_form.dart`, `flutter_app/lib/screens/users/user_form_screen.dart`, `flutter_app/lib/screens/users/user_details_screen.dart`, `flutter_app/lib/screens/profile/profile_screen.dart`, `flutter_app/lib/screens/users/user_list_screen.dart`, `flutter_app/test/user_list_screen_test.dart`, `flutter_app/test/user_details_screen_test.dart`, `backend/app/src/main/kotlin/alphainterplanetary/teven/app/invitation/InvitationRoutes.kt`, `API_TEMPLATE.md`, `FLUTTER-CONVERT.md`.
+
+---
+
+### 2026-11-21 — 10.55: organization column in all-organizations superadmin views
+
+**Implemented task 10.55.** Added Organization column/organization sorting for superadmin "All Organizations" entity-list views.
+
+**Flutter.** User, customer, event, and inventory list screens show a sortable Organization column only when `isAllOrganizationsProvider` is true; the column is hidden when a specific organization is selected. The user screen's Unused Invitations table also shows the Organization column and supports sorting in that scope. Invitation responses now carry `organizationName`, and the Flutter invitation service/provider accept sort params.
+
+**Backend.** `InvitationResponse` includes `organizationName`; `GET /api/invitations` accepts `sortBy`/`sortOrder`; invitation DAO joins organization/role for names and sorting. Customer/event/inventory/user DAOs support `sortBy=organization`/`organizationName` by joining organization names; organization DAO accepts the same aliases for name sorting.
+
+**Verified:** `./teven verify-backend`, `./teven verify`.
+
+**Files changed (primary):** `backend/api/src/main/kotlin/alphainterplanetary/teven/api/model/invitation/InvitationResponse.kt`, `backend/app/src/main/kotlin/alphainterplanetary/teven/app/invitation/InvitationRoutes.kt`, `backend/service/src/main/kotlin/alphainterplanetary/teven/service/invitation/InvitationService.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/invitation/InvitationDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/customer/CustomerDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/event/EventDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/inventory/InventoryDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/user/UserDao.kt`, `backend/data/src/main/kotlin/alphainterplanetary/teven/data/organization/OrganizationDao.kt`, `flutter_app/lib/models/invitation.dart`, `flutter_app/lib/core/services/misc_services.dart`, `flutter_app/lib/providers/user_list.dart`, `flutter_app/lib/screens/users/user_list_screen.dart`, `flutter_app/lib/screens/customers/customer_list_screen.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/inventory/inventory_list_screen.dart`, `FLUTTER-CONVERT.md`.

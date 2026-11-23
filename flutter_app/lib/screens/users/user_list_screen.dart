@@ -74,6 +74,11 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   String _sortBy = 'username';
   SortOrder _sortOrder = SortOrder.asc;
 
+  /// Invitation table sort. The backend defaults to newest-first when unset, so
+  /// the UI starts with no active sort indicator until the user picks a column.
+  String? _invitationSortBy;
+  SortOrder _invitationSortOrder = SortOrder.asc;
+
   /// Status filter for users who can view or manage deactivated accounts.
   String _statusFilter = 'active';
 
@@ -109,6 +114,19 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
       } else {
         _sortBy = key;
         _sortOrder = SortOrder.asc;
+      }
+    });
+  }
+
+  void _onInvitationSort(String key) {
+    setState(() {
+      if (_invitationSortBy == key) {
+        _invitationSortOrder = _invitationSortOrder == SortOrder.asc
+            ? SortOrder.desc
+            : SortOrder.asc;
+      } else {
+        _invitationSortBy = key;
+        _invitationSortOrder = SortOrder.asc;
       }
     });
   }
@@ -235,7 +253,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   /// that a real email and a real organization name fit on one line — not the
   /// exact ratios. Narrowing the browser is the only way to revisit them.
   List<ListColumn<UserResponse>> _userColumns({
-    required bool canViewGlobal,
+    required bool showOrganization,
     required bool showStatus,
   }) => [
     ListColumn<UserResponse>(
@@ -275,10 +293,11 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
         flex: 1,
         text: (user) => user.deletedAt == null ? 'Active' : 'Deactivated',
       ),
-    if (canViewGlobal)
+    if (showOrganization)
       ListColumn<UserResponse>(
         key: 'organization',
         label: 'Organization',
+        sortable: true,
         flex: 4,
         render: (context, user) => RecordLinkButton(
           label: user.organization.name,
@@ -311,36 +330,51 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   );
 
   /// The invitation columns.
-  List<ListColumn<InvitationResponse>> _invitationColumns(String readerZone) =>
-      [
-        ListColumn<InvitationResponse>(
-          key: 'roleName',
-          label: 'Role',
-          text: (invitation) => invitation.roleName,
-        ),
-        // The original screen rendered a null note as `N/A`, so it is shown as
-        // text rather than as an empty cell.
-        ListColumn<InvitationResponse>(
-          key: 'note',
-          label: 'Note',
-          text: (invitation) => invitation.note ?? 'N/A',
-        ),
-        ListColumn<InvitationResponse>(
-          key: 'invitationUrl',
-          label: 'Link',
-          render: (context, invitation) => _InvitationLinkCell(
-            invitation: invitation,
-            copied: _copiedInvitationId == invitation.invitationId,
-            onCopy: () => _copyInvitationLink(invitation),
+  List<ListColumn<InvitationResponse>> _invitationColumns(
+    String readerZone, {
+    required bool showOrganization,
+  }) => [
+    if (showOrganization)
+      ListColumn<InvitationResponse>(
+        key: 'organization',
+        label: 'Organization',
+        sortable: true,
+        render: (context, invitation) => RecordLinkButton(
+          label: invitation.organizationName,
+          onPressed: () => context.go(
+            AppRoutes.organizationDetailsPath(invitation.organizationId),
           ),
         ),
-        ListColumn<InvitationResponse>(
-          key: 'expiresAt',
-          label: 'Expires',
-          text: (invitation) =>
-              formatInstantDate(invitation.expiresAt, readerZone),
-        ),
-      ];
+      ),
+    ListColumn<InvitationResponse>(
+      key: 'roleName',
+      label: 'Role',
+      sortable: true,
+      text: (invitation) => invitation.roleName,
+    ),
+    // The original screen rendered a null note as `N/A`, so it is shown as
+    // text rather than as an empty cell.
+    ListColumn<InvitationResponse>(
+      key: 'note',
+      label: 'Note',
+      text: (invitation) => invitation.note ?? 'N/A',
+    ),
+    ListColumn<InvitationResponse>(
+      key: 'invitationUrl',
+      label: 'Link',
+      render: (context, invitation) => _InvitationLinkCell(
+        invitation: invitation,
+        copied: _copiedInvitationId == invitation.invitationId,
+        onCopy: () => _copyInvitationLink(invitation),
+      ),
+    ),
+    ListColumn<InvitationResponse>(
+      key: 'expiresAt',
+      label: 'Expires',
+      sortable: true,
+      text: (invitation) => formatInstantDate(invitation.expiresAt, readerZone),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -353,6 +387,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     ]);
     final canViewGlobal = gate.has(Permission.viewUsersGlobal);
     final canAccessDeactivated = canViewGlobal || canManage;
+    final isAllOrganizations = ref.watch(isAllOrganizationsProvider);
     final organizationId = ref.watch(queryOrganizationIdProvider);
     final currentUserId = ref.watch(userContextProvider)?.user.userId;
 
@@ -360,8 +395,12 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     // the table only when there was something in it. Gating the watch rather
     // than the fetch keeps an unauthorized caller from issuing a request that
     // would 403.
+    final invitationSort = (
+      sortBy: _invitationSortBy,
+      sortOrder: _invitationSortBy == null ? null : _invitationSortOrder.name,
+    );
     final invitations = canManage
-        ? ref.watch(unusedInvitationsProvider)
+        ? ref.watch(unusedInvitationsProvider(invitationSort))
         : const AsyncValue<List<InvitationResponse>>.data(
             <InvitationResponse>[],
           );
@@ -463,7 +502,11 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                 columns: _invitationColumns(
                   ref.watch(timeZoneControllerProvider).value?.effectiveZone ??
                       'UTC',
+                  showOrganization: isAllOrganizations,
                 ),
+                sortBy: _invitationSortBy,
+                sortOrder: _invitationSortOrder,
+                onSort: _onInvitationSort,
                 onDelete: _confirmDeleteInvitation,
               ),
               const SizedBox(height: 32),
@@ -506,7 +549,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                   .loadMore(userInitiated: true),
               onRetry: () => ref.invalidate(userPageProvider(query)),
               columns: _userColumns(
-                canViewGlobal: canViewGlobal,
+                showOrganization: isAllOrganizations,
                 showStatus: canAccessDeactivated,
               ),
               idOf: (user) => user.userId,
@@ -563,11 +606,17 @@ class _InvitationSection extends StatelessWidget {
     required this.invitations,
     required this.columns,
     required this.onDelete,
+    this.sortBy,
+    this.sortOrder,
+    this.onSort,
   });
 
   final AsyncValue<List<InvitationResponse>> invitations;
   final List<ListColumn<InvitationResponse>> columns;
   final Future<void> Function(InvitationResponse) onDelete;
+  final String? sortBy;
+  final SortOrder? sortOrder;
+  final ValueChanged<String>? onSort;
 
   @override
   Widget build(BuildContext context) => invitations.when(
@@ -580,6 +629,9 @@ class _InvitationSection extends StatelessWidget {
       columns: columns,
       idOf: (invitation) => invitation.invitationId,
       emptyMessage: 'No unused invitations.',
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      onSort: onSort,
       actions: (context, invitation) => [
         ListRowAction(
           icon: Icons.delete,

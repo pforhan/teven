@@ -169,8 +169,9 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
 
   List<ListColumn<EventResponse>> _columns(
     int? currentUserId,
-    String readerZone,
-  ) => [
+    String readerZone, {
+    required bool showOrganization,
+  }) => [
     ListColumn<EventResponse>(
       key: 'title',
       label: 'Title',
@@ -203,6 +204,20 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
       flex: 2,
       text: (event) => event.description ?? '',
     ),
+    if (showOrganization)
+      ListColumn<EventResponse>(
+        key: 'organization',
+        label: 'Organization',
+        sortable: true,
+        render: (context, event) => RecordLinkButton(
+          label: event.organization.name,
+          onPressed: () => context.go(
+            AppRoutes.organizationDetailsPath(
+              event.organization.organizationId,
+            ),
+          ),
+        ),
+      ),
     ListColumn<EventResponse>(
       key: 'customer',
       label: 'Customer',
@@ -229,6 +244,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     final gate = ref.watch(permissionGateProvider);
     final canManage = gate.has(Permission.manageEventsOrganization);
     final currentUserId = ref.watch(userContextProvider)?.user.userId;
+    final isAllOrganizations = ref.watch(isAllOrganizationsProvider);
     final organizationId = ref.watch(queryOrganizationIdProvider);
     final tz = ref.watch(timeZoneControllerProvider);
     final readerZone = tz.value?.effectiveZone ?? 'UTC';
@@ -291,7 +307,11 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
                   .read(eventListProvider(query).notifier)
                   .loadMore(userInitiated: true),
               onRetry: () => ref.invalidate(eventListProvider(query)),
-              columns: _columns(currentUserId, readerZone),
+              columns: _columns(
+                currentUserId,
+                readerZone,
+                showOrganization: isAllOrganizations,
+              ),
               idOf: (event) => event.eventId,
               emptyMessage: 'No events found.',
               // Same test `_buildQuery` uses to decide whether to send `search`

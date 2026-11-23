@@ -87,7 +87,10 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     }
   }
 
-  List<ListColumn<CustomerResponse>> _columns({required bool showStatus}) => [
+  List<ListColumn<CustomerResponse>> _columns({
+    required bool showStatus,
+    required bool showOrganization,
+  }) => [
     ListColumn<CustomerResponse>(
       key: 'name',
       label: 'Name',
@@ -98,6 +101,20 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
             context.go(AppRoutes.customerDetailsPath(customer.customerId)),
       ),
     ),
+    if (showOrganization)
+      ListColumn<CustomerResponse>(
+        key: 'organization',
+        label: 'Organization',
+        sortable: true,
+        render: (context, customer) => RecordLinkButton(
+          label: customer.organization.name,
+          onPressed: () => context.go(
+            AppRoutes.organizationDetailsPath(
+              customer.organization.organizationId,
+            ),
+          ),
+        ),
+      ),
     ListColumn<CustomerResponse>(
       key: 'phone',
       label: 'Phone',
@@ -142,6 +159,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     ]);
     final canViewGlobal = gate.has(Permission.viewCustomersGlobal);
     final canAccessDeactivated = canViewGlobal || canManage;
+    final isAllOrganizations = ref.watch(isAllOrganizationsProvider);
     final organizationId = ref.watch(queryOrganizationIdProvider);
 
     final query = _buildQuery(
@@ -208,7 +226,10 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                   .read(customerListProvider(query).notifier)
                   .loadMore(userInitiated: true),
               onRetry: () => ref.invalidate(customerListProvider(query)),
-              columns: _columns(showStatus: canAccessDeactivated),
+              columns: _columns(
+                showStatus: canAccessDeactivated,
+                showOrganization: isAllOrganizations,
+              ),
               idOf: (customer) => customer.customerId,
               emptyMessage: 'No customers found.',
               filtered: _searchTerm.isNotEmpty,

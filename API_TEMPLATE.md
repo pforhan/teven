@@ -103,6 +103,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `GET /api/invitations`: Retrieve all unused invitations for the user's organization.
     * Authentication: Required.
     * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
+    * Query parameters:
+        * `sortBy` (optional, string): Field to sort by. Supported values include `organization`, `role`, `expiresAt`, and `createdAt`.
+        * `sortOrder` (optional, string, `asc` or `desc`): Sort order. Defaults to `desc` by creation time when `sortBy` is omitted.
     * Response: `List<InvitationResponse>`
 
 * `GET /api/invitations/validate?token={token}`: Validates an invitation token.

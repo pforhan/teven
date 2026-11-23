@@ -4,6 +4,7 @@ import alphainterplanetary.teven.core.user.Invitation
 import alphainterplanetary.teven.data.dbQuery
 import alphainterplanetary.teven.data.role.Roles
 import alphainterplanetary.teven.data.organization.Organizations
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
@@ -80,24 +81,42 @@ class InvitationDao(private val clock: Clock) {
     } > 0
   }
 
-  suspend fun getUnusedInvitations(organizationId: Int?): List<Invitation> = dbQuery {
-    val query = Invitations.selectAll()
-      .where {
-        val baseCondition = Invitations.usedByUserId.isNull() and (Invitations.expiresAt greaterEq OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
-        organizationId?.let { baseCondition and (Invitations.organizationId eq it) } ?: baseCondition
-      }
-    query.map { Invitation(
-      id = it[Invitations.id].value,
-      organizationId = it[Invitations.organizationId].value,
-      organizationName = "", // Placeholder, will be set in service
-      roleId = it[Invitations.roleId].value,
-      roleName = "", // Placeholder, will be set in service
-      token = it[Invitations.token],
-      expiresAt = it[Invitations.expiresAt].toInstant(),
-      usedByUserId = it[Invitations.usedByUserId]?.value,
-      createdAt = it[Invitations.createdAt].toInstant(),
-      note = it[Invitations.note],
-    ) }
+  suspend fun getUnusedInvitations(
+    organizationId: Int?,
+    sortBy: String? = null,
+    sortOrder: String? = null,
+  ): List<Invitation> = dbQuery {
+    val baseCondition = Invitations.usedByUserId.isNull() and
+      (Invitations.expiresAt greaterEq OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
+    val condition = organizationId?.let { baseCondition and (Invitations.organizationId eq it) } ?: baseCondition
+
+    val query = (Invitations innerJoin Roles innerJoin Organizations)
+      .selectAll()
+      .where { condition }
+
+    val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
+    when (sortBy) {
+      "organization", "organizationName" -> query.orderBy(Organizations.name, sort)
+      "role", "roleName" -> query.orderBy(Roles.roleName, sort)
+      "expiresAt" -> query.orderBy(Invitations.expiresAt, sort)
+      "createdAt" -> query.orderBy(Invitations.createdAt, sort)
+      else -> query.orderBy(Invitations.createdAt, SortOrder.DESC)
+    }
+
+    query.map {
+      Invitation(
+        id = it[Invitations.id].value,
+        organizationId = it[Invitations.organizationId].value,
+        organizationName = it[Organizations.name],
+        roleId = it[Invitations.roleId].value,
+        roleName = it[Roles.roleName],
+        token = it[Invitations.token],
+        expiresAt = it[Invitations.expiresAt].toInstant(),
+        usedByUserId = it[Invitations.usedByUserId]?.value,
+        createdAt = it[Invitations.createdAt].toInstant(),
+        note = it[Invitations.note],
+      )
+    }
   }
 
   suspend fun deleteInvitation(invitationId: Int): Boolean = dbQuery {

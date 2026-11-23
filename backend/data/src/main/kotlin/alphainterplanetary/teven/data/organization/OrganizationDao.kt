@@ -56,7 +56,7 @@ class OrganizationDao {
 
     val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
     when (sortBy) {
-      "name" -> query.orderBy(Organizations.name, sort)
+      "name", "organization", "organizationName" -> query.orderBy(Organizations.name, sort)
       else -> query.orderBy(Organizations.id, sort)
     }
 

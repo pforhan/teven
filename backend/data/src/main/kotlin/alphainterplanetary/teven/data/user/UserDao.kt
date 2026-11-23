@@ -105,11 +105,12 @@ class UserDao {
       conditions.add((Users.username.lowerCase() like s) or (Users.email.lowerCase() like s) or (Users.displayName.lowerCase() like s))
     }
 
+    val baseQuery = Users innerJoin UserOrganizations innerJoin Organizations
     val query = if (conditions.isEmpty()) {
-      Users.selectAll()
+      baseQuery.selectAll()
     } else {
       val combinedCondition = conditions.reduce { acc, op -> acc and op }
-      Users.selectAll().where { combinedCondition }
+      baseQuery.selectAll().where { combinedCondition }
     }
 
     val total = query.count()
@@ -119,6 +120,7 @@ class UserDao {
       "username" -> query.orderBy(Users.username, sort)
       "email" -> query.orderBy(Users.email, sort)
       "displayName" -> query.orderBy(Users.displayName, sort)
+      "organization", "organizationName" -> query.orderBy(Organizations.name, sort)
       else -> query.orderBy(Users.id, sort)
     }
 

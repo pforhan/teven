@@ -40,9 +40,12 @@ class PagedUserList extends PagedListController<UserResponse> {
 /// fetch would 403, and a provider cannot read the permission gate without
 /// making this a `Provider` that rebuilds whenever the session does.
 ///
-/// **Not a family and not paged.** `GET /api/invitations` takes no query
-/// parameters at all and returns a bare list rather than a `PaginatedResponse`.
-final unusedInvitationsProvider =
-    FutureProvider.autoDispose<List<InvitationResponse>>(
-      (ref) => ref.watch(invitationServiceProvider).getUnusedInvitations(),
+/// **Not paged.** `GET /api/invitations` returns a bare list rather than a
+/// `PaginatedResponse`, but it now accepts sort parameters so the UI can sort
+/// by organization in all-org views.
+final unusedInvitationsProvider = FutureProvider.autoDispose
+    .family<List<InvitationResponse>, ({String? sortBy, String? sortOrder})>(
+      (ref, sort) => ref
+          .watch(invitationServiceProvider)
+          .getUnusedInvitations(sortBy: sort.sortBy, sortOrder: sort.sortOrder),
     );

@@ -34,6 +34,7 @@ class InvitationService(
     return InvitationResponse(
       invitationId = id,
       organizationId = organizationId,
+      organizationName = organizationName,
       roleId = roleId,
       roleName = roleName,
       token = token,
@@ -111,20 +112,16 @@ class InvitationService(
     return AcceptInvitationResponse(success = true, message = "Invitation accepted and user created.")
   }
 
-  suspend fun getUnusedInvitations(authContext: AuthContext): List<InvitationResponse> {
+  suspend fun getUnusedInvitations(
+    authContext: AuthContext,
+    sortBy: String? = null,
+    sortOrder: String? = null,
+  ): List<InvitationResponse> {
     val organizationId =
       if (authContext.hasPermission(MANAGE_INVITATIONS_GLOBAL)) null else authContext.organizationId
-    val invitations = invitationDao.getUnusedInvitations(organizationId)
-
-    val roles = roleService.getAllRoles().associateBy { it.roleId }
-    val organizations = organizationService.getAllOrganizations().associateBy { it.organizationId }
-
-    return invitations.map { invitation ->
-      invitation.copy(
-        roleName = roles[invitation.roleId]?.roleName ?: "Unknown",
-        organizationName = organizations[invitation.organizationId]?.name ?: "Unknown"
-      )
-    }.map { it.toInvitationResponse() }
+    return invitationDao
+      .getUnusedInvitations(organizationId = organizationId, sortBy = sortBy, sortOrder = sortOrder)
+      .map { it.toInvitationResponse() }
   }
 
   /**

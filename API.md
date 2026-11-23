@@ -177,6 +177,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `POST /api/invitations`: Create a new invitation.
     * Authentication: Required.
     * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
+    * Organization scope: callers with `MANAGE_INVITATIONS_GLOBAL` may create an invitation for any organization by specifying `organizationId`. Callers without it may create invitations only for their own organization; if `organizationId` is provided, it must match their own organization, and when omitted the server uses the caller's organization.
     * Request:
         ```kotlin
         data class CreateInvitationRequest(
@@ -192,6 +193,7 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         data class InvitationResponse(
           val invitationId: Int, 
           val organizationId: Int, 
+          val organizationName: String, 
           val roleId: Int, 
           val roleName: String, 
           val token: String, 
@@ -206,6 +208,9 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
 * `GET /api/invitations`: Retrieve all unused invitations for the user's organization.
     * Authentication: Required.
     * Permissions: `MANAGE_INVITATIONS_ORGANIZATION` or `MANAGE_INVITATIONS_GLOBAL`.
+    * Query parameters:
+        * `sortBy` (optional, string): Field to sort by. Supported values include `organization`, `role`, `expiresAt`, and `createdAt`.
+        * `sortOrder` (optional, string, `asc` or `desc`): Sort order. Defaults to `desc` by creation time when `sortBy` is omitted.
     * Response: `List<InvitationResponse>`
 
 * `GET /api/invitations/validate?token={token}`: Validates an invitation token.
@@ -215,7 +220,8 @@ Most API endpoints in Teven will require authentication. We will use JSON Web To
         data class ValidateInvitationResponse(
           val organizationId: Int, 
           val organizationName: String, 
-          val roleName: String
+          val roleName: String, 
+          val note: String?
         )
         ```
 
@@ -898,6 +904,7 @@ data class InventoryUsageReportResponse(
 data class InvitationResponse(
   val invitationId: Int, 
   val organizationId: Int, 
+  val organizationName: String, 
   val roleId: Int, 
   val roleName: String, 
   val token: String, 
@@ -1068,7 +1075,8 @@ data class UserResponse(
 data class ValidateInvitationResponse(
   val organizationId: Int, 
   val organizationName: String, 
-  val roleName: String
+  val roleName: String, 
+  val note: String?
 )
 ```
 

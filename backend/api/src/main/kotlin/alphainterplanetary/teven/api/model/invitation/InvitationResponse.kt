@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class InvitationResponse(
   val invitationId: Int,
   val organizationId: Int,
+  val organizationName: String,
   val roleId: Int,
   val roleName: String,
   val token: String,

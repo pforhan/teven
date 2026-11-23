@@ -94,11 +94,12 @@ class InventoryDao(private val clock: Clock) {
     organizationId?.let { conditions.add(InventoryItems.organizationId eq it) }
     search?.let { conditions.add(InventoryItems.name.lowerCase() like "%${it.lowercase()}%") }
 
+    val baseQuery = InventoryItems innerJoin Organizations
     val query = if (conditions.isEmpty()) {
-      InventoryItems.selectAll()
+      baseQuery.selectAll()
     } else {
       val combinedCondition = conditions.reduce { acc, op -> acc and op }
-      InventoryItems.selectAll().where { combinedCondition }
+      baseQuery.selectAll().where { combinedCondition }
     }
 
     val total = query.count()
@@ -107,6 +108,7 @@ class InventoryDao(private val clock: Clock) {
     when (sortBy) {
       "name" -> query.orderBy(InventoryItems.name, sort)
       "quantity" -> query.orderBy(InventoryItems.quantity, sort)
+      "organization", "organizationName" -> query.orderBy(Organizations.name, sort)
       else -> query.orderBy(InventoryItems.id, sort)
     }
 

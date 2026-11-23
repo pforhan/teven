@@ -16,6 +16,7 @@ abstract class InvitationResponse with _$InvitationResponse {
   const factory InvitationResponse({
     required int invitationId,
     required int organizationId,
+    @Default('') String organizationName,
     required int roleId,
     @Default('') String roleName,
     required String token,

@@ -179,11 +179,12 @@ class EventDao {
     endExclusiveInstant?.let { conditions.add(Events.startsAt less OffsetDateTime.ofInstant(it, ZoneOffset.UTC)) }
     search?.let { conditions.add(Events.title.lowerCase() like "%${it.lowercase()}%") }
 
+    val baseQuery = Events innerJoin Organizations
     val query = if (conditions.isEmpty()) {
-      Events.selectAll()
+      baseQuery.selectAll()
     } else {
       val combinedCondition = conditions.reduce { acc, op -> acc and op }
-      Events.selectAll().where { combinedCondition }
+      baseQuery.selectAll().where { combinedCondition }
     }
 
     val total = query.count()
@@ -191,6 +192,7 @@ class EventDao {
     val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
     when (sortBy) {
       "title" -> query.orderBy(Events.title, sort)
+      "organization", "organizationName" -> query.orderBy(Organizations.name, sort)
       else -> query.orderBy(Events.startsAt, sort)
     }
 

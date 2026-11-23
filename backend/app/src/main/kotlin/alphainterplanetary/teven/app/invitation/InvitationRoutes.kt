@@ -110,7 +110,13 @@ fun Route.invitationRoutes() {
 
     get {
       val authContext = call.authentication.principal<AuthContext>()!!
-      val invitations = invitationService.getUnusedInvitations(authContext)
+      val sortBy = call.request.queryParameters["sortBy"]
+      val sortOrder = call.request.queryParameters["sortOrder"]
+      val invitations = invitationService.getUnusedInvitations(
+        authContext = authContext,
+        sortBy = sortBy,
+        sortOrder = sortOrder,
+      )
       call.respond(success(invitations))
     }
 

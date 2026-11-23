@@ -19,13 +19,16 @@ class InvitationService {
   final ApiClient _client;
 
   /// Outstanding, unused invitations visible to the caller.
-  Future<List<InvitationResponse>> getUnusedInvitations() =>
-      _client.get<List<InvitationResponse>>(
-        '/api/invitations',
-        decode: (json) => (json! as List)
-            .map((e) => InvitationResponse.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+  Future<List<InvitationResponse>> getUnusedInvitations({
+    String? sortBy,
+    String? sortOrder,
+  }) => _client.get<List<InvitationResponse>>(
+    '/api/invitations',
+    query: {'sortBy': ?sortBy, 'sortOrder': ?sortOrder},
+    decode: (json) => (json! as List)
+        .map((e) => InvitationResponse.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
   /// What a token entitles the bearer to, before they accept.
   ///

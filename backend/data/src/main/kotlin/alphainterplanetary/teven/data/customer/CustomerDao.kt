@@ -75,11 +75,12 @@ class CustomerDao {
     organizationId?.let { conditions.add(Customers.organizationId eq it) }
     search?.let { conditions.add(Customers.name.lowerCase() like "%${it.lowercase()}%") }
 
+    val baseQuery = Customers innerJoin Organizations
     val query = if (conditions.isEmpty()) {
-      Customers.selectAll()
+      baseQuery.selectAll()
     } else {
       val combinedCondition = conditions.reduce { acc, op -> acc and op }
-      Customers.selectAll().where { combinedCondition }
+      baseQuery.selectAll().where { combinedCondition }
     }
 
     val total = query.count()
@@ -87,6 +88,7 @@ class CustomerDao {
     val sort = if (sortOrder == "desc") SortOrder.DESC else SortOrder.ASC
     when (sortBy) {
       "name" -> query.orderBy(Customers.name, sort)
+      "organization", "organizationName" -> query.orderBy(Organizations.name, sort)
       else -> query.orderBy(Customers.id, sort)
     }
 
