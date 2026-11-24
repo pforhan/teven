@@ -19,6 +19,7 @@ import '../../routing/app_router.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/day_events_panel.dart';
+import '../../widgets/rsvp_buttons.dart';
 
 /// One event, in full.
 ///
@@ -91,9 +92,6 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
   /// event's title, where the original screen put it.
   ApiException? _actionError;
 
-  /// The confirmation that an RSVP landed.
-  String? _successMessage;
-
   /// This user's own answer, or null when they have not answered.
   ///
   /// **Kept separately from the event's RSVP list** because the original kept it
@@ -154,7 +152,6 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
     if (oldWidget.eventId != widget.eventId) {
       setState(() {
         _actionError = null;
-        _successMessage = null;
         _submitting = false;
         // Keep the previous event visible while the next one loads to avoid a
         // full-screen flash; _load will replace it (or show a load error).
@@ -244,7 +241,6 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
     if (_submitting) return;
     setState(() {
       _actionError = null;
-      _successMessage = null;
       _submitting = true;
     });
     try {
@@ -253,8 +249,8 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
           .rsvpToEvent(widget.eventId, RsvpRequest(availability: availability));
       if (!mounted) return;
       final label = switch (availability) {
-        RsvpAvailability.accepted => 'Going',
-        RsvpAvailability.declined => 'Not going',
+        RsvpAvailability.accepted => 'Yes',
+        RsvpAvailability.declined => 'No',
         RsvpAvailability.tentative => 'Maybe',
         RsvpAvailability.needsAction => 'No response',
         _ => availability,
@@ -262,17 +258,26 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
       setState(() {
         _event = updated;
         _myRsvpStatus = _statusOf(updated);
-        _successMessage = 'Successfully updated RSVP to $label.';
         _submitting = false;
         _actionError = null;
       });
+      _showRsvpSnackBar('RSVP updated to $label.');
     } on ApiException catch (error) {
       if (!mounted) return;
-      setState(() {
-        _actionError = error;
-        _submitting = false;
-      });
+      setState(() => _submitting = false);
+      _showRsvpSnackBar(error.message, isError: true);
     }
+  }
+
+  void _showRsvpSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+        ),
+      );
   }
 
   /// Deletes the event and leaves.
@@ -376,7 +381,6 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
                           event: event,
                           readerZone: readerZone,
                           actionError: _actionError,
-                          successMessage: _successMessage,
                         );
                         final side = _Sidebar(
                           event: event,
@@ -515,13 +519,11 @@ class _EventCard extends StatelessWidget {
     required this.event,
     required this.readerZone,
     required this.actionError,
-    required this.successMessage,
   });
 
   final EventResponse event;
   final String readerZone;
   final ApiException? actionError;
-  final String? successMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -548,10 +550,6 @@ class _EventCard extends StatelessWidget {
             if (actionError != null) ...[
               const SizedBox(height: 16),
               ErrorDisplay.fromException(actionError!),
-            ],
-            if (successMessage != null) ...[
-              const SizedBox(height: 16),
-              _SuccessBanner(message: successMessage!),
             ],
             if (description != null && description.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -712,26 +710,6 @@ class _LocationLink extends StatelessWidget {
     // link the user asked for, and the address is on screen either way.
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
-}
-
-/// The green confirmation.
-class _SuccessBanner extends StatelessWidget {
-  const _SuccessBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: TevenTheme.successSurface,
-      borderRadius: BorderRadius.circular(4),
-    ),
-    child: Text(
-      message,
-      style: const TextStyle(color: TevenTheme.onSuccessSurface),
-    ),
-  );
 }
 
 /// The customer the event is for.
@@ -970,7 +948,7 @@ class _Sidebar extends ConsumerWidget {
   }
 }
 
-/// "Your Availability" — the two RSVP buttons.
+/// "Your Availability" — this user's RSVP for the event.
 class _AvailabilityCard extends StatelessWidget {
   const _AvailabilityCard({
     required this.canJoin,
@@ -987,8 +965,6 @@ class _AvailabilityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final status = myRsvpStatus;
-
     return Card(
       elevation: 0,
       child: Padding(
@@ -1004,38 +980,10 @@ class _AvailabilityCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             if (canJoin)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _AvailabilityButton(
-                    label: 'Going',
-                    icon: Icons.check_circle_outline,
-                    color: TevenTheme.success,
-                    selected: status == RsvpAvailability.accepted,
-                    onPressed: submitting
-                        ? null
-                        : () => onRsvp(RsvpAvailability.accepted),
-                  ),
-                  _AvailabilityButton(
-                    label: 'Maybe',
-                    icon: Icons.help_outline,
-                    color: theme.colorScheme.primary,
-                    selected: status == RsvpAvailability.tentative,
-                    onPressed: submitting
-                        ? null
-                        : () => onRsvp(RsvpAvailability.tentative),
-                  ),
-                  _AvailabilityButton(
-                    label: 'Not Going',
-                    icon: Icons.cancel_outlined,
-                    color: TevenTheme.danger,
-                    selected: status == RsvpAvailability.declined,
-                    onPressed: submitting
-                        ? null
-                        : () => onRsvp(RsvpAvailability.declined),
-                  ),
-                ],
+              RsvpButtons(
+                currentAvailability: myRsvpStatus,
+                enabled: !submitting,
+                onSelected: onRsvp,
               )
             else
               Text(
@@ -1044,54 +992,11 @@ class _AvailabilityCard extends StatelessWidget {
                   color: theme.colorScheme.secondary,
                 ),
               ),
-            if (status != null && status != RsvpAvailability.needsAction) ...[
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: submitting
-                    ? null
-                    : () => onRsvp(RsvpAvailability.needsAction),
-                child: const Text('Clear my response'),
-              ),
-            ],
           ],
         ),
       ),
     );
   }
-}
-
-/// One of the two availability buttons.
-///
-/// **Filled when it is this user's answer, outlined when it is not** — the
-/// original's `btn-success` / `btn-outline-success` pair, and the whole of
-/// how it shows which answer is current.
-class _AvailabilityButton extends StatelessWidget {
-  const _AvailabilityButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.selected,
-    required this.onPressed,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color color;
-  final bool selected;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) => OutlinedButton.icon(
-    style: OutlinedButton.styleFrom(
-      foregroundColor: selected ? Colors.white : color,
-      backgroundColor: selected ? color : null,
-      side: BorderSide(color: color),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-    ),
-    onPressed: onPressed,
-    icon: Icon(icon, size: 18),
-    label: Text(label),
-  );
 }
 
 /// The staff roster: who was invited, who is coming, who declined.

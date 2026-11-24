@@ -112,9 +112,9 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.widgetWithText(FilledButton, 'Accept'), findsNWidgets(2));
-      expect(find.widgetWithText(FilledButton, 'Maybe'), findsNWidgets(2));
-      expect(find.widgetWithText(FilledButton, 'Decline'), findsNWidgets(2));
+      expect(find.byTooltip('RSVP Yes'), findsNWidgets(2));
+      expect(find.byTooltip('RSVP Maybe'), findsNWidgets(2));
+      expect(find.byTooltip('RSVP No'), findsNWidgets(2));
     });
   });
 
@@ -123,7 +123,7 @@ void main() {
       final adapter = rsvpAdapter(requested: [eventJson(id: 61)]);
       await pumpApp(tester, token: 'token', adapter: adapter);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Accept'));
+      await tester.tap(find.byTooltip('RSVP Yes'));
       await tester.pump();
       await settleRequests(tester);
 
@@ -142,7 +142,7 @@ void main() {
       final adapter = rsvpAdapter(requested: [eventJson(id: 61)]);
       await pumpApp(tester, token: 'token', adapter: adapter);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Maybe'));
+      await tester.tap(find.byTooltip('RSVP Maybe'));
       await tester.pump();
       await settleRequests(tester);
 
@@ -160,7 +160,7 @@ void main() {
       final adapter = rsvpAdapter(requested: [eventJson(id: 61)]);
       await pumpApp(tester, token: 'token', adapter: adapter);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Decline'));
+      await tester.tap(find.byTooltip('RSVP No'));
       await tester.pump();
       await settleRequests(tester);
 
@@ -184,7 +184,7 @@ void main() {
       );
       await pumpApp(tester, token: 'token', adapter: adapter);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Accept'));
+      await tester.tap(find.byTooltip('RSVP Yes'));
       await tester.pump();
       await settleRequests(tester);
 

@@ -7,7 +7,6 @@ import 'package:timezone/timezone.dart' show TZDateTime;
 
 import '../../core/api/api_exception.dart';
 import '../../core/services/list_query.dart';
-import '../../core/theme/teven_theme.dart';
 import '../../core/util/local_date.dart';
 import '../../models/event.dart';
 import '../../models/permissions.dart';
@@ -26,6 +25,7 @@ import '../../widgets/paged_list_view.dart';
 import '../../widgets/picker_fields.dart';
 import '../../widgets/record_link_button.dart';
 import '../../widgets/responsive_list_view.dart';
+import '../../widgets/rsvp_buttons.dart';
 
 /// The event list.
 ///
@@ -169,11 +169,32 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
       ref
           .read(eventListProvider(_query!).notifier)
           .replaceItemWhere((e) => e.eventId == event.eventId, updated);
-      if (mounted) setState(() => _actionError = null);
+      setState(() => _actionError = null);
+      _showRsvpSnackBar('RSVP updated to ${_rsvpLabel(availability)}.');
     } on ApiException catch (error) {
-      if (mounted) setState(() => _actionError = error);
+      if (!mounted) return;
+      _showRsvpSnackBar(error.message, isError: true);
     }
   }
+
+  void _showRsvpSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+        ),
+      );
+  }
+
+  static String _rsvpLabel(String availability) => switch (availability) {
+    RsvpAvailability.accepted => 'Yes',
+    RsvpAvailability.declined => 'No',
+    RsvpAvailability.tentative => 'Maybe',
+    RsvpAvailability.needsAction => 'No response',
+    _ => availability,
+  };
 
   List<ListColumn<EventResponse>> _columns(
     int? currentUserId,
@@ -195,21 +216,16 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     ),
     ListColumn<EventResponse>(
       key: 'startsAt',
-      label: 'Date',
+      label: 'Date / Time',
       sortable: true,
-      text: (event) => event.dateIn(readerZone),
-    ),
-    ListColumn<EventResponse>(
-      key: 'time',
-      label: 'Time',
-      text: (event) => event.timeIn(readerZone),
+      flex: 2,
+      text: (event) =>
+          '${event.dateIn(readerZone)} ${event.timeIn(readerZone)}',
     ),
     ListColumn<EventResponse>(
       key: 'description',
       label: 'Description',
-      // Free text written by whoever made the event, and the other end of the
-      // width problem documented on the user list. Two shares, not one.
-      flex: 2,
+      flex: 3,
       text: (event) => event.description ?? '',
     ),
     if (showOrganization)
@@ -217,6 +233,7 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
         key: 'organization',
         label: 'Organization',
         sortable: true,
+        flex: 2,
         render: (context, event) => RecordLinkButton(
           label: event.organization.name,
           onPressed: () => context.go(
@@ -229,16 +246,13 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
     ListColumn<EventResponse>(
       key: 'customer',
       label: 'Customer',
-      // The original used `event.customer?.name || 'N/A'`. The fallback is kept,
-      // and it is not decoration: `customerId` is nullable on both the DTO and
-      // the schema, so an event with no customer is a real state.
+      flex: 2,
       text: (event) => event.customer?.name ?? 'N/A',
     ),
     ListColumn<EventResponse>(
       key: 'rsvp',
       label: 'RSVP',
-      // Not sortable, matching the original: only `title` and `date` were
-      // sortable there.
+      flex: 3,
       render: (context, event) => _RsvpCell(
         event: event,
         currentUserId: currentUserId,
@@ -322,9 +336,9 @@ class _EventListScreenState extends ConsumerState<EventListScreen> {
               ),
               idOf: (event) => event.eventId,
               emptyMessage: 'No events found.',
-              // Same test `_buildQuery` uses to decide whether to send `search`
-              // at all, so the label cannot claim a filter the request did not
-              // apply.
+              // The event table is compact enough to stay tabular below the global
+              // desktop breakpoint.
+              tableMinWidth: 800,
               filtered: _searchTerm.isNotEmpty,
               sortBy: _sortBy,
               sortOrder: _sortOrder,
@@ -446,13 +460,7 @@ class _Filters extends StatelessWidget {
   );
 }
 
-/// The three RSVP buttons, and which of them is currently selected.
-///
-/// The selected button is filled and the others are neutral; that is the entire
-/// "what is my current answer" display, and it is reproduced rather than
-/// improved, because the server has no notion of "cleared" that the client could
-/// render differently — the clear button simply posts `'no response'` and the
-/// row comes back with the availability the server stored.
+/// This user's RSVP controls for one event row.
 class _RsvpCell extends StatelessWidget {
   const _RsvpCell({
     required this.event,
@@ -466,98 +474,19 @@ class _RsvpCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The original found *this* user's RSVP among the event's, rather than
-    // reading a field the server denormalizes. Null when the user has not
-    // answered, which is also the state where all three buttons are neutral.
     final mine = currentUserId == null
         ? null
         : event.rsvps
               .where((rsvp) => rsvp.userId == currentUserId)
               .firstOrNull
               ?.availability;
-
-    return Wrap(
-      spacing: 4,
-      runSpacing: 4,
-      children: [
-        _RsvpButton(
-          icon: Icons.check,
-          tooltip: 'RSVP Yes',
-          selected: mine == RsvpAvailability.accepted,
-          selectedColor: TevenTheme.success,
-          onPressed: () => onRsvp(RsvpAvailability.accepted),
-        ),
-        _RsvpButton(
-          icon: Icons.question_mark,
-          tooltip: 'RSVP Maybe',
-          selected: mine == RsvpAvailability.tentative,
-          selectedColor: Theme.of(context).colorScheme.primary,
-          onPressed: () => onRsvp(RsvpAvailability.tentative),
-        ),
-        _RsvpButton(
-          icon: Icons.close,
-          tooltip: 'RSVP No',
-          selected: mine == RsvpAvailability.declined,
-          selectedColor: TevenTheme.danger,
-          onPressed: () => onRsvp(RsvpAvailability.declined),
-        ),
-        _RsvpButton(
-          icon: Icons.undo,
-          tooltip: 'Clear RSVP',
-          selected: false,
-          onPressed: () => onRsvp(RsvpAvailability.needsAction),
-        ),
-      ],
+    return RsvpButtons(
+      currentAvailability: mine,
+      onSelected: onRsvp,
+      wrap: false,
     );
   }
 }
 
 /// Compatibility alias: clearing a response now posts `needs_action`.
 const String kRsvpCleared = RsvpAvailability.needsAction;
-
-/// One RSVP button.
-const double kRsvpButtonSize = 44;
-
-class _RsvpButton extends StatelessWidget {
-  const _RsvpButton({
-    required this.icon,
-    required this.tooltip,
-    required this.selected,
-    required this.onPressed,
-    this.selectedColor,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final bool selected;
-  final VoidCallback onPressed;
-
-  /// The fill for the selected state. Null leaves the button in the theme's
-  /// primary colour, which is what the clear button uses — it has no selected
-  /// state to show.
-  final Color? selectedColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final fill = selectedColor ?? scheme.primary;
-
-    return Tooltip(
-      message: tooltip,
-      child: IconButton(
-        onPressed: onPressed,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(
-          minWidth: kRsvpButtonSize,
-          minHeight: kRsvpButtonSize,
-        ),
-        style: IconButton.styleFrom(
-          backgroundColor: selected ? fill : scheme.surfaceContainerHighest,
-          foregroundColor: selected ? Colors.white : scheme.outline,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        ),
-        icon: Icon(icon, size: 18),
-      ),
-    );
-  }
-}

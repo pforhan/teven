@@ -286,7 +286,7 @@ void main() {
       expect(
         find.descendant(
           of: rowFor('Hedge trimming'),
-          matching: find.text(today),
+          matching: find.textContaining(today),
         ),
         findsOneWidget,
       );
@@ -528,7 +528,21 @@ void main() {
     testWidgets('the clear button posts needs_action', (tester) async {
       final today = formatLocalDate(DateTime.now().toUtc());
       final adapter = eventAdapter(
-        events: [eventJson(id: 5, title: 'Site visit', date: today)],
+        events: [
+          eventJson(
+            id: 5,
+            title: 'Site visit',
+            date: today,
+            rsvps: [
+              {
+                'userId': 1,
+                'displayName': 'Ada',
+                'email': '',
+                'availability': 'accepted',
+              },
+            ],
+          ),
+        ],
       );
       await openList(tester, adapter);
 

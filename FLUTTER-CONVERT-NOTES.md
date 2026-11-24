@@ -4206,6 +4206,18 @@ Historical joins left intact: event RSVP/report reads that resolve users by id d
 
 ---
 
+### 2026-11-20 — 10.45: standardize RSVP UI across event surfaces
+
+**Implemented task 10.45.** Unified RSVP controls and feedback across the calendar pending-RSVP card, event list, event details, and day view.
+
+**Flutter.** Added shared `RsvpButtons` (`flutter_app/lib/widgets/rsvp_buttons.dart`) with icon controls for Yes/Maybe/No/Clear, tooltips/long-press labels, selected/disabled states, and consistent styling. Replaced surface-specific RSVP UIs: `RsvpWidget` pending card, event list `_RsvpCell`, and event details availability card now use the shared control. Added RSVP actions to day-view event rows by extending `DayEventsPanel` with `showRsvpActions` and enabling it in `EventDayScreen`. RSVP mutations now report success/failure via SnackBars; list/details/day rows update in place from returned event data, and the pending-RSVP card still removes answered rows on success.
+
+**Verified:** `./teven verify`.
+
+**Files changed (primary):** `flutter_app/lib/widgets/rsvp_buttons.dart`, `flutter_app/lib/widgets/rsvp_widget.dart`, `flutter_app/lib/screens/events/event_list_screen.dart`, `flutter_app/lib/screens/events/event_details_screen.dart`, `flutter_app/lib/screens/events/event_day_screen.dart`, `flutter_app/lib/widgets/day_events_panel.dart`, `flutter_app/test/rsvp_widget_test.dart`, `flutter_app/test/event_details_screen_test.dart`, `flutter_app/test/event_list_screen_test.dart`, `FLUTTER-CONVERT.md`, `FLUTTER-CONVERT-NOTES.md`.
+
+---
+
 ### 2026-11-20 — 10.43: remove redundant organization controls from Reports
 
 **Implemented task 10.43.** Simplified the Reports screen by removing redundant in-page organization controls.

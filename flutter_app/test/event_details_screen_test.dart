@@ -188,19 +188,8 @@ void main() {
             o.queryParameters['endDate'] == '2026-10-19';
       }).firstOrNull;
 
-  /// The availability button with [label].
-  ///
-  /// **`byWidgetPredicate` and not `byType`,** because `OutlinedButton.icon`
-  /// builds an `_OutlinedButtonWithIcon` — a subclass — and `find.byType`
-  /// compares the runtime type exactly. A `find.byType(OutlinedButton)` for
-  /// these two buttons matches **nothing at all**, and the failure reads as
-  /// "the button does not exist" rather than "you named the wrong class".
-  Finder availabilityButton(String label) => find
-      .ancestor(
-        of: find.text(label),
-        matching: find.byWidgetPredicate((w) => w is OutlinedButton),
-      )
-      .first;
+  Finder rsvpButton(String tooltip) =>
+      find.byWidgetPredicate((w) => w is IconButton && w.tooltip == tooltip);
 
   Future<ProviderContainer> openDetails(
     WidgetTester tester,
@@ -343,15 +332,17 @@ void main() {
         find.text("You don't have permission to RSVP to this event."),
         findsOneWidget,
       );
-      expect(find.text('Going'), findsNothing);
-      expect(find.text('Not Going'), findsNothing);
+      expect(find.byTooltip('RSVP Yes'), findsNothing);
+      expect(find.byTooltip('RSVP No'), findsNothing);
     });
 
     testWidgets('with it, there is', (tester) async {
       await openDetails(tester, detailsAdapter());
 
-      expect(find.text('Going'), findsOneWidget);
-      expect(find.text('Not Going'), findsOneWidget);
+      expect(find.byTooltip('RSVP Yes'), findsOneWidget);
+      expect(find.byTooltip('RSVP Maybe'), findsOneWidget);
+      expect(find.byTooltip('RSVP No'), findsOneWidget);
+      expect(find.byTooltip('Clear RSVP'), findsOneWidget);
     });
   });
 
@@ -418,14 +409,12 @@ void main() {
   });
 
   group('RSVP', () {
-    testWidgets('"Going" posts "accepted" and updates in place', (
-      tester,
-    ) async {
+    testWidgets('RSVP Yes posts accepted and updates in place', (tester) async {
       final adapter = detailsAdapter();
       await openDetails(tester, adapter);
       final before = eventFetches(adapter).length;
 
-      await tester.tap(find.text('Going'));
+      await tester.tap(rsvpButton('RSVP Yes'));
       await tester.pump();
       await settleRequests(tester);
 
@@ -438,14 +427,14 @@ void main() {
       );
       // RSVP returns the updated event; no redundant refetch needed.
       expect(eventFetches(adapter).length, before);
-      expect(find.textContaining('Successfully updated RSVP'), findsOneWidget);
+      expect(find.textContaining('RSVP updated to Yes'), findsOneWidget);
     });
 
-    testWidgets('"Maybe" posts "tentative"', (tester) async {
+    testWidgets('RSVP Maybe posts tentative', (tester) async {
       final adapter = detailsAdapter();
       await openDetails(tester, adapter);
 
-      await tester.tap(find.text('Maybe'));
+      await tester.tap(rsvpButton('RSVP Maybe'));
       await tester.pump();
       await settleRequests(tester);
 
@@ -458,11 +447,11 @@ void main() {
       );
     });
 
-    testWidgets('"Not Going" posts "declined"', (tester) async {
+    testWidgets('RSVP No posts declined', (tester) async {
       final adapter = detailsAdapter();
       await openDetails(tester, adapter);
 
-      await tester.tap(find.text('Not Going'));
+      await tester.tap(rsvpButton('RSVP No'));
       await tester.pump();
       await settleRequests(tester);
 
@@ -475,7 +464,7 @@ void main() {
       );
     });
 
-    testWidgets('"Clear my response" posts needs_action', (tester) async {
+    testWidgets('Clear RSVP posts needs_action', (tester) async {
       final adapter = detailsAdapter(
         event: eventJson(
           rsvps: [rsvpJson(userId: 1, availability: 'accepted')],
@@ -483,12 +472,10 @@ void main() {
       );
       await openDetails(tester, adapter);
 
-      expect(
-        find.widgetWithText(TextButton, 'Clear my response'),
-        findsOneWidget,
-      );
+      final clear = tester.widget<IconButton>(rsvpButton('Clear RSVP'));
+      expect(clear.onPressed, isNotNull);
 
-      await tester.tap(find.widgetWithText(TextButton, 'Clear my response'));
+      await tester.tap(rsvpButton('Clear RSVP'));
       await tester.pump();
       await settleRequests(tester);
 
@@ -499,7 +486,6 @@ void main() {
         (post.data as RsvpRequest).availability,
         RsvpAvailability.needsAction,
       );
-      expect(kRsvpCleared, RsvpAvailability.needsAction);
     });
 
     testWidgets('the answer that is current is the filled button', (
@@ -521,27 +507,20 @@ void main() {
         ),
       );
 
-      final going = tester.widget<OutlinedButton>(availabilityButton('Going'));
-      final notGoing = tester.widget<OutlinedButton>(
-        availabilityButton('Not Going'),
-      );
+      final yes = tester.widget<IconButton>(rsvpButton('RSVP Yes'));
+      final no = tester.widget<IconButton>(rsvpButton('RSVP No'));
 
-      // Ada's "yes" fills the green button…
-      expect(going.style?.backgroundColor?.resolve({}), yesFill);
-      // …and Bob's "no" must not fill the red one, which is exactly what
-      // taking the first RSVP on the list rather than this user's would do.
-      expect(notGoing.style?.backgroundColor?.resolve({}), isNot(noFill));
+      expect(yes.style?.backgroundColor?.resolve({}), yesFill);
+      expect(no.style?.backgroundColor?.resolve({}), isNot(noFill));
     });
 
-    testWidgets('there is no clear button when there is nothing to clear', (
+    testWidgets('clear is disabled when there is nothing to clear', (
       tester,
     ) async {
       await openDetails(tester, detailsAdapter());
 
-      expect(
-        find.widgetWithText(TextButton, 'Clear my response'),
-        findsNothing,
-      );
+      final clear = tester.widget<IconButton>(rsvpButton('Clear RSVP'));
+      expect(clear.onPressed, isNull);
     });
   });
 

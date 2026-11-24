@@ -8,10 +8,13 @@ import '../core/api/api_exception.dart';
 import '../core/services/list_query.dart';
 import '../core/util/local_date.dart';
 import '../models/event.dart';
+import '../models/permissions.dart';
+import '../providers/auth_controller.dart';
 import '../providers/service_providers.dart';
 import '../providers/time_zone_controller.dart';
 import '../routing/app_router.dart';
 import 'error_display.dart';
+import 'rsvp_buttons.dart';
 
 /// How the panel's date header is presented.
 enum DayEventsPanelHeaderMode {
@@ -56,6 +59,7 @@ class DayEventsPanel extends ConsumerStatefulWidget {
     this.headerMode = DayEventsPanelHeaderMode.staticLabel,
     this.marker,
     this.interactive = true,
+    this.showRsvpActions = false,
     this.organizationName,
     this.eventDetailsBackToDay,
   });
@@ -96,6 +100,9 @@ class DayEventsPanel extends ConsumerStatefulWidget {
   /// Disabled in create/edit flows to avoid leaving unsaved form state.
   final bool interactive;
 
+  /// Whether to show RSVP controls on each event row.
+  final bool showRsvpActions;
+
   /// When set, shown as the scoped organization for this panel's events.
   ///
   /// Used on view-event to clarify which organization's events are listed when
@@ -129,6 +136,9 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
 
   /// Counts requests, so a slow answer cannot overwrite a newer one.
   int _request = 0;
+
+  /// Event IDs with an RSVP mutation in flight.
+  final Set<int> _rsvpPending = {};
 
   /// The most events a single day's list may hold.
   static const int _dayLimit = 500;
@@ -234,6 +244,47 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
     setState(change);
   }
 
+  Future<void> _rsvp(EventResponse event, String availability) async {
+    if (_rsvpPending.contains(event.eventId)) return;
+    _set(() => _rsvpPending.add(event.eventId));
+    try {
+      final updated = await ref
+          .read(eventServiceProvider)
+          .rsvpToEvent(event.eventId, RsvpRequest(availability: availability));
+      if (!mounted) return;
+      _set(() {
+        _rsvpPending.remove(event.eventId);
+        _fetchedItems = _fetchedItems
+            .map((e) => e.eventId == event.eventId ? updated : e)
+            .toList(growable: false);
+      });
+      _showRsvpSnackBar('RSVP updated to ${_rsvpLabel(availability)}.');
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      _set(() => _rsvpPending.remove(event.eventId));
+      _showRsvpSnackBar(error.message, isError: true);
+    }
+  }
+
+  void _showRsvpSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+        ),
+      );
+  }
+
+  static String _rsvpLabel(String availability) => switch (availability) {
+    RsvpAvailability.accepted => 'Yes',
+    RsvpAvailability.declined => 'No',
+    RsvpAvailability.tentative => 'Maybe',
+    RsvpAvailability.needsAction => 'No response',
+    _ => availability,
+  };
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -256,6 +307,10 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
     final showBlockingLoader = _loading && !hasContent;
     final showBar = _showLoadingBar && _loading;
     final showOrganization = widget.organizationId == null;
+    final canRsvp =
+        widget.showRsvpActions &&
+        ref.watch(permissionGateProvider).has(Permission.assignToEventsSelf);
+    final currentUserId = ref.watch(userContextProvider)?.user.userId;
 
     final orgLabel = widget.organizationName;
     final body = Padding(
@@ -310,6 +365,11 @@ class _DayEventsPanelState extends ConsumerState<DayEventsPanel> {
                   event: event,
                   readerZone: readerZone,
                   showOrganization: showOrganization,
+                  currentUserId: canRsvp ? currentUserId : null,
+                  rsvpPending: _rsvpPending.contains(event.eventId),
+                  onRsvp: canRsvp
+                      ? (availability) => unawaited(_rsvp(event, availability))
+                      : null,
                   onTap: widget.interactive
                       ? () => context.go(
                           AppRoutes.eventDetailsPath(
@@ -441,31 +501,84 @@ class _LoadingBody extends StatelessWidget {
 }
 
 /// One event on the day.
-///
-/// `<Link className="list-group-item list-group-item-action bg-transparent
-/// px-0 py-3 border-bottom">` — a title on the left, the time on the right,
-/// and a line of detail underneath.
 class _EventRow extends StatelessWidget {
   const _EventRow({
     required this.event,
     required this.readerZone,
     required this.showOrganization,
     required this.onTap,
+    this.currentUserId,
+    this.rsvpPending = false,
+    this.onRsvp,
   });
 
   final EventResponse event;
   final String readerZone;
   final bool showOrganization;
   final VoidCallback? onTap;
+  final int? currentUserId;
+  final bool rsvpPending;
+  final ValueChanged<String>? onRsvp;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final location = event.location;
     final hasLocation = location != null && location.isNotEmpty;
+    final mine = currentUserId == null
+        ? null
+        : event.rsvps
+              .where((rsvp) => rsvp.userId == currentUserId)
+              .firstOrNull
+              ?.availability;
 
-    final content = Padding(
-      // `py-3` — twelve pixels above and below.
+    final details = Row(
+      children: [
+        Icon(Icons.schedule, size: 14, color: theme.colorScheme.secondary),
+        const SizedBox(width: 4),
+        Text(
+          '${event.durationMinutes} min',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.secondary,
+          ),
+        ),
+        if (hasLocation) ...[
+          const SizedBox(width: 16),
+          Icon(Icons.place, size: 14, color: theme.colorScheme.secondary),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              location,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.secondary,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+
+    final time = Text(
+      event.timeIn(readerZone),
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.primary,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+
+    final rsvp = onRsvp == null
+        ? null
+        : RsvpButtons(
+            currentAvailability: mine,
+            enabled: !rsvpPending,
+            onSelected: onRsvp!,
+          );
+
+    Widget tappable(Widget child) =>
+        onTap == null ? child : InkWell(onTap: onTap, child: child);
+
+    return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,73 +594,82 @@ class _EventRow extends StatelessWidget {
             ),
             const SizedBox(height: 2),
           ],
-          Row(
-            // `align-items-center`, so the time stays level with the first
-            // line of a title that wraps.
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  event.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                event.timeIn(readerZone),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              // The clock. **The Bootstrap Icons were never installed** and
-              // the original's icon tags render as empty elements, so there
-              // is nothing to match settles it: Material icons
-              // throughout.
-              Icon(
-                Icons.schedule,
-                size: 14,
-                color: theme.colorScheme.secondary,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${event.durationMinutes} min',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.secondary,
-                ),
-              ),
-              if (hasLocation) ...[
-                // `ms-3` — a rem's worth of space between the two details.
-                const SizedBox(width: 16),
-                Icon(Icons.place, size: 14, color: theme.colorScheme.secondary),
-                const SizedBox(width: 4),
-                // Expanded rather than free: the location is the one part of
-                // this row that can be long, and a `Row` of unbounded
-                // children overflows a narrow sidebar rather than wrapping.
-                Expanded(
-                  child: Text(
-                    location,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.secondary,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 420;
+              if (wide) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    tappable(
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  event.title,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                details,
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          time,
+                        ],
+                      ),
+                    ),
+                    if (rsvp != null) ...[
+                      const SizedBox(height: 8),
+                      Align(alignment: Alignment.centerRight, child: rsvp),
+                    ],
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  tappable(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            time,
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        details,
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ],
+                  if (rsvp != null) ...[
+                    const SizedBox(height: 8),
+                    Align(alignment: Alignment.centerRight, child: rsvp),
+                  ],
+                ],
+              );
+            },
           ),
         ],
       ),
     );
-    if (onTap == null) return content;
-    return InkWell(onTap: onTap, child: content);
   }
 }
 

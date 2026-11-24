@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'
 import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 
 import '../core/api/api_exception.dart';
+import '../core/layout/breakpoints.dart';
 import '../core/services/list_query.dart';
 import '../providers/paged_list.dart';
 import 'error_display.dart';
@@ -58,6 +59,7 @@ class PagedListView<T> extends StatelessWidget {
     this.revealActionsOnHover,
     this.stale = false,
     this.filtered = false,
+    this.tableMinWidth,
   });
 
   /// The rows loaded so far, and whether more are coming.
@@ -80,6 +82,9 @@ class PagedListView<T> extends StatelessWidget {
   final ValueChanged<String>? onSort;
   final String emptyMessage;
   final bool? revealActionsOnHover;
+
+  /// Minimum available width for table layout; below this, cards are used.
+  final double? tableMinWidth;
 
   /// Whether the rows on screen are the result of an active search.
   ///
@@ -139,6 +144,7 @@ class PagedListView<T> extends StatelessWidget {
         onSort: onSort,
         emptyMessage: emptyMessage,
         revealActionsOnHover: revealActionsOnHover,
+        tableMinWidth: tableMinWidth ?? AppBreakpoints.desktop,
       ),
       // An empty list has nothing to page: `hasMore` is only ever true of a
       // list that came back short, and a genuinely empty result is not short.
@@ -391,6 +397,7 @@ class PagedListSection<T> extends ConsumerStatefulWidget {
     this.filtered = false,
     this.onRetry,
     this.onCancel,
+    this.tableMinWidth,
   });
 
   /// The list being watched.
@@ -421,6 +428,9 @@ class PagedListSection<T> extends ConsumerStatefulWidget {
   final ValueChanged<String>? onSort;
   final String emptyMessage;
   final bool? revealActionsOnHover;
+
+  /// Minimum available width for table layout; below this, cards are used.
+  final double? tableMinWidth;
 
   /// Whether the screen's search box holds a term. Only reaches the footer, to
   /// word its count — see [PagedListView.filtered].
@@ -537,5 +547,6 @@ class _PagedListSectionState<T> extends ConsumerState<PagedListSection<T>> {
         revealActionsOnHover: widget.revealActionsOnHover,
         stale: stale,
         filtered: widget.filtered,
+        tableMinWidth: widget.tableMinWidth,
       );
 }

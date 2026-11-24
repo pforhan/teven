@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api/api_exception.dart';
-import '../core/theme/teven_theme.dart';
 import '../models/event.dart';
 import '../providers/event_details.dart';
 import '../providers/event_list.dart';
 import '../providers/service_providers.dart';
 import '../providers/time_zone_controller.dart';
 import 'error_display.dart';
+import 'rsvp_buttons.dart';
 
 /// The list of events waiting for this user's answer.
 ///
@@ -134,33 +134,32 @@ class _RsvpWidgetState extends ConsumerState<RsvpWidget> {
       // know which month the calendar is showing, and the calendar builds its
       // own query from its own state.
       ref.invalidate(calendarEventsProvider);
+      _showSnackBar('RSVP updated to ${_rsvpLabel(availability)}.');
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() => _pending.remove(event.eventId));
-      _showError(context, error);
+      _showSnackBar(error.message, isError: true);
     }
   }
 
-  /// The failure, in the card.
-  ///
-  /// **A dialog rather than a banner,** because the card itself is the thing
-  /// the user was looking at when they pressed the button, and a banner that
-  /// appears *in* it would push the rows down while they are being pressed.
-  void _showError(BuildContext context, ApiException error) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Could not send your RSVP'),
-        content: ErrorDisplay.fromException(error),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+        ),
+      );
   }
+
+  static String _rsvpLabel(String availability) => switch (availability) {
+    RsvpAvailability.accepted => 'Yes',
+    RsvpAvailability.declined => 'No',
+    RsvpAvailability.tentative => 'Maybe',
+    RsvpAvailability.needsAction => 'No response',
+    _ => availability,
+  };
 }
 
 /// One event's row: what it is, and the two answers.
@@ -203,38 +202,10 @@ class _RsvpRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.end,
-          children: [
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: TevenTheme.success,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: pending
-                  ? null
-                  : () => onAnswer(RsvpAvailability.accepted),
-              child: const Text('Accept'),
-            ),
-            FilledButton.tonal(
-              onPressed: pending
-                  ? null
-                  : () => onAnswer(RsvpAvailability.tentative),
-              child: const Text('Maybe'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: TevenTheme.danger,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: pending
-                  ? null
-                  : () => onAnswer(RsvpAvailability.declined),
-              child: const Text('Decline'),
-            ),
-          ],
+        RsvpButtons(
+          currentAvailability: RsvpAvailability.needsAction,
+          enabled: !pending,
+          onSelected: onAnswer,
         ),
       ],
     );

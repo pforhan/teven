@@ -136,6 +136,7 @@ class ResponsiveListView<T> extends StatefulWidget {
     this.onSort,
     this.emptyMessage = 'Nothing to show.',
     this.revealActionsOnHover,
+    this.tableMinWidth = AppBreakpoints.desktop,
   });
 
   final List<T> data;
@@ -171,6 +172,9 @@ class ResponsiveListView<T> extends StatefulWidget {
   /// false and the hover path would otherwise be unreachable from a test.
   final bool? revealActionsOnHover;
 
+  /// Minimum available width for table layout; below this, cards are used.
+  final double tableMinWidth;
+
   @override
   State<ResponsiveListView<T>> createState() => _ResponsiveListViewState<T>();
 }
@@ -203,11 +207,9 @@ class _ResponsiveListViewState<T> extends State<ResponsiveListView<T>> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final size = AppBreakpoints.of(constraints.maxWidth);
-          // Two independent decisions that happen to share a breakpoint. The
-          // layout follows the space available; the hover affordance follows
-          // the input device, and only exists in the table at all.
-          final isTable = size == LayoutSize.desktop;
+          final isTable = constraints.maxWidth >= widget.tableMinWidth;
+          // The hover affordance follows the input device, and only exists in
+          // the table at all.
           final revealOnHover =
               widget.revealActionsOnHover ?? (isTable && kIsWeb);
 
