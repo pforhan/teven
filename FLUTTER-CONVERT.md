@@ -477,7 +477,7 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 - [x] **10.41** Users correctly cannot deactivate themselves via a server error.  We can probably check that in the client first for a better ux
 
   **Implemented.** The users list now hides the Deactivate action for the currently signed-in user (client-side UX guard), while server-side self-deactivation protection remains unchanged. Verified with `./teven verify`.
-- [ ] **10.42** _(Merged into 10.29.)_ Soft-delete/events removal semantics, affected UI surfaces (calendar/events list/day view or dedicated removed-events view), audit (who deleted/when), and dependent behavior for RSVPs/inventory/etc. on remove and restore are now captured in **10.29**. Keep 10.42 as a pointer so the user-reported note isn’t lost.
+- [x] **10.42** _(Merged into 10.29.)_ Soft-delete/events removal semantics, affected UI surfaces (calendar/events list/day view or dedicated removed-events view), audit (who deleted/when), and dependent behavior for RSVPs/inventory/etc. on remove and restore are now captured in **10.29**. Keep 10.42 as a pointer so the user-reported note isn’t lost.
 - [x] **10.43** the reports page has its own organization display and change organization prompt, this isn't necessary since the sidebar does that.  Still should maintain the requirement that an organization is selected on visit.
 
   **Implemented.** Removed the in-page organization label and organization selector button from the Reports screen while keeping the requirement that a specific effective organization be selected before reports load (global users without a selected organization still see the blocking message and no report requests). Updated report screen tests accordingly. Verified with `./teven verify`.
@@ -514,6 +514,11 @@ Please ensure that class is marked as '@Serializable' and that the serialization
 
   **Implemented.** Entity list screens (users, customers, events, inventory) and the Unused Invitations table now show a sortable Organization column only in the superadmin "All Organizations" scope (`isAllOrganizationsProvider`), and hide it when a specific organization is selected. Backend list endpoints/DAOs now accept `sortBy=organization|organizationName` (joining organization names where needed); invitation listing also supports sort params and `InvitationResponse` now includes `organizationName`. Flutter invitation provider/service and user list invitation table were updated for sorting. Verified with `./teven verify-backend` and `./teven verify`.
 
+- [ ] **10.56** Honor Open Invitation setting, add Open Visibility setting.  RSVPs are open to all, so staff can invite themselves to any event, and it looks in the UI like they were specifically invited.  Even if you answer then clear the answer, your name remains on the invite.  Organizers need to be able to lock down events in two ways: anyone can join (open invitation, which we have in the ui and data model), and anyone can see (which we don't have).  When on, each of these uses the invite list for access control. Note that open invitation implies / overrides a limited visibility.
+- [ ] **10.57** Should not be able to RSVP (or change response) to an event in the past.
+- [ ] **10.58** RSVP status should determine event color and icon on calendar view.  It should be clear what events the user signed up for.  Declines, things the user is not invited to, and past events should be muted colors.  Events that don't meet or exceed "number of staff" that the user can RSVP to should be higlighted with an icon (! maybe?) and special color.
+- [ ] **10.59** Calendar view: always show time, ellipsizing event name as needed.  Consider right-aligning time.
+- [ ] **10.60** ability to modify (or jump to a dialog to modify) roster, visibility, open invitation from view event screen.
 ---
 
 ## Phase 11 — Native packaging (deferred, not required for cutover)
